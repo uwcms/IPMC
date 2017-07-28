@@ -1,0 +1,96 @@
+{
+   guistr: "# # String gsaved with Nlview 6.6.8  2016-12-21 bk=1.3817 VDI=40 GEI=35 GUI=JA:1.6
+#  -string -flagsOSRD
+preplace port PG_B -pg 1 -y 850 -defaultsOSRD
+preplace port ALARM_A -pg 1 -y 90 -defaultsOSRD
+preplace port TPS2358_2 -pg 1 -y 1360 -defaultsOSRD
+preplace port ADC_B -pg 1 -y 170 -defaultsOSRD
+preplace port DDR -pg 1 -y 730 -defaultsOSRD
+preplace port ALARM_B -pg 1 -y 890 -defaultsOSRD
+preplace port TPS2358_3 -pg 1 -y 1650 -defaultsOSRD
+preplace port TPS2358_4 -pg 1 -y 1540 -defaultsOSRD
+preplace port MC_0 -pg 1 -y 1500 -defaultsOSRD
+preplace port JTAG -pg 1 -y 300 -defaultsOSRD
+preplace port MC_1 -pg 1 -y 1300 -defaultsOSRD
+preplace port MC_2 -pg 1 -y 1390 -defaultsOSRD
+preplace port I2C_0 -pg 1 -y 1420 -defaultsOSRD
+preplace port MC_3 -pg 1 -y 1710 -defaultsOSRD
+preplace port I2C_1 -pg 1 -y 1270 -defaultsOSRD
+preplace port MC_4 -pg 1 -y 1620 -defaultsOSRD
+preplace port I2C_2 -pg 1 -y 1330 -defaultsOSRD
+preplace port I2C_3 -pg 1 -y 1680 -defaultsOSRD
+preplace port I2C_4 -pg 1 -y 1580 -defaultsOSRD
+preplace port HNDL_SW -pg 1 -y 670 -defaultsOSRD
+preplace port TPS2358_0 -pg 1 -y 1460 -defaultsOSRD
+preplace port PG_A -pg 1 -y 870 -defaultsOSRD
+preplace port TPS2358_1 -pg 1 -y 1240 -defaultsOSRD
+preplace port ADC_A -pg 1 -y 990 -defaultsOSRD
+preplace portBus PL_LEDS -pg 1 -y 1120 -defaultsOSRD
+preplace portBus PYLD12V_EN -pg 1 -y 620 -defaultsOSRD
+preplace portBus ATCA_LEDS -pg 1 -y 60 -defaultsOSRD
+preplace portBus GPIO -pg 1 -y 430 -defaultsOSRD
+preplace inst ad7689_0 -pg 1 -lvl 3 -y 1000 -defaultsOSRD
+preplace inst ad7689_1 -pg 1 -lvl 3 -y 180 -defaultsOSRD
+preplace inst axi_intc_0 -pg 1 -lvl 3 -y 810 -defaultsOSRD
+preplace inst AMCs -pg 1 -lvl 3 -y 1490 -defaultsOSRD -resize 887 592
+preplace inst xlconcat_0 -pg 1 -lvl 2 -y 810 -defaultsOSRD
+preplace inst proc_sys_reset_0 -pg 1 -lvl 1 -y 580 -defaultsOSRD
+preplace inst led_0 -pg 1 -lvl 3 -y 1120 -defaultsOSRD
+preplace inst Management -pg 1 -lvl 3 -y 610 -defaultsOSRD
+preplace inst led_1 -pg 1 -lvl 3 -y 60 -defaultsOSRD
+preplace inst axi_interconnect_0 -pg 1 -lvl 2 -y 400 -defaultsOSRD
+preplace inst GPIO -pg 1 -lvl 3 -y 430 -defaultsOSRD
+preplace inst xvc_0 -pg 1 -lvl 3 -y 300 -defaultsOSRD
+preplace inst processing_system7_0 -pg 1 -lvl 1 -y 770 -defaultsOSRD
+preplace netloc xvc_0_JTAG 1 3 1 NJ
+preplace netloc AMCs_I2C 1 3 1 NJ
+preplace netloc processing_system7_0_DDR 1 1 3 460J 730 NJ 730 NJ
+preplace netloc ad7689_1_spi 1 3 1 NJ
+preplace netloc led_1_m_led_out 1 3 1 NJ
+preplace netloc AMCs_TPS2358 1 3 1 NJ
+preplace netloc led_0_m_led_out 1 3 1 NJ
+preplace netloc AMCs_MC 1 3 1 NJ
+preplace netloc AMCs_TPS2359 1 3 1 NJ
+preplace netloc ACLK_1 1 0 3 10 670 440 120 940
+preplace netloc AMCs_I2C1 1 3 1 NJ
+preplace netloc axi_interconnect_0_M02_AXI 1 2 1 860
+preplace netloc PG_B_1 1 0 3 -10J 910 NJ 910 960J
+preplace netloc ALARM_A_1 1 0 3 NJ 90 NJ 90 960J
+preplace netloc xlconcat_1_dout 1 1 3 510 950 980J 900 1940
+preplace netloc ARESETN_1 1 1 2 430 690 840J
+preplace netloc processing_system7_0_FCLK_RESET0_N 1 0 2 20 870 440
+preplace netloc AMCs_TPS2360 1 3 1 NJ
+preplace netloc AMCs_I2C2 1 3 1 NJ
+preplace netloc HNDL_SW_1 1 0 3 0J 880 470J 700 890J
+preplace netloc Management_gpio2_io_o 1 3 1 NJ
+preplace netloc AMCs_TPS2361 1 3 1 NJ
+preplace netloc AMCs_I2C3 1 3 1 NJ
+preplace netloc axi_interconnect_0_M07_AXI 1 2 1 860
+preplace netloc ad7689_1_irq 1 1 3 520 890 NJ 890 1950
+preplace netloc AMCs_TPS2362 1 3 1 NJ
+preplace netloc AMCs_I2C4 1 3 1 NJ
+preplace netloc axi_interconnect_0_M08_AXI 1 2 1 930
+preplace netloc axi_interconnect_0_M04_AXI 1 2 1 870
+preplace netloc AMCs_dout 1 1 3 500 940 990J 930 1930
+preplace netloc xlconcat_0_dout 1 2 1 860
+preplace netloc ad7689_0_irq 1 1 3 490 920 NJ 920 1940
+preplace netloc S00_AXI_1 1 1 1 450
+preplace netloc AMCs_MC1 1 3 1 NJ
+preplace netloc axi_interconnect_0_M05_AXI 1 2 1 870
+preplace netloc axi_interconnect_0_M00_AXI 1 2 1 850
+preplace netloc proc_sys_reset_0_peripheral_aresetn 1 1 2 460 680 920
+preplace netloc AMCs_MC2 1 3 1 NJ
+preplace netloc axi_interconnect_0_M01_AXI 1 2 1 910
+preplace netloc PG_A_1 1 0 3 -20J 900 NJ 900 950J
+preplace netloc Net 1 3 1 NJ
+preplace netloc AMCs_MC3 1 3 1 NJ
+preplace netloc axi_interconnect_0_M06_AXI 1 2 1 840
+preplace netloc axi_intc_0_irq 1 0 4 30 930 NJ 930 970J 910 1930
+preplace netloc AMCs_MC4 1 3 1 NJ
+preplace netloc ad7689_0_spi 1 3 1 NJ
+preplace netloc axi_interconnect_0_M03_AXI 1 2 1 880
+preplace netloc ALARM_B_1 1 0 3 NJ 890 480J 720 900J
+levelinfo -pg 1 -40 230 690 1460 1980 -top -10 -bot 2170
+",
+}
+0
