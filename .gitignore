@@ -89,3 +89,6 @@
 *.tmp
 *.runs
 *.cache
+
+# mpv: Include all markdown files
+!*.md
