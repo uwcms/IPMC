@@ -91,6 +91,7 @@
 *.runs/
 *.cache/
 *.hw/
+*.sim/
 **/*.srcs/*/bd/mref/
 **/*.srcs/*/bd/*/ipshared/
 **/*.srcs/*/bd/*/hw_handoff/
