@@ -102,3 +102,11 @@
 
 ## SDK
 !*.hdf
+
+# mpv: Include all files from ip_repos, except sub-IPs
+!ip_repo/
+**/ip_repo/*/src/*/doc/
+**/ip_repo/*/src/*/simulation/
+**/ip_repo/*/src/*/hdl/
+**/ip_repo/*/src/*/sim/
+**/ip_repo/*/src/*/synth/

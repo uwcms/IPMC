@@ -1,7 +1,7 @@
 --Copyright 1986-2017 Xilinx, Inc. All Rights Reserved.
 ----------------------------------------------------------------------------------
 --Tool Version: Vivado v.2017.2 (lin64) Build 1909853 Thu Jun 15 18:39:10 MDT 2017
---Date        : Fri Aug  4 18:57:28 2017
+--Date        : Fri Aug  4 21:57:00 2017
 --Host        : moonraker.cern.ch running 64-bit Scientific Linux CERN SLC release 6.9 (Carbon)
 --Command     : generate_target design_1.bd
 --Design      : design_1
@@ -66,14 +66,6 @@ architecture STRUCTURE of GPIO_imp_1O09UX0 is
     gpio2_io_t : out STD_LOGIC_VECTOR ( 16 downto 0 )
   );
   end component design_1_axi_gpio_0_1;
-  component design_1_tri_state_buffer_0_0 is
-  port (
-    I : in STD_LOGIC_VECTOR ( 48 downto 0 );
-    O : out STD_LOGIC_VECTOR ( 48 downto 0 );
-    T : in STD_LOGIC_VECTOR ( 48 downto 0 );
-    IO : inout STD_LOGIC_VECTOR ( 48 downto 0 )
-  );
-  end component design_1_tri_state_buffer_0_0;
   component design_1_xlconcat_1_1 is
   port (
     In0 : in STD_LOGIC_VECTOR ( 31 downto 0 );
@@ -100,6 +92,14 @@ architecture STRUCTURE of GPIO_imp_1O09UX0 is
     Dout : out STD_LOGIC_VECTOR ( 16 downto 0 )
   );
   end component design_1_xlslice_1_0;
+  component design_1_tri_state_buffer_0_0 is
+  port (
+    I : in STD_LOGIC_VECTOR ( 48 downto 0 );
+    O : out STD_LOGIC_VECTOR ( 48 downto 0 );
+    T : in STD_LOGIC_VECTOR ( 48 downto 0 );
+    IO : inout STD_LOGIC_VECTOR ( 48 downto 0 )
+  );
+  end component design_1_tri_state_buffer_0_0;
   signal Conn1_ARADDR : STD_LOGIC_VECTOR ( 31 downto 0 );
   signal Conn1_ARREADY : STD_LOGIC;
   signal Conn1_ARVALID : STD_LOGIC_VECTOR ( 0 to 0 );
@@ -268,6 +268,16 @@ architecture STRUCTURE of Management_imp_1VIWTUF is
     gpio2_io_o : out STD_LOGIC_VECTOR ( 0 to 0 )
   );
   end component design_1_axi_gpio_0_0;
+  component design_1_xlconcat_1_0 is
+  port (
+    In0 : in STD_LOGIC_VECTOR ( 0 to 0 );
+    In1 : in STD_LOGIC_VECTOR ( 0 to 0 );
+    In2 : in STD_LOGIC_VECTOR ( 0 to 0 );
+    In3 : in STD_LOGIC_VECTOR ( 0 to 0 );
+    In4 : in STD_LOGIC_VECTOR ( 0 to 0 );
+    dout : out STD_LOGIC_VECTOR ( 4 downto 0 )
+  );
+  end component design_1_xlconcat_1_0;
   component design_1_debouncer_0_0 is
   port (
     CLK_IN : in STD_LOGIC;
@@ -303,16 +313,6 @@ architecture STRUCTURE of Management_imp_1VIWTUF is
     SIG_OUT : out STD_LOGIC
   );
   end component design_1_debouncer_4_0;
-  component design_1_xlconcat_1_0 is
-  port (
-    In0 : in STD_LOGIC_VECTOR ( 0 to 0 );
-    In1 : in STD_LOGIC_VECTOR ( 0 to 0 );
-    In2 : in STD_LOGIC_VECTOR ( 0 to 0 );
-    In3 : in STD_LOGIC_VECTOR ( 0 to 0 );
-    In4 : in STD_LOGIC_VECTOR ( 0 to 0 );
-    dout : out STD_LOGIC_VECTOR ( 4 downto 0 )
-  );
-  end component design_1_xlconcat_1_0;
   signal Conn1_ARADDR : STD_LOGIC_VECTOR ( 31 downto 0 );
   signal Conn1_ARREADY : STD_LOGIC;
   signal Conn1_ARVALID : STD_LOGIC_VECTOR ( 0 to 0 );
@@ -9205,6 +9205,14 @@ architecture STRUCTURE of amc0_imp_1JQ71Z7 is
     gpo : out STD_LOGIC_VECTOR ( 0 to 0 )
   );
   end component design_1_axi_iic_0_2;
+  component design_1_xlconcat_0_3 is
+  port (
+    In0 : in STD_LOGIC_VECTOR ( 0 to 0 );
+    In1 : in STD_LOGIC_VECTOR ( 0 to 0 );
+    In2 : in STD_LOGIC_VECTOR ( 1 downto 0 );
+    dout : out STD_LOGIC_VECTOR ( 3 downto 0 )
+  );
+  end component design_1_xlconcat_0_3;
   component design_1_iic_to_i2c_master_0_2 is
   port (
     s_iic_scl_i : out STD_LOGIC;
@@ -9217,14 +9225,6 @@ architecture STRUCTURE of amc0_imp_1JQ71Z7 is
     s_i2c_sda_io : inout STD_LOGIC
   );
   end component design_1_iic_to_i2c_master_0_2;
-  component design_1_xlconcat_0_3 is
-  port (
-    In0 : in STD_LOGIC_VECTOR ( 0 to 0 );
-    In1 : in STD_LOGIC_VECTOR ( 0 to 0 );
-    In2 : in STD_LOGIC_VECTOR ( 1 downto 0 );
-    dout : out STD_LOGIC_VECTOR ( 3 downto 0 )
-  );
-  end component design_1_xlconcat_0_3;
   signal ARESETN_1 : STD_LOGIC;
   signal Conn1_scl : STD_LOGIC;
   signal Conn1_sda : STD_LOGIC;
@@ -9595,6 +9595,14 @@ architecture STRUCTURE of amc1_imp_1Q1V79C is
     gpo : out STD_LOGIC_VECTOR ( 0 to 0 )
   );
   end component design_1_axi_iic_0_4;
+  component design_1_xlconcat_0_5 is
+  port (
+    In0 : in STD_LOGIC_VECTOR ( 0 to 0 );
+    In1 : in STD_LOGIC_VECTOR ( 0 to 0 );
+    In2 : in STD_LOGIC_VECTOR ( 1 downto 0 );
+    dout : out STD_LOGIC_VECTOR ( 3 downto 0 )
+  );
+  end component design_1_xlconcat_0_5;
   component design_1_iic_to_i2c_master_0_4 is
   port (
     s_iic_scl_i : out STD_LOGIC;
@@ -9607,14 +9615,6 @@ architecture STRUCTURE of amc1_imp_1Q1V79C is
     s_i2c_sda_io : inout STD_LOGIC
   );
   end component design_1_iic_to_i2c_master_0_4;
-  component design_1_xlconcat_0_5 is
-  port (
-    In0 : in STD_LOGIC_VECTOR ( 0 to 0 );
-    In1 : in STD_LOGIC_VECTOR ( 0 to 0 );
-    In2 : in STD_LOGIC_VECTOR ( 1 downto 0 );
-    dout : out STD_LOGIC_VECTOR ( 3 downto 0 )
-  );
-  end component design_1_xlconcat_0_5;
   signal ARESETN_1 : STD_LOGIC;
   signal Conn1_scl : STD_LOGIC;
   signal Conn1_sda : STD_LOGIC;
@@ -9985,6 +9985,14 @@ architecture STRUCTURE of amc2_imp_1RV87K5 is
     gpo : out STD_LOGIC_VECTOR ( 0 to 0 )
   );
   end component design_1_axi_iic_0_3;
+  component design_1_xlconcat_0_4 is
+  port (
+    In0 : in STD_LOGIC_VECTOR ( 0 to 0 );
+    In1 : in STD_LOGIC_VECTOR ( 0 to 0 );
+    In2 : in STD_LOGIC_VECTOR ( 1 downto 0 );
+    dout : out STD_LOGIC_VECTOR ( 3 downto 0 )
+  );
+  end component design_1_xlconcat_0_4;
   component design_1_iic_to_i2c_master_0_3 is
   port (
     s_iic_scl_i : out STD_LOGIC;
@@ -9997,14 +10005,6 @@ architecture STRUCTURE of amc2_imp_1RV87K5 is
     s_i2c_sda_io : inout STD_LOGIC
   );
   end component design_1_iic_to_i2c_master_0_3;
-  component design_1_xlconcat_0_4 is
-  port (
-    In0 : in STD_LOGIC_VECTOR ( 0 to 0 );
-    In1 : in STD_LOGIC_VECTOR ( 0 to 0 );
-    In2 : in STD_LOGIC_VECTOR ( 1 downto 0 );
-    dout : out STD_LOGIC_VECTOR ( 3 downto 0 )
-  );
-  end component design_1_xlconcat_0_4;
   signal ARESETN_1 : STD_LOGIC;
   signal Conn1_scl : STD_LOGIC;
   signal Conn1_sda : STD_LOGIC;
@@ -10375,6 +10375,14 @@ architecture STRUCTURE of amc3_imp_1UYMGHY is
     gpo : out STD_LOGIC_VECTOR ( 0 to 0 )
   );
   end component design_1_axi_iic_0_0;
+  component design_1_xlconcat_0_1 is
+  port (
+    In0 : in STD_LOGIC_VECTOR ( 0 to 0 );
+    In1 : in STD_LOGIC_VECTOR ( 0 to 0 );
+    In2 : in STD_LOGIC_VECTOR ( 1 downto 0 );
+    dout : out STD_LOGIC_VECTOR ( 3 downto 0 )
+  );
+  end component design_1_xlconcat_0_1;
   component design_1_iic_to_i2c_master_0_0 is
   port (
     s_iic_scl_i : out STD_LOGIC;
@@ -10387,14 +10395,6 @@ architecture STRUCTURE of amc3_imp_1UYMGHY is
     s_i2c_sda_io : inout STD_LOGIC
   );
   end component design_1_iic_to_i2c_master_0_0;
-  component design_1_xlconcat_0_1 is
-  port (
-    In0 : in STD_LOGIC_VECTOR ( 0 to 0 );
-    In1 : in STD_LOGIC_VECTOR ( 0 to 0 );
-    In2 : in STD_LOGIC_VECTOR ( 1 downto 0 );
-    dout : out STD_LOGIC_VECTOR ( 3 downto 0 )
-  );
-  end component design_1_xlconcat_0_1;
   signal ARESETN_1 : STD_LOGIC;
   signal Conn1_scl : STD_LOGIC;
   signal Conn1_sda : STD_LOGIC;
@@ -10765,6 +10765,14 @@ architecture STRUCTURE of amc4_imp_15EDNM7 is
     gpo : out STD_LOGIC_VECTOR ( 0 to 0 )
   );
   end component design_1_axi_iic_0_1;
+  component design_1_xlconcat_0_2 is
+  port (
+    In0 : in STD_LOGIC_VECTOR ( 0 to 0 );
+    In1 : in STD_LOGIC_VECTOR ( 0 to 0 );
+    In2 : in STD_LOGIC_VECTOR ( 1 downto 0 );
+    dout : out STD_LOGIC_VECTOR ( 3 downto 0 )
+  );
+  end component design_1_xlconcat_0_2;
   component design_1_iic_to_i2c_master_0_1 is
   port (
     s_iic_scl_i : out STD_LOGIC;
@@ -10777,14 +10785,6 @@ architecture STRUCTURE of amc4_imp_15EDNM7 is
     s_i2c_sda_io : inout STD_LOGIC
   );
   end component design_1_iic_to_i2c_master_0_1;
-  component design_1_xlconcat_0_2 is
-  port (
-    In0 : in STD_LOGIC_VECTOR ( 0 to 0 );
-    In1 : in STD_LOGIC_VECTOR ( 0 to 0 );
-    In2 : in STD_LOGIC_VECTOR ( 1 downto 0 );
-    dout : out STD_LOGIC_VECTOR ( 3 downto 0 )
-  );
-  end component design_1_xlconcat_0_2;
   signal ARESETN_1 : STD_LOGIC;
   signal Conn1_scl : STD_LOGIC;
   signal Conn1_sda : STD_LOGIC;
