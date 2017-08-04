@@ -31,14 +31,14 @@
 !*.vds
 !*.pb
 #All bd comments and layout coordinates are stored within .ui
-!*.ui
-!*.ooc
+#!*.ui
+#!*.ooc
 #########
 #System Generator
 #########
 !*.mdl
 !*.slx
-!*.bxml
+#!*.bxml
 #########
 #Simulation logic analyzer
 #########
@@ -62,6 +62,7 @@
 #########
 #Do NOT ignore *.xdc files
 !*.xdc
+*ooc.xdc
 #########
 #TCL - files
 #########
@@ -69,7 +70,7 @@
 #########
 #Journal - files
 #########
-!*.jou
+#!*.jou # mpv: Don't see the need
 #########
 #Reports
 #########
@@ -86,9 +87,14 @@
 !*.xmp
 
 # mpv: Remove temporary, cached and compilation folders from commit
-*.tmp
-*.runs
-*.cache
+*.tmp/
+*.runs/
+*.cache/
+*.hw/
+**/*.srcs/*/bd/mref/
+**/*.srcs/*/bd/*/ipshared/
+**/*.srcs/*/bd/*/hw_handoff/
+**/*.srcs/*/bd/*/ip/
 
 # mpv: Include all markdown files
 !*.md
