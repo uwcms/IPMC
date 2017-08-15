@@ -46,8 +46,7 @@ void vLwipAppsReleaseTxBuffer( void );
 
 /* SSI options. */
 #define TCPIP_THREAD_NAME              "lwip"
-#define LWIP_HTTPD_MAX_TAG_NAME_LEN 20
-#define LWIP_HTTPD_MAX_TAG_INSERT_LEN 1024
+
 #define TCPIP_THREAD_PRIO configLWIP_TASK_PRIORITY
 #define TCPIP_THREAD_STACKSIZE configMINIMAL_STACK_SIZE * 3
 
@@ -63,7 +62,6 @@ void vLwipAppsReleaseTxBuffer( void );
 #define LWIP_IGMP						0
 #define LWIP_ICMP						1
 
-/* DNS is not going to be used as this is a simple local example. */
 #define LWIP_DNS						0
 
 #define LWIP_HAVE_LOOPIF				0
@@ -72,8 +70,8 @@ void vLwipAppsReleaseTxBuffer( void );
 #define LWIP_SO_RCVBUF			 		1
 
 //#define LWIP_DEBUG
-#ifdef LWIP_DEBUG
 
+#ifdef LWIP_DEBUG
 #define LWIP_DBG_MIN_LEVEL        LWIP_DBG_LEVEL_ALL // LWIP_DBG_LEVEL_SERIOUS
 #define PPP_DEBUG                  LWIP_DBG_OFF
 #define MEM_DEBUG                  LWIP_DBG_OFF
@@ -86,7 +84,7 @@ void vLwipAppsReleaseTxBuffer( void );
 #define SOCKETS_DEBUG              LWIP_DBG_OFF
 #define DNS_DEBUG                  LWIP_DBG_OFF
 #define AUTOIP_DEBUG               LWIP_DBG_OFF
-#define DHCP_DEBUG                 LWIP_DBG_ON
+#define DHCP_DEBUG                 LWIP_DBG_OFF
 #define IP_DEBUG                   LWIP_DBG_OFF
 #define IP_REASS_DEBUG             LWIP_DBG_OFF
 #define ICMP_DEBUG                 LWIP_DBG_OFF
@@ -273,7 +271,7 @@ a lot of data that needs to be copied, this should be set high. */
 #if LWIP_STATS
 	#define LINK_STATS				1
 	#define IP_STATS				1
-	#define ICMP_STATS				0
+	#define ICMP_STATS				1
 	#define IGMP_STATS				0
 	#define IPFRAG_STATS			0
 	#define UDP_STATS				1

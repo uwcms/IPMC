@@ -121,7 +121,7 @@
 #define configMAX_PRIORITIES					( 7 )
 #define configMINIMAL_STACK_SIZE				( ( unsigned short ) 250 ) /* Large in case configUSE_TASK_FPU_SUPPORT is 2 in which case all tasks have an FPU context. */
 #define configTOTAL_HEAP_SIZE					( 90 * 1024 )
-#define configMAX_TASK_NAME_LEN					( 10 )
+#define configMAX_TASK_NAME_LEN					( 16 )
 #define configUSE_TRACE_FACILITY				1
 #define configUSE_16_BIT_TICKS					0
 #define configIDLE_SHOULD_YIELD					1
@@ -241,26 +241,6 @@ received packets. */
 /* The priority of the task that uses lwIP sockets to provide a simple command
 line interface. */
 #define configCLI_TASK_PRIORITY				( tskIDLE_PRIORITY )
-
-/* MAC address configuration. */
-#define configMAC_ADDR0	0x00
-#define configMAC_ADDR1	0x13
-#define configMAC_ADDR2	0x14
-#define configMAC_ADDR3	0x15
-#define configMAC_ADDR4	0x15
-#define configMAC_ADDR5	0x16
-
-/* IP address configuration. */
-#define configIP_ADDR0		172
-#define configIP_ADDR1		25
-#define configIP_ADDR2		218
-#define configIP_ADDR3		200
-
-/* Netmask configuration. */
-#define configNET_MASK0		255
-#define configNET_MASK1		255
-#define configNET_MASK2		255
-#define configNET_MASK3		0
 
 #endif /* FREERTOS_CONFIG_H */
 

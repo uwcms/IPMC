@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include "xil_printf.h"
 #include "limits.h"
@@ -12,17 +11,19 @@
 #include "xscugic.h"
 #include "xil_exception.h"
 
-/* The private watchdog is used as the timer that generates run time
- stats.  This frequency means it will overflow quite quickly. */
-XScuWdt xWatchDogInstance;
-
-/* The interrupt controller is initialised in this file, and made available to
- other modules. */
-XScuGic xInterruptController;
+#include "lwip/opt.h"
 
 /*
- * Configure the hardware as necessary to run this demo.
+ * Defined in lwIPApps.c.
  */
+extern void lwip_startup_thread(void *pvArguments);
+
+/* The private watchdog is used as the timer that generates run time stats.  */
+XScuWdt xWatchDogInstance;
+
+/* The interrupt controller is initialized in this file, and made available to other modules. */
+XScuGic xInterruptController;
+
 static void prvSetupHardware(void);
 
 int main() {
@@ -39,7 +40,23 @@ int main() {
 	/* See http://www.freertos.org/RTOS-Xilinx-Zynq.html. */
 	prvSetupHardware();
 
-	xil_printf("Hello World\n\r");
+	xil_printf("UW-IPMC starting...\r\n");
+
+	xTaskCreate(lwip_startup_thread, "lwip_start", configMINIMAL_STACK_SIZE, NULL, configLWIP_TASK_PRIORITY, NULL);
+
+	/* Start the tasks and timer running. */
+	vTaskStartScheduler();
+
+	/* If all is well, the scheduler will now be running, and the following
+	 line will never be reached.  If the following line does execute, then
+	 there was either insufficient FreeRTOS heap memory available for the idle
+	 and/or timer tasks to be created, or vTaskStartScheduler() was called from
+	 User mode.  See the memory management section on the FreeRTOS web site for
+	 more details on the FreeRTOS heap http://www.freertos.org/a00111.html.  The
+	 mode from which main() is called is set in the C start up code and must be
+	 a privileged mode (not user mode). */
+	for (;;)
+		;
 
 	return 0;
 }
@@ -53,6 +70,9 @@ void vApplicationMallocFailedHook(void) {
 	 timers, and semaphores.  The size of the FreeRTOS heap is set by the
 	 configTOTAL_HEAP_SIZE configuration constant in FreeRTOSConfig.h. */
 	taskDISABLE_INTERRUPTS();
+
+	xil_printf("ERROR: Malloc Failed\r\n");
+
 	for (;;)
 		;
 }
@@ -66,6 +86,9 @@ void vApplicationStackOverflowHook(TaskHandle_t pxTask, char *pcTaskName) {
 	 configCHECK_FOR_STACK_OVERFLOW is defined to 1 or 2.  This hook
 	 function is called if a stack overflow is detected. */
 	taskDISABLE_INTERRUPTS();
+
+	xil_printf("ERROR: Stack Overflow\r\n");
+
 	for (;;)
 		;
 }
@@ -118,8 +141,7 @@ void vApplicationTickHook(void) {
 /* configUSE_STATIC_ALLOCATION is set to 1, so the application must provide an
  implementation of vApplicationGetIdleTaskMemory() to provide the memory that is
  used by the Idle task. */
-void vApplicationGetIdleTaskMemory(StaticTask_t **ppxIdleTaskTCBBuffer,
-		StackType_t **ppxIdleTaskStackBuffer, uint32_t *pulIdleTaskStackSize) {
+void vApplicationGetIdleTaskMemory(StaticTask_t **ppxIdleTaskTCBBuffer, StackType_t **ppxIdleTaskStackBuffer, uint32_t *pulIdleTaskStackSize) {
 	/* If the buffers to be provided to the Idle task are declared inside this
 	 function then they must be declared static - otherwise they will be allocated on
 	 the stack and so not exists after this function exits. */
@@ -143,8 +165,7 @@ void vApplicationGetIdleTaskMemory(StaticTask_t **ppxIdleTaskTCBBuffer,
 /* configUSE_STATIC_ALLOCATION and configUSE_TIMERS are both set to 1, so the
  application must provide an implementation of vApplicationGetTimerTaskMemory()
  to provide the memory that is used by the Timer service task. */
-void vApplicationGetTimerTaskMemory(StaticTask_t **ppxTimerTaskTCBBuffer,
-		StackType_t **ppxTimerTaskStackBuffer, uint32_t *pulTimerTaskStackSize) {
+void vApplicationGetTimerTaskMemory(StaticTask_t **ppxTimerTaskTCBBuffer, StackType_t **ppxTimerTaskStackBuffer, uint32_t *pulTimerTaskStackSize) {
 	/* If the buffers to be provided to the Timer task are declared inside this
 	 function then they must be declared static - otherwise they will be allocated on
 	 the stack and so not exists after this function exits. */
@@ -172,8 +193,7 @@ void vInitialiseTimerForRunTimeStats(void) {
 	const uint32_t ulMaxDivisor = 0xff, ulDivisorShift = 0x08;
 
 	pxWatchDogInstance = XScuWdt_LookupConfig( XPAR_SCUWDT_0_DEVICE_ID);
-	XScuWdt_CfgInitialize(&xWatchDogInstance, pxWatchDogInstance,
-			pxWatchDogInstance->BaseAddr);
+	XScuWdt_CfgInitialize(&xWatchDogInstance, pxWatchDogInstance, pxWatchDogInstance->BaseAddr);
 
 	ulValue = XScuWdt_GetControlReg(&xWatchDogInstance);
 	ulValue |= ulMaxDivisor << ulDivisorShift;
@@ -201,14 +221,11 @@ static void prvSetupHardware(void) {
 	/* Sanity check the FreeRTOSConfig.h settings are correct for the
 	 hardware. */
 	configASSERT(pxGICConfig);
-	configASSERT(
-			pxGICConfig->CpuBaseAddress == ( configINTERRUPT_CONTROLLER_BASE_ADDRESS + configINTERRUPT_CONTROLLER_CPU_INTERFACE_OFFSET ));
-	configASSERT(
-			pxGICConfig->DistBaseAddress == configINTERRUPT_CONTROLLER_BASE_ADDRESS);
+	configASSERT(pxGICConfig->CpuBaseAddress == ( configINTERRUPT_CONTROLLER_BASE_ADDRESS + configINTERRUPT_CONTROLLER_CPU_INTERFACE_OFFSET ));
+	configASSERT(pxGICConfig->DistBaseAddress == configINTERRUPT_CONTROLLER_BASE_ADDRESS);
 
 	/* Install a default handler for each GIC interrupt. */
-	xStatus = XScuGic_CfgInitialize(&xInterruptController, pxGICConfig,
-			pxGICConfig->CpuBaseAddress);
+	xStatus = XScuGic_CfgInitialize(&xInterruptController, pxGICConfig, pxGICConfig->CpuBaseAddress);
 	configASSERT(xStatus == XST_SUCCESS);
 	(void) xStatus; /* Remove compiler warning if configASSERT() is not defined. */
 
