@@ -1,0 +1,3 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">&#x0A;<refactoring comment="Rename resource &apos;freertos_lwip_cli/common/components&apos; to &apos;uw-ipmc&apos;" description="Rename resource &apos;components&apos;" flags="7" id="org.eclipse.ltk.core.refactoring.rename.resource" input="common/components" name="uw-ipmc" stamp="1504183501855" updateReferences="true"/>&#x0A;<refactoring comment="Rename resource &apos;freertos_lwip_cli/src/components/telnet&apos; to &apos;CLI_server&apos;" description="Rename resource &apos;telnet&apos;" flags="7" id="org.eclipse.ltk.core.refactoring.rename.resource" input="src/components/telnet" name="CLI_server" stamp="1504188774778" updateReferences="true"/>
+</session>

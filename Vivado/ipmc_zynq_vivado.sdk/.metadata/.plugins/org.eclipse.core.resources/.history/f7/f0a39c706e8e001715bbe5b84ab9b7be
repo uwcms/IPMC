@@ -1,0 +1,13 @@
+/*
+ * ethernet.h
+ *
+ *  Created on: Aug 31, 2017
+ *      Author: mpvl
+ */
+
+#ifndef SRC_COMPONENTS_ETHERNET_ETHERNET_H_
+#define SRC_COMPONENTS_ETHERNET_ETHERNET_H_
+
+
+
+#endif /* SRC_COMPONENTS_ETHERNET_ETHERNET_H_ */
