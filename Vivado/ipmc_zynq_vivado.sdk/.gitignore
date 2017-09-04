@@ -25,4 +25,5 @@ Release/
 
 .metadata/.plugins/*
 !/.metadata/.plugins/org.eclipse.core.*/
+!/.metadata/.plugins/org.eclipse.e4.workbench/
 #!**/org.eclipse.core.runtime
