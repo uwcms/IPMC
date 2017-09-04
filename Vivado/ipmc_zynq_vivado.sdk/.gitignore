@@ -1,7 +1,10 @@
 !*
 
+*~
+
 *.log
 
+.metadata/
 webtalk/
 RemoteSystemsTempFiles/
 
