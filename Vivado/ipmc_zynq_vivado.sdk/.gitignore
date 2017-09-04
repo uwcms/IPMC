@@ -1,15 +1,27 @@
+# Include everything by default
 !*
 
+# Don't include temporary files
 *~
 
+# Don't include log or temporary files
 *.log
-
-.metadata/
 webtalk/
 RemoteSystemsTempFiles/
+tmp/
 
+# Don't keep the compilation files but keep the end result
 Debug/
 !Debug/*.elf
-
 Release/
 !Release/*.elf
+
+# This is needed to keep the project structure inside XSDK
+!.metadata/
+
+.metadata/*
+!.metadata/.plugins/
+
+.metadata/.plugins/*
+!/.metadata/.plugins/org.eclipse.core.*/
+#!**/org.eclipse.core.runtime
