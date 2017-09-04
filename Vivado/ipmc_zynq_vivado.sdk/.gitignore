@@ -9,6 +9,7 @@
 webtalk/
 RemoteSystemsTempFiles/
 tmp/
+.sdk/
 
 # Don't keep the compilation files but keep the end result
 Debug/

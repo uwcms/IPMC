@@ -27,7 +27,7 @@
 		<link>
 			<name>common</name>
 			<type>2</type>
-			<location>/tmp/IPMC/Vivado/ipmc_zynq_vivado.sdk/common</location>
+			<location>$%7BPARENT-1-PROJECT_LOC%7D/common</location>
 		</link>
 	</linkedResources>
 </projectDescription>
