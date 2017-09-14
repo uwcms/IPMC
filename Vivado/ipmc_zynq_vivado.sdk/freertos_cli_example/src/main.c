@@ -4,6 +4,7 @@
 
 #include <FreeRTOS.h>
 #include <task.h>
+#include "IPMC.h"
 
 /* Xilinx includes. */
 #include "xparameters.h"
