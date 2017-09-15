@@ -22,7 +22,7 @@
  *   UWIPMC_INITIALIZE_STATIC_SEMAPHORE(libwrap_mutex, Mutex);
  */
 #define UWIPMC_INITIALIZE_STATIC_SEMAPHORE(sem, type) \
-	static void __uwipmc_initialize_semaphore_ ## sem(void) __attribute__((constructor(0))); \
+	static void __uwipmc_initialize_semaphore_ ## sem(void) __attribute__((constructor(1000))); \
 	static void __uwipmc_initialize_semaphore_ ## sem(void) { \
 		static StaticSemaphore_t buf; \
 		sem = xSemaphoreCreate ## type ## Static(&buf); \
