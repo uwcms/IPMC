@@ -6,20 +6,15 @@
  */
 
 #define SRC_LIBWRAP_C_
-#include "libwrap.h"
+#include <libwrap.h> // auto-included from IPMC.h, but include first here to ensure there are no failed hidden dependencies in libwrap.h
 #include <stdio.h>
 #include <stdarg.h>
 #include <FreeRTOS.h>
 #include <semphr.h>
+#include <IPMC.h>
 
-SemaphoreHandle_t libwrap_mutex = NULL;
-
-static void libwrap_mutex_init(void) __attribute__((constructor));
-static void libwrap_mutex_init(void) {
-	static StaticSemaphore_t xMutexBuffer;
-	libwrap_mutex = xSemaphoreCreateMutexStatic(&xMutexBuffer);
-	configASSERT(libwrap_mutex);
-}
+static SemaphoreHandle_t libwrap_mutex = NULL;
+UWIPMC_INITIALIZE_STATIC_SEMAPHORE(libwrap_mutex, Mutex);
 
 int _uwipmc_printf(const char *format, ...) {
     va_list args;
