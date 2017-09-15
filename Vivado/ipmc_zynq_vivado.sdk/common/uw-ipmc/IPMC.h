@@ -13,6 +13,8 @@
 /*
  * This macro will handle the automatic (at startup, before main) initialization of static semaphore objects.
  *
+ * Note: This refers to "static memory" not "static linkage".  (i.e. You don't need to use the "static" keyword on your semaphore.
+ *
  * Parameters:
  *   mutex:  The name of the previously defined SemaphoreHandle_t object.
  *   type:   The semaphore type to create.  A xSemaphoreCreate{TYPE}Static FreeRTOS function must exist.
