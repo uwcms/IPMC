@@ -9,15 +9,15 @@
 #define SRC_IPMC_H_
 
 #include "libwrap.h" // Mutex wrappers for various non-reentrant stdlib functions.
+#include "xscugic.h"
 
-/*
+/**
  * This macro will handle the automatic (at startup, before main) initialization of static semaphore objects.
  *
- * Note: This refers to "static memory" not "static linkage".  (i.e. You don't need to use the "static" keyword on your semaphore.
+ * \note This refers to "static memory" not "static linkage".  (i.e. You don't need to use the "static" keyword on your semaphore.
  *
- * Parameters:
- *   mutex:  The name of the previously defined SemaphoreHandle_t object.
- *   type:   The semaphore type to create.  A xSemaphoreCreate{TYPE}Static FreeRTOS function must exist.
+ * \param sem   The name of the previously defined SemaphoreHandle_t object.
+ * \param type  The semaphore type to create.  A xSemaphoreCreate{TYPE}Static FreeRTOS function must exist.
  *
  * Example:
  *   static SemaphoreHandle_t libwrap_mutex = NULL;
@@ -30,5 +30,9 @@
 		sem = xSemaphoreCreate ## type ## Static(&buf); \
 		configASSERT(sem); \
 	}
+
+extern "C" {
+	extern XScuGic xInterruptController;
+}
 
 #endif /* SRC_IPMC_H_ */

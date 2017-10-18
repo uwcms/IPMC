@@ -1,0 +1,93 @@
+ifeq (x$(BUILD_CONFIGURATION),x)
+$(error Please specify a BUILD_CONFIGURATION)
+endif
+
+export CC := arm-none-eabi-gcc
+export CXX := arm-none-eabi-g++ 
+
+export WORKSPACE ?= ../..
+
+export INCLUDE_PATHS = \
+	-I"$(WORKSPACE)/freertos_cli_example_cpp/src/common/uw-ipmc" \
+	-I"$(WORKSPACE)/freertos_cli_example_cpp/src/config" \
+	-I"$(WORKSPACE)/freertos_cli_example_cpp/src/components" \
+	-I"$(WORKSPACE)/freertos_cli_example_cpp/src/common/lwIP/src/contrib/ports/xilinx/include" \
+	-I"$(WORKSPACE)/freertos_cli_example_cpp/src/common/lwIP/src/lwip-1.4.1/src/include/ipv4" \
+	-I"$(WORKSPACE)/freertos_cli_example_cpp/src/common/lwIP/src/lwip-1.4.1/src/include" \
+	-I"$(WORKSPACE)/freertos_cli_example_cpp/src/common/FreeRTOS/portable/GCC/ARM_CA9" \
+	-I"$(WORKSPACE)/freertos_cli_example_cpp/src/common/FreeRTOS/include" \
+	-I"$(WORKSPACE)/ipmc_standalone_bsp/ps7_cortexa9_0/include" \
+
+export LIBRARY_PATHS = \
+	-L"$(WORKSPACE)/ipmc_standalone_bsp/ps7_cortexa9_0/lib" \
+
+export LIBS := -Wl,--start-group,-lxil,-lgcc,-lc,-lstdc++,--end-group
+
+export CFLAGS = \
+	-Wall \
+	-O0 \
+	-g3 \
+	-fmessage-length=0 \
+	-mcpu=cortex-a9 \
+	-mfpu=vfpv3 \
+	-mfloat-abi=hard \
+	-MMD -MP -MF"$(patsubst .obj/$(BUILD_CONFIGURATION)/%,.dep/$(BUILD_CONFIGURATION)/%,$@)" \
+
+# -MT"$@" 
+
+export CXXFLAGS = \
+	-std=c++11 \
+
+export LDFLAGS := \
+	-Wl,-build-id=none \
+	-specs=Xilinx.spec \
+	-Wl,-T -Wl,lscript.ld \
+
+OBJS := \
+	$(patsubst ./%.c,.obj/$(BUILD_CONFIGURATION)/%.o,$(shell find -L . -type f -name '*.c')) \
+	$(patsubst ./%.cc,.obj/$(BUILD_CONFIGURATION)/%.o,$(shell find -L . -type f -name '*.cc')) \
+	$(patsubst ./%.cpp,.obj/$(BUILD_CONFIGURATION)/%.o,$(shell find -L . -type f -name '*.cpp')) \
+	$(patsubst ./%.S,.obj/$(BUILD_CONFIGURATION)/%.o,$(shell find -L . -type f -name '*.S')) \
+
+all: pre-build build
+
+pre-build:
+	@echo
+	-a9-linaro-pre-build-step
+
+build: bin/$(BUILD_CONFIGURATION)/freertos_cli_example_cpp.elf
+   
+bin/$(BUILD_CONFIGURATION)/freertos_cli_example_cpp.elf: $(OBJS)
+	@echo
+	@mkdir -p "$(dir $@)"
+	$(CXX) $(CFLAGS) $(LDFLAGS) $(INCLUDE_PATHS) $(LIBRARY_PATHS) -o "$@" $^ $(LIBS)
+	arm-none-eabi-size "$@" | tee "$@.size"
+
+.obj/$(BUILD_CONFIGURATION)/%.o: %.c
+	@echo
+	@mkdir -p "$(dir $@)" "$(dir $(patsubst .obj/$(BUILD_CONFIGURATION)/%,.dep/$(BUILD_CONFIGURATION)/%,$@))"
+	$(CC) -c $(CFLAGS) $(LDFLAGS) $(INCLUDE_PATHS) $(LIBRARY_PATHS) -o "$@" "$<" $(LIBS)
+
+.obj/$(BUILD_CONFIGURATION)/%.o: %.cc
+	@echo
+	@mkdir -p "$(dir $@)" "$(dir $(patsubst .obj/$(BUILD_CONFIGURATION)/%,.dep/$(BUILD_CONFIGURATION)/%,$@))"
+	$(CXX) -c $(CFLAGS) $(CXXFLAGS) $(LDFLAGS) $(INCLUDE_PATHS) $(LIBRARY_PATHS) -o "$@" "$<" $(LIBS)
+
+.obj/$(BUILD_CONFIGURATION)/%.o: %.cpp
+	@echo
+	@mkdir -p "$(dir $@)" "$(dir $(patsubst .obj/$(BUILD_CONFIGURATION)/%,.dep/$(BUILD_CONFIGURATION)/%,$@))"
+	$(CXX) -c $(CFLAGS) $(CXXFLAGS) $(LDFLAGS) $(INCLUDE_PATHS) $(LIBRARY_PATHS) -o "$@" "$<" $(LIBS)
+
+.obj/$(BUILD_CONFIGURATION)/%.o: %.S
+	@echo
+	@mkdir -p "$(dir $@)" "$(dir $(patsubst .obj/$(BUILD_CONFIGURATION)/%,.dep/$(BUILD_CONFIGURATION)/%,$@))"
+	$(CXX) -c $(CFLAGS) $(CXXFLAGS) $(LDFLAGS) $(INCLUDE_PATHS) $(LIBRARY_PATHS) -o "$@" "$<" $(LIBS)
+
+clean:
+	rm -rf .dep/$(BUILD_CONFIGURATION)/ .obj/$(BUILD_CONFIGURATION)/ bin/$(BUILD_CONFIGURATION) Xilinx.spec
+
+.PHONY: build pre-build all clean
+
+.SUFFIXES:
+
+-include $(shell find .dep/$(BUILD_CONFIGURATION)/ -type f 2>/dev/null)

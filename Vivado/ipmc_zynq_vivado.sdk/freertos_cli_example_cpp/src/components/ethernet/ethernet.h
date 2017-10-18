@@ -8,6 +8,6 @@
 #ifndef _ETHERNET_ETHERNET_H_
 #define _ETHERNET_ETHERNET_H_
 
-int lwip_startup_thread();
+void lwip_startup_thread(void *p);
 
 #endif /* _ETHERNET_ETHERNET_H_ */

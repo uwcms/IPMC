@@ -11,11 +11,13 @@ RemoteSystemsTempFiles/
 tmp/
 .sdk/
 
-# Don't keep the compilation files but keep the end result
-Debug/
-!Debug/*.elf
-Release/
-!Release/*.elf
+# Don't keep the compilation files
+.dep/
+.obj/
+bin/
+*.elf
+*.elf.size
+Xilinx.spec
 
 # This is needed to keep the project structure inside XSDK
 .metadata/

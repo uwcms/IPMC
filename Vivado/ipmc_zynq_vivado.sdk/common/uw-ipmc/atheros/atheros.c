@@ -14,8 +14,8 @@ int ar8035_enable_internal_delays(struct netif *netif)
 	XEmacPs *xemacpsp;
 	u16 regval;
 
-	xemacp = netif->state;
-	xemacps = xemacp->state;
+	xemacp = (struct xemac_s*)netif->state;
+	xemacps = (xemacpsif_s*)xemacp->state;
 	xemacpsp = &xemacps->emacps;
 
 	XEmacPs_PhyWrite(xemacpsp, 4, 0x1d, 0x05);
