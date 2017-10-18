@@ -18,7 +18,7 @@
 					<folderInfo id="xilinx.gnu.armv7.exe.debug.1435049014." name="/" resourcePath="">
 						<toolChain id="xilinx.gnu.armv7.exe.debug.toolchain.565463052" name="Xilinx ARM v7 GNU Toolchain" superClass="xilinx.gnu.armv7.exe.debug.toolchain">
 							<targetPlatform binaryParser="com.xilinx.sdk.managedbuilder.XELF.arm.a53.x32" id="xilinx.armv7.target.gnu.base.debug.2079806795" isAbstract="false" name="Debug Platform" superClass="xilinx.armv7.target.gnu.base.debug"/>
-							<builder arguments="BUILD_CONFIGURATION=Debug" buildPath="${workspace_loc:/freertos_cli_example_cpp}/src" command="make" enableAutoBuild="true" id="xilinx.gnu.armv7.toolchain.builder.debug.775515421" keepEnvironmentInBuildfile="false" managedBuildOn="false" name="GNU make" parallelBuildOn="false" stopOnErr="true" superClass="xilinx.gnu.armv7.toolchain.builder.debug"/>
+							<builder arguments="BUILD_CONFIGURATION=Debug" buildPath="${workspace_loc:/freertos_cli_example_cpp}/src" command="make" enableAutoBuild="true" id="xilinx.gnu.armv7.toolchain.builder.debug.775515421" keepEnvironmentInBuildfile="false" managedBuildOn="false" name="GNU make" parallelBuildOn="false" stopOnErr="false" superClass="xilinx.gnu.armv7.toolchain.builder.debug"/>
 							<tool commandLinePattern="${COMMAND} -c ${FLAGS} ${OUTPUT_FLAG}${OUTPUT_PREFIX}${OUTPUT} ${INPUTS}" id="xilinx.gnu.armv7.c.toolchain.assembler.debug.1499529413" name="ARM v7 gcc assembler" superClass="xilinx.gnu.armv7.c.toolchain.assembler.debug">
 								<option id="xilinx.gnu.both.asm.option.include.paths.1203761086" name="Include Paths (-I)" superClass="xilinx.gnu.both.asm.option.include.paths" valueType="includePath">
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/freertos_cli_example_cpp/src/common/FreeRTOS/include}&quot;"/>
@@ -52,7 +52,7 @@
 							<tool commandLinePattern="${COMMAND} ${FLAGS} ${OUTPUT_FLAG} ${OUTPUT_PREFIX}${OUTPUT} ${INPUTS}" id="xilinx.gnu.armv7.cxx.toolchain.compiler.debug.664527097" name="ARM v7 g++ compiler" superClass="xilinx.gnu.armv7.cxx.toolchain.compiler.debug">
 								<option defaultValue="gnu.c.optimization.level.none" id="xilinx.gnu.compiler.option.optimization.level.957398976" name="Optimization Level" superClass="xilinx.gnu.compiler.option.optimization.level" valueType="enumerated"/>
 								<option id="xilinx.gnu.compiler.option.debugging.level.1468856941" name="Debug Level" superClass="xilinx.gnu.compiler.option.debugging.level" value="gnu.c.debugging.level.max" valueType="enumerated"/>
-								<option id="xilinx.gnu.compiler.inferred.swplatform.includes.2140270495" name="Software Platform Include Path" superClass="xilinx.gnu.compiler.inferred.swplatform.includes" valueType="includePath"/>
+								<option id="xilinx.gnu.compiler.inferred.swplatform.includes.2140270495" name="Software Platform Include Path" superClass="xilinx.gnu.compiler.inferred.swplatform.includes"/>
 								<option id="xilinx.gnu.compiler.misc.other.1786095451" name="Other flags" superClass="xilinx.gnu.compiler.misc.other" value="-c -fmessage-length=0 -MT&quot;$@&quot; -mcpu=cortex-a9 -mfpu=vfpv3 -mfloat-abi=hard" valueType="string"/>
 								<option id="xilinx.gnu.compiler.dircategory.includes.343536745" name="Include Paths" superClass="xilinx.gnu.compiler.dircategory.includes" valueType="includePath">
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/freertos_cli_example_cpp/src/common/uw-ipmc}&quot;"/>
@@ -76,7 +76,7 @@
 									<listOptionValue builtIn="false" value="-Wl,--start-group,-lxil,-lgcc,-lc,-lstdc++,--end-group"/>
 								</option>
 								<option id="xilinx.gnu.c.linker.option.lscript.228878036" name="Linker Script" superClass="xilinx.gnu.c.linker.option.lscript" value="../src/lscript.ld" valueType="string"/>
-								<option id="xilinx.gnu.c.link.option.paths.1131241348" name="Library search path (-L)" superClass="xilinx.gnu.c.link.option.paths" valueType="libPaths"/>
+								<option id="xilinx.gnu.c.link.option.paths.1131241348" name="Library search path (-L)" superClass="xilinx.gnu.c.link.option.paths"/>
 								<inputType id="xilinx.gnu.linker.input.1766285017" superClass="xilinx.gnu.linker.input">
 									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
 									<additionalInput kind="additionalinput" paths="$(LIBS)"/>
@@ -92,8 +92,8 @@
 								</option>
 								<option id="xilinx.gnu.c.linker.option.lscript.1931567444" name="Linker Script" superClass="xilinx.gnu.c.linker.option.lscript" value="../src/lscript.ld" valueType="string"/>
 								<option id="xilinx.gnu.c.link.option.ldflags.457759765" name="Linker Flags" superClass="xilinx.gnu.c.link.option.ldflags" value=" -mcpu=cortex-a9 -mfpu=vfpv3 -mfloat-abi=hard -Wl,-build-id=none -specs=Xilinx.spec" valueType="string"/>
-								<option id="xilinx.gnu.c.link.option.libs.2026368709" name="Libraries (-l)" superClass="xilinx.gnu.c.link.option.libs" valueType="libs"/>
-								<option id="xilinx.gnu.c.link.option.paths.272544675" name="Library search path (-L)" superClass="xilinx.gnu.c.link.option.paths" valueType="libPaths"/>
+								<option id="xilinx.gnu.c.link.option.libs.2026368709" name="Libraries (-l)" superClass="xilinx.gnu.c.link.option.libs"/>
+								<option id="xilinx.gnu.c.link.option.paths.272544675" name="Library search path (-L)" superClass="xilinx.gnu.c.link.option.paths"/>
 								<inputType id="xilinx.gnu.linker.input.1161557381" superClass="xilinx.gnu.linker.input">
 									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
 									<additionalInput kind="additionalinput" paths="$(LIBS)"/>

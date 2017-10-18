@@ -15,6 +15,7 @@ tmp/
 .dep/
 .obj/
 bin/
+doxygen/
 *.elf
 *.elf.size
 Xilinx.spec

@@ -2,6 +2,12 @@ ifeq (x$(BUILD_CONFIGURATION),x)
 $(error Please specify a BUILD_CONFIGURATION)
 endif
 
+export GIT_DESCRIBE := $(shell git describe --tags 2>/dev/null || git rev-parse --short HEAD)
+export GIT_BRANCH   := $(shell git rev-parse --abbrev-ref HEAD)
+export GIT_DIRTY    := $(shell git diff-index --quiet HEAD || echo 'dirty')
+export PROJECT_ROOT := $(realpath ..)
+export PROJECT_NAME := $(notdir $(PROJECT_ROOT))
+
 export CC := arm-none-eabi-gcc
 export CXX := arm-none-eabi-g++ 
 
@@ -49,7 +55,7 @@ OBJS := \
 	$(patsubst ./%.cpp,.obj/$(BUILD_CONFIGURATION)/%.o,$(shell find -L . -type f -name '*.cpp')) \
 	$(patsubst ./%.S,.obj/$(BUILD_CONFIGURATION)/%.o,$(shell find -L . -type f -name '*.S')) \
 
-all: pre-build build
+all: pre-build build doxygen
 
 pre-build:
 	@echo
@@ -83,8 +89,16 @@ bin/$(BUILD_CONFIGURATION)/freertos_cli_example_cpp.elf: $(OBJS)
 	@mkdir -p "$(dir $@)" "$(dir $(patsubst .obj/$(BUILD_CONFIGURATION)/%,.dep/$(BUILD_CONFIGURATION)/%,$@))"
 	$(CXX) -c $(CFLAGS) $(CXXFLAGS) $(LDFLAGS) $(INCLUDE_PATHS) $(LIBRARY_PATHS) -o "$@" "$<" $(LIBS)
 
+ifeq (x$(GIT_DIRTY),x)
+export DOXYGEN_GIT_DIRTY :=
+else
+export DOXYGEN_GIT_DIRTY := (dirty)
+endif
+doxygen: doxygen.conf $(shell find . -type f \( -name '*.c' -o -name '*.cc' -o -name '*.cpp' -o -name '*.S' -o -name '*.h' \) )
+	doxygen doxygen.conf
+
 clean:
-	rm -rf .dep/$(BUILD_CONFIGURATION)/ .obj/$(BUILD_CONFIGURATION)/ bin/$(BUILD_CONFIGURATION) Xilinx.spec
+	rm -rf .dep/$(BUILD_CONFIGURATION)/ .obj/$(BUILD_CONFIGURATION)/ bin/$(BUILD_CONFIGURATION) doxygen/ Xilinx.spec
 
 .PHONY: build pre-build all clean
 

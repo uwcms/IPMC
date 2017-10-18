@@ -3,7 +3,7 @@
 <!--                                                         -->
 <!-- Copyright 1986-2017 Xilinx, Inc. All Rights Reserved.   -->
 
-<Project Version="7" Minor="20" Path="/tmp/IPMC_work/Vivado/ipmc_zynq_vivado.xpr">
+<Project Version="7" Minor="20" Path="/home/jtikalsky/work/ecad/IPMI/IPMC/Vivado/ipmc_zynq_vivado.xpr">
   <DefaultLaunch Dir="$PRUNDIR"/>
   <Configuration>
     <Option Name="Id" Val="96ac94580d984afd960042f9941f03e4"/>
