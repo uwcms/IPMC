@@ -35,4 +35,10 @@ extern "C" {
 	extern XScuGic xInterruptController;
 }
 
+class PS_UART;
+extern PS_UART *uart_ps0;
+
+void driver_init(bool use_pl);
+void ipmc_service_init();
+
 #endif /* SRC_IPMC_H_ */
