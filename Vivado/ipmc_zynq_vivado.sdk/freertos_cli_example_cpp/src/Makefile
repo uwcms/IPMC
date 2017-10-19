@@ -94,7 +94,7 @@ export DOXYGEN_GIT_DIRTY :=
 else
 export DOXYGEN_GIT_DIRTY := (dirty)
 endif
-doxygen: doxygen.conf $(shell find . -type f \( -name '*.c' -o -name '*.cc' -o -name '*.cpp' -o -name '*.S' -o -name '*.h' \) )
+doxygen: doxygen.conf $(shell find -L . -type f \( -name '*.c' -o -name '*.cc' -o -name '*.cpp' -o -name '*.S' -o -name '*.h' \) )
 	doxygen doxygen.conf
 
 clean:
