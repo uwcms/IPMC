@@ -1,11 +1,10 @@
 #include <stdio.h>
-#include "xil_printf.h"
 #include "limits.h"
 
 #include <FreeRTOS.h>
 #include <task.h>
-#include "IPMC.h"
-#include "drivers/ps_uart/PSUART.h"
+#include <IPMC.h>
+#include <drivers/ps_uart/PSUART.h>
 
 /* Xilinx includes. */
 #include "xparameters.h"
@@ -143,51 +142,33 @@ static void prvSetupHardware(void) {
 
 //#define PS_UART_INITIAL_TEST
 static void TaskPrinter(void *dummy0) {
-#ifdef PS_UART_INITIAL_TEST
-	PS_UART uart0(XPAR_PS7_UART_0_DEVICE_ID, XPAR_PS7_UART_0_INTR);
-#endif
-	xil_printf("TaskPrinter Started\r\n");
+	printf("TaskPrinter Started\r\n");
 	char bufA[256], bufB[256];
 	while (1) {
 #ifdef __cplusplus
-		xil_printf("C++\r\n");
+		printf("C++\r\n");
 #else
-		xil_printf("C--\r\n");
+		printf("C--\r\n");
 #endif
 		//u32 int_mask = XUartPs_GetInterruptMask(&uart0.UartInstPtr);
-		//xil_printf("test 0x%08x \r\n", int_mask);
+		//printf("test 0x%08x \r\n", int_mask);
 		vTaskDelay(10000);
 		vPortEnterCritical();
 		vTaskList(bufA);
 		vTaskGetRunTimeStats(bufB);
 		vPortExitCritical();
-		vPortFree(pvPortMalloc(96)); // test
-#ifdef PS_UART_INITIAL_TEST
-		uart0.write("\r\n", 2, portMAX_DELAY);
-		uart0.write(bufA, strlen(bufA), portMAX_DELAY);
-		uart0.write("\r\n", 2, portMAX_DELAY);
-		uart0.write(bufB, strlen(bufB), portMAX_DELAY);
-		uart0.write("\r\n", 2, portMAX_DELAY);
-#else
-		xil_printf("\r\n%s\r\n%s\r\n", bufA, bufB);
-#endif
-		//vTaskSuspendAll();
-		//u8 input;
-		//XUartPs_Recv(&uart0.UartInstPtr, &input, 1);
-		//xTaskResumeAll();
+		printf("\r\n%s\r\n%s\r\n", bufA, bufB);
 #ifdef PS_UART_INITIAL_TEST
 		while (1) {
 			char buf[32];
 			for (int i = 0; i < 32; ++i)
 				buf[i] = '\0';
-			uart0.read(buf, 31, 3000 / portTICK_PERIOD_MS);
-			char obuf[64];
-			sprintf(obuf, "I read \"%s\"\r\n", buf);
-			uart0.write(obuf, strlen(obuf), portMAX_DELAY);
+			uart_ps0.read(buf, 31, 3000 / portTICK_PERIOD_MS);
+			printf("I read \"%s\"\r\n", buf);
 		}
 		vTaskDelay(1);
 #endif
-		xil_printf("TaskPrinter Printed bufs %d %d\r\n\r\n", strlen(bufA), strlen(bufB));
+		printf("TaskPrinter Printed bufs %d %d\r\n\r\n", strlen(bufA), strlen(bufB));
 	}
 }
 
@@ -205,7 +186,10 @@ int main() {
 	/* See http://www.freertos.org/RTOS-Xilinx-Zynq.html. */
 	prvSetupHardware();
 
-	xil_printf("UW-IPMC starting...\r\n");
+	driver_init(true);
+	ipmc_service_init();
+
+	printf("UW-IPMC starting...\r\n");
 
 	xTaskCreate(lwip_startup_thread, "lwip_start", configMINIMAL_STACK_SIZE, NULL, configLWIP_TASK_PRIORITY, NULL);
     xTaskCreate(TaskPrinter, "TaskPrint", configMINIMAL_STACK_SIZE+256, NULL, configMAX_PRIORITIES, NULL);
