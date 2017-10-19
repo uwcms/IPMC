@@ -51,7 +51,7 @@ TickType_t AbsoluteTimeout::get_timeout() {
 
 
 WaitList::WaitList() :
-	_interrupt_pend_count(0), destructing(false) {
+	_interrupt_pend_count(0) {
 	this->mutex = xSemaphoreCreateMutex();
 }
 
