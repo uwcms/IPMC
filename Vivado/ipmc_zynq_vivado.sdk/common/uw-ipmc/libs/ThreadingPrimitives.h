@@ -53,7 +53,6 @@ public:
 protected:
     SemaphoreHandle_t mutex; ///< A mutex protecting the internal state.
 	std::list<SemaphoreHandle_t, FreeRTOS_Allocator<SemaphoreHandle_t>> waitlist; ///< A list of current waitlist subscriptions.
-	bool destructing;
 };
 
 /**
