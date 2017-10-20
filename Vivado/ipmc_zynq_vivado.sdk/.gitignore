@@ -19,6 +19,8 @@ doxygen/
 *.elf
 *.elf.size
 Xilinx.spec
+# Seems to change every time, and is confirmed to recompile if missing.  Exclude from git.
+libxil.a
 
 # This is needed to keep the project structure inside XSDK
 .metadata/
