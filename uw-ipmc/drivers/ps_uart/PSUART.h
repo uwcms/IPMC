@@ -15,16 +15,6 @@
  */
 class PS_UART {
 public:
-	/**
-	 * Instantiate a PS_UART driver.
-	 *
-	 * \note This performs hardware setup (mainly interrupt configuration).
-	 *
-	 * \param DeviceId  The DeviceId, used for XUartPs_LookupConfig(), etc
-	 * \param IntrId    The interrupt ID, for configuring the GIC.
-	 * \param ibufsize  The size of the input buffer to allocate.
-	 * \param obufsize  The size of the output buffer to allocate.
-	 */
 	PS_UART(u32 DeviceId, u32 IntrId, u32 ibufsize=4096, u32 obufsize=4096);
 	size_t read(u8 *buf, size_t len, TickType_t timeout);
 	/**

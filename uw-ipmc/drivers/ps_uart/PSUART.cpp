@@ -44,6 +44,16 @@ static void XUartPs_DisableInterruptMask(XUartPs *InstancePtr, u32 Mask)
 
 }
 
+/**
+ * Instantiate a PS_UART driver.
+ *
+ * \note This performs hardware setup (mainly interrupt configuration).
+ *
+ * \param DeviceId  The DeviceId, used for XUartPs_LookupConfig(), etc
+ * \param IntrId    The interrupt ID, for configuring the GIC.
+ * \param ibufsize  The size of the input buffer to allocate.
+ * \param obufsize  The size of the output buffer to allocate.
+ */
 PS_UART::PS_UART(u32 DeviceId, u32 IntrId, u32 ibufsize, u32 obufsize) :
 		echo(false), error_mask(0), inbuf(RingBuffer<u8>(4096)), outbuf(RingBuffer<u8>(4096)) {
 
