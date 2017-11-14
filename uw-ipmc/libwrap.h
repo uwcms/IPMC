@@ -79,6 +79,23 @@ public:
 	~FreeRTOS_Allocator() throw () {
 	}
 };
+
+/**
+ * GenericBase should be inherited by all classes in the IPMC.  It replaces the
+ * default `new` and `delete` operators with versions that allocate memory from
+ * the FreeRTOS API, ensuring thread safety of the allocator.
+ *
+ * \warning You still can't use `new` or `delete` in an ISR.
+ */
+class GenericBase {
+public:
+	static void *operator new(size_t size) {
+		return pvPortMalloc(size);
+	}
+	static void operator delete(void *block) {
+		vPortFree(block);
+	}
+};
 #endif /* #ifdef __cplusplus */
 
 #endif /* SRC_LIBWRAP_H_ */

@@ -11,7 +11,7 @@
  *
  * \warning This class is not ISR safe and contains no internal locking.
  */
-class AbsoluteTimeout {
+class AbsoluteTimeout: public GenericBase {
 public:
 	AbsoluteTimeout(TickType_t relative_timeout);
 	virtual ~AbsoluteTimeout();
@@ -36,7 +36,7 @@ protected:
  *          outstanding references, and it is not possible to cancel pended
  *          functions.
  */
-class WaitList {
+class WaitList: public GenericBase {
 public:
 	WaitList();
 	virtual ~WaitList();
@@ -74,7 +74,7 @@ protected:
  *          are outstanding references, and it is not possible to cancel pended
  *          functions.
  */
-class Event {
+class Event: public GenericBase {
 public:
 	Event(bool initial_state = false);
 	void set();

@@ -13,7 +13,7 @@
  * This driver will maintain an input and output buffer of user-specified
  * byte length.
  */
-class PS_UART {
+class PS_UART: public GenericBase {
 public:
 	PS_UART(u32 DeviceId, u32 IntrId, u32 ibufsize=4096, u32 obufsize=4096);
 	size_t read(u8 *buf, size_t len, TickType_t timeout);
