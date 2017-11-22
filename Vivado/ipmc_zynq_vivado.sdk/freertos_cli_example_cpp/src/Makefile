@@ -55,7 +55,7 @@ OBJS := \
 	$(patsubst ./%.cpp,.obj/$(BUILD_CONFIGURATION)/%.o,$(shell find -L . -type f -name '*.cpp')) \
 	$(patsubst ./%.S,.obj/$(BUILD_CONFIGURATION)/%.o,$(shell find -L . -type f -name '*.S')) \
 
-all: pre-build build doxygen
+all: doxygen pre-build build
 
 pre-build:
 	@echo
