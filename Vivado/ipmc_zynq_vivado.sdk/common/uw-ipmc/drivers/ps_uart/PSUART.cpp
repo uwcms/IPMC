@@ -55,7 +55,7 @@ static void XUartPs_DisableInterruptMask(XUartPs *InstancePtr, u32 Mask)
  * \param obufsize  The size of the output buffer to allocate.
  */
 PS_UART::PS_UART(u32 DeviceId, u32 IntrId, u32 ibufsize, u32 obufsize) :
-		echo(false), error_mask(0), inbuf(RingBuffer<u8>(4096)), outbuf(RingBuffer<u8>(4096)) {
+		echo(false), error_mask(0), inbuf(RingBuffer<u8>(4096)), outbuf(RingBuffer<u8>(4096)), IntrId(IntrId) {
 
 	XUartPs_Config *Config = XUartPs_LookupConfig(DeviceId);
 	configASSERT(XST_SUCCESS == XUartPs_CfgInitialize(&this->UartInst, Config, Config->BaseAddress));
@@ -81,6 +81,8 @@ PS_UART::~PS_UART() {
 	XUartPs_Send(&this->UartInst, &buf, 0);
 	XUartPs_Recv(&this->UartInst, &buf, 0);
 	XUartPs_DisableInterruptMask(&this->UartInst, IXR_RECV_ENABLE);
+	XScuGic_Disconnect(&xInterruptController, this->IntrId);
+	XScuGic_Disable(&xInterruptController, this->IntrId);
 }
 
 /**

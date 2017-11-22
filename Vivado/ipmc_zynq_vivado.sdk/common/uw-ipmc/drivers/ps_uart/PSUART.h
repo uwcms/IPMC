@@ -38,6 +38,7 @@ protected:
 	RingBuffer<u8> outbuf; ///< The output buffer.
 	WaitList readwait;     ///< A waitlist for blocking read operations.
 	WaitList writewait;    ///< A waitlist for blocking write operations.
+	u32 IntrId;            ///< Interrupt ID, used to disable interrupts in the destructor.
 };
 
 #endif /* UW_IPMC_DRIVERS_PS_UART_PSUART_H_ */
