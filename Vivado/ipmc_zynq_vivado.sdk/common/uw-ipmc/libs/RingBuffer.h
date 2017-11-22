@@ -16,7 +16,7 @@
  *
  * \note All functions other than the constructor and destructor are ISR safe.
  */
-template <typename T> class RingBuffer: public GenericBase {
+template <typename T> class RingBuffer {
 protected:
 	T *buffer;                      ///< The actual buffer space itself.
 	size_t buflen;                  ///< The size of the buffer in units of sizeof(T) (maxlength()+1 for bookkeeping.)
