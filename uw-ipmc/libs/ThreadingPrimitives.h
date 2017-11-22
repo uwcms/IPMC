@@ -11,7 +11,7 @@
  *
  * \warning This class is not ISR safe and contains no internal locking.
  */
-class AbsoluteTimeout: public GenericBase {
+class AbsoluteTimeout {
 public:
 	AbsoluteTimeout(TickType_t relative_timeout);
 	virtual ~AbsoluteTimeout();
@@ -36,7 +36,7 @@ protected:
  *          outstanding references, and it is not possible to cancel pended
  *          functions.
  */
-class WaitList: public GenericBase {
+class WaitList {
 public:
 	WaitList();
 	virtual ~WaitList();
@@ -52,7 +52,7 @@ public:
     volatile int _interrupt_pend_count; ///< \protected An internal counter of outstanding deferred wakes FromISR, used for safe destruct assertion.
 protected:
     SemaphoreHandle_t mutex; ///< A mutex protecting the internal state.
-	std::list<SemaphoreHandle_t, FreeRTOS_Allocator<SemaphoreHandle_t>> waitlist; ///< A list of current waitlist subscriptions.
+	std::list<SemaphoreHandle_t> waitlist; ///< A list of current waitlist subscriptions.
 };
 
 /**
@@ -74,7 +74,7 @@ protected:
  *          are outstanding references, and it is not possible to cancel pended
  *          functions.
  */
-class Event: public GenericBase {
+class Event {
 public:
 	Event(bool initial_state = false);
 	void set();

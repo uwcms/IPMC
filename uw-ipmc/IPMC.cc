@@ -46,3 +46,10 @@ void driver_init(bool use_pl) {
 void ipmc_service_init() {
 
 }
+
+void* operator new(std::size_t n) {
+	return pvPortMalloc(n);
+}
+void operator delete(void* p) throw() {
+	vPortFree(p);
+}
