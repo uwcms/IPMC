@@ -191,14 +191,12 @@ void PS_UART::_HandleInterrupt(u32 Event, u32 EventData) {
 	//#define XUARTPS_EVENT_PARE_FRAME_BRKE	6U /**< A receive parity, frame, break error detected */
 	//#define XUARTPS_EVENT_RECV_ORERR		7U /**< A receive overrun error detected */
 
-	BaseType_t isrwake = pdFALSE;
-
 	if (Event == XUARTPS_EVENT_RECV_DATA || Event == XUARTPS_EVENT_RECV_TOUT
 			|| Event == XUARTPS_EVENT_RECV_ERROR) {
 
 		if (EventData > 0) {
 			this->inbuf.notify_dma_input_occurred(EventData);
-			this->readwait.wakeFromISR(&isrwake); // We received something.
+			this->readwait.wake(); // We received something.
 			u8 *dma_inbuf;
 			size_t maxitems;
 			this->inbuf.setup_dma_input(&dma_inbuf, &maxitems);
@@ -210,13 +208,17 @@ void PS_UART::_HandleInterrupt(u32 Event, u32 EventData) {
 	}
 	// if (Event == XUARTPS_EVENT_RECV_TOUT) { } // Recv data event.  Handled above.
 	if (Event == XUARTPS_EVENT_SENT_DATA) {
+		/* This event indicates data transfer is COMPLETE.
+		 * It is safe to enqueue more data now.
+		 */
+
 		this->outbuf.notify_dma_output_occurred(EventData);
 		u8 *dma_outbuf;
 		size_t maxitems;
 		this->outbuf.setup_dma_output(&dma_outbuf, &maxitems);
 		if (maxitems) {
 			XUartPs_Send(&this->UartInst, dma_outbuf, maxitems);
-			this->writewait.wakeFromISR(&isrwake);
+			this->writewait.wake();
 		}
 		else
 			XUartPs_Send(&this->UartInst, dma_outbuf, 0);
@@ -232,5 +234,4 @@ void PS_UART::_HandleInterrupt(u32 Event, u32 EventData) {
 	if (Event == XUARTPS_EVENT_RECV_ORERR) {
 		this->error_mask |= (1<<XUARTPS_EVENT_RECV_ORERR); // Set error mask flag.  The xuartps driver does not appear to send this event.
 	}
-	portYIELD_FROM_ISR(isrwake);
 }

@@ -3,6 +3,7 @@
 #include <task.h>
 #include <semphr.h>
 #include <timers.h>
+#include <task.h>
 #include <IPMC.h>
 
 /**
@@ -50,11 +51,6 @@ TickType_t AbsoluteTimeout::get_timeout() {
 }
 
 
-WaitList::WaitList() :
-	_interrupt_pend_count(0) {
-	this->mutex = xSemaphoreCreateMutex();
-}
-
 WaitList::~WaitList() {
 	/* Fail-secure.
 	 *
@@ -64,8 +60,6 @@ WaitList::~WaitList() {
 	 * release all waiters.
 	 */
 	configASSERT(!this->waitlist.size());
-	configASSERT(!this->_interrupt_pend_count);
-	vSemaphoreDelete(this->mutex);
 }
 
 /**
@@ -81,11 +75,13 @@ WaitList::~WaitList() {
  *          simply do so with a timeout of 0.
  */
 WaitList::Subscription_t WaitList::join() {
+	configASSERT(!IN_INTERRUPT());
+
 	SemaphoreHandle_t sem = xSemaphoreCreateBinary();
 	configASSERT(sem);
-	xSemaphoreTake(this->mutex, portMAX_DELAY); // We will assume this delay is negligible.
+	taskENTER_CRITICAL();
 	this->waitlist.push_back(sem);
-	xSemaphoreGive(this->mutex);
+	taskEXIT_CRITICAL();
 	return sem;
 }
 
@@ -99,21 +95,14 @@ WaitList::Subscription_t WaitList::join() {
  * \note After this call, your waitlist subscription is no longer valid.
  */
 bool WaitList::wait(WaitList::Subscription_t subscription, TickType_t timeout) {
+	configASSERT(!IN_INTERRUPT());
+
 	BaseType_t sem_result = xSemaphoreTake(subscription, timeout);
 
-	xSemaphoreTake(this->mutex, portMAX_DELAY);
-	if (sem_result == pdFALSE) {
-		// We timed out.  We need to remove ourselves from the wait list.
-		this->waitlist.remove(subscription);
-	}
-	else {
-		/* Even though we did not time out and our semaphore will be removed
-		 * from the wait list automatically, we still need to block on this
-		 * mutex to ensure all woken tasks are released at the same time, to
-		 * protect against priority inversion.
-		 */
-	}
-	xSemaphoreGive(this->mutex);
+	taskENTER_CRITICAL();
+	this->waitlist.remove(subscription);
+	taskEXIT_CRITICAL();
+
 	vSemaphoreDelete(subscription); // Clean up after ourselves.
 	return sem_result == pdTRUE;
 }
@@ -121,42 +110,19 @@ bool WaitList::wait(WaitList::Subscription_t subscription, TickType_t timeout) {
 /**
  * Wake threads waiting on this waitlist.
  *
+ * \note This function is ISR safe.
+ *
  * \param waiters The number of waiters to wake.  -1 to wake all waiters.
  */
 void WaitList::wake(s32 waiters) {
-	xSemaphoreTake(this->mutex, portMAX_DELAY);
-	/* As a protection against priority inversion, we will have woken tasks
-	 * check in via this object's mutex after waking, which will of course be
-	 * released only after all tasks have been woken.  This will ensure that
-	 * all waiting tasks are released simultaneously in the end.
-	 */
-	while (waiters-- && !this->waitlist.empty()) {
-		xSemaphoreGive(this->waitlist.front());
-		this->waitlist.pop_front();
-	}
-	xSemaphoreGive(this->mutex);
-}
-
-static void waitlist_wake_from_isr_callback(void *vWaitList, uint32_t waiters) {
-	static_cast<WaitList*>(vWaitList)->wake(*reinterpret_cast<s32*>(&waiters));
-	portENTER_CRITICAL();
-	static_cast<WaitList*>(vWaitList)->_interrupt_pend_count--;
-	portEXIT_CRITICAL();
-}
-
-/**
- * Wake threads waiting on this waitlist, from an ISR.
- *
- * \param waiters The number of waiters to wake.  -1 to wake all waiters.
- * \param pxHigherPriorityTaskWoken See documentation for xSemaphoreGiveFromISR()
- *
- * \warning Outside of an ISR, use #wait() instead.
- *
- * \note This operation is completed in a deferred interrupt style, using the timer thread.
- */
-void WaitList::wakeFromISR(BaseType_t * const pxHigherPriorityTaskWoken, s32 waiters) {
-	this->_interrupt_pend_count++;
-	xTimerPendFunctionCallFromISR(waitlist_wake_from_isr_callback, this, *reinterpret_cast<uint32_t*>(&waiters), pxHigherPriorityTaskWoken);
+	if (!IN_INTERRUPT())
+		taskENTER_CRITICAL();
+	BaseType_t xHigherPriorityTaskWoken = pdTRUE;
+	for (auto it = this->waitlist.begin(), eit = this->waitlist.end(); waiters-- && it != eit; ++it)
+		xSemaphoreGiveFromISR(*it, &xHigherPriorityTaskWoken);
+	portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+	if (!IN_INTERRUPT())
+		taskEXIT_CRITICAL();
 }
 
 /**
@@ -166,7 +132,7 @@ void WaitList::wakeFromISR(BaseType_t * const pxHigherPriorityTaskWoken, s32 wai
  */
 Event::Event(bool initial_state) :
 		flag(initial_state), interrupt_pend_count(0) {
-	this->mutex = xSemaphoreCreateMutex();
+	// Nothing more to do here.
 }
 
 /**
@@ -175,22 +141,23 @@ Event::Event(bool initial_state) :
  * \warning In an ISR, use #setFromISR() instead.
  */
 void Event::set() {
-	xSemaphoreTake(this->mutex, portMAX_DELAY);
+	configASSERT(!IN_INTERRUPT());
+	taskENTER_CRITICAL();
 	bool old_flag = this->flag;
 	this->flag = true;
 	if (!old_flag) {
 		// We set it.  Time to release all waiters.
 		this->waitlist.wake();
 	}
-	xSemaphoreGive(this->mutex);
+	taskEXIT_CRITICAL();
 }
 
 /**
  * Complete the callback to clear the event flag from an ISR (via timer thread).
  */
 void Event::_complete_setFromISR() {
-	this->set();
 	portENTER_CRITICAL();
+	this->set();
 	this->interrupt_pend_count--;
 	portEXIT_CRITICAL();
 }
@@ -209,6 +176,7 @@ static void event_set_from_isr_callback(void *vEvent, uint32_t ulUnused) {
  * \note This operation is completed in a deferred interrupt style, using the timer thread.
  */
 void Event::setFromISR(BaseType_t * const pxHigherPriorityTaskWoken) {
+	configASSERT(IN_INTERRUPT());
 	this->interrupt_pend_count++;
 	xTimerPendFunctionCallFromISR(event_set_from_isr_callback, this, 0, pxHigherPriorityTaskWoken);
 }
@@ -219,37 +187,16 @@ void Event::setFromISR(BaseType_t * const pxHigherPriorityTaskWoken) {
  * \warning In an ISR, use #clear() instead.
  */
 void Event::clear() {
-	xSemaphoreTake(this->mutex, portMAX_DELAY);
+	taskENTER_CRITICAL();
 	this->flag = false;
-	xSemaphoreGive(this->mutex);
+	taskEXIT_CRITICAL();
 }
 
 /**
- * Complete the callback to clear the event flag from an ISR (via timer thread).
+ * Set the event flag to 'false' and block all waiters from within an interrupt.
  */
-void Event::_complete_clearFromISR() {
-	this->clear();
-	portENTER_CRITICAL();
-	this->interrupt_pend_count--;
-	portEXIT_CRITICAL();
-}
-
-static void event_clear_from_isr_callback(void *vEvent, uint32_t ulUnused) {
-	static_cast<Event*>(vEvent)->_complete_clearFromISR();
-}
-
-/**
- * Set the event flag to 'false', and block all waiters from an ISR.
- *
- * \param pxHigherPriorityTaskWoken See documentation for xTimerPendFunctionCallFromISR()
- *
- * \warning Outside of an ISR, use #clear() instead.
- *
- * \note This operation is completed in a deferred interrupt style, using the timer thread.
- */
-void Event::clearFromISR(BaseType_t * const pxHigherPriorityTaskWoken) {
-	this->interrupt_pend_count++;
-	xTimerPendFunctionCallFromISR(event_clear_from_isr_callback, this, 0, pxHigherPriorityTaskWoken);
+void Event::clearFromISR() {
+	this->flag = false;
 }
 
 /**
@@ -258,9 +205,9 @@ void Event::clearFromISR(BaseType_t * const pxHigherPriorityTaskWoken) {
  * \return The current value of the flag.
  */
 bool Event::get() {
-	xSemaphoreTake(this->mutex, portMAX_DELAY);
+	taskENTER_CRITICAL();
 	bool state = this->flag;
-	xSemaphoreGive(this->mutex);
+	taskEXIT_CRITICAL();
 	return state;
 }
 
@@ -271,13 +218,13 @@ bool Event::get() {
  * \return The value of the flag after waiting (false is possible if the wait timed out).
  */
 bool Event::wait(TickType_t timeout) {
-	xSemaphoreTake(this->mutex, portMAX_DELAY);
+	taskENTER_CRITICAL();
 	if (this->flag) {
-		xSemaphoreGive(this->mutex);
+		taskEXIT_CRITICAL();
 		return true;
 	}
 	WaitList::Subscription_t subscription = this->waitlist.join();
-	xSemaphoreGive(this->mutex);
+	taskEXIT_CRITICAL();
 	return this->waitlist.wait(subscription, timeout);
 }
 
@@ -287,13 +234,9 @@ bool Event::wait(TickType_t timeout) {
  * \warning This object cannot be deleted while there are tasks waiting on it.
  */
 Event::~Event() {
-	/* Wait for any deferred interrupt style setFromISR/clearFromISR to
-	 * complete.  If we didn't do this, they'd call a freed pointer.  That'd be
-	 * bad.
+	/* Wait for any deferred interrupt style setFromISR to complete.  If we
+	 * didn't do this, they'd call a freed pointer.  That'd be bad.
 	 */
 	while (this->interrupt_pend_count)
 		vTaskDelay(1);
-
-	// Clean up.
-	vSemaphoreDelete(this->mutex);
 }

@@ -28,30 +28,19 @@ protected:
  *          Specifically this means that all tasks must have returned from
  *          #wait(), and no task may have an outstanding subscription to this
  *          waitlist.
- *
- * \warning This object cannot be destroyed from the FreeRTOS timer thread if
- *          there could be any outstanding #wakeFromISR(), as the destructor
- *          will sleep one or more ticks until they are complete, since it is
- *          unsafe to deallocate this object's memory while there are
- *          outstanding references, and it is not possible to cancel pended
- *          functions.
  */
 class WaitList {
 public:
-	WaitList();
+	WaitList() { };
 	virtual ~WaitList();
 	typedef SemaphoreHandle_t Subscription_t; ///< An opaque type representing a waitlist membership.
 	Subscription_t join();
 	bool wait(Subscription_t subscription, TickType_t timeout = portMAX_DELAY);
 	void wake(s32 waiters=-1);
-	void wakeFromISR(BaseType_t * const pxHigherPriorityTaskWoken, s32 waiters=-1);
 
     WaitList(WaitList const &) = delete;        ///< Class is not assignable.
     void operator=(WaitList const &x) = delete; ///< Class is not copyable.
-
-    volatile int _interrupt_pend_count; ///< \protected An internal counter of outstanding deferred wakes FromISR, used for safe destruct assertion.
 protected:
-    SemaphoreHandle_t mutex; ///< A mutex protecting the internal state.
 	std::list<SemaphoreHandle_t> waitlist; ///< A list of current waitlist subscriptions.
 };
 
@@ -80,7 +69,7 @@ public:
 	void set();
 	void setFromISR(BaseType_t * const pxHigherPriorityTaskWoken);
 	void clear();
-	void clearFromISR(BaseType_t * const pxHigherPriorityTaskWoken);
+	void clearFromISR();
 	bool get();
 	bool wait(TickType_t timeout = portMAX_DELAY);
 	virtual ~Event();
@@ -89,9 +78,7 @@ public:
     void operator=(Event const &x) = delete; ///< Class is not copyable.
 
 	void _complete_setFromISR();   ///< \protected Internal.
-	void _complete_clearFromISR(); ///< \protected Internal.
 protected:
-	SemaphoreHandle_t mutex; ///< A mutex to protect the flag.
 	bool flag;               ///< The flag indicating the event's state.
 	WaitList waitlist;       ///< A wait list for processes blocking on this event.
 	volatile int interrupt_pend_count; ///< An internal counter of outstanding deferred sets/clears FromISR, used for safe destruct.
