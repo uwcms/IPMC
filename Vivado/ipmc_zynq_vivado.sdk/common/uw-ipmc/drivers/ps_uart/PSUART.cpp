@@ -49,20 +49,24 @@ static void XUartPs_DisableInterruptMask(XUartPs *InstancePtr, u32 Mask)
  *
  * \note This performs hardware setup (mainly interrupt configuration).
  *
- * \param DeviceId  The DeviceId, used for XUartPs_LookupConfig(), etc
- * \param IntrId    The interrupt ID, for configuring the GIC.
- * \param ibufsize  The size of the input buffer to allocate.
- * \param obufsize  The size of the output buffer to allocate.
+ * \param DeviceId    The DeviceId, used for XUartPs_LookupConfig(), etc
+ * \param IntrId      The interrupt ID, for configuring the GIC.
+ * \param ibufsize    The size of the input buffer to allocate.
+ * \param obufsize    The size of the output buffer to allocate.
+ * \param oblocksize  The maximum block size for output operations.  Relevant to wait times when the queue is full.
  */
-PS_UART::PS_UART(u32 DeviceId, u32 IntrId, u32 ibufsize, u32 obufsize) :
-		echo(false), error_mask(0), inbuf(RingBuffer<u8>(4096)), outbuf(RingBuffer<u8>(4096)), IntrId(IntrId) {
+PS_UART::PS_UART(u32 DeviceId, u32 IntrId, u32 ibufsize, u32 obufsize,
+		u32 oblocksize) :
+		error_mask(0), inbuf(RingBuffer<u8>(4096)), outbuf(
+				RingBuffer<u8>(4096)), write_running(false), oblocksize(
+				oblocksize), IntrId(IntrId) {
 
 	XUartPs_Config *Config = XUartPs_LookupConfig(DeviceId);
 	configASSERT(XST_SUCCESS == XUartPs_CfgInitialize(&this->UartInst, Config, Config->BaseAddress));
 	XUartPs_SetInterruptMask(&this->UartInst, 0);
 	XScuGic_Connect(&xInterruptController, IntrId, reinterpret_cast<Xil_InterruptHandler>(XUartPs_InterruptHandler), (void*)&this->UartInst);
 	XUartPs_SetHandler(&this->UartInst, reinterpret_cast<XUartPs_Handler>(PS_UART_InterruptPassthrough), reinterpret_cast<void*>(this));
-	XScuGic_Enable( &xInterruptController, IntrId);
+	XScuGic_Enable(&xInterruptController, IntrId);
 	XUartPs_SetRecvTimeout(&this->UartInst, 8); // My example says this is u32s, the comments say its nibbles, the TRM says its baud_sample_clocks.
 
 	u8 emptybuf;
@@ -92,12 +96,11 @@ PS_UART::~PS_UART() {
  * \param len The maximum number of bytes to read.
  * \param timeout The timeout for this read, in standard FreeRTOS format.
  *
- * \note This function is interrupt safe if timeout=0.
+ * \note This function is interrupt and critical safe if timeout=0.
  */
 size_t PS_UART::read(u8 *buf, size_t len, TickType_t timeout) {
-	configASSERT(timeout == 0 || !IN_INTERRUPT());
-	if (!IN_INTERRUPT())
-		portENTER_CRITICAL();
+	configASSERT(timeout == 0 || !(IN_INTERRUPT() || IN_CRITICAL()));
+
 	AbsoluteTimeout abstimeout(timeout);
 	size_t bytesread = 0;
 	while (bytesread < len) {
@@ -108,7 +111,24 @@ size_t PS_UART::read(u8 *buf, size_t len, TickType_t timeout) {
 		WaitList::Subscription_t sub = NULL;
 		if (!IN_INTERRUPT())
 			sub = this->readwait.join();
-		bytesread += this->inbuf.read(buf+bytesread, len-bytesread);
+
+		/* Entering a critical section to strongly pair the read and interrupt
+		 * re-enable.
+		 */
+		if (!IN_INTERRUPT())
+			taskENTER_CRITICAL();
+		size_t batch_bytesread = this->inbuf.read(buf+bytesread, len-bytesread);
+		if (batch_bytesread) {
+			/* We have retrieved SOMETHING from the buffer.  Re-enable receive
+			 * interrupts, in case they were disabled due to a full buffer.
+			 */
+			XUartPs_EnableInterruptMask(&this->UartInst, IXR_RECV_ENABLE);
+		}
+		bytesread += batch_bytesread;
+		if (!IN_INTERRUPT())
+			taskEXIT_CRITICAL();
+		// </critical>
+
 		if (IN_INTERRUPT())
 			break; // Interrupts can't wait for more.
 		if (bytesread == len) {
@@ -118,14 +138,6 @@ size_t PS_UART::read(u8 *buf, size_t len, TickType_t timeout) {
 		if (!this->readwait.wait(sub, abstimeout.get_timeout()))
 			break; // Timed out.
 	}
-	if (bytesread) {
-		/* We have retrieved SOMETHING from the buffer.  Re-enable receive
-		 * interrupts, in case they were disabled due to a full buffer.
-		 */
-		XUartPs_EnableInterruptMask(&this->UartInst, IXR_RECV_ENABLE);
-	}
-	if (!IN_INTERRUPT())
-		portEXIT_CRITICAL();
 	return bytesread;
 }
 
@@ -136,12 +148,11 @@ size_t PS_UART::read(u8 *buf, size_t len, TickType_t timeout) {
  * \param len The maximum number of bytes to write.
  * \param timeout The timeout for this read, in standard FreeRTOS format.
  *
- * \note This function is interrupt safe if timeout=0.
+ * \note This function is interrupt and critical safe if timeout=0.
  */
 size_t PS_UART::write(const u8 *buf, size_t len, TickType_t timeout) {
-	configASSERT(timeout == 0 || !IN_INTERRUPT());
-	if (!IN_INTERRUPT())
-		portENTER_CRITICAL();
+	configASSERT(timeout == 0 || !(IN_INTERRUPT() || IN_CRITICAL()));
+
 	AbsoluteTimeout abstimeout(timeout);
 	size_t byteswritten = 0;
 	while (byteswritten < len) {
@@ -153,7 +164,32 @@ size_t PS_UART::write(const u8 *buf, size_t len, TickType_t timeout) {
 		WaitList::Subscription_t sub = NULL;
 		if (!IN_INTERRUPT())
 			sub = this->writewait.join();
-		byteswritten += this->outbuf.write(buf+byteswritten, len-byteswritten);
+
+		/* Entering a critical section to strongly pair the write and output
+		 * refresh.
+		 */
+		if (!IN_INTERRUPT())
+			taskENTER_CRITICAL();
+		size_t batch_byteswritten = this->outbuf.write(buf+byteswritten, len-byteswritten);
+		if (batch_byteswritten && !this->write_running) {
+			/* We have written something to the buffer, and it's not already
+			 * running output.
+			 */
+			u8 *dma_outbuf;
+			size_t maxitems;
+			this->outbuf.setup_dma_output(&dma_outbuf, &maxitems);
+			// If we don't have any items to send, it means we didn't just write.
+			configASSERT(maxitems);
+			if (maxitems > this->oblocksize)
+				maxitems = this->oblocksize;
+			XUartPs_Send(&this->UartInst, dma_outbuf, maxitems);
+			this->write_running = true;
+		}
+		byteswritten += batch_byteswritten;
+		if (!IN_INTERRUPT())
+			taskEXIT_CRITICAL();
+		// </critical>
+
 		if (IN_INTERRUPT())
 			break; // Interrupts can't wait for more.
 		if (byteswritten == len) {
@@ -163,22 +199,6 @@ size_t PS_UART::write(const u8 *buf, size_t len, TickType_t timeout) {
 		if (!this->writewait.wait(sub, abstimeout.get_timeout()))
 			break; // Timed out.
 	}
-	if (byteswritten) {
-		/* We have written something to the buffer.  Let's reset the transmit
-		 * so that we are sure it goes out.  No worry about interrupting the
-		 * other.  They can handle a few microseconds downtime to refresh the
-		 * buffer.
-		 */
-		u8 *dma_outbuf;
-		size_t maxitems;
-		this->outbuf.setup_dma_output(&dma_outbuf, &maxitems);
-		if (maxitems)
-			XUartPs_Send(&this->UartInst, dma_outbuf, maxitems);
-		else
-			XUartPs_Send(&this->UartInst, dma_outbuf, 0);
-	}
-	if (!IN_INTERRUPT())
-		portEXIT_CRITICAL();
 	return byteswritten;
 }
 
@@ -216,12 +236,16 @@ void PS_UART::_HandleInterrupt(u32 Event, u32 EventData) {
 		u8 *dma_outbuf;
 		size_t maxitems;
 		this->outbuf.setup_dma_output(&dma_outbuf, &maxitems);
+		if (maxitems > this->oblocksize)
+			maxitems = this->oblocksize;
 		if (maxitems) {
 			XUartPs_Send(&this->UartInst, dma_outbuf, maxitems);
+			this->write_running = true;
 			this->writewait.wake();
 		}
-		else
-			XUartPs_Send(&this->UartInst, dma_outbuf, 0);
+		else {
+			this->write_running = false;
+		}
 	}
 	if (Event == XUARTPS_EVENT_RECV_ERROR) {
 		this->error_mask |= (1<<XUARTPS_EVENT_RECV_ERROR); // Set error mask flag.  This is probably an overrun error.
