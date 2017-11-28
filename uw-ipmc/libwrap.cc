@@ -66,11 +66,12 @@ int _uwipmc_vprintf(const char *format, va_list ap) {
 	 *
 	 * It is not sufficiently valuable to require all stack sizes increased to
 	 * match the maximum possible allocated buffer size, or to stress ourselves
-	 * with true dynamic sizing, considering this is fundamentally a blocking
-	 * operation in the first place.
+	 * with true dynamic sizing in the end.
 	 */
+	// TODO: Count statistics.
+	// TODO: Mirror to tracebuffer.
 	if (ret > 0)
-		uart_ps0->write(printf_outbuf, ret, portMAX_DELAY);
+		uart_ps0->write(printf_outbuf, ret, 0);
 	xSemaphoreGive(libwrap_outbuf_mutex);
 	return ret;
 }
