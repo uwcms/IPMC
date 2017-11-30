@@ -36,6 +36,14 @@ void vAssertCalled(const char * pcFile, unsigned long ulLine) {
 		/* Set ul to a non-zero value using the debugger to step out of this
 		 function. */
 		while (ul == 0) {
+			/* Let's trigger the debugger directly, if attached.
+			 *
+			 * No sense asserting and not realizing it.
+			 *
+			 * Step over this instruction to continue.
+			 */
+			__asm__("bkpt");
+
 			portNOP();
 		}
 	}
