@@ -3,6 +3,7 @@
 
 #include <FreeRTOS.h>
 #include <semphr.h>
+#include <task.h>
 #include <list>
 #include <libwrap.h>
 
@@ -14,11 +15,11 @@
 class AbsoluteTimeout {
 public:
 	AbsoluteTimeout(TickType_t relative_timeout);
-	virtual ~AbsoluteTimeout();
+	AbsoluteTimeout(uint64_t relative_timeout);
+	virtual ~AbsoluteTimeout() { };
 	TickType_t get_timeout();
 protected:
-	TickType_t last;      ///< Record the last checked time to allow wraparound calculations.
-	TickType_t remaining; ///< Record the remaining timeout, to allow expiry calculations.
+	uint64_t timeout64; ///< The 64bit timeout.
 };
 
 /**
@@ -103,6 +104,16 @@ static inline bool IN_INTERRUPT() {
 static inline bool IN_CRITICAL() {
 	extern volatile uint32_t ulCriticalNesting;
 	return !!ulCriticalNesting;
+}
+
+static inline uint64_t get_tick64() {
+	if (!IN_INTERRUPT())
+		taskENTER_CRITICAL();
+	extern volatile uint64_t uwipmc_tick64_count;
+	uint64_t ret = uwipmc_tick64_count;
+	if (!IN_INTERRUPT())
+		taskEXIT_CRITICAL();
+	return ret;
 }
 
 #endif /* UW_IPMC_LIBS_THREADINGPRIMITIVES_H_ */

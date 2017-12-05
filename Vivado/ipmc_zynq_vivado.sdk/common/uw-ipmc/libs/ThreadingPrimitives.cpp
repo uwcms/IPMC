@@ -12,42 +12,52 @@
  * \param relative_timeout The relative timeout to be converted to absolute form.
  */
 AbsoluteTimeout::AbsoluteTimeout(TickType_t relative_timeout) {
-	if (IN_INTERRUPT())
-		this->last = xTaskGetTickCountFromISR();
+	if (relative_timeout == portMAX_DELAY)
+		this->timeout64 = UINT64_MAX;
 	else
-		this->last = xTaskGetTickCount();
-	this->remaining = relative_timeout; // Wraparound handled by u32-wrap.
+		this->timeout64 = get_tick64() + relative_timeout;
 }
 
-AbsoluteTimeout::~AbsoluteTimeout() {
-	// Nothing to destruct.
+/// \overload
+AbsoluteTimeout::AbsoluteTimeout(uint64_t relative_timeout) {
+	if (relative_timeout == portMAX_DELAY)
+		this->timeout64 = UINT64_MAX;
+	else {
+		uint64_t now64 = get_tick64();
+		configASSERT( (UINT64_MAX - relative_timeout) < now64 ); // Wait past the end of time?  Never!
+		this->timeout64 = now64 + relative_timeout;
+	}
 }
 
 /**
  * Get the current remaining timeout.
  *
- * \warning You must call this at least once per timer wrap or it will lose track.
+ * \note If you have specified a timeout that is longer than `TickType_t-1`, you
+ *       may have to block multiple times before the true timeout is expired.
+ *
  * \return A correct relative timeout for this object from the current point in time.
  */
 TickType_t AbsoluteTimeout::get_timeout() {
-	if (this->remaining == portMAX_DELAY)
+	if (this->timeout64 == UINT64_MAX)
 		return portMAX_DELAY;
 
-	TickType_t now;
-	if (IN_INTERRUPT())
-		now = xTaskGetTickCountFromISR();
-	else
-		now = xTaskGetTickCount();
+	if (!IN_INTERRUPT())
+		taskENTER_CRITICAL();
 
-	TickType_t time_passed = now - this->last;
-	if (time_passed > remaining) {
-		this->remaining = 0;
+	uint64_t now64 = get_tick64();
+	TickType_t ret;
+	if (this->timeout64 <= now64) {
+		ret = 0; // Expired.
+	}
+	else if (this->timeout64 - now64 > portMAX_DELAY) {
+		ret = portMAX_DELAY-1; // Don't block forever, but block as long as we can.
 	}
 	else {
-		this->remaining -= time_passed;
+		ret = this->timeout64 - now64; // Block until timeout, it's within TickType_t.
 	}
-	this->last = now;
-	return this->remaining;
+	if (!IN_INTERRUPT())
+		taskEXIT_CRITICAL();
+	return ret;
 }
 
 
@@ -239,4 +249,14 @@ Event::~Event() {
 	 */
 	while (this->interrupt_pend_count)
 		vTaskDelay(1);
+}
+
+/// A custom 64 bit tick counter.  Access only through get_tick64().
+volatile uint64_t uwipmc_tick64_count = 0;
+
+/**
+ * Hook the FreeRTOS tick timer to increment our own 64bit tick counter.
+ */
+void vApplicationTickHook() {
+	uwipmc_tick64_count++;
 }
