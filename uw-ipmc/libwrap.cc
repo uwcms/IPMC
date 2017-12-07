@@ -9,6 +9,7 @@
 #include <libwrap.h> // auto-included from IPMC.h, but include first here to ensure there are no failed hidden dependencies in libwrap.h
 #include <IPMC.h>
 #include <drivers/ps_uart/PSUART.h>
+#include <libs/StatCounter.h>
 
 #include <FreeRTOS.h>
 #include <semphr.h>
@@ -53,6 +54,11 @@ UWIPMC_INITIALIZE_STATIC_SEMAPHORE(libwrap_outbuf_mutex, Mutex);
 
 static char printf_outbuf[PRINTF_MAX_LENGTH];
 
+StatCounter printf_overrun_discard_count("printf.stdout_full.count");
+StatCounter printf_overrun_discard_bytes("printf.stdout_full.lost_bytes");
+StatCounter printfs_count("printf.count");
+StatCounter printfs_bytes("printf.bytes");
+
 int _uwipmc_vprintf(const char *format, va_list ap) {
 	xSemaphoreTake(libwrap_outbuf_mutex, portMAX_DELAY);
 	xSemaphoreTake(libwrap_mutex, portMAX_DELAY);
@@ -68,10 +74,16 @@ int _uwipmc_vprintf(const char *format, va_list ap) {
 	 * match the maximum possible allocated buffer size, or to stress ourselves
 	 * with true dynamic sizing in the end.
 	 */
-	// TODO: Count statistics.
 	// TODO: Mirror to tracebuffer.
+	int written = 0;
 	if (ret > 0)
-		uart_ps0->write(printf_outbuf, ret, 0);
+		written = uart_ps0->write(printf_outbuf, ret, 0);
+	if (written != ret) {
+		printf_overrun_discard_count.increment();
+		printf_overrun_discard_bytes.increment(ret-written);
+	}
+	printfs_count.increment();
+	printfs_bytes.increment(ret);
 	xSemaphoreGive(libwrap_outbuf_mutex);
 	return ret;
 }
