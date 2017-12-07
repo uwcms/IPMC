@@ -508,10 +508,9 @@ public:
 		}
 		else {
 			if (anonymize) {
-				const size_t anon_len = topic.size()+14;
-				char anon_name[anon_len];
+				std::string anon_name;
 				do {
-					snprintf(anon_name, anon_len, "%s/%u", topic.c_str(), SkyRoad::anonymizer_inc++);
+					anon_name = stdsprintf("%s/%u", topic.c_str(), SkyRoad::anonymizer_inc++);
 				} while (0 < SkyRoad::phonebook.count(anon_name));
 				ret = new Messenger<T>(anon_name);
 			}
