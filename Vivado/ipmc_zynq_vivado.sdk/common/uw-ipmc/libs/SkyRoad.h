@@ -461,21 +461,6 @@ public:
 
 public:
 	/**
-	 * Initialize the SkyRoad topic registry.
-	 *
-	 * Must be called exactly once, during initialization, before any calls to
-	 * SkyRoad::register_topic().
-	 */
-	static void init() {
-		SemaphoreHandle_t new_mutex = xSemaphoreCreateMutex();
-		configASSERT(new_mutex);
-		taskENTER_CRITICAL();
-		configASSERT(!SkyRoad::mutex);
-		SkyRoad::mutex = new_mutex;
-		taskEXIT_CRITICAL();
-	}
-
-	/**
 	 * Request a Messenger for a given topic, creating or retrieving the
 	 * Messenger associated with that topic.
 	 *
@@ -498,12 +483,26 @@ public:
 	 * \return The requested Messenger
 	 */
 	template <typename T> static Messenger<T> *request_messenger(const std::string topic, bool anonymize=false) {
-		configASSERT(SkyRoad::mutex); // forgot to call init()?
 		configASSERT(topic.find("/") == std::string::npos); // Don't allow re-lookup of an anonymized name.
+
+		if (!SkyRoad::mutex) {
+			SemaphoreHandle_t new_mutex = xSemaphoreCreateMutex();
+			taskENTER_CRITICAL();
+			if (!SkyRoad::mutex) {
+				SkyRoad::mutex = new_mutex;
+				new_mutex = NULL;
+			}
+			taskEXIT_CRITICAL();
+			if (new_mutex)
+				vSemaphoreDelete(new_mutex);
+		}
 		xSemaphoreTake(SkyRoad::mutex, portMAX_DELAY);
+		if (!SkyRoad::phonebook)
+			SkyRoad::phonebook = new std::map<std::string, Hermes*>();
+
 		Messenger<T> *ret = NULL;
-		if (!anonymize && 0 < SkyRoad::phonebook.count(topic)) {
-			ret = dynamic_cast< Messenger<T>* >(SkyRoad::phonebook.at(topic));
+		if (!anonymize && 0 < SkyRoad::phonebook->count(topic)) {
+			ret = dynamic_cast< Messenger<T>* >(SkyRoad::phonebook->at(topic));
 			configASSERT(ret);
 		}
 		else {
@@ -511,13 +510,13 @@ public:
 				std::string anon_name;
 				do {
 					anon_name = stdsprintf("%s/%u", topic.c_str(), SkyRoad::anonymizer_inc++);
-				} while (0 < SkyRoad::phonebook.count(anon_name));
+				} while (0 < SkyRoad::phonebook->count(anon_name));
 				ret = new Messenger<T>(anon_name);
 			}
 			else {
 				ret = new Messenger<T>(topic);
 			}
-			SkyRoad::phonebook.insert(std::make_pair<std::string, Hermes*>(ret->address, ret));
+			SkyRoad::phonebook->insert(std::make_pair<std::string, Hermes*>(ret->address, ret));
 		}
 		xSemaphoreGive(SkyRoad::mutex);
 		return ret;
@@ -526,7 +525,7 @@ public:
 protected:
 	static volatile SemaphoreHandle_t mutex; ///< A mutex protecting the phonebook.
 	static volatile uint32_t anonymizer_inc; ///< An auto-increment for the anonymize=true option to register_topic().
-	static std::map<std::string, Hermes*> phonebook; ///< A mapping of all existing messengers.
+	static std::map<std::string, Hermes*> * volatile phonebook; ///< A mapping of all existing messengers.
 }; // class SkyRoad
 
 #endif /* SRC_COMMON_UW_IPMC_LIBS_SKYROAD_H_ */
