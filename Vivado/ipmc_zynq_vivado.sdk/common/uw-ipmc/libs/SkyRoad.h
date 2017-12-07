@@ -7,6 +7,7 @@
 #include <list>
 #include <libwrap.h>
 #include <libs/ThreadingPrimitives.h>
+#include <libs/StatCounter.h>
 #include <vector>
 #include <string>
 #include <map>
@@ -76,7 +77,10 @@ public:
 		 * The superclass constructor for all `Messenger`s.
 		 * \param address  The address this messenger accepts deliveries for.
 		 */
-		Hermes(const std::string address) : address(address) {
+		Hermes(const std::string address)
+	      : address(address),
+			deliveries(stdsprintf("skyroad.[%s].deliveries", address.c_str())),
+			blocking_deliveries(stdsprintf("skyroad.[%s].blocking_deliveries", address.c_str())) {
 			this->mutex = xSemaphoreCreateMutex();
 			configASSERT(this->mutex);
 		};
@@ -89,7 +93,11 @@ public:
 
 	protected:
 		std::list<QueueHandle_t> inboxes; ///< Temples receiving deliveries from this messenger.
-		SemaphoreHandle_t mutex; ///< Mutex to protect the registration lists.
+		SemaphoreHandle_t mutex;          ///< Mutex to protect the registration lists.
+		StatCounter deliveries;           ///< A count of deliveries to this topic.
+		StatCounter blocking_deliveries;  ///< A count of blocking deliveries to this topic.
+		static StatCounter global_deliveries; ///< A count of deliveries globally.
+		static StatCounter global_blocking_deliveries; ///< A count of blocking deliveries globally.
 
 		/**
 		 * Helper function used by temples subscribing to this Messenger.
@@ -192,6 +200,9 @@ public:
 			xSemaphoreTake(this->mutex, portMAX_DELAY);
 			std::list<QueueHandle_t> targets(this->inboxes); // Take a copy to work through.
 
+			this->deliveries.increment();
+			Hermes::global_deliveries.increment();
+
 			// Step 1: Deliver to all queues with space, so they aren't blocked by callbacks.
 			Envelope::Scroll<T> *next_delivery;
 			if (!targets.empty()) {
@@ -221,7 +232,10 @@ public:
 					it = this->callbacks.erase(it); // Deregister.
 			}
 
-			// TODO: Alert and accumulate statistics on blocked queues.
+			// Accumulate statistics on blocked queues.
+			// TODO: Alert the first time a given queue blocks.
+			this->blocking_deliveries.increment();
+			Hermes::global_blocking_deliveries.increment();
 
 			/* Step 3: Deliver to remaining queues.
 			 *
