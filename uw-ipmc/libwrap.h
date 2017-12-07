@@ -42,4 +42,8 @@ int _uwipmc_vprintf(const char *format, va_list ap) __attribute__((format(printf
 int _uwipmc_vsprintf(char *str, const char *format, va_list ap) __attribute__((format(printf,2,0)));
 int _uwipmc_vsnprintf(char *str, size_t size, const char *format, va_list ap) __attribute__((format(printf,3,0)));
 
+#ifdef __cplusplus
+std::string stdsprintf(const char *fmt, ...) __attribute__((format(printf,1,2)));
+#endif
+
 #endif /* SRC_LIBWRAP_H_ */
