@@ -32,6 +32,8 @@ public:
 	uint64_t set(uint64_t val);
 	uint64_t increment(uint64_t inc=1);
 	uint64_t decrement(uint64_t dec=1);
+	uint64_t max(uint64_t val);
+	uint64_t min(uint64_t val);
 
     StatCounter(StatCounter const &) = delete;     ///< Class is not assignable.
     void operator=(StatCounter const &x) = delete; ///< Class is not copyable.
