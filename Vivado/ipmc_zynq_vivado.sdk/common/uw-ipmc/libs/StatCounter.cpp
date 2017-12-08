@@ -127,6 +127,7 @@ uint64_t StatCounter::increment(uint64_t inc) {
  * \note ISR safe
  *
  * \note In case of underflow, the counter will be set to 0.
+ *
  * @param dec The amount to decrement by.
  * @return    The previous counter value.
  */
@@ -138,6 +139,44 @@ uint64_t StatCounter::decrement(uint64_t dec) {
 		this->count = 0;
 	else
 		this->count -= dec;
+	if (!IN_INTERRUPT())
+		taskEXIT_CRITICAL();
+	return ret;
+}
+
+/**
+ * Set the counter value to the higher of the provided and current value.
+ *
+ * \note ISR safe
+ *
+ * @param val The value to set the counter to, if it is higher.
+ * @return    The previous counter value.
+ */
+uint64_t StatCounter::max(uint64_t val) {
+	if (!IN_INTERRUPT())
+		taskENTER_CRITICAL();
+	uint64_t ret = this->count;
+	if (this->count < val)
+		this->count = val;
+	if (!IN_INTERRUPT())
+		taskEXIT_CRITICAL();
+	return ret;
+}
+
+/**
+ * Set the counter value to the lower of the provided and current value.
+ *
+ * \note ISR safe
+ *
+ * @param val The value to set the counter to, if it is higher.
+ * @return    The previous counter value.
+ */
+uint64_t StatCounter::min(uint64_t val) {
+	if (!IN_INTERRUPT())
+		taskENTER_CRITICAL();
+	uint64_t ret = this->count;
+	if (this->count > val)
+		this->count = val;
 	if (!IN_INTERRUPT())
 		taskEXIT_CRITICAL();
 	return ret;
