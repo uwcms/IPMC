@@ -18,7 +18,6 @@ public:
 	AbsoluteTimeout(uint64_t relative_timeout);
 	virtual ~AbsoluteTimeout() { };
 	TickType_t get_timeout();
-protected:
 	uint64_t timeout64; ///< The 64bit timeout.
 };
 
