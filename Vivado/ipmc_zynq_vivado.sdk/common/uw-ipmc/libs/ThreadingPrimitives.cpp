@@ -11,22 +11,16 @@
  *
  * \param relative_timeout The relative timeout to be converted to absolute form.
  */
-AbsoluteTimeout::AbsoluteTimeout(TickType_t relative_timeout) {
-	if (relative_timeout == portMAX_DELAY)
-		this->timeout64 = UINT64_MAX;
-	else
-		this->timeout64 = get_tick64() + relative_timeout;
+AbsoluteTimeout::AbsoluteTimeout(TickType_t relative_timeout) :
+	timeout64(relative_timeout == portMAX_DELAY ? UINT64_MAX : get_tick64()+relative_timeout) {
+	// Done.
 }
 
 /// \overload
-AbsoluteTimeout::AbsoluteTimeout(uint64_t relative_timeout) {
-	if (relative_timeout == portMAX_DELAY)
-		this->timeout64 = UINT64_MAX;
-	else {
-		uint64_t now64 = get_tick64();
-		configASSERT( (UINT64_MAX - relative_timeout) < now64 ); // Wait past the end of time?  Never!
-		this->timeout64 = now64 + relative_timeout;
-	}
+AbsoluteTimeout::AbsoluteTimeout(uint64_t relative_timeout) :
+	timeout64(relative_timeout == UINT64_MAX ? UINT64_MAX : get_tick64()+relative_timeout) {
+
+	configASSERT( relative_timeout != UINT64_MAX && (UINT64_MAX - relative_timeout) > get_tick64() ); // Wait past the end of time?  Never!
 }
 
 /**
