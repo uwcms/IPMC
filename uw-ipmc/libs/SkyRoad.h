@@ -11,6 +11,7 @@
 #include <vector>
 #include <string>
 #include <map>
+#include <memory>
 
 /**
  * Hermes the Messenger, SkyRoad Central Message Bus.
@@ -523,14 +524,14 @@ public:
 			if (anonymize) {
 				std::string anon_name;
 				do {
-					anon_name = stdsprintf("%s/%u", topic.c_str(), SkyRoad::anonymizer_inc++);
+					anon_name = stdsprintf("%s/%u", topic.c_str(), static_cast<unsigned int>(SkyRoad::anonymizer_inc++));
 				} while (0 < SkyRoad::phonebook->count(anon_name));
 				ret = new Messenger<T>(anon_name);
 			}
 			else {
 				ret = new Messenger<T>(topic);
 			}
-			SkyRoad::phonebook->insert(std::make_pair<std::string, Hermes*>(ret->address, ret));
+			SkyRoad::phonebook->insert(std::pair<std::string, Hermes*>(ret->address, ret));
 		}
 		xSemaphoreGive(SkyRoad::mutex);
 		return ret;
