@@ -12,7 +12,7 @@
 #include <stddef.h>
 #include <stdlib.h> // get declarations of core malloc and free before rewriting them with #defines
 #ifdef __cplusplus
-#include <memory> // also depends on core malloc/free (used here for std::allocator)
+#include <string>
 #endif
 #include <FreeRTOS.h>
 
@@ -35,12 +35,14 @@
 
 #define PRINTF_MAX_LENGTH 4096
 
+extern "C" {
 int _uwipmc_printf(const char *format, ...) __attribute__((format(printf,1,2)));
 int _uwipmc_sprintf(char *str, const char *format, ...) __attribute__((format(printf,2,3)));
 int _uwipmc_snprintf(char *str, size_t size, const char *format, ...) __attribute__((format(printf,3,4)));
 int _uwipmc_vprintf(const char *format, va_list ap) __attribute__((format(printf,1,0)));
 int _uwipmc_vsprintf(char *str, const char *format, va_list ap) __attribute__((format(printf,2,0)));
 int _uwipmc_vsnprintf(char *str, size_t size, const char *format, va_list ap) __attribute__((format(printf,3,0)));
+};
 
 #ifdef __cplusplus
 std::string stdsprintf(const char *fmt, ...) __attribute__((format(printf,1,2)));
