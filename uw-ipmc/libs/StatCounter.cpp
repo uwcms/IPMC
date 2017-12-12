@@ -152,7 +152,7 @@ uint64_t StatCounter::decrement(uint64_t dec) {
  * @param val The value to set the counter to, if it is higher.
  * @return    The previous counter value.
  */
-uint64_t StatCounter::max(uint64_t val) {
+uint64_t StatCounter::high_water(uint64_t val) {
 	if (!IN_INTERRUPT())
 		taskENTER_CRITICAL();
 	uint64_t ret = this->count;
@@ -171,7 +171,7 @@ uint64_t StatCounter::max(uint64_t val) {
  * @param val The value to set the counter to, if it is higher.
  * @return    The previous counter value.
  */
-uint64_t StatCounter::min(uint64_t val) {
+uint64_t StatCounter::low_water(uint64_t val) {
 	if (!IN_INTERRUPT())
 		taskENTER_CRITICAL();
 	uint64_t ret = this->count;
