@@ -10,6 +10,7 @@
 
 #include "libwrap.h" // Mutex wrappers for various non-reentrant stdlib functions.
 #include "xscugic.h"
+#include "xgpiops.h"
 
 /**
  * This macro will handle the automatic (at startup, before main) initialization of static semaphore objects.
@@ -37,8 +38,11 @@ extern "C" {
 
 class PS_UART;
 extern PS_UART *uart_ps0;
+extern XGpioPs gpiops;
 
 void driver_init(bool use_pl);
 void ipmc_service_init();
+
+u8 ipmi_checksum(const u8* buf, u32 len);
 
 #endif /* SRC_IPMC_H_ */
