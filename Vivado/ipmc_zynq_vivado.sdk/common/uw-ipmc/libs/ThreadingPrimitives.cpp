@@ -20,7 +20,7 @@ AbsoluteTimeout::AbsoluteTimeout(TickType_t relative_timeout) :
 AbsoluteTimeout::AbsoluteTimeout(uint64_t relative_timeout) :
 	timeout64(relative_timeout == UINT64_MAX ? UINT64_MAX : get_tick64()+relative_timeout) {
 
-	configASSERT( relative_timeout != UINT64_MAX && (UINT64_MAX - relative_timeout) > get_tick64() ); // Wait past the end of time?  Never!
+	configASSERT( relative_timeout == UINT64_MAX || (UINT64_MAX - relative_timeout) > get_tick64() ); // Wait past the end of time?  Never!
 }
 
 /**
