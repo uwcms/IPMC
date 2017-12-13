@@ -26,7 +26,7 @@ public:
 	IPMB0(PS_IPMB *ipmbA, PS_IPMB *ipmbB, uint8_t ipmb_address);
 	virtual ~IPMB0();
 
-	static uint8_t lookup_ipmb_address(int mio_gpio_base);
+	static uint8_t lookup_ipmb_address(const int gpios[8]);
 
 	SkyRoad::Messenger<const IPMI_MSG> * const ipmb_incoming; ///< A messenger topic to broadcast received messages on.
 	SkyRoad::Messenger<const IPMI_MSG> * const ipmb_outgoing; ///< A messenger topic to listen for messages to transmit on.

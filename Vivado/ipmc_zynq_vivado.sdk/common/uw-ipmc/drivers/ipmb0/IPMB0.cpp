@@ -69,12 +69,13 @@ IPMB0::~IPMB0() {
  * @param mio_gpio_base  The first GPIO pin.
  * @return               The IPMB address of this node.
  */
-uint8_t IPMB0::lookup_ipmb_address(int mio_gpio_base) {
+uint8_t IPMB0::lookup_ipmb_address(const int gpios[8]) {
 	uint8_t address = 0;
 	uint8_t parity = 0;
 	for (int i = 0; i < 8; ++i) {
-		XGpioPs_SetDirectionPin(&gpiops, mio_gpio_base+i, 0);
-		uint8_t val = XGpioPs_ReadPin(&gpiops, mio_gpio_base+i);
+		XGpioPs_SetDirectionPin(&gpiops, gpios[i], 0);
+		uint8_t val = XGpioPs_ReadPin(&gpiops, gpios[i]);
+		configASSERT(val <= 1);
 		address |= val << i;
 		parity ^= val;
 	}

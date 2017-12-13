@@ -45,8 +45,10 @@ void driver_init(bool use_pl) {
 	PS_IPMB *ps_ipmb[2];
 	ps_ipmb[0] = new PS_IPMB(XPAR_PS7_I2C_0_DEVICE_ID, XPAR_PS7_I2C_0_INTR, 0x72);
 	ps_ipmb[1] = new PS_IPMB(XPAR_PS7_I2C_1_DEVICE_ID, XPAR_PS7_I2C_1_INTR, 0x72);
-	printf("Received HW address %02xh\r\n", IPMB0::lookup_ipmb_address(42));
-	ipmb0 = new IPMB0(ps_ipmb[0], ps_ipmb[1], 0x60);
+	const int hwaddr_gpios[] = {39,40,41,45,47,48,49,50};
+	uint8_t hwaddr = IPMB0::lookup_ipmb_address(hwaddr_gpios);
+	printf("Our IPMB0 hardware address is %02X\r\n", hwaddr);
+	ipmb0 = new IPMB0(ps_ipmb[0], ps_ipmb[1], hwaddr);
 }
 
 /** IPMC service initialization.
