@@ -21,6 +21,9 @@
 #include <libs/SkyRoad.h>
 #include <drivers/ps_ipmb/PSIPMB.h>
 
+/**
+ * An IPMB0 driver.
+ */
 class IPMB0 {
 public:
 	IPMB0(PS_IPMB *ipmbA, PS_IPMB *ipmbB, uint8_t ipmb_address);

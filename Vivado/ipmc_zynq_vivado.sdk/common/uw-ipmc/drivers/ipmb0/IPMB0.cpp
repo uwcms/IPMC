@@ -66,8 +66,8 @@ IPMB0::~IPMB0() {
  * Look up the IPMB address of this node via MIO GPIOs associated with the
  * hardware address assignment pins in on the backplane connector.
  *
- * @param mio_gpio_base  The first GPIO pin.
- * @return               The IPMB address of this node.
+ * @param gpios  The MIO pins for the HW address lines.
+ * @return       The IPMB address of this node.
  */
 uint8_t IPMB0::lookup_ipmb_address(const int gpios[8]) {
 	uint8_t address = 0;
