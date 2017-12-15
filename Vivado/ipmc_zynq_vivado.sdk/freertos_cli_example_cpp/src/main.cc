@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include "limits.h"
+#include "string.h"
 
 #include <FreeRTOS.h>
 #include <task.h>
@@ -14,7 +15,6 @@
 
 extern "C" {
 #include <lwip/opt.h>
-
 #include "ethernet/ethernet.h"
 }
 
@@ -180,6 +180,18 @@ static void TaskPrinter(void *dummy0) {
 	}
 }
 
+const char *banner =
+	"********************************************************************************\r\n"
+	"\r\n"
+	"University of Wisconsin IPMC " GIT_DESCRIBE "\r\n"
+#ifdef GIT_STATUS
+	"\r\n"
+	GIT_STATUS // contains a trailing \r\n
+#endif
+	"\r\n"
+	"********************************************************************************\r\n"
+	;
+
 int main() {
 	/*
 	 * If you want to run this application outside of SDK,
@@ -197,7 +209,7 @@ int main() {
 	driver_init(true);
 	ipmc_service_init();
 
-	printf("UW-IPMC starting...\r\n");
+	uart_ps0->write(banner, strlen(banner), 0);
 
 	xTaskCreate(lwip_startup_thread, "lwip_start", configMINIMAL_STACK_SIZE, NULL, configLWIP_TASK_PRIORITY, NULL);
     xTaskCreate(TaskPrinter, "TaskPrint", configMINIMAL_STACK_SIZE+256, NULL, configMAX_PRIORITIES, NULL);

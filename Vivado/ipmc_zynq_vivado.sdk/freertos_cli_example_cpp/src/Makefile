@@ -5,6 +5,7 @@ endif
 export GIT_DESCRIBE := $(shell git describe --tags 2>/dev/null || git rev-parse --short HEAD)
 export GIT_BRANCH   := $(shell git rev-parse --abbrev-ref HEAD)
 export GIT_DIRTY    := $(shell git diff-index --quiet HEAD || echo 'dirty')
+export GIT_STATUS   := "$(shell git status --porcelain | perl -pe 's/\n/\\r\\n/g;s/"/\\"/g;s/'\''/'\'\\\'\''/g')"
 export PROJECT_ROOT := $(realpath ..)
 export PROJECT_NAME := $(notdir $(PROJECT_ROOT))
 
@@ -29,6 +30,12 @@ export LIBRARY_PATHS = \
 
 export LIBS := -Wl,--start-group,-lxil,-lgcc,-lc,-lstdc++,--end-group
 
+ifneq (x$(GIT_DIRTY),x)
+GIT_DEFINE_STATUS := -DGIT_STATUS="$$GIT_STATUS"
+else
+GIT_DEFINE_STATUS := 
+endif
+
 export CFLAGS = \
 	-Wall \
 	-O0 \
@@ -38,6 +45,9 @@ export CFLAGS = \
 	-mfpu=vfpv3 \
 	-mfloat-abi=hard \
 	-MMD -MP -MF"$(patsubst .obj/$(BUILD_CONFIGURATION)/%,.dep/$(BUILD_CONFIGURATION)/%,$@)" \
+	-DGIT_DESCRIBE="\"$(GIT_DESCRIBE)\"" \
+	-DGIT_BRANCH="\"$(GIT_BRANCH)\"" \
+	$(GIT_DEFINE_STATUS) \
 
 # -MT"$@" 
 
