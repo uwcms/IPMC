@@ -35,8 +35,16 @@ XGpioPs gpiops;
  * \note This function is called before the FreeRTOS scheduler has been started.
  */
 void driver_init(bool use_pl) {
-	// Initialize the UART console.
-	uart_ps0 = new PS_UART(XPAR_PS7_UART_0_DEVICE_ID, XPAR_PS7_UART_0_INTR);
+	// Initialize the trace buffer.
+	new TraceBuffer(NULL, 1024);
+
+	/* Initialize the UART console.
+	 *
+	 * We use a largeish output buffer to avoid overruns during the startup
+	 * sequence, since it can't be flushed properly until interrupts are enabled
+	 * when the FreeRTOS scheduler starts.  We've got the space.
+	 */
+	uart_ps0 = new PS_UART(XPAR_PS7_UART_0_DEVICE_ID, XPAR_PS7_UART_0_INTR, 4096, 128*1024);
 
 	XGpioPs_Config* gpiops_config = XGpioPs_LookupConfig(XPAR_PS7_GPIO_0_DEVICE_ID);
 	configASSERT(XST_SUCCESS == XGpioPs_CfgInitialize(&gpiops, gpiops_config, gpiops_config->BaseAddr));
