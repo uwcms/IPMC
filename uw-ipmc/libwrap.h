@@ -33,8 +33,6 @@
 
 #define xil_printf(...) printf(__VA_ARGS__)
 
-#define PRINTF_MAX_LENGTH 4096
-
 extern "C" {
 int _uwipmc_printf(const char *format, ...) __attribute__((format(printf,1,2)));
 int _uwipmc_sprintf(char *str, const char *format, ...) __attribute__((format(printf,2,3)));
@@ -46,6 +44,7 @@ int _uwipmc_vsnprintf(char *str, size_t size, const char *format, va_list ap) __
 
 #ifdef __cplusplus
 std::string stdsprintf(const char *fmt, ...) __attribute__((format(printf,1,2)));
+void windows_newline(std::string &input);
 #endif
 
 #endif /* SRC_LIBWRAP_H_ */

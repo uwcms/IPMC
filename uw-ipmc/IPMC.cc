@@ -10,6 +10,8 @@
 #include <drivers/ps_uart/PSUART.h>
 #include <drivers/ps_ipmb/PSIPMB.h>
 #include <drivers/ipmb0/IPMB0.h>
+#include <drivers/tracebuffer/TraceBuffer.h>
+#include <libs/LogTree.h>
 
 /* Xilinx includes. */
 #include "xparameters.h"
@@ -21,6 +23,14 @@
 PS_UART *uart_ps0;
 IPMB0 *ipmb0;
 XGpioPs gpiops;
+LogTree LOG("ipmc");
+LogTree::Filter *console_log_filter;
+#define TRACEBUFFER_SIZE (1*1024*1024)
+static uint8_t tracebuffer_contents[TRACEBUFFER_SIZE];
+TraceBuffer TRACE(tracebuffer_contents, TRACEBUFFER_SIZE);
+
+static void console_log_handler(LogTree *logtree, const std::string &message, enum LogTree::LogLevel level);
+static void tracebuffer_log_handler(LogTree *logtree, const std::string &message, enum LogTree::LogLevel level);
 
 /** Stage 1 driver initialization.
  *
@@ -35,8 +45,11 @@ XGpioPs gpiops;
  * \note This function is called before the FreeRTOS scheduler has been started.
  */
 void driver_init(bool use_pl) {
-	// Initialize the trace buffer.
-	new TraceBuffer(NULL, 1024);
+	/* Connect the TraceBuffer to the log system
+	 *
+	 * We don't need to keep a reference.  This will never require adjustment.
+	 */
+	new LogTree::Filter(&LOG, tracebuffer_log_handler, LogTree::LOG_TRACE);
 
 	/* Initialize the UART console.
 	 *
@@ -45,6 +58,7 @@ void driver_init(bool use_pl) {
 	 * when the FreeRTOS scheduler starts.  We've got the space.
 	 */
 	uart_ps0 = new PS_UART(XPAR_PS7_UART_0_DEVICE_ID, XPAR_PS7_UART_0_INTR, 4096, 128*1024);
+	console_log_filter = new LogTree::Filter(&LOG, console_log_handler, LogTree::LOG_NOTICE);
 
 	XGpioPs_Config* gpiops_config = XGpioPs_LookupConfig(XPAR_PS7_GPIO_0_DEVICE_ID);
 	configASSERT(XST_SUCCESS == XGpioPs_CfgInitialize(&gpiops, gpiops_config, gpiops_config->BaseAddr));
@@ -55,7 +69,7 @@ void driver_init(bool use_pl) {
 	ps_ipmb[1] = new PS_IPMB(XPAR_PS7_I2C_1_DEVICE_ID, XPAR_PS7_I2C_1_INTR, 0x72);
 	const int hwaddr_gpios[] = {39,40,41,45,47,48,49,50};
 	uint8_t hwaddr = IPMB0::lookup_ipmb_address(hwaddr_gpios);
-	printf("Our IPMB0 hardware address is %02X\r\n", hwaddr);
+	printf("Our IPMB0 hardware address is %02X\n", hwaddr);
 	ipmb0 = new IPMB0(ps_ipmb[0], ps_ipmb[1], hwaddr);
 }
 
@@ -98,4 +112,26 @@ void* operator new(std::size_t n) {
 }
 void operator delete(void* p) throw() {
 	vPortFree(p);
+}
+
+/**
+ * This handler copies log messages to the UART.
+ */
+static void console_log_handler(LogTree *logtree, const std::string &message,
+		enum LogTree::LogLevel level) {
+	/* We use this silly method of concatenation to avoid printf length limits.
+	 * See libwrap.cc
+	 */
+	const std::string logmsg = stdsprintf("[%4.4s] ", LogTree::LogLevel_strings[level]) + message + "\n";
+	/* We write with 0 timeout, because we'd rather lose lines than hang on UART
+	 * output.  That's what the tracebuffer is for anyway
+	 */
+	uart_ps0->write(logmsg.data(), logmsg.size(), 0);
+}
+
+/**
+ * This handler copies log messages to the tracebuffer.
+ */
+static void tracebuffer_log_handler(LogTree *logtree, const std::string &message, enum LogTree::LogLevel level) {
+	TRACE.log(logtree->path.data(), logtree->path.size(), level, message.data(), message.size());
 }

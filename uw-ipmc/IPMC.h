@@ -11,6 +11,7 @@
 #include "libwrap.h" // Mutex wrappers for various non-reentrant stdlib functions.
 #include "xscugic.h"
 #include "xgpiops.h"
+#include <libs/LogTree.h>
 
 /**
  * This macro will handle the automatic (at startup, before main) initialization of static semaphore objects.
@@ -39,6 +40,11 @@ extern "C" {
 class PS_UART;
 extern PS_UART *uart_ps0;
 extern XGpioPs gpiops;
+
+extern LogTree LOG;
+extern LogTree::Filter *console_log_filter;
+class TraceBuffer;
+extern TraceBuffer TRACE;
 
 void driver_init(bool use_pl);
 void ipmc_service_init();
