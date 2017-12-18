@@ -9,6 +9,9 @@ export GIT_STATUS   := "$(shell git status --porcelain | perl -pe 's/\n/\\n/g;s/
 export PROJECT_ROOT := $(realpath ..)
 export PROJECT_NAME := $(notdir $(PROJECT_ROOT))
 
+SHELLMD5 = $(shell echo -n "$(1)" | md5sum | cut -d\  -f1)
+export GIT_SETTINGS_MD5 := $(call SHELLMD5,$(call SHELLMD5,$(GIT_DESCRIBE)) $(call SHELLMD5,$(GIT_BRANCH)) $(call SHELLMD5,$(GIT_STATUS)))
+
 export CC := arm-none-eabi-gcc
 export CXX := arm-none-eabi-g++ 
 
@@ -30,12 +33,6 @@ export LIBRARY_PATHS = \
 
 export LIBS := -Wl,--start-group,-lxil,-lgcc,-lc,-lstdc++,--end-group
 
-ifneq (x$(GIT_DIRTY),x)
-GIT_DEFINE_STATUS := -DGIT_STATUS="$$GIT_STATUS"
-else
-GIT_DEFINE_STATUS := 
-endif
-
 ifeq ($(BUILD_CONFIGURATION),Debug)
 # "-Og Optimize debugging experience.  -Og enables optimizations that do not interfere with debugging." from man g++
 OPTIMIZE_OPTIONS := -Og -ggdb3
@@ -52,9 +49,6 @@ export CFLAGS = \
 	-mfpu=vfpv3 \
 	-mfloat-abi=hard \
 	-MMD -MP -MF"$(patsubst .obj/$(BUILD_CONFIGURATION)/%,.dep/$(BUILD_CONFIGURATION)/%,$@)" \
-	-DGIT_DESCRIBE="\"$(GIT_DESCRIBE)\"" \
-	-DGIT_BRANCH="\"$(GIT_BRANCH)\"" \
-	$(GIT_DEFINE_STATUS) \
 
 # -MT"$@" 
 
@@ -68,7 +62,7 @@ export LDFLAGS := \
 
 OBJS := \
 	$(patsubst ./%.c,.obj/$(BUILD_CONFIGURATION)/%.o,$(shell find -L . -type f -name '*.c')) \
-	$(patsubst ./%.cc,.obj/$(BUILD_CONFIGURATION)/%.o,$(shell find -L . -type f -name '*.cc')) \
+	$(patsubst ./%.cc,.obj/$(BUILD_CONFIGURATION)/%.o,$(shell find -L . -type f -name '*.cc' ! -path './common/uw-ipmc/version.cc')) \
 	$(patsubst ./%.cpp,.obj/$(BUILD_CONFIGURATION)/%.o,$(shell find -L . -type f -name '*.cpp')) \
 	$(patsubst ./%.S,.obj/$(BUILD_CONFIGURATION)/%.o,$(shell find -L . -type f -name '*.S')) \
 
@@ -80,7 +74,7 @@ pre-build:
 
 build: bin/$(BUILD_CONFIGURATION)/freertos_cli_example_cpp.elf
    
-bin/$(BUILD_CONFIGURATION)/freertos_cli_example_cpp.elf: $(OBJS)
+bin/$(BUILD_CONFIGURATION)/freertos_cli_example_cpp.elf: $(OBJS) .obj/$(BUILD_CONFIGURATION)/common/uw-ipmc/version.$(GIT_SETTINGS_MD5).o
 	@echo
 	@mkdir -p "$(dir $@)"
 	$(CXX) $(CFLAGS) $(LDFLAGS) $(INCLUDE_PATHS) $(LIBRARY_PATHS) -o "$@" $^ $(LIBS)
@@ -95,6 +89,12 @@ bin/$(BUILD_CONFIGURATION)/freertos_cli_example_cpp.elf: $(OBJS)
 	@echo
 	@mkdir -p "$(dir $@)" "$(dir $(patsubst .obj/$(BUILD_CONFIGURATION)/%,.dep/$(BUILD_CONFIGURATION)/%,$@))"
 	$(CXX) -c $(CFLAGS) $(CXXFLAGS) $(LDFLAGS) $(INCLUDE_PATHS) $(LIBRARY_PATHS) -o "$@" "$<" $(LIBS)
+
+.obj/$(BUILD_CONFIGURATION)/common/uw-ipmc/version.$(GIT_SETTINGS_MD5).o: common/uw-ipmc/version.cc
+	@echo
+	@mkdir -p "$(dir $@)" "$(dir $(patsubst .obj/$(BUILD_CONFIGURATION)/%,.dep/$(BUILD_CONFIGURATION)/%,$@))"
+	$(CXX) -c $(CFLAGS) $(CXXFLAGS) $(LDFLAGS) $(INCLUDE_PATHS) $(LIBRARY_PATHS) \
+		-DD_GIT_SHORT="\"$(shell git rev-parse --short HEAD)\"" -DD_GIT_LONG="\"$(shell git rev-parse HEAD)\"" -DD_GIT_DESCRIBE="\"$$GIT_DESCRIBE\"" -DD_GIT_BRANCH="\"$$GIT_BRANCH\"" -DD_GIT_STATUS="$$GIT_STATUS" -o "$@" "$<" $(LIBS)
 
 .obj/$(BUILD_CONFIGURATION)/%.o: %.cpp
 	@echo

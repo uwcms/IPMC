@@ -178,18 +178,6 @@ static void TaskPrinter(void *dummy0) {
 	}
 }
 
-const char *banner =
-	"********************************************************************************\n"
-	"\n"
-	"University of Wisconsin IPMC " GIT_DESCRIBE "\n"
-#ifdef GIT_STATUS
-	"\n"
-	GIT_STATUS // contains a trailing \n
-#endif
-	"\n"
-	"********************************************************************************\n"
-	;
-
 int main() {
 	/*
 	 * If you want to run this application outside of SDK,
@@ -207,7 +195,14 @@ int main() {
 	driver_init(true);
 	ipmc_service_init();
 
-	std::string bannerstr(banner);
+	std::string bannerstr;
+	bannerstr += "********************************************************************************\n";
+	bannerstr += "\n";
+	bannerstr += std::string("University of Wisconsin IPMC ") + GIT_DESCRIBE + "\n";
+	if (GIT_STATUS[0] != '\0')
+		bannerstr += std::string("\n") + GIT_STATUS; // contains a trailing \n
+	bannerstr += "\n";
+	bannerstr += "********************************************************************************\n";
 	windows_newline(bannerstr);
 	uart_ps0->write(bannerstr.data(), bannerstr.size(), 0);
 
