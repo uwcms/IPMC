@@ -179,7 +179,7 @@ while off != 0xffffffff:
 RECORDS.reverse()
 max_label_len = max(map(lambda x: len(x.label), RECORDS))
 max_offset_len = max(map(lambda x: len(hex(x.offset)), RECORDS))
-fmt = '0x{{rec.offset:0{max_offset_len}x}} | {{rec.label:>{max_label_len}s}} | {{rec.loglevel:1d}} | {{data}}'.format(max_label_len=max_label_len, max_offset_len=max_offset_len-2)
+fmt = '0x{{rec.offset:0{max_offset_len}x}} | {{rec.label:<{max_label_len}s}} | {{rec.loglevel:1d}} | {{data}}'.format(max_label_len=max_label_len, max_offset_len=max_offset_len-2)
 
 for rec in RECORDS:
 	print(fmt.format(rec=rec, data = rec.data.rstrip('\r\n')))

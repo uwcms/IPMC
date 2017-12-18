@@ -122,10 +122,11 @@ static void console_log_handler(LogTree *logtree, const std::string &message,
 	/* We use this silly method of concatenation to avoid printf length limits.
 	 * See libwrap.cc
 	 */
-	const std::string logmsg = stdsprintf("[%4.4s] ", LogTree::LogLevel_strings[level]) + message + "\n";
+	std::string logmsg = stdsprintf("[%4.4s] ", LogTree::LogLevel_strings[level]) + message + "\n";
 	/* We write with 0 timeout, because we'd rather lose lines than hang on UART
 	 * output.  That's what the tracebuffer is for anyway
 	 */
+	windows_newline(logmsg);
 	uart_ps0->write(logmsg.data(), logmsg.size(), 0);
 }
 
