@@ -150,46 +150,44 @@ static void prvSetupHardware(void) {
 
 //#define PS_UART_INITIAL_TEST
 static void TaskPrinter(void *dummy0) {
-	printf("TaskPrinter Started\r\n");
-	char bufA[256], bufB[256];
+	printf("TaskPrinter Started\n");
+	LogTree *tasklog = &LOG["task_listing"];
+	char buf[518];
 	while (1) {
+		char *wbuf = buf;
 #ifdef __cplusplus
-		printf("C++\r\n");
+		printf("C++\n");
 #else
-		printf("C--\r\n");
+		printf("C--\n");
 #endif
 		//u32 int_mask = XUartPs_GetInterruptMask(&uart0.UartInstPtr);
-		//printf("test 0x%08x \r\n", int_mask);
+		//printf("test 0x%08x \n", int_mask);
 		vTaskDelay(10000);
 		vPortEnterCritical();
-		vTaskList(bufA);
-		vTaskGetRunTimeStats(bufB);
+		*(wbuf++) = '\n';
+		vTaskList(wbuf);
+		wbuf += strlen(wbuf);
+		*(wbuf++) = '\n';
+		vTaskGetRunTimeStats(wbuf);
+		wbuf += strlen(wbuf);
+		*(wbuf++) = '\n';
+		*(wbuf++) = '\0';
 		vPortExitCritical();
-		printf("\r\n%s\r\n%s\r\n", bufA, bufB);
-#ifdef PS_UART_INITIAL_TEST
-		while (1) {
-			char buf[32];
-			for (int i = 0; i < 32; ++i)
-				buf[i] = '\0';
-			uart_ps0.read(buf, 31, 3000 / portTICK_PERIOD_MS);
-			printf("I read \"%s\"\r\n", buf);
-		}
-		vTaskDelay(1);
-#endif
-		printf("TaskPrinter Printed bufs %d %d\r\n\r\n", strlen(bufA), strlen(bufB));
+		tasklog->log(buf, LogTree::LOG_DIAGNOSTIC);
+		uart_ps0->write(buf, strlen(buf), portMAX_DELAY);
 	}
 }
 
 const char *banner =
-	"********************************************************************************\r\n"
-	"\r\n"
-	"University of Wisconsin IPMC " GIT_DESCRIBE "\r\n"
+	"********************************************************************************\n"
+	"\n"
+	"University of Wisconsin IPMC " GIT_DESCRIBE "\n"
 #ifdef GIT_STATUS
-	"\r\n"
-	GIT_STATUS // contains a trailing \r\n
+	"\n"
+	GIT_STATUS // contains a trailing \n
 #endif
-	"\r\n"
-	"********************************************************************************\r\n"
+	"\n"
+	"********************************************************************************\n"
 	;
 
 int main() {
@@ -209,7 +207,9 @@ int main() {
 	driver_init(true);
 	ipmc_service_init();
 
-	uart_ps0->write(banner, strlen(banner), 0);
+	std::string bannerstr(banner);
+	windows_newline(bannerstr);
+	uart_ps0->write(bannerstr.data(), bannerstr.size(), 0);
 
 	xTaskCreate(lwip_startup_thread, "lwip_start", configMINIMAL_STACK_SIZE, NULL, configLWIP_TASK_PRIORITY, NULL);
     xTaskCreate(TaskPrinter, "TaskPrint", configMINIMAL_STACK_SIZE+256, NULL, configMAX_PRIORITIES, NULL);
