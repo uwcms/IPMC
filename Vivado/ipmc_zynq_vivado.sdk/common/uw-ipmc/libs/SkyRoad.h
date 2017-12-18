@@ -205,7 +205,7 @@ public:
 			Hermes::global_deliveries.increment();
 
 			// Step 1: Deliver to all queues with space, so they aren't blocked by callbacks.
-			Envelope::Scroll<T> *next_delivery;
+			Envelope::Scroll<T> *next_delivery = NULL;
 			if (!targets.empty()) {
 				// We have at least one delivery to do.  Prepare its Scroll.
 				next_delivery = new Envelope::Scroll<T>(this, content);
