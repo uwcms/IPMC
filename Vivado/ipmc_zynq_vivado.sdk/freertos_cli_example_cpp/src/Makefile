@@ -36,10 +36,17 @@ else
 GIT_DEFINE_STATUS := 
 endif
 
+ifeq ($(BUILD_CONFIGURATION),Debug)
+# "-Og Optimize debugging experience.  -Og enables optimizations that do not interfere with debugging." from man g++
+OPTIMIZE_OPTIONS := -Og -ggdb3
+else
+# "-Os Optimize for size.  -Os enables all -O2 optimizations that do not typically increase code size." from man g++
+OPTIMIZE_OPTIONS := -Os -g0
+endif
+
 export CFLAGS = \
 	-Wall \
-	-O0 \
-	-g3 \
+	$(OPTIMIZE_OPTIONS) \
 	-fmessage-length=0 \
 	-mcpu=cortex-a9 \
 	-mfpu=vfpv3 \
