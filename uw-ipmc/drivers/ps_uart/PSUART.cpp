@@ -72,7 +72,7 @@ PS_UART::PS_UART(u32 DeviceId, u32 IntrId, u32 ibufsize, u32 obufsize,
 	u8 emptybuf;
 	XUartPs_Send(&this->UartInst, &emptybuf, 0);
 
-	u8 *dma_inbuf;
+	u8 *dma_inbuf = NULL;
 	size_t maxitems;
 	this->inbuf.setup_dma_input(&dma_inbuf, &maxitems);
 	XUartPs_Recv(&this->UartInst, dma_inbuf, maxitems); // Set next input
@@ -175,7 +175,7 @@ size_t PS_UART::write(const u8 *buf, size_t len, TickType_t timeout) {
 			/* We have written something to the buffer, and it's not already
 			 * running output.
 			 */
-			u8 *dma_outbuf;
+			u8 *dma_outbuf = NULL;
 			size_t maxitems;
 			this->outbuf.setup_dma_output(&dma_outbuf, &maxitems);
 			// If we don't have any items to send, it means we didn't just write.
@@ -233,7 +233,7 @@ void PS_UART::_HandleInterrupt(u32 Event, u32 EventData) {
 		 */
 
 		this->outbuf.notify_dma_output_occurred(EventData);
-		u8 *dma_outbuf;
+		u8 *dma_outbuf = NULL;
 		size_t maxitems;
 		this->outbuf.setup_dma_output(&dma_outbuf, &maxitems);
 		if (maxitems > this->oblocksize)
