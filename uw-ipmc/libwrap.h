@@ -47,4 +47,11 @@ std::string stdsprintf(const char *fmt, ...) __attribute__((format(printf,1,2)))
 void windows_newline(std::string &input);
 #endif
 
+// From version.cc
+extern const char *GIT_SHORT;
+extern const char *GIT_LONG;
+extern const char *GIT_DESCRIBE;
+extern const char *GIT_BRANCH;
+extern const char *GIT_STATUS;
+
 #endif /* SRC_LIBWRAP_H_ */
