@@ -195,7 +195,7 @@ int main() {
 	driver_init(true);
 	ipmc_service_init();
 
-	std::string bannerstr;
+	std::string bannerstr("\n");
 	bannerstr += "********************************************************************************\n";
 	bannerstr += "\n";
 	bannerstr += std::string("University of Wisconsin IPMC ") + GIT_DESCRIBE + "\n";
@@ -203,8 +203,8 @@ int main() {
 		bannerstr += std::string("\n") + GIT_STATUS; // contains a trailing \n
 	bannerstr += "\n";
 	bannerstr += "********************************************************************************\n";
-	windows_newline(bannerstr);
-	uart_ps0->write(bannerstr.data(), bannerstr.size(), 0);
+	LOG.log(bannerstr, LogTree::LOG_NOTICE); // This is the ONLY place that should EVER log directly to LOG rather than a subtree.
+	bannerstr = ""; // Save heap memory.
 
 	xTaskCreate(lwip_startup_thread, "lwip_start", configMINIMAL_STACK_SIZE, NULL, configLWIP_TASK_PRIORITY, NULL);
     xTaskCreate(TaskPrinter, "TaskPrint", configMINIMAL_STACK_SIZE+256, NULL, configMAX_PRIORITIES, NULL);
