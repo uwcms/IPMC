@@ -18,6 +18,7 @@
 
 #include <stdio.h>
 #include <stdarg.h>
+#include <cxxabi.h> // for cxa_demangle()
 
 static SemaphoreHandle_t libwrap_mutex = NULL;
 UWIPMC_INITIALIZE_STATIC_SEMAPHORE(libwrap_mutex, Mutex);
@@ -137,4 +138,28 @@ void windows_newline(std::string &input) {
 			i++; // We don't want to hit that \n again on the (now) next character.
 		}
 	}
+}
+
+/**
+ * This function calls the cross-vendor C++ Application Binary Interface to
+ * demangle a C++ type name.
+ *
+ * @param name The name to be demangled, perhaps returned from typeid(T).name()
+ * @return The demangled form of name, or name if an error occured.
+ */
+std::string cxa_demangle(const char *name) {
+	size_t length = 0;
+	int status = 0;
+	std::string result(name);
+	xSemaphoreTake(libwrap_mutex, portMAX_DELAY);
+	// __cxa_demangle will malloc, so it needs this protection.
+	char *demangled = abi::__cxa_demangle(name, NULL, &length, &status);
+	if (status == 0 && demangled)
+		result = demangled;
+#undef free
+	if (demangled)
+		free(demangled);
+#define free(p) vPortFree(p)
+	xSemaphoreGive(libwrap_mutex);
+	return result;
 }
