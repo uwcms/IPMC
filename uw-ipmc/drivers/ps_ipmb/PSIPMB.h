@@ -44,6 +44,7 @@ public:
 	void prepare_reply(IPMI_MSG &reply) const;
 	bool match(const IPMI_MSG &other) const;
 	bool match_reply(const IPMI_MSG &other) const;
+	std::string sprintf() const;
 };
 
 /**

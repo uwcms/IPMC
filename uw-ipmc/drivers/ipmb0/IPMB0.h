@@ -18,6 +18,7 @@
 #include <libs/RingBuffer.h>
 #include <libs/ThreadingPrimitives.h>
 #include <libs/StatCounter.h>
+#include <libs/LogTree.h>
 #include <libs/SkyRoad.h>
 #include <drivers/ps_ipmb/PSIPMB.h>
 
@@ -26,7 +27,7 @@
  */
 class IPMB0 {
 public:
-	IPMB0(PS_IPMB *ipmbA, PS_IPMB *ipmbB, uint8_t ipmb_address);
+	IPMB0(PS_IPMB *ipmbA, PS_IPMB *ipmbB, uint8_t ipmb_address, LogTree *logtree);
 	virtual ~IPMB0();
 
 	static uint8_t lookup_ipmb_address(const int gpios[8]);
@@ -48,6 +49,9 @@ protected:
 	StatCounter stat_send_failures;     ///< How many delivery failures have occurred on this IPMB
 	StatCounter stat_no_available_seq;  ///< How many times we have run out of sequence numbers for a specific command on this IPMB
 	StatCounter stat_unexpected_replies; ///< How many unexpected replies have been received on this IPMB
+	LogTree *log_ipmb0;                  ///< The root logtree for this object.
+	LogTree *log_messages_in;            ///< Messages received on IPMB0.
+	LogTree *log_messages_out;           ///< Messages transmitted on IPMB0.
 
 	/**
 	 * A record representing a message in the outgoing message queue.
