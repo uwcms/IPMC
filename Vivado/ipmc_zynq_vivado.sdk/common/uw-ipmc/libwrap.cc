@@ -64,36 +64,36 @@ int _uwipmc_vprintf(const char *format, va_list ap) {
 	 * that we can call windows_newline() on it (I hate you, UART), and free
 	 * the temporary buffer.  Then we'll write out that std::string.
 	 */
-    va_list ap2;
-    va_copy(ap2, ap);
-    int s = _uwipmc_vsnprintf(NULL, 0, format, ap) + 1;
-    if (s <= 0) {
-        va_end(ap);
-        va_end(ap2);
-        return s;
-    }
-    char *str = (char*)pvPortMalloc(s);
-    _uwipmc_vsnprintf(str, s, format, ap2);
-    va_end(ap);
-    va_end(ap2);
-    std::string outstr(str);
-    vPortFree(str);
-    windows_newline(outstr);
+	va_list ap2;
+	va_copy(ap2, ap);
+	int s = _uwipmc_vsnprintf(NULL, 0, format, ap) + 1;
+	if (s <= 0) {
+		va_end(ap);
+		va_end(ap2);
+		return s;
+	}
+	char *str = (char*) pvPortMalloc(s);
+	_uwipmc_vsnprintf(str, s, format, ap2);
+	va_end(ap);
+	va_end(ap2);
+	std::string outstr(str);
+	vPortFree(str);
+	windows_newline(outstr);
 
-    /* Log all printf output to the trace buffer.
-     *
-     * Even if this is turned on, the log relay mechanism uses a direct UART
-     * write, not a printf, so this won't recurse.
-     */
-    static LogTree *printf_trace = NULL;
-    if (!printf_trace)
-    	printf_trace = &LOG["trace"]["printf"];
-    printf_trace->log(outstr, LogTree::LOG_TRACE);
+	/* Log all printf output to the trace buffer.
+	 *
+	 * Even if this is turned on, the log relay mechanism uses a direct UART
+	 * write, not a printf, so this won't recurse.
+	 */
+	static LogTree *printf_trace = NULL;
+	if (!printf_trace)
+		printf_trace = &LOG["printf"];
+	printf_trace->log(outstr, LogTree::LOG_TRACE);
 
 	size_t written = uart_ps0->write(outstr.data(), outstr.size(), 0);
 	if (written != outstr.size()) {
 		printf_overrun_discard_count.increment();
-		printf_overrun_discard_bytes.increment(outstr.size()-written);
+		printf_overrun_discard_bytes.increment(outstr.size() - written);
 	}
 	printfs_count.increment();
 	printfs_bytes.increment(outstr.size());
