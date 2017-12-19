@@ -5,13 +5,15 @@
 #include <semphr.h>
 #include <task.h>
 #include <list>
-#include <libwrap.h>
+#include <IPMC.h>
 #include <libs/ThreadingPrimitives.h>
 #include <libs/StatCounter.h>
+#include <libs/LogTree.h>
 #include <vector>
 #include <string>
 #include <map>
 #include <memory>
+#include <typeinfo>
 
 /**
  * Hermes the Messenger, SkyRoad Central Message Bus.
@@ -74,12 +76,16 @@ public:
 		const TickType_t send_block_deadlock_duration = configTICK_RATE_HZ/10; // 0.1s
 		///@}
 	protected:
+		LogTree &log_root; ///< The logtree root for this messenger.
+		const std::string type_name; ///< The type name in human readable format, cached for logging.
 		/**
 		 * The superclass constructor for all `Messenger`s.
 		 * \param address  The address this messenger accepts deliveries for.
+		 * \param logtree  The logtree facility for this messenger.
+		 * \param type_name  The name of the type of content associated with this messenger.
 		 */
-		Hermes(const std::string address)
-	      : address(address),
+		Hermes(const std::string address, LogTree &logtree, const std::string type_name)
+	      : address(address), log_root(logtree), type_name(type_name),
 			deliveries(stdsprintf("skyroad.[%s].deliveries", address.c_str())),
 			blocking_deliveries(stdsprintf("skyroad.[%s].blocking_deliveries", address.c_str())) {
 			this->mutex = xSemaphoreCreateMutex();
@@ -108,6 +114,11 @@ public:
 		void temple_subscribe(QueueHandle_t queue) {
 			xSemaphoreTake(this->mutex, portMAX_DELAY);
 			this->inboxes.push_back(queue);
+			this->log_root.log(
+					stdsprintf(
+							"Messenger<%s>(\"%s\") had a Temple subscribe.  Now with %d temples.",
+							this->type_name.c_str(), this->address.c_str(), this->inboxes.size()),
+					LogTree::LOG_INFO);
 			xSemaphoreGive(this->mutex);
 		}
 		friend class Temple;
@@ -120,6 +131,11 @@ public:
 		void temple_unsubscribe(QueueHandle_t queue) {
 			xSemaphoreTake(this->mutex, portMAX_DELAY);
 			this->inboxes.remove(queue);
+			this->log_root.log(
+					stdsprintf(
+							"Messenger<%s>(\"%s\") had a Temple unsubscribe.  Now with %d temples.",
+							this->type_name.c_str(), this->address.c_str(), this->inboxes.size()),
+					LogTree::LOG_INFO);
 			xSemaphoreGive(this->mutex);
 		}
 		friend class Temple;
@@ -135,14 +151,19 @@ public:
 	 */
 	template <typename T> class Messenger : public Hermes {
 	protected:
+		const std::string delivery_made_log_message; ///< A time/space/beauty tradeoff made in favor of time (on every message delivery).
 		/**
 		 * Instantiate a new Messenger.
 		 *
 		 * Internal to SkyRoad::request_messenger().
 		 *
 		 * \param address  The address this messenger accepts deliveries for.
+		 * \param logtree  The logtree facility for this messenger.
 		 */
-		Messenger(std::string address) : Hermes(address) { };
+		Messenger(std::string address, LogTree &logtree)
+		    : Hermes(address, logtree, cxa_demangle(typeid(T).name())),
+			  delivery_made_log_message(stdsprintf("Messenger<%s>(\"%s\") made a delivery.", cxa_demangle(typeid(T).name()).c_str(), address.c_str()))
+			  { };
 		friend class SkyRoad;
 		~Messenger() {
 			configASSERT(this->callbacks.size() == 0);
@@ -174,6 +195,11 @@ public:
 			while (!this->callbacks.insert(std::make_pair(++this->last_cbid, callback)).second)
 				;
 			uint32_t cbid = this->last_cbid;
+			this->log_root.log(
+					stdsprintf(
+							"Messenger<%s>(\"%s\") had a callback explicitly subscribe.  Now with %d callbacks and %d temples.",
+							this->type_name.c_str(), this->address.c_str(), this->callbacks.size(), this->inboxes.size()),
+					LogTree::LOG_INFO);
 			xSemaphoreGive(this->mutex);
 			return cbid;
 		};
@@ -188,6 +214,11 @@ public:
 		bool callback_unsubscribe(uint32_t callback_handle) {
 			xSemaphoreTake(this->mutex, portMAX_DELAY);
 			size_t n_erased = this->callbacks.erase(callback_handle);
+			this->log_root.log(
+					stdsprintf(
+							"Messenger<%s>(\"%s\") had a callback explicitly unsubscribe.  Now with %d callbacks and %d temples.",
+							this->type_name.c_str(), this->address.c_str(), this->callbacks.size(), this->inboxes.size()),
+					LogTree::LOG_INFO);
 			xSemaphoreGive(this->mutex);
 			return (bool)n_erased;
 		};
@@ -234,9 +265,18 @@ public:
 			}
 
 			// Accumulate statistics on blocked queues.
-			// TODO: Alert the first time a given queue blocks.
-			this->blocking_deliveries.increment();
-			Hermes::global_blocking_deliveries.increment();
+			if (!targets.empty()) {
+				uint64_t previous_blocking_deliveries =
+						this->blocking_deliveries.increment();
+				if (!previous_blocking_deliveries)
+					this->log_root.log(
+							stdsprintf(
+									"Messenger<%s>(\"%s\") blocked on a full Temple queue.",
+									this->type_name.c_str(),
+									this->address.c_str()),
+							LogTree::LOG_WARNING);
+				Hermes::global_blocking_deliveries.increment();
+			}
 
 			/* Step 3: Deliver to remaining queues.
 			 *
@@ -299,6 +339,8 @@ public:
 				}
 			}
 			xSemaphoreGive(this->mutex);
+
+			this->log_root.log(this->delivery_made_log_message.c_str(), LogTree::LOG_TRACE);
 		}
 
 	protected:
@@ -514,6 +556,12 @@ public:
 		xSemaphoreTake(SkyRoad::mutex, portMAX_DELAY);
 		if (!SkyRoad::phonebook)
 			SkyRoad::phonebook = new std::map<std::string, Hermes*>();
+		if (!SkyRoad::log_root)
+			SkyRoad::log_root = &LOG["skyroad"];
+		if (!SkyRoad::log_registration)
+			SkyRoad::log_registration = &LOG["skyroad"]["registration"];
+		if (!SkyRoad::log_messengers)
+			SkyRoad::log_messengers = &LOG["skyroad"]["messengers"];
 
 		Messenger<T> *ret = NULL;
 		if (!anonymize && 0 < SkyRoad::phonebook->count(topic)) {
@@ -526,14 +574,16 @@ public:
 				do {
 					anon_name = stdsprintf("%s/%u", topic.c_str(), static_cast<unsigned int>(SkyRoad::anonymizer_inc++));
 				} while (0 < SkyRoad::phonebook->count(anon_name));
-				ret = new Messenger<T>(anon_name);
+				ret = new Messenger<T>(anon_name, (*SkyRoad::log_messengers)[stdsprintf("[%s]", anon_name.c_str())]);
 			}
 			else {
-				ret = new Messenger<T>(topic);
+				ret = new Messenger<T>(topic, (*SkyRoad::log_messengers)[stdsprintf("[%s]", topic.c_str())]);
 			}
 			SkyRoad::phonebook->insert(std::pair<std::string, Hermes*>(ret->address, ret));
+			SkyRoad::log_registration->log(stdsprintf("Messenger<%s>(\"%s\") was created.", ret->type_name.c_str(), ret->address.c_str()), LogTree::LOG_INFO);
 		}
 		xSemaphoreGive(SkyRoad::mutex);
+		SkyRoad::log_registration->log(stdsprintf("Messenger<%s>(\"%s\") was retrieved.", ret->type_name.c_str(), ret->address.c_str()), LogTree::LOG_DIAGNOSTIC);
 		return ret;
 	};
 
@@ -541,6 +591,10 @@ protected:
 	static volatile SemaphoreHandle_t mutex; ///< A mutex protecting the phonebook.
 	static volatile uint32_t anonymizer_inc; ///< An auto-increment for the anonymize=true option to register_topic().
 	static std::map<std::string, Hermes*> * volatile phonebook; ///< A mapping of all existing messengers.
+
+	static LogTree *log_root; ///< Root logtree for SkyRoad
+	static LogTree *log_registration; ///< Logtree for messenger creation & registration
+	static LogTree *log_messengers; /// Logtree for messenger subtrees
 }; // class SkyRoad
 
 #endif /* SRC_COMMON_UW_IPMC_LIBS_SKYROAD_H_ */

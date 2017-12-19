@@ -45,6 +45,7 @@ int _uwipmc_vsnprintf(char *str, size_t size, const char *format, va_list ap) __
 #ifdef __cplusplus
 std::string stdsprintf(const char *fmt, ...) __attribute__((format(printf,1,2)));
 void windows_newline(std::string &input);
+std::string cxa_demangle(const char *name);
 #endif
 
 // From version.cc
