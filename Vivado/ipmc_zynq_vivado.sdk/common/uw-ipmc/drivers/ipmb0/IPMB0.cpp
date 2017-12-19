@@ -142,7 +142,13 @@ void IPMB0::run_thread() {
 			}
 			else {
 				this->log_messages_out.log(std::string("Request received:  ") + msg.sprintf(), LogTree::LOG_INFO);
-				// TODO: Do we need to handle retries specially?  We should probably tag them as such so downstream machinery doesn't need to track it on its own.
+				/* We will tag requests as duplicated, in case this is important
+				 * to specific downstream functions, but since IPMI is supposed
+				 * to be largely idempotent in terms of handling retransmits,
+				 * and they need some kind of response anyway, the message will
+				 * still be distributed.
+				 */
+				msg.duplicate = this->check_duplicate(msg);
 			}
 			this->ipmb_incoming->send(std::make_shared<const IPMI_MSG>(msg)); // Dispatch a shared_ptr copy.
 		}
@@ -235,4 +241,30 @@ bool IPMB0::set_sequence(IPMI_MSG &msg) {
 		return true;
 	}
 	return false; // No valid sequence numbers for this command!  All are used!  (Why the hell are we flooding the bus..?)
+}
+
+/**
+ * This function will determine whether an incoming IPMI message is a duplicate.
+ *
+ * \param msg The IPMI_MSG to check the sequence number of
+ * \return true if duplicate, else false
+ */
+bool IPMB0::check_duplicate(const IPMI_MSG &msg) {
+	uint64_t now64 = get_tick64();
+
+	// First, expire old records, for cleanliness.
+	for (auto it = this->incoming_sequence_numbers.begin(); it != this->incoming_sequence_numbers.end(); ) {
+		/* The IPMB spec Table 4-1, specifies the sequence number expiration
+		 * interval as 5 seconds.
+		 */
+		if (it->second < now64-(5 * configTICK_RATE_HZ))
+			it = this->incoming_sequence_numbers.erase(it);
+		else
+			++it;
+	}
+
+	const uint32_t key = (msg.rqSA << 24) | (msg.netFn << 16) | (msg.cmd << 8) | (msg.rqSeq);
+	bool duplicate = this->incoming_sequence_numbers.count(key);
+	this->incoming_sequence_numbers[key] = now64;
+	return duplicate;
 }

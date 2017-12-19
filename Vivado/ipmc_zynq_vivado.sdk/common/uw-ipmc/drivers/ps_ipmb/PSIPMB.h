@@ -39,6 +39,8 @@ public:
 	u8 data_len;           ///<                The length of the parameter/response data.
 	// all_sum;            ///< (byte last)    The message checksum.
 
+	bool duplicate;        ///< true if duplicate, else false.  Only applies to incoming requests.
+
 	bool parse_message(u8 *msg, u8 len);
 	int unparse_message(u8 *msg, u8 maxlen) const;
 	void prepare_reply(IPMI_MSG &reply) const;
