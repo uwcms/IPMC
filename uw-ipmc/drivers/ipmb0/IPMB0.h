@@ -89,6 +89,20 @@ protected:
 	 */
 	std::map<uint32_t, uint64_t> used_sequence_numbers;
 	bool set_sequence(IPMI_MSG &msg);
+	/**
+	 * A record of incoming sequence numbers for commands.
+	 *
+	 * The mapping key should be:
+	 * xxyyzzss:
+	 *   xx: The remote IPMB address
+	 *   yy: The NetFn
+	 *   zz: The Command
+	 *   ss: The sequence number used
+	 *
+	 * The mapping value is the tick64 at which the sequence number was used.
+	 */
+	std::map<uint32_t, uint64_t> incoming_sequence_numbers;
+	bool check_duplicate(const IPMI_MSG &msg);
 public:
 	void run_thread(); ///< \protected Run the IPMB0 thread code.
 };
