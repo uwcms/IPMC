@@ -29,8 +29,8 @@ LogTree::Filter *console_log_filter;
 static uint8_t tracebuffer_contents[TRACEBUFFER_SIZE];
 TraceBuffer TRACE(tracebuffer_contents, TRACEBUFFER_SIZE);
 
-static void console_log_handler(LogTree *logtree, const std::string &message, enum LogTree::LogLevel level);
-static void tracebuffer_log_handler(LogTree *logtree, const std::string &message, enum LogTree::LogLevel level);
+static void console_log_handler(LogTree &logtree, const std::string &message, enum LogTree::LogLevel level);
+static void tracebuffer_log_handler(LogTree &logtree, const std::string &message, enum LogTree::LogLevel level);
 
 /** Stage 1 driver initialization.
  *
@@ -49,7 +49,7 @@ void driver_init(bool use_pl) {
 	 *
 	 * We don't need to keep a reference.  This will never require adjustment.
 	 */
-	new LogTree::Filter(&LOG, tracebuffer_log_handler, LogTree::LOG_TRACE);
+	new LogTree::Filter(LOG, tracebuffer_log_handler, LogTree::LOG_TRACE);
 
 	/* Initialize the UART console.
 	 *
@@ -58,7 +58,7 @@ void driver_init(bool use_pl) {
 	 * when the FreeRTOS scheduler starts.  We've got the space.
 	 */
 	uart_ps0 = new PS_UART(XPAR_PS7_UART_0_DEVICE_ID, XPAR_PS7_UART_0_INTR, 4096, 128*1024);
-	console_log_filter = new LogTree::Filter(&LOG, console_log_handler, LogTree::LOG_NOTICE);
+	console_log_filter = new LogTree::Filter(LOG, console_log_handler, LogTree::LOG_NOTICE);
 
 	XGpioPs_Config* gpiops_config = XGpioPs_LookupConfig(XPAR_PS7_GPIO_0_DEVICE_ID);
 	configASSERT(XST_SUCCESS == XGpioPs_CfgInitialize(&gpiops, gpiops_config, gpiops_config->BaseAddr));
@@ -70,7 +70,7 @@ void driver_init(bool use_pl) {
 	PS_IPMB *ps_ipmb[2];
 	ps_ipmb[0] = new PS_IPMB(XPAR_PS7_I2C_0_DEVICE_ID, XPAR_PS7_I2C_0_INTR, hwaddr);
 	ps_ipmb[1] = new PS_IPMB(XPAR_PS7_I2C_1_DEVICE_ID, XPAR_PS7_I2C_1_INTR, hwaddr);
-	ipmb0 = new IPMB0(ps_ipmb[0], ps_ipmb[1], hwaddr, &log_ipmb0);
+	ipmb0 = new IPMB0(ps_ipmb[0], ps_ipmb[1], hwaddr, log_ipmb0);
 }
 
 /** IPMC service initialization.
@@ -117,7 +117,7 @@ void operator delete(void* p) throw() {
 /**
  * This handler copies log messages to the UART.
  */
-static void console_log_handler(LogTree *logtree, const std::string &message,
+static void console_log_handler(LogTree &logtree, const std::string &message,
 		enum LogTree::LogLevel level) {
 	/* We use this silly method of concatenation to avoid printf length limits.
 	 * See libwrap.cc
@@ -133,6 +133,6 @@ static void console_log_handler(LogTree *logtree, const std::string &message,
 /**
  * This handler copies log messages to the tracebuffer.
  */
-static void tracebuffer_log_handler(LogTree *logtree, const std::string &message, enum LogTree::LogLevel level) {
-	TRACE.log(logtree->path.data(), logtree->path.size(), level, message.data(), message.size());
+static void tracebuffer_log_handler(LogTree &logtree, const std::string &message, enum LogTree::LogLevel level) {
+	TRACE.log(logtree.path.data(), logtree.path.size(), level, message.data(), message.size());
 }
