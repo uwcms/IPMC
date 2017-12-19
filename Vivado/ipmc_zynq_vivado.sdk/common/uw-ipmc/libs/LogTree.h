@@ -29,7 +29,7 @@ public:
 
 	LogTree(std::string root_label);
 protected:
-	LogTree(std::string subtree_label, LogTree *parent);
+	LogTree(std::string subtree_label, LogTree &parent);
 public:
 	virtual ~LogTree();
 
@@ -74,13 +74,13 @@ public:
 		 * \param message The log message being emitted
 		 * \param level   The loglevel of the emitted message
 		 */
-		typedef std::function<void(LogTree *logtree, const std::string &message, enum LogLevel level)> handler_t;
+		typedef std::function<void(LogTree &logtree, const std::string &message, enum LogLevel level)> handler_t;
 
 		handler_t handler; ///< The handler associated with this filter.
-		Filter(LogTree *logtree, handler_t handler, enum LogLevel level);
+		Filter(LogTree &logtree, handler_t handler, enum LogLevel level);
 		virtual ~Filter();
-		void reconfigure(LogTree *logtree, enum LogLevel level);
-		enum LogLevel get_configuration(LogTree *logtree);
+		void reconfigure(LogTree &logtree, enum LogLevel level);
+		enum LogLevel get_configuration(LogTree &logtree);
 	protected:
 		LogTree *logtree; ///< A reference to the (root) LogTree this Filter is associated with.
 

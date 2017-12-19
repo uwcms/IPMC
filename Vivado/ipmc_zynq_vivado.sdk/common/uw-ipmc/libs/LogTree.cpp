@@ -30,8 +30,8 @@ LogTree::LogTree(const std::string root_label)
  * @param subtree_label  The label for this LogTree node (not including parent path)
  * @param parent         The parent of this LogTree
  */
-LogTree::LogTree(const std::string subtree_label, LogTree *parent)
-	: label(subtree_label), path(parent->path + "." + subtree_label), parent(parent) {
+LogTree::LogTree(const std::string subtree_label, LogTree &parent)
+	: label(subtree_label), path(parent.path + "." + subtree_label), parent(&parent) {
 	this->mutex = xSemaphoreCreateMutex();
 	configASSERT(this->mutex);
 
@@ -46,7 +46,7 @@ LogTree::~LogTree() {
 	xSemaphoreTakeRecursive(this->mutex, portMAX_DELAY);
 	configASSERT(this->children.empty());
 	configASSERT(this->filters.empty());
-	if (parent) {
+	if (this->parent) {
 		xSemaphoreTakeRecursive(this->parent->mutex, portMAX_DELAY);
 		this->parent->children.erase(this->label);
 		xSemaphoreGiveRecursive(this->parent->mutex);
@@ -140,7 +140,7 @@ void LogTree::filter_unsubscribe(Filter *filter) {
 LogTree& LogTree::operator[](const std::string &label) {
 	xSemaphoreTakeRecursive(this->mutex, portMAX_DELAY);
 	if (!this->children.count(label))
-		this->children.insert(std::make_pair(label, new LogTree(label, this)));
+		this->children.insert(std::make_pair(label, new LogTree(label, *this)));
 	LogTree *ret = this->children.at(label);
 	xSemaphoreGiveRecursive(this->mutex);
 	return *ret;
@@ -160,7 +160,7 @@ void LogTree::log(const std::string &message, enum LogLevel level) {
 	xSemaphoreTakeRecursive(this->mutex, portMAX_DELAY);
 	for (auto it = this->filters.begin(), eit = this->filters.end(); it != eit; ++it)
 		if (it->second.level >= level && it->first->handler)
-			it->first->handler(this, message, level);
+			it->first->handler(*this, message, level);
 	xSemaphoreGiveRecursive(this->mutex);
 }
 
@@ -173,12 +173,12 @@ void LogTree::log(const std::string &message, enum LogLevel level) {
  * @param logtree The LogTree subtree to reconfigure
  * @param level   The new loglevel, or LOG_INHERIT to (re)enable inheritance.
  */
-void LogTree::Filter::reconfigure(LogTree *logtree, enum LogLevel level) {
-	LogTree *root = logtree;
+void LogTree::Filter::reconfigure(LogTree &logtree, enum LogLevel level) {
+	LogTree *root = &logtree;
 	while (root->parent)
 		root = root->parent;
 	configASSERT(root == this->logtree);
-	logtree->filter_subscribe(this, level, false);
+	logtree.filter_subscribe(this, level, false);
 }
 
 /**
@@ -190,18 +190,18 @@ void LogTree::Filter::reconfigure(LogTree *logtree, enum LogLevel level) {
  * @param logtree The LogTree subtree to query the configuration for
  * @return        The configured loglevel, or LOG_INHERIT if inheriting
  */
-enum LogTree::LogLevel LogTree::Filter::get_configuration(LogTree *logtree) {
-	LogTree *root = logtree;
+enum LogTree::LogLevel LogTree::Filter::get_configuration(LogTree &logtree) {
+	LogTree *root = &logtree;
 	while (root->parent)
 		root = root->parent;
 	configASSERT(root == this->logtree);
 
-	xSemaphoreTakeRecursive(logtree->mutex, portMAX_DELAY);
-	configASSERT(logtree->filters.count(this));
-	enum LogLevel level = logtree->filters.at(this).level;
-	if (logtree->filters.at(this).inheriting)
+	xSemaphoreTakeRecursive(logtree.mutex, portMAX_DELAY);
+	configASSERT(logtree.filters.count(this));
+	enum LogLevel level = logtree.filters.at(this).level;
+	if (logtree.filters.at(this).inheriting)
 		level = LOG_INHERIT;
-	xSemaphoreGiveRecursive(logtree->mutex);
+	xSemaphoreGiveRecursive(logtree.mutex);
 	return level;
 }
 
@@ -212,20 +212,20 @@ enum LogTree::LogLevel LogTree::Filter::get_configuration(LogTree *logtree) {
  * @param handler  The handler to run when messages are received.
  * @param level    The default level for this filter's subscription to its LogTree.
  */
-LogTree::Filter::Filter(LogTree *logtree, handler_t handler, enum LogLevel level)
+LogTree::Filter::Filter(LogTree &logtree, handler_t handler, enum LogLevel level)
 	: handler(handler) {
 
-	LogTree *root = logtree;
+	LogTree *root = &logtree;
 	while (root->parent)
 		root = root->parent;
 	this->logtree = root;
-	if (root != logtree)
+	if (root != &logtree)
 		root->filter_subscribe(this, LOG_SILENT, false); // Subscribe to the full tree itself, first.
-	logtree->filter_subscribe(this, level, false);
+	logtree.filter_subscribe(this, level, false);
 }
 
 LogTree::Filter::~Filter() {
-	logtree->filter_unsubscribe(this);
+	this->logtree->filter_unsubscribe(this);
 }
 
 const char *LogTree::LogLevel_strings[10] = {
