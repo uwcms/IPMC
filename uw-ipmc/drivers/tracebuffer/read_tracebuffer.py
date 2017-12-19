@@ -180,8 +180,8 @@ RECORDS.reverse()
 max_label_len = max(map(lambda x: len(x.label), RECORDS))
 max_offset_len = max(map(lambda x: len(hex(x.offset)), RECORDS))
 loglevels = ["SILENT", "CRITICAL", "ERROR", "WARNING", "NOTICE", "INFO", "DIAGNOSTIC", "TRACE", "ALL", "INHERIT"]
-loglevels = dict(zip(range(0,len(loglevels)),loglevels))
+loglevels = dict(zip(range(0,len(loglevels)),map(lambda x: x[0:4], loglevels)))
 fmt = '0x{{rec.offset:0{max_offset_len}x}} | {{rec.label:<{max_label_len}s}} | {{loglevel:<4s}} | {{data}}'.format(max_label_len=max_label_len, max_offset_len=max_offset_len-2)
 
 for rec in RECORDS:
-	print(fmt.format(rec=rec, data=rec.data.rstrip('\r\n'), loglevel=loglevels.get(rec.loglevel,str(rec.loglevel))[0:4]))
+	print(fmt.format(rec=rec, data=rec.data.rstrip('\r\n'), loglevel=loglevels.get(rec.loglevel,str(rec.loglevel))))
