@@ -128,6 +128,28 @@ bool IPMI_MSG::match_reply(const IPMI_MSG &other) const {
 			this->cmd   == other.cmd);
 }
 
+/**
+ * Format this IPMB message for log output.
+ *
+ * @return The formatted IPMB message.
+ */
+std::string IPMI_MSG::sprintf() const {
+	char buf[this->max_data_len*3 + 1] = "";
+	int i = 0;
+	for (i = 0; i < this->data_len; ++i)
+		snprintf(buf+(i*3), 4, "%02hhx ", this->data[i]);
+	if (i)
+		buf[(i*3) - 1] = '\0';
+	return stdsprintf("%hhd.%02hhx -> %hhd.%02hhx: %02hhx.%02hhx (seq %02hhx) [%s]",
+				this->rqLUN, this->rqSA,
+				// " -> "
+				this->rsLUN, this->rsSA,
+				// ": "
+				this->netFn, this->cmd,
+				/* "(seq " */ this->rqSeq /* ") " */,
+				/* "[" */ buf /* "]" */);
+}
+
 static void XIicPs_VariableLengthSlaveInterruptHandler(XIicPs *InstancePtr);
 
 static void PS_IPMB_InterruptPassthrough(PS_IPMB *ps_ipmb, u32 StatusEvent) {
