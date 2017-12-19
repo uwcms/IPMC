@@ -32,7 +32,7 @@ LogTree::LogTree(const std::string root_label)
  */
 LogTree::LogTree(const std::string subtree_label, LogTree &parent)
 	: label(subtree_label), path(parent.path + "." + subtree_label), parent(&parent) {
-	this->mutex = xSemaphoreCreateMutex();
+	this->mutex = xSemaphoreCreateRecursiveMutex();
 	configASSERT(this->mutex);
 
 	xSemaphoreTakeRecursive(this->parent->mutex, portMAX_DELAY);
