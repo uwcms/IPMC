@@ -248,9 +248,11 @@ Event::~Event() {
 /// A custom 64 bit tick counter.  Access only through get_tick64().
 volatile uint64_t uwipmc_tick64_count = 0;
 
+extern "C" {
 /**
  * Hook the FreeRTOS tick timer to increment our own 64bit tick counter.
  */
 void vApplicationTickHook() {
 	uwipmc_tick64_count++;
 }
+}; // extern "C"
