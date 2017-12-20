@@ -55,7 +55,7 @@ IPMB0::IPMB0(PS_IPMB *ipmbA, PS_IPMB *ipmbB, uint8_t ipmb_address, LogTree &logt
 	ipmbA->incoming_message_queue = this->recvq;
 	ipmbB->incoming_message_queue = this->recvq;
 
-	configASSERT(xTaskCreate(ipmb0_run_thread, "IPMB0", configMINIMAL_STACK_SIZE+256, this, configMAX_PRIORITIES, &this->task));
+	configASSERT(xTaskCreate(ipmb0_run_thread, "IPMB0", configMINIMAL_STACK_SIZE+512, this, configMAX_PRIORITIES, &this->task));
 }
 
 IPMB0::~IPMB0() {
@@ -141,7 +141,6 @@ void IPMB0::run_thread() {
 				}
 			}
 			else {
-				this->log_messages_out.log(std::string("Request received:  ") + msg.sprintf(), LogTree::LOG_INFO);
 				/* We will tag requests as duplicated, in case this is important
 				 * to specific downstream functions, but since IPMI is supposed
 				 * to be largely idempotent in terms of handling retransmits,
@@ -149,6 +148,10 @@ void IPMB0::run_thread() {
 				 * still be distributed.
 				 */
 				msg.duplicate = this->check_duplicate(msg);
+				if (msg.duplicate)
+					this->log_messages_in.log(std::string("Request received:  ") + msg.sprintf() + "  (duplicate)", LogTree::LOG_NOTICE);
+				else
+					this->log_messages_in.log(std::string("Request received:  ") + msg.sprintf(), LogTree::LOG_INFO);
 			}
 			this->ipmb_incoming->send(std::make_shared<const IPMI_MSG>(msg)); // Dispatch a shared_ptr copy.
 		}
@@ -224,7 +227,7 @@ bool IPMB0::set_sequence(IPMI_MSG &msg) {
 		/* The IPMB spec Table 4-1, specifies the sequence number expiration
 		 * interval as 5 seconds.  We'll wait 6 before reuse.
 		 */
-		if (it->second < now64-(6 * configTICK_RATE_HZ))
+		if (it->second < (now64-(6 * configTICK_RATE_HZ)))
 			it = this->used_sequence_numbers.erase(it);
 		else
 			++it;
@@ -257,7 +260,7 @@ bool IPMB0::check_duplicate(const IPMI_MSG &msg) {
 		/* The IPMB spec Table 4-1, specifies the sequence number expiration
 		 * interval as 5 seconds.
 		 */
-		if (it->second < now64-(5 * configTICK_RATE_HZ))
+		if (it->second < (now64-(5 * configTICK_RATE_HZ)))
 			it = this->incoming_sequence_numbers.erase(it);
 		else
 			++it;
