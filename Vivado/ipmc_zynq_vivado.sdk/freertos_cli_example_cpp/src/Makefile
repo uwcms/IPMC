@@ -93,6 +93,7 @@ bin/$(BUILD_CONFIGURATION)/freertos_cli_example_cpp.elf: $(OBJS) .obj/$(BUILD_CO
 .obj/$(BUILD_CONFIGURATION)/common/uw-ipmc/version.$(GIT_SETTINGS_MD5).o: common/uw-ipmc/version.cc
 	@echo
 	@mkdir -p "$(dir $@)" "$(dir $(patsubst .obj/$(BUILD_CONFIGURATION)/%,.dep/$(BUILD_CONFIGURATION)/%,$@))"
+	rm -f .obj/$(BUILD_CONFIGURATION)/common/uw-ipmc/version.*.o
 	$(CXX) -c $(CFLAGS) $(CXXFLAGS) $(LDFLAGS) $(INCLUDE_PATHS) $(LIBRARY_PATHS) \
 		-DD_GIT_SHORT="\"$(shell git rev-parse --short HEAD)\"" -DD_GIT_LONG="\"$(shell git rev-parse HEAD)\"" -DD_GIT_DESCRIBE="\"$$GIT_DESCRIBE\"" -DD_GIT_BRANCH="\"$$GIT_BRANCH\"" -DD_GIT_STATUS="$$GIT_STATUS" -o "$@" "$<" $(LIBS)
 
