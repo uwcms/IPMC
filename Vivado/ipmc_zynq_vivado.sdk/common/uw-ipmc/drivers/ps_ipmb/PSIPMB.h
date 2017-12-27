@@ -17,37 +17,7 @@
 #include <libs/RingBuffer.h>
 #include <libs/ThreadingPrimitives.h>
 #include <libs/StatCounter.h>
-
-/**
- * An IPMB Message record.
- *
- * This contains an IPMI command, complete with all relevant headers for IPMB-0
- * transit, as well as parsing and construction functions.
- */
-class IPMI_MSG {
-public:
-	static const u8 max_data_len = 32; ///< The max length of command data.  // TODO: Verify this is <32
-	u8 rsSA;               ///< (byte 0)       The responder slave address.
-	u8 netFn;              ///< (byte 1[7:2])  The network function of the command.
-	u8 rsLUN;              ///< (byte 1[1:0])  The responder LUN.
-	// hdr_sum;            ///< (byte 2)       The header checksum.
-	u8 rqSA;               ///< (byte 3)       The requester slave address.
-	u8 rqSeq;              ///< (byte 4[7:2])  The request sequence number.
-	u8 rqLUN;              ///< (byte 4[1:0])  The requester LUN.
-	u8 cmd;                ///< (byte 5)       The IPMI command number.
-	u8 data[max_data_len]; ///< (byte 6-*)     The IPMI command parameter/response data.
-	u8 data_len;           ///<                The length of the parameter/response data.
-	// all_sum;            ///< (byte last)    The message checksum.
-
-	bool duplicate;        ///< true if duplicate, else false.  Only applies to incoming requests.
-
-	bool parse_message(u8 *msg, u8 len);
-	int unparse_message(u8 *msg, u8 maxlen) const;
-	void prepare_reply(IPMI_MSG &reply) const;
-	bool match(const IPMI_MSG &other) const;
-	bool match_reply(const IPMI_MSG &other) const;
-	std::string sprintf() const;
-};
+#include <services/ipmi/IPMI_MSG.h>
 
 /**
  * An interrupt-based driver for the PS I2C, specialized for IPMB functionality.

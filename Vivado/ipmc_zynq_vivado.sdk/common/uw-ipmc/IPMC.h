@@ -49,6 +49,4 @@ extern TraceBuffer TRACE;
 void driver_init(bool use_pl);
 void ipmc_service_init();
 
-u8 ipmi_checksum(const u8* buf, u32 len);
-
 #endif /* SRC_IPMC_H_ */
