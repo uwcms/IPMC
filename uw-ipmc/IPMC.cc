@@ -86,26 +86,6 @@ void ipmc_service_init() {
 
 }
 
-/**
- * Calculate an IPMI checksum of an array of bytes.
- *
- * \note You can verify a checksum by ensuring that the computed checksum of the
- *       data buffer with the checksum included, is zero.
- *
- * @param buf The buffer to compute the checksum of.
- * @param len The length of the buffer to compute the checksum of.
- * @return The one-byte IPMI checksum.
- */
-u8 ipmi_checksum(const u8* buf, u32 len) {
-  u8 sum = 0;
-
-  while (len) {
-    sum += *buf++;
-    len--;
-  }
-  return (~sum) + 1;
-}
-
 
 void* operator new(std::size_t n) {
 	return pvPortMalloc(n);

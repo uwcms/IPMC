@@ -20,6 +20,7 @@
 #include <libs/StatCounter.h>
 #include <libs/LogTree.h>
 #include <libs/SkyRoad.h>
+#include <services/ipmi/IPMI_MSG.h>
 #include <drivers/ps_ipmb/PSIPMB.h>
 
 /**

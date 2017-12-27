@@ -104,7 +104,7 @@ void IPMB0::run_thread() {
 			msg = *(envelope->open<const IPMI_MSG>());
 			if (this->set_sequence(msg)) {
 				this->outgoing_messages.emplace_back(msg);
-				this->log_messages_out.log(std::string("Message enqueued for transmit: ") + msg.sprintf(), LogTree::LOG_DIAGNOSTIC);
+				this->log_messages_out.log(std::string("Message enqueued for transmit: ") + msg.format(), LogTree::LOG_DIAGNOSTIC);
 			}
 			else {
 				/* We've been flooding this target on this bus with this command
@@ -113,7 +113,7 @@ void IPMB0::run_thread() {
 				 */
 				this->stat_no_available_seq.increment();
 				this->ipmb_outgoing_failure->send(envelope->open<const IPMI_MSG>()); // We'll just reuse this shared_ptr<const IPMI_MSG>
-				this->log_messages_out.log(std::string("Outgoing message discarded, no available sequence number: ") + msg.sprintf(), LogTree::LOG_ERROR);
+				this->log_messages_out.log(std::string("Outgoing message discarded, no available sequence number: ") + msg.format(), LogTree::LOG_ERROR);
 			}
 		}
 		else if (q == this->recvq) {
@@ -134,10 +134,10 @@ void IPMB0::run_thread() {
 				}
 				if (!paired) {
 					this->stat_unexpected_replies.increment();
-					this->log_messages_in.log(std::string("Unexpected response received (erroneous retry?): ") + msg.sprintf(), LogTree::LOG_NOTICE);
+					this->log_messages_in.log(std::string("Unexpected response received (erroneous retry?): ") + msg.format(), LogTree::LOG_NOTICE);
 				}
 				else {
-					this->log_messages_in.log(std::string("Response received: ") + msg.sprintf(), LogTree::LOG_INFO);
+					this->log_messages_in.log(std::string("Response received: ") + msg.format(), LogTree::LOG_INFO);
 				}
 			}
 			else {
@@ -149,9 +149,9 @@ void IPMB0::run_thread() {
 				 */
 				msg.duplicate = this->check_duplicate(msg);
 				if (msg.duplicate)
-					this->log_messages_in.log(std::string("Request received:  ") + msg.sprintf() + "  (duplicate)", LogTree::LOG_NOTICE);
+					this->log_messages_in.log(std::string("Request received:  ") + msg.format() + "  (duplicate)", LogTree::LOG_NOTICE);
 				else
-					this->log_messages_in.log(std::string("Request received:  ") + msg.sprintf(), LogTree::LOG_INFO);
+					this->log_messages_in.log(std::string("Request received:  ") + msg.format(), LogTree::LOG_INFO);
 			}
 			this->ipmb_incoming->send(std::make_shared<const IPMI_MSG>(msg)); // Dispatch a shared_ptr copy.
 		}
@@ -165,7 +165,7 @@ void IPMB0::run_thread() {
 					// Delivery failed.  Our last retry timed out.
 					this->stat_send_failures.increment();
 					this->ipmb_outgoing_failure->send(std::make_shared<const IPMI_MSG>(it->msg));
-					this->log_messages_out.log(std::string("Retransmit abandoned: ") + it->msg.sprintf(), LogTree::LOG_WARNING);
+					this->log_messages_out.log(std::string("Retransmit abandoned: ") + it->msg.format(), LogTree::LOG_WARNING);
 					it = this->outgoing_messages.erase(it);
 					continue;
 				}
@@ -176,17 +176,17 @@ void IPMB0::run_thread() {
 					// Sent!  We don't retry responses, so we're done!
 					this->stat_messages_sent.increment(); // We won't get a response to pair with this, so increment it now.
 					if (it->retry_count == 0)
-						this->log_messages_out.log(std::string("Response sent:     ") + it->msg.sprintf(), LogTree::LOG_INFO);
+						this->log_messages_out.log(std::string("Response sent:     ") + it->msg.format(), LogTree::LOG_INFO);
 					else
-						this->log_messages_out.log(stdsprintf("Response resent:   %s  (retry %hhu)", it->msg.sprintf().c_str(), it->retry_count), LogTree::LOG_NOTICE);
+						this->log_messages_out.log(stdsprintf("Response resent:   %s  (retry %hhu)", it->msg.format().c_str(), it->retry_count), LogTree::LOG_NOTICE);
 					it = this->outgoing_messages.erase(it);
 					continue;
 				}
 				else {
 					if (it->retry_count == 0)
-						this->log_messages_out.log(std::string("Request sent:      ") + it->msg.sprintf(), LogTree::LOG_INFO);
+						this->log_messages_out.log(std::string("Request sent:      ") + it->msg.format(), LogTree::LOG_INFO);
 					else
-						this->log_messages_out.log(stdsprintf("Request resent:    %s  (retry %hhu)", it->msg.sprintf().c_str(), it->retry_count), LogTree::LOG_NOTICE);
+						this->log_messages_out.log(stdsprintf("Request resent:    %s  (retry %hhu)", it->msg.format().c_str(), it->retry_count), LogTree::LOG_NOTICE);
 				}
 
 				/* Now, success or not, we can't discard this yet.
