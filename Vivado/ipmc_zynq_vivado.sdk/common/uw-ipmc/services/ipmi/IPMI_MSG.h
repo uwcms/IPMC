@@ -32,6 +32,7 @@ public:
 	uint8_t data_len;           ///<                The length of the parameter/response data.
 	// all_sum;            ///< (byte last)    The message checksum.
 
+	bool broadcast;        ///< Is this a broadcast message?  Nothing really has any reason to use this.
 	bool duplicate;        ///< true if duplicate, else false.  Only applies to incoming requests.
 
 	bool parse_message(uint8_t *msg, uint8_t len);

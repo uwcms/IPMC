@@ -19,6 +19,14 @@
  *       reverse the sender/receiver identities in this case.
  */
 bool IPMI_MSG::parse_message(uint8_t *msg, uint8_t len) {
+	this->broadcast = false;
+	if (len && msg[0] == 0) {
+		// Broadcast Message!  ... Remove the leading 0x00.
+		// For details see IPMI2 spec, "Figure 20-1, Broadcast Get Device ID Request Message"
+		this->broadcast = true;
+		++msg;
+		--len;
+	}
 	if (len < 7)
 		return false; // Invalid.
 
