@@ -140,9 +140,10 @@ std::string IPMI_MSG::format() const {
 		snprintf(buf+(i*3), 4, "%02hhx ", this->data[i]);
 	if (i)
 		buf[(i*3) - 1] = '\0';
-	return stdsprintf("%hhd.%02hhx -> %hhd.%02hhx: %02hhx.%02hhx (seq %02hhx) [%s]",
+	return stdsprintf("%hhd.%02hhx -> %s%hhd.%02hhx: %02hhx.%02hhx (seq %02hhx) [%s]",
 				this->rqLUN, this->rqSA,
 				// " -> "
+				(this->broadcast ? "*" : ""),
 				this->rsLUN, this->rsSA,
 				// ": "
 				this->netFn, this->cmd,
