@@ -137,9 +137,9 @@ if buffer_header.last_record == 0xffffffff:
 	sys.exit(0)
 
 print('Parsing buffer...')
-REC_HDR_FMT = NamedStruct('<LLLHH', Names=('prev_offset','label_len','data_len','loglevel','flags'))
+REC_HDR_FMT = NamedStruct('<LLLHHQ', Names=('prev_offset','label_len','data_len','loglevel','flags','timestamp'))
 REC_HDR_LEN = REC_HDR_FMT.size
-Record = collections.namedtuple('Record', ('offset','prev_offset','length','label','loglevel','flags','data'))
+Record = collections.namedtuple('Record', ('offset','prev_offset','length','label','loglevel','flags','timestamp','data'))
 def parse_rec(BUFFER, off):
 	record_header = BUFFER[(off, REC_HDR_FMT)]
 	rec_label = BUFFER[ off+REC_HDR_LEN : off+REC_HDR_LEN+record_header.label_len ].decode('utf8', errors='replace')
@@ -154,6 +154,7 @@ def parse_rec(BUFFER, off):
 			rec_label,
 			record_header.loglevel,
 			record_header.flags,
+			record_header.timestamp,
 			rec_data
 			)
 
@@ -178,10 +179,11 @@ while off != 0xffffffff:
 
 RECORDS.reverse()
 max_label_len = max(map(lambda x: len(x.label), RECORDS))
-max_offset_len = max(map(lambda x: len(hex(x.offset)), RECORDS))
+max_offset_len = max(map(lambda x: len(hex(x.offset)), RECORDS))-2
+max_timestamp_len = max(map(lambda x: len(str(x.timestamp)), RECORDS))
 loglevels = ["SILENT", "CRITICAL", "ERROR", "WARNING", "NOTICE", "INFO", "DIAGNOSTIC", "TRACE", "ALL", "INHERIT"]
 loglevels = dict(zip(range(0,len(loglevels)),map(lambda x: x[0:4], loglevels)))
-fmt = '0x{{rec.offset:0{max_offset_len}x}} | {{rec.label:<{max_label_len}s}} | {{loglevel:<4s}} | {{data}}'.format(max_label_len=max_label_len, max_offset_len=max_offset_len-2)
+fmt = '0x{{rec.offset:0{max_offset_len}x}} | {{rec.timestamp:{max_timestamp_len}d}} | {{rec.label:<{max_label_len}s}} | {{loglevel:<4s}} | {{data}}'.format(max_label_len=max_label_len, max_offset_len=max_offset_len, max_timestamp_len=max_timestamp_len)
 
 for rec in RECORDS:
 	print(fmt.format(rec=rec, data=rec.data.rstrip('\r\n'), loglevel=loglevels.get(rec.loglevel,str(rec.loglevel))))
