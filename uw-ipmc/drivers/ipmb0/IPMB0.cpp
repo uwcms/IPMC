@@ -94,7 +94,6 @@ void IPMB0::run_thread() {
 	AbsoluteTimeout next_wait(UINT64_MAX);
 	while (true) {
 		// Check for any incoming messages and process them.
-		this->stat_recvq_highwater.high_water(uxQueueMessagesWaiting(this->recvq));
 		QueueHandle_t q = xQueueSelectFromSet(this->qset, next_wait.get_timeout());
 		IPMI_MSG msg;
 		if (q == temple.get_queue()) {
@@ -118,6 +117,10 @@ void IPMB0::run_thread() {
 		}
 		else if (q == this->recvq) {
 			configASSERT(pdTRUE == xQueueReceive(this->recvq, &msg, 0)); // If it selected it better receive.
+			UBaseType_t recvq_watermark = uxQueueMessagesWaiting(this->recvq) + 1;
+			this->stat_recvq_highwater.high_water(recvq_watermark);
+			if (recvq_watermark >= this->recvq_size/2)
+				this->log_messages_in.log(stdsprintf("The IPMB0 recvq is %lu%% full with %lu unprocessed messages!", (recvq_watermark*100)/this->recvq_size, recvq_watermark), LogTree::LOG_WARNING);
 			this->stat_messages_received.increment();
 			if (msg.netFn & 1) {
 				// Pair responses to stop retransmissions.
