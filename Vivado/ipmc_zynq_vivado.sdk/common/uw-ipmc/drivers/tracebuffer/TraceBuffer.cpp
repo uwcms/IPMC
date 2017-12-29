@@ -35,6 +35,7 @@ struct TraceBuffer::TraceRecord {
 	 * [    0]  Binary log data (1),  String log data (0)
 	 */
 	uint16_t flags;
+	uint64_t timestamp;       ///< The tick64 this record was written at.
 	uint8_t data[0];          ///< An access path for the variable size data segment
 };
 
@@ -106,6 +107,8 @@ void TraceBuffer::log(const char *label, size_t label_len, enum LogTree::LogLeve
 	rec->data_length = data_len;
 	rec->loglevel = loglevel;
 	rec->flags = (binary ? 1 : 0);
+	uint64_t now64 = get_tick64();
+	memcpy(&rec->timestamp, &now64, sizeof(uint64_t)); // Cortex-A9 apparently does not support unaligned strd, only unaligned str.
 	memcpy(rec->data, label, label_len);
 	memcpy(rec->data + label_len, data, data_len);
 
