@@ -227,7 +227,7 @@ bool IPMB0::set_sequence(IPMI_MSG &msg) {
 		/* The IPMB spec Table 4-1, specifies the sequence number expiration
 		 * interval as 5 seconds.  We'll wait 6 before reuse.
 		 */
-		if (it->second < (now64-(6 * configTICK_RATE_HZ)))
+		if (now64 > 6*configTICK_RATE_HZ && it->second < (now64-(6 * configTICK_RATE_HZ)))
 			it = this->used_sequence_numbers.erase(it);
 		else
 			++it;
@@ -260,7 +260,7 @@ bool IPMB0::check_duplicate(const IPMI_MSG &msg) {
 		/* The IPMB spec Table 4-1, specifies the sequence number expiration
 		 * interval as 5 seconds.
 		 */
-		if (it->second < (now64-(5 * configTICK_RATE_HZ)))
+		if (now64 > 5*configTICK_RATE_HZ && it->second < (now64-(5 * configTICK_RATE_HZ)))
 			it = this->incoming_sequence_numbers.erase(it);
 		else
 			++it;
