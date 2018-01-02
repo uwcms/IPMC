@@ -20,8 +20,22 @@
 #include <stdarg.h>
 #include <cxxabi.h> // for cxa_demangle()
 
-static SemaphoreHandle_t libwrap_mutex = NULL;
-UWIPMC_INITIALIZE_STATIC_SEMAPHORE(libwrap_mutex, Mutex);
+static volatile SemaphoreHandle_t libwrap_mutex = NULL;
+
+static inline void init_libwrap_mutex() {
+	if (libwrap_mutex)
+		return;
+	SemaphoreHandle_t sem = xSemaphoreCreateMutex();
+	configASSERT(sem);
+	taskENTER_CRITICAL();
+	if (!libwrap_mutex) {
+		libwrap_mutex = sem;
+		sem = NULL;
+	}
+	taskEXIT_CRITICAL();
+	if (sem)
+		vSemaphoreDelete(sem);
+}
 
 int _uwipmc_printf(const char *format, ...) {
     va_list args;
@@ -32,6 +46,7 @@ int _uwipmc_printf(const char *format, ...) {
 }
 
 int _uwipmc_sprintf(char *str, const char *format, ...) {
+	init_libwrap_mutex();
 	va_list args;
 	va_start(args, format);
 	xSemaphoreTake(libwrap_mutex, portMAX_DELAY);
@@ -42,6 +57,7 @@ int _uwipmc_sprintf(char *str, const char *format, ...) {
 }
 
 int _uwipmc_snprintf(char *str, size_t size, const char *format, ...) {
+	init_libwrap_mutex();
 	va_list args;
 	va_start(args, format);
 	xSemaphoreTake(libwrap_mutex, portMAX_DELAY);
@@ -101,6 +117,7 @@ int _uwipmc_vprintf(const char *format, va_list ap) {
 }
 
 int _uwipmc_vsprintf(char *str, const char *format, va_list ap) {
+	init_libwrap_mutex();
 	xSemaphoreTake(libwrap_mutex, portMAX_DELAY);
 	int ret = vsprintf(str, format, ap);
 	xSemaphoreGive(libwrap_mutex);
@@ -108,6 +125,7 @@ int _uwipmc_vsprintf(char *str, const char *format, va_list ap) {
 }
 
 int _uwipmc_vsnprintf(char *str, size_t size, const char *format, va_list ap) {
+	init_libwrap_mutex();
 	xSemaphoreTake(libwrap_mutex, portMAX_DELAY);
 	int ret = vsnprintf(str, size, format, ap);
 	xSemaphoreGive(libwrap_mutex);
@@ -148,6 +166,7 @@ void windows_newline(std::string &input) {
  * @return The demangled form of name, or name if an error occured.
  */
 std::string cxa_demangle(const char *name) {
+	init_libwrap_mutex();
 	size_t length = 0;
 	int status = 0;
 	std::string result(name);
