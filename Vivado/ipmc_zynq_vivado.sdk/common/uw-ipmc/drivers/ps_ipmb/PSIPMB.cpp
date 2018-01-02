@@ -39,6 +39,9 @@ PS_IPMB::PS_IPMB(u16 DeviceId, u32 IntrId, u8 SlaveAddr) :
 		unexpected_send_result_interrupts(stdsprintf("ipmb0.ps_ipmb.%hu.unexpected_send_result_interrupts", DeviceId)),
 		SlaveAddr(SlaveAddr), IntrId(IntrId) {
 
+	this->mutex = xSemaphoreCreateMutex();
+	configASSERT(this->mutex);
+
 	this->sendresult_q = xQueueCreate(1, sizeof(u32));
 	configASSERT(this->sendresult_q);
 
@@ -50,6 +53,7 @@ PS_IPMB::PS_IPMB(u16 DeviceId, u32 IntrId, u8 SlaveAddr) :
 
 PS_IPMB::~PS_IPMB() {
 	vQueueDelete(this->sendresult_q);
+	vSemaphoreDelete(this->mutex);
 	XScuGic_Disable(&xInterruptController, this->IntrId);
 	XScuGic_Disconnect(&xInterruptController, this->IntrId);
 }
@@ -104,6 +108,7 @@ bool PS_IPMB::send_message(IPMI_MSG &msg) {
 	uint8_t msgbuf[this->i2c_bufsize];
 	int msglen = msg.unparse_message(msgbuf, this->i2c_bufsize);
 
+	xSemaphoreTake(this->mutex, portMAX_DELAY);
 	this->setup_master();
 	XIicPs_MasterSend(&this->IicInst, msgbuf, msglen, msg.rqSA);
 
@@ -111,6 +116,7 @@ bool PS_IPMB::send_message(IPMI_MSG &msg) {
 	xQueueReceive(this->sendresult_q, &isr_result, portMAX_DELAY);
 
 	this->setup_slave(); // Return to slave mode.
+	xSemaphoreGive(this->mutex);
 
 	return isr_result == XIICPS_EVENT_COMPLETE_SEND; // Return wire-level success/failure.
 }
