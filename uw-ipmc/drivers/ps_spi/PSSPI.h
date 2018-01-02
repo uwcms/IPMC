@@ -12,14 +12,13 @@
 #include <semphr.h>
 #include <queue.h>
 #include <IPMC.h>
-#include <vector>
 
 /**
  * An interrupt-based driver for the PS SPI.
  */
 class PS_SPI {
 public:
-	PS_SPI(u16 DeviceId, u32 IntrId, std::vector<u8> cs_gpios);
+	PS_SPI(u16 DeviceId, u32 IntrId);
 	virtual ~PS_SPI();
 
 	bool transfer(u8 chip, u8 *sendbuf, u8 *recvbuf, size_t bytes);

@@ -10,6 +10,8 @@
 #include <drivers/ps_uart/PSUART.h>
 #include <drivers/ps_ipmb/PSIPMB.h>
 #include <drivers/ipmb0/IPMB0.h>
+#include <drivers/ps_spi/PSSPI.h>
+#include <drivers/spi_eeprom/SPIEEPROM.h>
 #include <drivers/tracebuffer/TraceBuffer.h>
 #include <libs/LogTree.h>
 
@@ -28,6 +30,8 @@ LogTree::Filter *console_log_filter;
 #define TRACEBUFFER_SIZE (1*1024*1024)
 static uint8_t tracebuffer_contents[TRACEBUFFER_SIZE];
 TraceBuffer TRACE(tracebuffer_contents, TRACEBUFFER_SIZE);
+SPI_EEPROM *eeprom_mac;
+SPI_EEPROM *eeprom_data;
 
 static void console_log_handler(LogTree &logtree, const std::string &message, enum LogTree::LogLevel level);
 static void tracebuffer_log_handler(LogTree &logtree, const std::string &message, enum LogTree::LogLevel level);
@@ -59,6 +63,10 @@ void driver_init(bool use_pl) {
 	 */
 	uart_ps0 = new PS_UART(XPAR_PS7_UART_0_DEVICE_ID, XPAR_PS7_UART_0_INTR, 4096, 128*1024);
 	console_log_filter = new LogTree::Filter(LOG, console_log_handler, LogTree::LOG_NOTICE);
+
+	PS_SPI *ps_spi0 = new PS_SPI(XPAR_PS7_SPI_0_DEVICE_ID, XPAR_PS7_SPI_0_INTR);
+	eeprom_mac = new SPI_EEPROM(*ps_spi0, 0, 0x100, 16);
+	eeprom_data = new SPI_EEPROM(*ps_spi0, 1, 0x40000, 64);
 
 	XGpioPs_Config* gpiops_config = XGpioPs_LookupConfig(XPAR_PS7_GPIO_0_DEVICE_ID);
 	configASSERT(XST_SUCCESS == XGpioPs_CfgInitialize(&gpiops, gpiops_config, gpiops_config->BaseAddr));

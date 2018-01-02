@@ -26,6 +26,10 @@ extern LogTree::Filter *console_log_filter;
 class TraceBuffer;
 extern TraceBuffer TRACE;
 
+class SPI_EEPROM;
+extern SPI_EEPROM *eeprom_mac;
+extern SPI_EEPROM *eeprom_data;
+
 void driver_init(bool use_pl);
 void ipmc_service_init();
 
