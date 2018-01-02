@@ -7,7 +7,7 @@
 
 #include <drivers/ps_spi/PSSPI.h>
 
-PS_SPI::PS_SPI(u16 DeviceId, u32 IntrId, std::vector<u8> cs_gpios) {
+PS_SPI::PS_SPI(u16 DeviceId, u32 IntrId) {
 	// TODO: Write
 
 }
