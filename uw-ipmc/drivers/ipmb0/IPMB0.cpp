@@ -55,7 +55,7 @@ IPMB0::IPMB0(PS_IPMB *ipmbA, PS_IPMB *ipmbB, uint8_t ipmb_address, LogTree &logt
 	ipmbA->incoming_message_queue = this->recvq;
 	ipmbB->incoming_message_queue = this->recvq;
 
-	configASSERT(xTaskCreate(ipmb0_run_thread, "IPMB0", configMINIMAL_STACK_SIZE+512, this, configMAX_PRIORITIES, &this->task));
+	configASSERT(xTaskCreate(ipmb0_run_thread, "IPMB0", configMINIMAL_STACK_SIZE+512, this, TASK_PRIORITY_DRIVER, &this->task));
 }
 
 IPMB0::~IPMB0() {
