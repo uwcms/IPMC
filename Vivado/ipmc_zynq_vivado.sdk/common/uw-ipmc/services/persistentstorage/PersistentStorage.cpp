@@ -28,6 +28,7 @@ static void run_persistentstorage_thread(void *cb_ps) {
  */
 PersistentStorage::PersistentStorage(SPI_EEPROM &eeprom, LogTree &logtree)
 	: eeprom(eeprom), logtree(logtree) {
+	configASSERT((eeprom.size / eeprom.page_size) <= UINT16_MAX); // Ensure that the EEPROM will not overflow our u16 fields.
 	this->cache = (u8*)pvPortMalloc(this->eeprom.size*2 + 4);
 	NVREG32(this->cache, this->eeprom.size) = 0x1234dead; // Set Canary
 	this->data = this->cache + this->eeprom.size + 4;
@@ -41,11 +42,12 @@ PersistentStorage::PersistentStorage(SPI_EEPROM &eeprom, LogTree &logtree)
 }
 
 PersistentStorage::~PersistentStorage() {
+	configASSERT(0); // Unsupported, no way to safely shutdown run_flush_thread at the moment.
 	NVREG32(this->cache, this->eeprom.size) = 0; // Clear the canary for good measure.
 	vSemaphoreDelete(this->index_mutex);
 	delete this->flushwait[1];
 	delete this->flushwait[0];
-	configASSERT(0); // Unsupported, no way to safely shutdown run_flush_thread at the moment.
+	vPortFree(this->data);
 }
 
 /**
