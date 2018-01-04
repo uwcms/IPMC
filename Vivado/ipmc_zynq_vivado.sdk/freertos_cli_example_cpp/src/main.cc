@@ -206,8 +206,8 @@ int main() {
 	LOG.log(bannerstr, LogTree::LOG_NOTICE); // This is the ONLY place that should EVER log directly to LOG rather than a subtree.
 	bannerstr = ""; // Save heap memory.
 
-	xTaskCreate(lwip_startup_thread, "lwip_start", configMINIMAL_STACK_SIZE, NULL, configLWIP_TASK_PRIORITY, NULL);
-    xTaskCreate(TaskPrinter, "TaskPrint", configMINIMAL_STACK_SIZE+256, NULL, configMAX_PRIORITIES, NULL);
+	//xTaskCreate(lwip_startup_thread, "lwip_start", configMINIMAL_STACK_SIZE, NULL, configLWIP_TASK_PRIORITY, NULL);
+    xTaskCreate(TaskPrinter, "TaskPrint", configMINIMAL_STACK_SIZE+256, NULL, TASK_PRIORITY_INTERACTIVE, NULL);
 
 	/* Start the tasks and timer running. */
 	vTaskStartScheduler();

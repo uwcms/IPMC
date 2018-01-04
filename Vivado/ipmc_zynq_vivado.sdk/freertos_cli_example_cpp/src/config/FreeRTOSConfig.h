@@ -234,10 +234,10 @@ website for more information. ***********************************************/
 
 /* The priority for the task that unblocked by the MAC interrupt to process
 received packets. */
-#define configMAC_INPUT_TASK_PRIORITY		( configMAX_PRIORITIES - 1 )
+#define configMAC_INPUT_TASK_PRIORITY		( configMAX_PRIORITIES - 2 )
 
 /* The priority of the task that runs the lwIP stack. */
-#define configLWIP_TASK_PRIORITY			( configMAX_PRIORITIES - 2 )
+#define configLWIP_TASK_PRIORITY			( configMAX_PRIORITIES - 3 )
 
 /* The priority of the task that uses lwIP sockets to provide a simple command
 line interface. */

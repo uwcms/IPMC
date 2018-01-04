@@ -33,4 +33,12 @@ extern SPI_EEPROM *eeprom_data;
 void driver_init(bool use_pl);
 void ipmc_service_init();
 
+#define TASK_PRIORITY_WATCHDOG    7 // configMAX_PRIORITIES
+#define TASK_PRIORITY_PRIORITY    6
+#define TASK_PRIORITY_DRIVER      5
+#define TASK_PRIORITY_SERVICE     4
+#define TASK_PRIORITY_INTERACTIVE 3
+#define TASK_PRIORITY_BACKGROUND  2
+#define TASK_PRIORITY_IDLE        0
+
 #endif /* SRC_IPMC_H_ */
