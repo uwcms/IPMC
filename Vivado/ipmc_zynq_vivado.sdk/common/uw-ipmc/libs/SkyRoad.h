@@ -594,7 +594,7 @@ protected:
 
 	static LogTree *log_root; ///< Root logtree for SkyRoad
 	static LogTree *log_registration; ///< Logtree for messenger creation & registration
-	static LogTree *log_messengers; /// Logtree for messenger subtrees
+	static LogTree *log_messengers; ///< Logtree for messenger subtrees
 }; // class SkyRoad
 
 #endif /* SRC_COMMON_UW_IPMC_LIBS_SKYROAD_H_ */
