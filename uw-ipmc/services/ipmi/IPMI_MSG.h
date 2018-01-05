@@ -23,17 +23,17 @@ public:
 	uint8_t rsSA;               ///< (byte 0)       The responder slave address.
 	uint8_t netFn;              ///< (byte 1[7:2])  The network function of the command.
 	uint8_t rsLUN;              ///< (byte 1[1:0])  The responder LUN.
-	// hdr_sum;            ///< (byte 2)       The header checksum.
+	// hdr_sum;                 ///< (byte 2)       The header checksum.
 	uint8_t rqSA;               ///< (byte 3)       The requester slave address.
 	uint8_t rqSeq;              ///< (byte 4[7:2])  The request sequence number.
 	uint8_t rqLUN;              ///< (byte 4[1:0])  The requester LUN.
 	uint8_t cmd;                ///< (byte 5)       The IPMI command number.
 	uint8_t data[max_data_len]; ///< (byte 6-*)     The IPMI command parameter/response data.
 	uint8_t data_len;           ///<                The length of the parameter/response data.
-	// all_sum;            ///< (byte last)    The message checksum.
+	// all_sum;                 ///< (byte last)    The message checksum.
 
-	bool broadcast;        ///< Is this a broadcast message?  Nothing really has any reason to use this.
-	bool duplicate;        ///< true if duplicate, else false.  Only applies to incoming requests.
+	bool broadcast;             ///< Is this a broadcast message?  Nothing really has any reason to use this.
+	bool duplicate;             ///< true if duplicate, else false.  Only applies to incoming requests.
 
 	bool parse_message(uint8_t *msg, uint8_t len);
 	int unparse_message(uint8_t *msg, uint8_t maxlen) const;
