@@ -26,13 +26,12 @@ static void ipmb0_run_thread(void *ipmb_void) {
  */
 IPMB0::IPMB0(PS_IPMB *ipmbA, PS_IPMB *ipmbB, uint8_t ipmb_address, LogTree &logtree) :
 		ipmb_incoming(SkyRoad::request_messenger<const IPMI_MSG>("ipmb0.incoming_message")),
-		ipmb_outgoing(SkyRoad::request_messenger<const IPMI_MSG>("ipmb0.outgoing_message")),
-		ipmb_outgoing_failure(SkyRoad::request_messenger<const IPMI_MSG>("ipmb0.outgoing_message_failure")),
 		ipmb{ipmbA, ipmbB}, ipmb_address(ipmb_address),
 		stat_recvq_highwater("ipmb0.recvq_highwater"),
 		stat_sendq_highwater("ipmb0.sendq_highwater"),
+		stat_acceptq_highwater("ipmb0.acceptq_highwater"),
 		stat_messages_received("ipmb0.messages.received"),
-		stat_messages_sent("ipmb0.messages.sent"),
+		stat_messages_delivered("ipmb0.messages.delivered"),
 		stat_send_attempts("ipmb0.messages.send_attempts"),
 		stat_send_failures("ipmb0.messages.send_failures"),
 		stat_no_available_seq("ipmb0.messages.no_available_sequence_number"),
@@ -47,7 +46,10 @@ IPMB0::IPMB0(PS_IPMB *ipmbA, PS_IPMB *ipmbB, uint8_t ipmb_address, LogTree &logt
 	this->recvq = xQueueCreate(this->recvq_size, sizeof(IPMI_MSG));
 	configASSERT(this->recvq);
 
-	this->qset = xQueueCreateSet(this->recvq_size + this->temple_size);
+	this->acceptq = xQueueCreate(this->acceptq_size, sizeof(IPMB_MsgRec*));
+	configASSERT(this->recvq);
+
+	this->qset = xQueueCreateSet(this->recvq_size + this->acceptq_size);
 	configASSERT(this->qset);
 
 	configASSERT(pdPASS == xQueueAddToSet(this->recvq, this->qset));
@@ -87,6 +89,30 @@ uint8_t IPMB0::lookup_ipmb_address(const int gpios[8]) {
 	return address & 0xfe; // I'm just going to assume this is how it works, given how the IPMB works. TODO: Validate
 }
 
+/**
+ * Enqueue an outgoing IPMI_MSG.
+ *
+ * \note Once a request (not response) message has been accepted by the IPMB0
+ *       task for delivery, the sequence number will be updated.
+ *
+ * @param msg  A shared_ptr<IPMI_MSG> to enqueue.
+ * @param response_cb  A response callback to be called when a response is
+ *                     received, or on error.  It is never called for a
+ *                     "successful" response message delivery, as these are not
+ *                     ACK'd in IPMI.
+ */
+void IPMB0::send(std::shared_ptr<IPMI_MSG> msg, response_cb_t response_cb) {
+	/* This technique is more elastic than using a mutex protecting the
+	 * outgoing message queue and directly inserting records, as that mutex
+	 * would have to be held for the entire iteration of the list when
+	 * transmitting enqueued outgoing messages.  This way there is some buffer
+	 * before tasks block, rather than forcing them to block immediately for
+	 * possibly that full duration.
+	 */
+	IPMB_MsgRec *acceptmsg = new IPMB_MsgRec(msg, response_cb);
+	xQueueSend(this->acceptq, &acceptmsg, portMAX_DELAY);
+}
+
 void IPMB0::run_thread() {
 	SkyRoad::Temple temple;
 	xQueueAddToSet(temple.get_queue(), this->qset);
@@ -95,15 +121,16 @@ void IPMB0::run_thread() {
 	while (true) {
 		// Check for any incoming messages and process them.
 		QueueHandle_t q = xQueueSelectFromSet(this->qset, next_wait.get_timeout());
-		IPMI_MSG msg;
-		if (q == temple.get_queue()) {
-			std::shared_ptr<SkyRoad::Envelope> envelope = temple.receive(0);
-			configASSERT(envelope); // If it selected it better receive.
-			// We only receive one type here, so no Messenger identity check is needed.
-			msg = *(envelope->open<const IPMI_MSG>());
-			if (this->set_sequence(msg)) {
-				this->outgoing_messages.emplace_back(msg);
-				this->log_messages_out.log(std::string("Message enqueued for transmit: ") + msg.format(), LogTree::LOG_DIAGNOSTIC);
+		if (q == this->acceptq) {
+			IPMB_MsgRec *acceptmsg;
+			configASSERT(pdTRUE == xQueueReceive(this->acceptq, &acceptmsg, 0)); // If it selected it better receive.
+			UBaseType_t acceptq_watermark = uxQueueMessagesWaiting(this->acceptq) + 1;
+			this->stat_acceptq_highwater.high_water(acceptq_watermark);
+			if (acceptq_watermark >= this->acceptq_size/2)
+				this->log_messages_in.log(stdsprintf("The IPMB0 acceptq is %lu%% full with %lu unprocessed messages!", (acceptq_watermark*100)/this->acceptq_size, acceptq_watermark), LogTree::LOG_WARNING);
+			if (this->set_sequence(*acceptmsg->msg)) {
+				this->outgoing_messages.push_back(*acceptmsg);
+				this->log_messages_out.log(std::string("Message enqueued for transmit: ") + acceptmsg->msg->format(), LogTree::LOG_DIAGNOSTIC);
 			}
 			else {
 				/* We've been flooding this target on this bus with this command
@@ -111,36 +138,37 @@ void IPMB0::run_thread() {
 				 * delivery without even making an attempt.
 				 */
 				this->stat_no_available_seq.increment();
-				this->ipmb_outgoing_failure->send(envelope->open<const IPMI_MSG>()); // We'll just reuse this shared_ptr<const IPMI_MSG>
-				this->log_messages_out.log(std::string("Outgoing message discarded, no available sequence number: ") + msg.format(), LogTree::LOG_ERROR);
+				if (acceptmsg->response_cb)
+					acceptmsg->response_cb(acceptmsg->msg, NULL);
+				this->log_messages_out.log(std::string("Outgoing message discarded, no available sequence number: ") + acceptmsg->msg->format(), LogTree::LOG_ERROR);
 			}
+			delete acceptmsg;
 		}
 		else if (q == this->recvq) {
-			configASSERT(pdTRUE == xQueueReceive(this->recvq, &msg, 0)); // If it selected it better receive.
+			IPMI_MSG inmsg;
+			configASSERT(pdTRUE == xQueueReceive(this->recvq, &inmsg, 0)); // If it selected it better receive.
 			UBaseType_t recvq_watermark = uxQueueMessagesWaiting(this->recvq) + 1;
 			this->stat_recvq_highwater.high_water(recvq_watermark);
 			if (recvq_watermark >= this->recvq_size/2)
 				this->log_messages_in.log(stdsprintf("The IPMB0 recvq is %lu%% full with %lu unprocessed messages!", (recvq_watermark*100)/this->recvq_size, recvq_watermark), LogTree::LOG_WARNING);
 			this->stat_messages_received.increment();
-			if (msg.netFn & 1) {
+			if (inmsg.netFn & 1) {
 				// Pair responses to stop retransmissions.
 				bool paired = false;
-				for (auto it = this->outgoing_messages.begin(); it != this->outgoing_messages.end(); ) {
-					if (it->msg.match_reply(msg)) {
-						this->stat_messages_sent.increment();
+				for (auto it = this->outgoing_messages.begin(); it != this->outgoing_messages.end(); ++it) {
+					if (it->msg->match_reply(inmsg)) {
 						paired = true;
-						it = this->outgoing_messages.erase(it); // Success!
-					}
-					else {
-						++it;
+						this->stat_messages_delivered.increment();
+						this->log_messages_in.log(std::string("Response received: ") + inmsg.format(), LogTree::LOG_INFO);
+						if (it->response_cb)
+							it->response_cb(it->msg, std::make_shared<IPMI_MSG>(inmsg));
+						this->outgoing_messages.erase(it); // Success!
+						break; // Done.
 					}
 				}
 				if (!paired) {
 					this->stat_unexpected_replies.increment();
-					this->log_messages_in.log(std::string("Unexpected response received (erroneous retry?): ") + msg.format(), LogTree::LOG_NOTICE);
-				}
-				else {
-					this->log_messages_in.log(std::string("Response received: ") + msg.format(), LogTree::LOG_INFO);
+					this->log_messages_in.log(std::string("Unexpected response received (erroneous retry?): ") + inmsg.format(), LogTree::LOG_NOTICE);
 				}
 			}
 			else {
@@ -150,13 +178,13 @@ void IPMB0::run_thread() {
 				 * and they need some kind of response anyway, the message will
 				 * still be distributed.
 				 */
-				msg.duplicate = this->check_duplicate(msg);
-				if (msg.duplicate)
-					this->log_messages_in.log(std::string("Request received:  ") + msg.format() + "  (duplicate)", LogTree::LOG_NOTICE);
+				inmsg.duplicate = this->check_duplicate(inmsg);
+				if (inmsg.duplicate)
+					this->log_messages_in.log(std::string("Request received:  ") + inmsg.format() + "  (duplicate)", LogTree::LOG_NOTICE);
 				else
-					this->log_messages_in.log(std::string("Request received:  ") + msg.format(), LogTree::LOG_INFO);
+					this->log_messages_in.log(std::string("Request received:  ") + inmsg.format(), LogTree::LOG_INFO);
 			}
-			this->ipmb_incoming->send(std::make_shared<const IPMI_MSG>(msg)); // Dispatch a shared_ptr copy.
+			this->ipmb_incoming->send(std::make_shared<const IPMI_MSG>(inmsg)); // Dispatch a shared_ptr copy.
 		}
 
 		// Figure out whether we have any timeouts to wait on next.
@@ -167,29 +195,30 @@ void IPMB0::run_thread() {
 				if (it->retry_count >= this->max_retries) {
 					// Delivery failed.  Our last retry timed out.
 					this->stat_send_failures.increment();
-					this->ipmb_outgoing_failure->send(std::make_shared<const IPMI_MSG>(it->msg));
-					this->log_messages_out.log(std::string("Retransmit abandoned: ") + it->msg.format(), LogTree::LOG_WARNING);
+					this->log_messages_out.log(std::string("Retransmit abandoned: ") + it->msg->format(), LogTree::LOG_WARNING);
+					if (it->response_cb)
+						it->response_cb(it->msg, NULL);
 					it = this->outgoing_messages.erase(it);
 					continue;
 				}
 
 				this->stat_send_attempts.increment();
-				bool success = this->ipmb[it->retry_count % 2]->send_message(it->msg);
-				if (success && (it->msg.netFn & 1) /* response message */) {
+				bool success = this->ipmb[it->retry_count % 2]->send_message(*it->msg);
+				if (success && (it->msg->netFn & 1) /* response message */) {
 					// Sent!  We don't retry responses, so we're done!
-					this->stat_messages_sent.increment(); // We won't get a response to pair with this, so increment it now.
+					this->stat_messages_delivered.increment(); // We won't get a response to pair with this, so increment it now.
 					if (it->retry_count == 0)
-						this->log_messages_out.log(std::string("Response sent:     ") + it->msg.format(), LogTree::LOG_INFO);
+						this->log_messages_out.log(std::string("Response sent:     ") + it->msg->format(), LogTree::LOG_INFO);
 					else
-						this->log_messages_out.log(stdsprintf("Response resent:   %s  (retry %hhu)", it->msg.format().c_str(), it->retry_count), LogTree::LOG_NOTICE);
+						this->log_messages_out.log(stdsprintf("Response resent:   %s  (retry %hhu)", it->msg->format().c_str(), it->retry_count), LogTree::LOG_NOTICE);
 					it = this->outgoing_messages.erase(it);
 					continue;
 				}
 				else {
 					if (it->retry_count == 0)
-						this->log_messages_out.log(std::string("Request sent:      ") + it->msg.format(), LogTree::LOG_INFO);
+						this->log_messages_out.log(std::string("Request sent:      ") + it->msg->format(), LogTree::LOG_INFO);
 					else
-						this->log_messages_out.log(stdsprintf("Request resent:    %s  (retry %hhu)", it->msg.format().c_str(), it->retry_count), LogTree::LOG_NOTICE);
+						this->log_messages_out.log(stdsprintf("Request resent:    %s  (retry %hhu)", it->msg->format().c_str(), it->retry_count), LogTree::LOG_NOTICE);
 				}
 
 				/* Now, success or not, we can't discard this yet.
