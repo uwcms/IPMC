@@ -37,6 +37,7 @@ PersistentStorage::PersistentStorage(SPI_EEPROM &eeprom, LogTree &logtree)
 	this->flushwait[0] = new WaitList();
 	this->flushwait[1] = new WaitList();
 	this->index_mutex = xSemaphoreCreateMutex();
+	this->prio_mutex = xSemaphoreCreateMutex();
 	// We are a driver task until the initial load is complete, then will change to a background task.
 	configASSERT(xTaskCreate(run_persistentstorage_thread, "PersistentFlush", configMINIMAL_STACK_SIZE+256, this, TASK_PRIORITY_DRIVER, &this->flushtask));
 }
@@ -44,6 +45,7 @@ PersistentStorage::PersistentStorage(SPI_EEPROM &eeprom, LogTree &logtree)
 PersistentStorage::~PersistentStorage() {
 	configASSERT(0); // Unsupported, no way to safely shutdown run_flush_thread at the moment.
 	NVREG32(this->cache, this->eeprom.size) = 0; // Clear the canary for good measure.
+	vSemaphoreDelete(this->prio_mutex);
 	vSemaphoreDelete(this->index_mutex);
 	delete this->flushwait[1];
 	delete this->flushwait[0];
@@ -217,30 +219,35 @@ void PersistentStorage::delete_section(u16 section_id) {
  * this call will wait until the flush has been completed, and the flush thread
  * will inherit the priority of the calling task.
  *
+ * \note Priority inheritance will persist for one flush cycle even if you time
+ *       out before it completes, however the EEPROM writes themselves will
+ *       still be asynchronous and interrupt based due to the driver.
+ *
  * @param timeout How long to wait for a synchronous flush.
  * @return false if wait timed out, else true
  */
 bool PersistentStorage::flush(TickType_t timeout) {
 	WaitList *wl = this->flushwait[0];
 	WaitList::Subscription_t sub = NULL;
-	if (timeout)
-		sub = wl->join();
 	this->logtree.log("Requesting explicit flush of persistent storage.", LogTree::LOG_DIAGNOSTIC);
-	xTaskNotifyGive(this->flushtask);
+	uint32_t prio = 1 << TASK_PRIORITY_BACKGROUND;
+	uint32_t my_priority = uxTaskPriorityGet(NULL);
 	if (timeout) {
-		/* Inherit priority.  If the existing priority were already higher than
-		 * us, we wouldn't be running to decrease it.
-		 *
-		 * There is a race condition here, where we might have swapped out
-		 * between notifying the thread and increasing its priority, but the
-		 * cost of raising its priority after it has already done our flush pass
-		 * is not high, as it will auto-disinherit after the next background
-		 * pass, and there's no better way without a vTaskPrioritySetFromISR()
-		 * function that can be used in a critical section.
+		sub = wl->join();
+		prio = 1 << my_priority;
+		xSemaphoreTake(this->prio_mutex, portMAX_DELAY);
+	}
+	/* We will notify the flush task, and supply it with "you should run one
+	 * cycle with at least X priority".
+	 */
+	xTaskNotify(this->flushtask, prio, eSetBits);
+	if (timeout) {
+		/* We will now ensure that the flush task inherits at least up to our
+		 * priority, so that it can receive the notification.
 		 */
-		unsigned long my_priority = uxTaskPriorityGet(NULL);
-		if (my_priority > TASK_PRIORITY_BACKGROUND)
+		if (my_priority > uxTaskPriorityGet(this->flushtask))
 			vTaskPrioritySet(this->flushtask, my_priority);
+		xSemaphoreGive(this->prio_mutex);
 		return wl->wait(sub, timeout);
 	}
 	return true;
@@ -268,8 +275,31 @@ void PersistentStorage::run_flush_thread() {
 
 	this->storage_loaded.set();
 	while (true) {
-		vTaskPrioritySet(NULL, TASK_PRIORITY_BACKGROUND); // Fall to  our natural priority, as a disinheritance or after load completion.
-		ulTaskNotifyTake(pdTRUE, configTICK_RATE_HZ/10); // Every 0.1 second, check either way.
+		xSemaphoreTake(this->prio_mutex, portMAX_DELAY);
+		/* We must now check if our priority should remain elevated by a new
+		 * notification, or whether there are none pending and we should
+		 * disinherit.
+		 */
+		uint32_t notify_value = 0;
+		xTaskNotifyWait(0, 0xffffffff,  &notify_value, 0);
+		if (notify_value) {
+			/* We have something pending.
+			 *
+			 * Inherit the highest priority level of our pending notifications.
+			 */
+			vTaskPrioritySet(NULL, 31 - __builtin_clz(notify_value));
+			xSemaphoreGive(this->prio_mutex);
+		}
+		else {
+			// Nothing was pending.  Disinherit and wait for a notification.
+			vTaskPrioritySet(NULL, TASK_PRIORITY_BACKGROUND);
+			xSemaphoreGive(this->prio_mutex);
+			// Wait for notification, or periodic 10hz background flush.
+			notify_value = 0;
+			xTaskNotifyWait(0, 0xffffffff, &notify_value, configTICK_RATE_HZ/10);
+			if (notify_value)
+				vTaskPrioritySet(NULL, 31 - __builtin_clz(notify_value)); // There's a priority to inherit.
+		}
 
 		// We have received notification but done no work yet, swap waitlists.
 		WaitList *current_wl = this->flushwait[0];

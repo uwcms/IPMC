@@ -43,6 +43,7 @@ protected:
 	Event storage_loaded; ///< A threading event indicating the storage is loaded.
 	WaitList *flushwait[2]; ///< A pair of waitlists used to allow for synchronous flush.
 	SemaphoreHandle_t index_mutex; ///< A mutex protecting the section index.
+	SemaphoreHandle_t prio_mutex; ///< A mutex protecting the flush task's priority escalation.
 
 public:
 	void run_flush_thread(); ///< \protected Internal.
