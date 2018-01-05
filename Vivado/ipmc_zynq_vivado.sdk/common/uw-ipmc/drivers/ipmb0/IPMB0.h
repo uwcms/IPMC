@@ -34,37 +34,53 @@ public:
 	static uint8_t lookup_ipmb_address(const int gpios[8]);
 
 	SkyRoad::Messenger<const IPMI_MSG> * const ipmb_incoming; ///< A messenger topic to broadcast received messages on.
-	SkyRoad::Messenger<const IPMI_MSG> * const ipmb_outgoing; ///< A messenger topic to listen for messages to transmit on.
-	SkyRoad::Messenger<const IPMI_MSG> * const ipmb_outgoing_failure; ///< A messenger topic to broadcast failed message transmissions on.
+
+	/**
+	 * The supplied function will be called when a response to this outgoing
+	 * message is received, or when delivery is aborted.
+	 *
+	 * \note This will not be called for outgoing response messages except in
+	 *       the case of inability to transmit.
+	 *
+	 * \param original The original IPMI_MSG transmitted.
+	 * \param response The response IPMI_MSG received, or NULL if delivery aborted.
+	 */
+	typedef std::function<void(std::shared_ptr<IPMI_MSG> original, std::shared_ptr<IPMI_MSG> response)> response_cb_t;
+
+	void send(std::shared_ptr<IPMI_MSG> msg, response_cb_t response_cb = NULL);
 
 protected:
-	PS_IPMB *ipmb[2]; ///< The subordinate IPMBs.
-	u8 ipmb_address;  ///< The IPMB address of this node.
-	const size_t recvq_size = 8; ///< The length of the receive queue.
-	QueueHandle_t recvq; ///< A queue for received messages from both interfaces.
-	StatCounter stat_recvq_highwater; ///< A statistics counter for the high-water fill mark for the receive queue.
-	StatCounter stat_sendq_highwater; ///< A statistics counter for the high-water fill mark for the transmit queue.
-	StatCounter stat_messages_received; ///< How many messages have been received by this IPMB
-	StatCounter stat_messages_sent;     ///< How many messages have been delivered successfully by this IPMB
-	StatCounter stat_send_attempts;     ///< How many delivery attempts have been made by this IPMB
-	StatCounter stat_send_failures;     ///< How many delivery failures have occurred on this IPMB
-	StatCounter stat_no_available_seq;  ///< How many times we have run out of sequence numbers for a specific command on this IPMB
-	StatCounter stat_unexpected_replies; ///< How many unexpected replies have been received on this IPMB
-	LogTree &log_ipmb0;                  ///< The root logtree for this object.
-	LogTree &log_messages_in;            ///< Messages received on IPMB0.
-	LogTree &log_messages_out;           ///< Messages transmitted on IPMB0.
-
 	/**
 	 * A record representing a message in the outgoing message queue.
 	 */
 	class IPMB_MsgRec {
 	public:
-		IPMI_MSG msg;               ///< The message.
-		uint8_t retry_count;        ///< The current retry count.
-		AbsoluteTimeout next_retry; ///< The timeout for the next retry.
+		std::shared_ptr<IPMI_MSG> msg; ///< The message.
+		response_cb_t response_cb;     ///< The response callback, used to report error or success.
+		uint8_t retry_count;           ///< The current retry count.
+		AbsoluteTimeout next_retry;    ///< The timeout for the next retry.
 		/// Construct
-		IPMB_MsgRec(IPMI_MSG &msg) : msg(msg), retry_count(0), next_retry(0ul) { };
+		IPMB_MsgRec(std::shared_ptr<IPMI_MSG> &msg, response_cb_t response_cb = NULL) : msg(msg), response_cb(response_cb), retry_count(0), next_retry(0ul) { };
 	};
+
+	PS_IPMB *ipmb[2]; ///< The subordinate IPMBs.
+	u8 ipmb_address;  ///< The IPMB address of this node.
+	const size_t recvq_size = 8; ///< The length of the receive queue.
+	QueueHandle_t recvq; ///< A queue for received messages from both interfaces.
+	const size_t acceptq_size = 8; ///< The length of the receive queue.
+	QueueHandle_t acceptq; ///< A queue for outgoing messages delivered to send(), on their way to the real sendq.
+	StatCounter stat_recvq_highwater;    ///< A statistics counter for the high-water fill mark for the receive queue.
+	StatCounter stat_sendq_highwater;    ///< A statistics counter for the high-water fill mark for the transmit queue.
+	StatCounter stat_acceptq_highwater;  ///< A statistics counter for the high-water fill mark for the accept queue.
+	StatCounter stat_messages_received;  ///< How many messages have been received by this IPMB
+	StatCounter stat_messages_delivered; ///< How many messages have been delivered successfully by this IPMB
+	StatCounter stat_send_attempts;      ///< How many delivery attempts have been made by this IPMB
+	StatCounter stat_send_failures;      ///< How many delivery failures have occurred on this IPMB
+	StatCounter stat_no_available_seq;   ///< How many times we have run out of sequence numbers for a specific command on this IPMB
+	StatCounter stat_unexpected_replies; ///< How many unexpected replies have been received on this IPMB
+	LogTree &log_ipmb0;                  ///< The root logtree for this object.
+	LogTree &log_messages_in;            ///< Messages received on IPMB0.
+	LogTree &log_messages_out;           ///< Messages transmitted on IPMB0.
 
 	/**
 	 * The number of attempts made to send a given IPMI message.
@@ -74,7 +90,6 @@ protected:
 	std::list<IPMB_MsgRec> outgoing_messages; ///< The queue of outgoing IPMI messages.
 	TaskHandle_t task; ///< A reference to the IPMB0 task owned by this object.
 	QueueSetHandle_t qset; ///< A queueset for use in the thread task.
-	const size_t temple_size = 8; ///< How long the incoming message queue should be for the SkyRoad::Temple
 
 	/**
 	 * A record of used sequence numbers for commands.
