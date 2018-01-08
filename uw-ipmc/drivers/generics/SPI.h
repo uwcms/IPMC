@@ -8,6 +8,7 @@
 #ifndef SRC_COMMON_UW_IPMC_DRIVERS_GENERICS_SPI_H_
 #define SRC_COMMON_UW_IPMC_DRIVERS_GENERICS_SPI_H_
 
+#include "FreeRTOS.h"
 #include <xil_types.h>
 
 /**
@@ -27,7 +28,7 @@ public:
 	 * \param bytes    The number of bytes to transfer
 	 * \return false on error, else true
 	 */
-	virtual bool transfer(u8 chip, u8 *sendbuf, u8 *recvbuf, size_t bytes);
+	virtual bool transfer(u8 chip, u8 *sendbuf, u8 *recvbuf, size_t bytes) { configASSERT(0); return false; };
 };
 
 #endif /* SRC_COMMON_UW_IPMC_DRIVERS_GENERICS_SPI_H_ */

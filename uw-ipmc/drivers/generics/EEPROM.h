@@ -8,6 +8,7 @@
 #ifndef SRC_COMMON_UW_IPMC_DRIVERS_GENERICS_EEPROM_H_
 #define SRC_COMMON_UW_IPMC_DRIVERS_GENERICS_EEPROM_H_
 
+#include "FreeRTOS.h"
 #include <xil_types.h>
 
 /**
@@ -35,7 +36,7 @@ public:
 	 * @param bytes   The number of bytes to read
 	 * @return        The number of bytes read
 	 */
-	virtual size_t read(u16 address, u8 *buf, size_t bytes);
+	virtual size_t read(u16 address, u8 *buf, size_t bytes) { configASSERT(0); return 0; };
 
 	/**
 	 * Write to the EEPROM.
@@ -45,7 +46,7 @@ public:
 	 * @param bytes   The number of bytes to write
 	 * @return        The number of bytes written
 	 */
-	virtual size_t write(u16 address, u8 *buf, size_t bytes);
+	virtual size_t write(u16 address, u8 *buf, size_t bytes) { configASSERT(0); return 0; };
 };
 
 #endif /* SRC_COMMON_UW_IPMC_DRIVERS_GENERICS_EEPROM_H_ */

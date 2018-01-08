@@ -33,7 +33,7 @@ public:
 	 * \param msg  The IPMI_MSG to deliver.
 	 * \return     true if message was delivered else false
 	 */
-	virtual bool send_message(IPMI_MSG &msg) = 0;
+	virtual bool send_message(IPMI_MSG &msg) { configASSERT(0); return false; };
 };
 
 #endif /* SRC_COMMON_UW_IPMC_DRIVERS_GENERICS_IPMB_H_ */
