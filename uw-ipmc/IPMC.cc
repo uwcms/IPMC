@@ -9,7 +9,7 @@
 #include <IPMC.h>
 #include <drivers/ps_uart/PSUART.h>
 #include <drivers/ps_ipmb/PSIPMB.h>
-#include <drivers/ipmb0/IPMB0.h>
+#include <services/ipmi/ipmbsvc/IPMBSvc.h>
 #include <drivers/ps_spi/PSSPI.h>
 #include <drivers/spi_eeprom/SPIEEPROM.h>
 #include <drivers/tracebuffer/TraceBuffer.h>
@@ -23,7 +23,7 @@
 #include "xgpiops.h"
 
 PS_UART *uart_ps0;
-IPMB0 *ipmb0;
+IPMBSvc *ipmb0;
 XGpioPs gpiops;
 LogTree LOG("ipmc");
 LogTree::Filter *console_log_filter;
@@ -72,13 +72,13 @@ void driver_init(bool use_pl) {
 	configASSERT(XST_SUCCESS == XGpioPs_CfgInitialize(&gpiops, gpiops_config, gpiops_config->BaseAddr));
 
 	const int hwaddr_gpios[] = {39,40,41,45,47,48,49,50};
-	uint8_t hwaddr = IPMB0::lookup_ipmb_address(hwaddr_gpios);
+	uint8_t hwaddr = IPMBSvc::lookup_ipmb_address(hwaddr_gpios);
 	LogTree &log_ipmb0 = LOG["ipmi"]["ipmb"]["ipmb0"];
 	log_ipmb0.log(stdsprintf("Our IPMB0 hardware address is %02Xh", hwaddr), LogTree::LOG_NOTICE);
 	PS_IPMB *ps_ipmb[2];
 	ps_ipmb[0] = new PS_IPMB(XPAR_PS7_I2C_0_DEVICE_ID, XPAR_PS7_I2C_0_INTR, hwaddr);
 	ps_ipmb[1] = new PS_IPMB(XPAR_PS7_I2C_1_DEVICE_ID, XPAR_PS7_I2C_1_INTR, hwaddr);
-	ipmb0 = new IPMB0(ps_ipmb[0], ps_ipmb[1], hwaddr, log_ipmb0);
+	ipmb0 = new IPMBSvc(ps_ipmb[0], ps_ipmb[1], hwaddr, log_ipmb0, "ipmb0");
 }
 
 /** IPMC service initialization.

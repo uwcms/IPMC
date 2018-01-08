@@ -32,7 +32,6 @@ static void PS_IPMB_InterruptPassthrough(PS_IPMB *ps_ipmb, u32 StatusEvent) {
  * \param SlaveAddr            The IPMB slave address to listen on.
  */
 PS_IPMB::PS_IPMB(u16 DeviceId, u32 IntrId, u8 SlaveAddr) :
-		incoming_message_queue(NULL),
 		messages_received(stdsprintf("ipmb0.ps_ipmb.%hu.messages_received", DeviceId)),
 		invalid_messages_received(stdsprintf("ipmb0.ps_ipmb.%hu.invalid_messages_received", DeviceId)),
 		incoming_messages_missed(stdsprintf("ipmb0.ps_ipmb.%hu.incoming_messages_missed", DeviceId)),
