@@ -11,6 +11,7 @@
 #include <FreeRTOS.h>
 #include <semphr.h>
 #include <task.h>
+#include <event_groups.h>
 #include <IPMC.h>
 #include <drivers/spi_eeprom/SPIEEPROM.h>
 #include <libs/SkyRoad.h>
@@ -40,7 +41,7 @@ protected:
 	u8 *cache; ///< The cache of true EEPROM contents for comparison in flush.
 	u8 *data; ///< The data for real use.
 	LogTree &logtree; ///< Log target
-	Event storage_loaded; ///< A threading event indicating the storage is loaded.
+	EventGroupHandle_t storage_loaded; ///< An event indicating storage loaded.
 	WaitList *flushwait[2]; ///< A pair of waitlists used to allow for synchronous flush.
 	SemaphoreHandle_t index_mutex; ///< A mutex protecting the section index.
 	SemaphoreHandle_t prio_mutex; ///< A mutex protecting the flush task's priority escalation.
