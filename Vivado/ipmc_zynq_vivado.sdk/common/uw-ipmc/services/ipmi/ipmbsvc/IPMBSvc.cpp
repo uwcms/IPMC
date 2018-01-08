@@ -1,47 +1,48 @@
 /*
- * IPMB0.cpp
+ * IPMBSvc.cpp
  *
  *  Created on: Dec 8, 2017
  *      Author: jtikalsky
  */
 
+#include <services/ipmi/ipmbsvc/IPMBSvc.h>
 #include <IPMC.h>
-#include <drivers/ipmb0/IPMB0.h>
 #include "xgpiops.h"
 #include <FreeRTOS.h>
 #include "queue.h"
 #include "task.h"
 
 static void ipmb0_run_thread(void *ipmb_void) {
-	reinterpret_cast<IPMB0*>(ipmb_void)->run_thread();
+	reinterpret_cast<IPMBSvc*>(ipmb_void)->run_thread();
 }
 
 /**
- * Instantiate the PS_IPMB.
+ * Instantiate the IPMB service.
  *
  * \param ipmbA         The underlying IPMB_A
- * \param ipmbB         The underlying IPMB_B
+ * \param ipmbB         The underlying IPMB_B (or NULL)
  * \param ipmb_address  The IPMB address of this node.
- * \param logtree       The logtree for messages from IPMB0.
+ * \param logtree       The logtree for messages from the IPMBSvc.
+ * \param name          Used for StatCounter, Messenger and thread name.
  */
-IPMB0::IPMB0(PS_IPMB *ipmbA, PS_IPMB *ipmbB, uint8_t ipmb_address, LogTree &logtree) :
-		ipmb_incoming(SkyRoad::request_messenger<const IPMI_MSG>("ipmb0.incoming_message")),
+IPMBSvc::IPMBSvc(IPMB *ipmbA, IPMB *ipmbB, uint8_t ipmb_address, LogTree &logtree, const std::string name) :
+		name(name),
+		ipmb_incoming(SkyRoad::request_messenger<const IPMI_MSG>(name+".incoming_message")),
 		ipmb{ipmbA, ipmbB}, ipmb_address(ipmb_address),
-		stat_recvq_highwater("ipmb0.recvq_highwater"),
-		stat_sendq_highwater("ipmb0.sendq_highwater"),
-		stat_acceptq_highwater("ipmb0.acceptq_highwater"),
-		stat_messages_received("ipmb0.messages.received"),
-		stat_messages_delivered("ipmb0.messages.delivered"),
-		stat_send_attempts("ipmb0.messages.send_attempts"),
-		stat_send_failures("ipmb0.messages.send_failures"),
-		stat_no_available_seq("ipmb0.messages.no_available_sequence_number"),
-		stat_unexpected_replies("ipmb0.messages.unexpected_replies"),
+		stat_recvq_highwater(name+".recvq_highwater"),
+		stat_sendq_highwater(name+".sendq_highwater"),
+		stat_acceptq_highwater(name+".acceptq_highwater"),
+		stat_messages_received(name+".messages.received"),
+		stat_messages_delivered(name+".messages.delivered"),
+		stat_send_attempts(name+".messages.send_attempts"),
+		stat_send_failures(name+".messages.send_failures"),
+		stat_no_available_seq(name+".messages.no_available_sequence_number"),
+		stat_unexpected_replies(name+".messages.unexpected_replies"),
 		log_ipmb0(logtree),
 		log_messages_in(logtree["incoming_messages"]),
 		log_messages_out(logtree["outgoing_messages"]) {
 
-	configASSERT(ipmbA);
-	configASSERT(ipmbB);
+	configASSERT(ipmbA); // One physical IPMB is required, but not two.
 
 	this->recvq = xQueueCreate(this->recvq_size, sizeof(IPMI_MSG));
 	configASSERT(this->recvq);
@@ -55,15 +56,17 @@ IPMB0::IPMB0(PS_IPMB *ipmbA, PS_IPMB *ipmbB, uint8_t ipmb_address, LogTree &logt
 	configASSERT(pdPASS == xQueueAddToSet(this->recvq, this->qset));
 
 	ipmbA->incoming_message_queue = this->recvq;
-	ipmbB->incoming_message_queue = this->recvq;
+	if (ipmbB)
+		ipmbB->incoming_message_queue = this->recvq;
 
-	configASSERT(xTaskCreate(ipmb0_run_thread, "IPMB0", configMINIMAL_STACK_SIZE+512, this, TASK_PRIORITY_DRIVER, &this->task));
+	configASSERT(xTaskCreate(ipmb0_run_thread, name.c_str(), configMINIMAL_STACK_SIZE+512, this, TASK_PRIORITY_DRIVER, &this->task));
 }
 
-IPMB0::~IPMB0() {
+IPMBSvc::~IPMBSvc() {
 	configASSERT(!this->task); // Clean up the task first.  We can't just TaskDelete as it might be holding a lock at the particular instant.
 	this->ipmb[0]->incoming_message_queue = NULL;
-	this->ipmb[1]->incoming_message_queue = NULL;
+	if (this->ipmb[1])
+		this->ipmb[1]->incoming_message_queue = NULL;
 	configASSERT(0); // Destruction is not supported, as QueueSets don't have a good delete functionality.
 	vQueueDelete(this->recvq);
 }
@@ -75,7 +78,7 @@ IPMB0::~IPMB0() {
  * @param gpios  The MIO pins for the HW address lines.
  * @return       The IPMB address of this node.
  */
-uint8_t IPMB0::lookup_ipmb_address(const int gpios[8]) {
+uint8_t IPMBSvc::lookup_ipmb_address(const int gpios[8]) {
 	uint8_t address = 0;
 	uint8_t parity = 0;
 	for (int i = 0; i < 8; ++i) {
@@ -92,7 +95,7 @@ uint8_t IPMB0::lookup_ipmb_address(const int gpios[8]) {
 /**
  * Enqueue an outgoing IPMI_MSG.
  *
- * \note Once a request (not response) message has been accepted by the IPMB0
+ * \note Once a request (not response) message has been accepted by the IPMBSvc
  *       task for delivery, the sequence number will be updated.
  *
  * @param msg  A shared_ptr<IPMI_MSG> to enqueue.
@@ -101,7 +104,7 @@ uint8_t IPMB0::lookup_ipmb_address(const int gpios[8]) {
  *                     "successful" response message delivery, as these are not
  *                     ACK'd in IPMI.
  */
-void IPMB0::send(std::shared_ptr<IPMI_MSG> msg, response_cb_t response_cb) {
+void IPMBSvc::send(std::shared_ptr<IPMI_MSG> msg, response_cb_t response_cb) {
 	/* This technique is more elastic than using a mutex protecting the
 	 * outgoing message queue and directly inserting records, as that mutex
 	 * would have to be held for the entire iteration of the list when
@@ -113,7 +116,7 @@ void IPMB0::send(std::shared_ptr<IPMI_MSG> msg, response_cb_t response_cb) {
 	xQueueSend(this->acceptq, &acceptmsg, portMAX_DELAY);
 }
 
-void IPMB0::run_thread() {
+void IPMBSvc::run_thread() {
 	SkyRoad::Temple temple;
 	xQueueAddToSet(temple.get_queue(), this->qset);
 
@@ -127,7 +130,7 @@ void IPMB0::run_thread() {
 			UBaseType_t acceptq_watermark = uxQueueMessagesWaiting(this->acceptq) + 1;
 			this->stat_acceptq_highwater.high_water(acceptq_watermark);
 			if (acceptq_watermark >= this->acceptq_size/2)
-				this->log_messages_in.log(stdsprintf("The IPMB0 acceptq is %lu%% full with %lu unprocessed messages!", (acceptq_watermark*100)/this->acceptq_size, acceptq_watermark), LogTree::LOG_WARNING);
+				this->log_messages_in.log(stdsprintf("The IPMBSvc acceptq is %lu%% full with %lu unprocessed messages!", (acceptq_watermark*100)/this->acceptq_size, acceptq_watermark), LogTree::LOG_WARNING);
 			if (this->set_sequence(*acceptmsg->msg)) {
 				this->outgoing_messages.push_back(*acceptmsg);
 				this->log_messages_out.log(std::string("Message enqueued for transmit: ") + acceptmsg->msg->format(), LogTree::LOG_DIAGNOSTIC);
@@ -150,7 +153,7 @@ void IPMB0::run_thread() {
 			UBaseType_t recvq_watermark = uxQueueMessagesWaiting(this->recvq) + 1;
 			this->stat_recvq_highwater.high_water(recvq_watermark);
 			if (recvq_watermark >= this->recvq_size/2)
-				this->log_messages_in.log(stdsprintf("The IPMB0 recvq is %lu%% full with %lu unprocessed messages!", (recvq_watermark*100)/this->recvq_size, recvq_watermark), LogTree::LOG_WARNING);
+				this->log_messages_in.log(stdsprintf("The IPMBSvc recvq is %lu%% full with %lu unprocessed messages!", (recvq_watermark*100)/this->recvq_size, recvq_watermark), LogTree::LOG_WARNING);
 			this->stat_messages_received.increment();
 			if (inmsg.netFn & 1) {
 				// Pair responses to stop retransmissions.
@@ -203,7 +206,10 @@ void IPMB0::run_thread() {
 				}
 
 				this->stat_send_attempts.increment();
-				bool success = this->ipmb[it->retry_count % 2]->send_message(*it->msg);
+				uint8_t ipmb_choice = it->retry_count % 2;
+				if (!this->ipmb[1])
+					ipmb_choice = 0;
+				bool success = this->ipmb[ipmb_choice]->send_message(*it->msg);
 				if (success && (it->msg->netFn & 1) /* response message */) {
 					// Sent!  We don't retry responses, so we're done!
 					this->stat_messages_delivered.increment(); // We won't get a response to pair with this, so increment it now.
@@ -249,7 +255,7 @@ void IPMB0::run_thread() {
  * \param msg The IPMI_MSG to update the sequence number of.
  * \return true if success, else false if no valid sequence number was available.
  */
-bool IPMB0::set_sequence(IPMI_MSG &msg) {
+bool IPMBSvc::set_sequence(IPMI_MSG &msg) {
 	if (msg.netFn & 1)
 		return true; // We don't alter the sequence numbers of outgoing replies, that's not our responsibility.
 
@@ -284,7 +290,7 @@ bool IPMB0::set_sequence(IPMI_MSG &msg) {
  * \param msg The IPMI_MSG to check the sequence number of
  * \return true if duplicate, else false
  */
-bool IPMB0::check_duplicate(const IPMI_MSG &msg) {
+bool IPMBSvc::check_duplicate(const IPMI_MSG &msg) {
 	uint64_t now64 = get_tick64();
 
 	// First, expire old records, for cleanliness.

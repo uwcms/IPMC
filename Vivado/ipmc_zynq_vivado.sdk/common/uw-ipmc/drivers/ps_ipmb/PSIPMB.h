@@ -18,21 +18,16 @@
 #include <libs/ThreadingPrimitives.h>
 #include <libs/StatCounter.h>
 #include <services/ipmi/IPMI_MSG.h>
+#include <services/ipmi/ipmbsvc/IPMBSvc.h>
 
 /**
  * An interrupt-based driver for the PS I2C, specialized for IPMB functionality.
  */
-class PS_IPMB {
+class PS_IPMB : public IPMB {
 public:
 	PS_IPMB(u16 DeviceId, u32 IntrId, u8 SlaveAddr);
 	virtual ~PS_IPMB();
 	void _HandleInterrupt(u32 StatusEvent); ///< \protected Internal.
-
-	/**
-	 * This queue of typename IPMI_MSG receives deliveries of incoming IPMB
-	 * messages from this interface, if not NULL.
-	 */
-	QueueHandle_t incoming_message_queue;
 
 	/**
 	 * This function will send a message out on the IPMB in a blocking manner.
@@ -40,7 +35,7 @@ public:
 	 * \param msg  The IPMI_MSG to deliver.
 	 * \return     true if message was delivered else false
 	 */
-	bool send_message(IPMI_MSG &msg);
+	virtual bool send_message(IPMI_MSG &msg);
 
 	StatCounter messages_received;         ///< The number of messages received on this IPMB.
 	StatCounter invalid_messages_received; ///< The number of received messages on this IPMB that are discarded as invalid.

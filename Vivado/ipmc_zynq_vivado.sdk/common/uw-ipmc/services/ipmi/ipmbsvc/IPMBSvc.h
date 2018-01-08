@@ -1,12 +1,12 @@
 /*
- * IPMB0.h
+ * IPMBSvc.h
  *
  *  Created on: Dec 8, 2017
  *      Author: jtikalsky
  */
 
-#ifndef SRC_COMMON_UW_IPMC_DRIVERS_IPMB0_IPMB0_H_
-#define SRC_COMMON_UW_IPMC_DRIVERS_IPMB0_IPMB0_H_
+#ifndef SRC_COMMON_UW_IPMC_SERVICES_IPMI_IPMBSVC_IPMBSVC_H_
+#define SRC_COMMON_UW_IPMC_SERVICES_IPMI_IPMBSVC_IPMBSVC_H_
 
 #include <functional>
 #include <list>
@@ -21,15 +21,39 @@
 #include <libs/LogTree.h>
 #include <libs/SkyRoad.h>
 #include <services/ipmi/IPMI_MSG.h>
-#include <drivers/ps_ipmb/PSIPMB.h>
 
 /**
- * An IPMB0 driver.
+ * A generic abstract interface for an IPMB driver.
  */
-class IPMB0 {
+class IPMB {
 public:
-	IPMB0(PS_IPMB *ipmbA, PS_IPMB *ipmbB, uint8_t ipmb_address, LogTree &logtree);
-	virtual ~IPMB0();
+	IPMB() : incoming_message_queue(NULL) { };
+	virtual ~IPMB() { };
+
+	/**
+	 * This queue of typename IPMI_MSG receives deliveries of incoming IPMB
+	 * messages from this interface, if not NULL.
+	 */
+	QueueHandle_t incoming_message_queue;
+
+	/**
+	 * This function will send a message out on the IPMB in a blocking manner.
+	 *
+	 * \param msg  The IPMI_MSG to deliver.
+	 * \return     true if message was delivered else false
+	 */
+	virtual bool send_message(IPMI_MSG &msg) = 0;
+};
+
+/**
+ * An IPMBSvc driver.
+ */
+class IPMBSvc {
+public:
+	const std::string name; ///< The name used for this IPMB in StatCounter, Messenger or Task names, as well as log messages.
+
+	IPMBSvc(IPMB *ipmbA, IPMB *ipmbB, uint8_t ipmb_address, LogTree &logtree, const std::string name);
+	virtual ~IPMBSvc();
 
 	static uint8_t lookup_ipmb_address(const int gpios[8]);
 
@@ -63,7 +87,7 @@ protected:
 		IPMB_MsgRec(std::shared_ptr<IPMI_MSG> &msg, response_cb_t response_cb = NULL) : msg(msg), response_cb(response_cb), retry_count(0), next_retry(0ul) { };
 	};
 
-	PS_IPMB *ipmb[2]; ///< The subordinate IPMBs.
+	IPMB *ipmb[2]; ///< The subordinate IPMBs.
 	u8 ipmb_address;  ///< The IPMB address of this node.
 	const size_t recvq_size = 8; ///< The length of the receive queue.
 	QueueHandle_t recvq; ///< A queue for received messages from both interfaces.
@@ -79,8 +103,8 @@ protected:
 	StatCounter stat_no_available_seq;   ///< How many times we have run out of sequence numbers for a specific command on this IPMB
 	StatCounter stat_unexpected_replies; ///< How many unexpected replies have been received on this IPMB
 	LogTree &log_ipmb0;                  ///< The root logtree for this object.
-	LogTree &log_messages_in;            ///< Messages received on IPMB0.
-	LogTree &log_messages_out;           ///< Messages transmitted on IPMB0.
+	LogTree &log_messages_in;            ///< Messages received on our IPMB.
+	LogTree &log_messages_out;           ///< Messages transmitted on our IPMB.
 
 	/**
 	 * The number of attempts made to send a given IPMI message.
@@ -88,7 +112,7 @@ protected:
 	 */
 	const uint8_t max_retries = 10;
 	std::list<IPMB_MsgRec> outgoing_messages; ///< The queue of outgoing IPMI messages.
-	TaskHandle_t task; ///< A reference to the IPMB0 task owned by this object.
+	TaskHandle_t task; ///< A reference to the IPMBSvc task owned by this object.
 	QueueSetHandle_t qset; ///< A queueset for use in the thread task.
 
 	/**
@@ -120,7 +144,7 @@ protected:
 	std::map<uint32_t, uint64_t> incoming_sequence_numbers;
 	bool check_duplicate(const IPMI_MSG &msg);
 public:
-	void run_thread(); ///< \protected Run the IPMB0 thread code.
+	void run_thread(); ///< \protected Run the IPMBSvc thread code.
 };
 
-#endif /* SRC_COMMON_UW_IPMC_DRIVERS_IPMB0_IPMB0_H_ */
+#endif /* SRC_COMMON_UW_IPMC_DRIVERS_IPMBSVC_IPMBSVC_H_ */
