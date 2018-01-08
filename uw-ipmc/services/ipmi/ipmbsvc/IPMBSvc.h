@@ -20,30 +20,8 @@
 #include <libs/StatCounter.h>
 #include <libs/LogTree.h>
 #include <libs/SkyRoad.h>
+#include <drivers/generics/IPMB.h>
 #include <services/ipmi/IPMI_MSG.h>
-
-/**
- * A generic abstract interface for an IPMB driver.
- */
-class IPMB {
-public:
-	IPMB() : incoming_message_queue(NULL) { };
-	virtual ~IPMB() { };
-
-	/**
-	 * This queue of typename IPMI_MSG receives deliveries of incoming IPMB
-	 * messages from this interface, if not NULL.
-	 */
-	QueueHandle_t incoming_message_queue;
-
-	/**
-	 * This function will send a message out on the IPMB in a blocking manner.
-	 *
-	 * \param msg  The IPMI_MSG to deliver.
-	 * \return     true if message was delivered else false
-	 */
-	virtual bool send_message(IPMI_MSG &msg) = 0;
-};
 
 /**
  * An IPMBSvc driver.

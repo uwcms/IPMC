@@ -13,7 +13,7 @@
 #include <task.h>
 #include <event_groups.h>
 #include <IPMC.h>
-#include <drivers/spi_eeprom/SPIEEPROM.h>
+#include <drivers/generics/EEPROM.h>
 #include <libs/SkyRoad.h>
 #include <libs/ThreadingPrimitives.h>
 
@@ -26,7 +26,7 @@
  */
 class PersistentStorage {
 public:
-	PersistentStorage(SPI_EEPROM &eeprom, LogTree &logtree);
+	PersistentStorage(EEPROM &eeprom, LogTree &logtree);
 	virtual ~PersistentStorage();
 	bool flush(TickType_t timeout = 0);
 
@@ -36,7 +36,7 @@ public:
 	void delete_section(u16 section_id);
 
 protected:
-	SPI_EEPROM &eeprom; ///< The eeprom backing this storage
+	EEPROM &eeprom; ///< The eeprom backing this storage
 	TaskHandle_t flushtask; ///< The background flush task
 	u8 *cache; ///< The cache of true EEPROM contents for comparison in flush.
 	u8 *data; ///< The data for real use.

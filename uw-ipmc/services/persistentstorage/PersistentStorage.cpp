@@ -27,7 +27,7 @@ static void run_persistentstorage_thread(void *cb_ps) {
  * @param eeprom  The EEPROM providing the backing for this module.
  * @param logtree Where to send log messages from this module
  */
-PersistentStorage::PersistentStorage(SPI_EEPROM &eeprom, LogTree &logtree)
+PersistentStorage::PersistentStorage(EEPROM &eeprom, LogTree &logtree)
 	: eeprom(eeprom), logtree(logtree) {
 	configASSERT((eeprom.size / eeprom.page_size) <= UINT16_MAX); // Ensure that the EEPROM will not overflow our u16 fields.
 	this->cache = (u8*)pvPortMalloc(this->eeprom.size*2 + 4);
