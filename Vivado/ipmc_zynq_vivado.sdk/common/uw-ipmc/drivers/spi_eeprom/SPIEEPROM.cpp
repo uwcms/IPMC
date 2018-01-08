@@ -16,7 +16,7 @@
  * @param size         The size of the EEPROM
  * @param page_size    The page size of the EEPROM
  */
-SPI_EEPROM::SPI_EEPROM(PS_SPI spibus, u8 chip_select, u32 size, u8 page_size)
+SPI_EEPROM::SPI_EEPROM(PS_SPI &spibus, u8 chip_select, u32 size, u8 page_size)
 	: size(size), page_size(page_size), spibus(spibus), cs(chip_select) {
 	this->mutex = xSemaphoreCreateMutex();
 }

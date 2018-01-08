@@ -20,7 +20,7 @@
  */
 class SPI_EEPROM {
 public:
-	SPI_EEPROM(PS_SPI spibus, u8 chip_select, u32 size, u8 page_size);
+	SPI_EEPROM(PS_SPI &spibus, u8 chip_select, u32 size, u8 page_size);
 	virtual ~SPI_EEPROM();
 
 	const u32 size;     ///< The total EEPROM size
