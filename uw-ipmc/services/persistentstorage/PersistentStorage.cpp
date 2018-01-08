@@ -9,6 +9,7 @@
 #include <FreeRTOS.h>
 #include <semphr.h>
 #include <task.h>
+#include <event_groups.h>
 #include <IPMC.h>
 #include <drivers/spi_eeprom/SPIEEPROM.h>
 #include <libs/SkyRoad.h>
@@ -33,7 +34,7 @@ PersistentStorage::PersistentStorage(SPI_EEPROM &eeprom, LogTree &logtree)
 	NVREG32(this->cache, this->eeprom.size) = 0x1234dead; // Set Canary
 	this->data = this->cache + this->eeprom.size + 4;
 	this->logtree.log("Persistent storage task starting.", LogTree::LOG_INFO);
-	this->storage_loaded.clear();
+	this->storage_loaded = xEventGroupCreate();
 	this->flushwait[0] = new WaitList();
 	this->flushwait[1] = new WaitList();
 	this->index_mutex = xSemaphoreCreateMutex();
@@ -49,6 +50,7 @@ PersistentStorage::~PersistentStorage() {
 	vSemaphoreDelete(this->index_mutex);
 	delete this->flushwait[1];
 	delete this->flushwait[0];
+	vEventGroupDelete(this->storage_loaded);
 	vPortFree(this->data);
 }
 
@@ -76,7 +78,7 @@ struct PersistentStorageIndexRecord {
  * @return The section version, or zero if absent.
  */
 u16 PersistentStorage::get_section_version(u16 section_id) {
-	this->storage_loaded.wait(portMAX_DELAY);
+	xEventGroupWaitBits(this->storage_loaded, 1, 0, pdTRUE, portMAX_DELAY);
 	xSemaphoreTake(this->index_mutex, portMAX_DELAY);
 	struct PersistentStorageIndexRecord *index = reinterpret_cast<struct PersistentStorageIndexRecord *>(this->data + sizeof(struct PersistentStorageHeader));
 	for (int i = 0; index[i].id != PersistentStorageAllocations::RESERVED_END_OF_INDEX; ++i) {
@@ -96,7 +98,7 @@ u16 PersistentStorage::get_section_version(u16 section_id) {
  * @param section_version The new version number of that section.
  */
 void PersistentStorage::set_section_version(u16 section_id, u16 section_version) {
-	this->storage_loaded.wait(portMAX_DELAY);
+	xEventGroupWaitBits(this->storage_loaded, 1, 0, pdTRUE, portMAX_DELAY);
 	xSemaphoreTake(this->index_mutex, portMAX_DELAY);
 	struct PersistentStorageIndexRecord *index = reinterpret_cast<struct PersistentStorageIndexRecord *>(this->data + sizeof(struct PersistentStorageHeader));
 	for (int i = 0; index[i].id != PersistentStorageAllocations::RESERVED_END_OF_INDEX; ++i)
@@ -118,7 +120,7 @@ void PersistentStorage::set_section_version(u16 section_id, u16 section_version)
  */
 void *PersistentStorage::get_section(u16 section_id, u16 section_version, u16 section_size) {
 	configASSERT(section_id != PersistentStorageAllocations::RESERVED_END_OF_INDEX);
-	this->storage_loaded.wait(portMAX_DELAY);
+	xEventGroupWaitBits(this->storage_loaded, 1, 0, pdTRUE, portMAX_DELAY);
 	xSemaphoreTake(this->index_mutex, portMAX_DELAY);
 	struct PersistentStorageIndexRecord *index = reinterpret_cast<struct PersistentStorageIndexRecord *>(this->data + sizeof(struct PersistentStorageHeader));
 
@@ -199,7 +201,7 @@ void *PersistentStorage::get_section(u16 section_id, u16 section_version, u16 se
  * @param section_id The ID of the section to delete.
  */
 void PersistentStorage::delete_section(u16 section_id) {
-	this->storage_loaded.wait(portMAX_DELAY);
+	xEventGroupWaitBits(this->storage_loaded, 1, 0, pdTRUE, portMAX_DELAY);
 	struct PersistentStorageIndexRecord *index = reinterpret_cast<struct PersistentStorageIndexRecord *>(this->data + sizeof(struct PersistentStorageHeader));
 	xSemaphoreTake(this->index_mutex, portMAX_DELAY);
 	for (int i = 0; index[i].id != PersistentStorageAllocations::RESERVED_END_OF_INDEX; ++i) {
@@ -228,7 +230,7 @@ void PersistentStorage::delete_section(u16 section_id) {
  */
 bool PersistentStorage::flush(TickType_t timeout) {
 	WaitList *wl = this->flushwait[0];
-	WaitList::Subscription_t sub = NULL;
+	WaitList::Subscription sub;
 	this->logtree.log("Requesting explicit flush of persistent storage.", LogTree::LOG_DIAGNOSTIC);
 	uint32_t prio = 1 << TASK_PRIORITY_BACKGROUND;
 	uint32_t my_priority = uxTaskPriorityGet(NULL);
@@ -248,7 +250,7 @@ bool PersistentStorage::flush(TickType_t timeout) {
 		if (my_priority > uxTaskPriorityGet(this->flushtask))
 			vTaskPrioritySet(this->flushtask, my_priority);
 		xSemaphoreGive(this->prio_mutex);
-		return wl->wait(sub, timeout);
+		return sub.wait(timeout);
 	}
 	return true;
 }
@@ -273,7 +275,7 @@ void PersistentStorage::run_flush_thread() {
 		secrec1->id = PersistentStorageAllocations::RESERVED_END_OF_INDEX; // Initialize the EOL marker.
 	}
 
-	this->storage_loaded.set();
+	xEventGroupSetBits(this->storage_loaded, 1);
 	while (true) {
 		xSemaphoreTake(this->prio_mutex, portMAX_DELAY);
 		/* We must now check if our priority should remain elevated by a new

@@ -108,7 +108,7 @@ size_t PS_UART::read(u8 *buf, size_t len, TickType_t timeout) {
 		 * have problems with a race condition between the read attempt and
 		 * starting the wait.  We can cancel it later with a wait(timeout=0).
 		 */
-		WaitList::Subscription_t sub = NULL;
+		WaitList::Subscription sub;
 		if (!IN_INTERRUPT())
 			sub = this->readwait.join();
 
@@ -131,11 +131,9 @@ size_t PS_UART::read(u8 *buf, size_t len, TickType_t timeout) {
 
 		if (IN_INTERRUPT())
 			break; // Interrupts can't wait for more.
-		if (bytesread == len) {
-			this->readwait.wait(sub, 0); // Cancel wait.
+		if (bytesread == len)
 			break;
-		}
-		if (!this->readwait.wait(sub, abstimeout.get_timeout()))
+		if (!sub.wait(abstimeout.get_timeout()))
 			break; // Timed out.
 	}
 	return bytesread;
@@ -161,7 +159,7 @@ size_t PS_UART::write(const u8 *buf, size_t len, TickType_t timeout) {
 		 * and starting the wait.  We can cancel it later with a
 		 * wait(timeout=0).
 		 */
-		WaitList::Subscription_t sub = NULL;
+		WaitList::Subscription sub;
 		if (!IN_INTERRUPT())
 			sub = this->writewait.join();
 
@@ -192,11 +190,9 @@ size_t PS_UART::write(const u8 *buf, size_t len, TickType_t timeout) {
 
 		if (IN_INTERRUPT())
 			break; // Interrupts can't wait for more.
-		if (byteswritten == len) {
-			this->writewait.wait(sub, 0); // Cancel wait.
+		if (byteswritten == len)
 			break;
-		}
-		if (!this->writewait.wait(sub, abstimeout.get_timeout()))
+		if (!sub.wait(abstimeout.get_timeout()))
 			break; // Timed out.
 	}
 	return byteswritten;
