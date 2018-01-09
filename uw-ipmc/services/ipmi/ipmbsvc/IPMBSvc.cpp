@@ -19,15 +19,16 @@ static void ipmb0_run_thread(void *ipmb_void) {
 /**
  * Instantiate the IPMB service.
  *
- * \param ipmbA         The underlying IPMB_A
- * \param ipmbB         The underlying IPMB_B (or NULL)
- * \param ipmb_address  The IPMB address of this node.
- * \param logtree       The logtree for messages from the IPMBSvc.
- * \param name          Used for StatCounter, Messenger and thread name.
+ * \param ipmbA          The underlying IPMB_A
+ * \param ipmbB          The underlying IPMB_B (or NULL)
+ * \param ipmb_address   The IPMB address of this node.
+ * \param command_parser The command parser for incoming commands.
+ * \param logtree        The logtree for messages from the IPMBSvc.
+ * \param name           Used for StatCounter, Messenger and thread name.
  */
-IPMBSvc::IPMBSvc(IPMB *ipmbA, IPMB *ipmbB, uint8_t ipmb_address, LogTree &logtree, const std::string name) :
+IPMBSvc::IPMBSvc(IPMB *ipmbA, IPMB *ipmbB, uint8_t ipmb_address, IPMICommandParser *command_parser, LogTree &logtree, const std::string name) :
 		name(name),
-		ipmb_incoming(SkyRoad::request_messenger<const IPMI_MSG>(name+".incoming_message")),
+		command_parser(command_parser),
 		ipmb{ipmbA, ipmbB}, ipmb_address(ipmb_address),
 		stat_recvq_highwater(name+".recvq_highwater"),
 		stat_sendq_highwater(name+".sendq_highwater"),
@@ -195,7 +196,7 @@ void IPMBSvc::run_thread() {
 				else
 					this->log_messages_in.log(std::string("Request received on ") + this->name + ":  " + inmsg.format(), LogTree::LOG_INFO);
 			}
-			this->ipmb_incoming->send(std::make_shared<const IPMI_MSG>(inmsg)); // Dispatch a shared_ptr copy.
+			this->command_parser->dispatch(*this, inmsg);
 
 			/* We will attempt to drain our receive queue in preference to
 			 * flushing our send queue, as the latter is unbounded and a few

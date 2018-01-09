@@ -21,6 +21,11 @@ class PS_UART;
 extern PS_UART *uart_ps0;
 extern XGpioPs gpiops;
 
+class IPMBSvc;
+class IPMICommandParser;
+extern IPMBSvc *ipmb0;
+extern IPMICommandParser ipmi_command_parser;
+
 extern LogTree LOG;
 extern LogTree::Filter *console_log_filter;
 class TraceBuffer;
