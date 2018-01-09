@@ -122,7 +122,7 @@ void IPMBSvc::send(std::shared_ptr<IPMI_MSG> msg, response_cb_t response_cb) {
 		this->stat_sendq_highwater.high_water(this->outgoing_messages.size());
 		xSemaphoreGive(this->sendq_mutex);
 		xSemaphoreGive(this->sendq_notify_sem);
-		this->log_messages_out.log(std::string("Message enqueued for transmit: ") + msg->format(), LogTree::LOG_DIAGNOSTIC);
+		this->log_messages_out.log(std::string("Message enqueued for transmit on ") + this->name + ": " + msg->format(), LogTree::LOG_DIAGNOSTIC);
 	}
 	else {
 		/* We've been flooding this target on this bus with this command
@@ -132,7 +132,7 @@ void IPMBSvc::send(std::shared_ptr<IPMI_MSG> msg, response_cb_t response_cb) {
 		this->stat_no_available_seq.increment();
 		if (response_cb)
 			response_cb(msg, NULL);
-		this->log_messages_out.log(std::string("Outgoing message discarded, no available sequence number: ") + msg->format(), LogTree::LOG_ERROR);
+		this->log_messages_out.log(std::string("Outgoing message on ") + this->name + " discarded, no available sequence number: " + msg->format(), LogTree::LOG_ERROR);
 	}
 }
 
@@ -154,7 +154,7 @@ void IPMBSvc::run_thread() {
 			UBaseType_t recvq_watermark = uxQueueMessagesWaiting(this->recvq) + 1;
 			this->stat_recvq_highwater.high_water(recvq_watermark);
 			if (recvq_watermark >= this->recvq_size/2)
-				this->log_messages_in.log(stdsprintf("The IPMBSvc recvq is %lu%% full with %lu unprocessed messages!", (recvq_watermark*100)/this->recvq_size, recvq_watermark), LogTree::LOG_WARNING);
+				this->log_messages_in.log(stdsprintf("The recvq on %s is %lu%% full with %lu unprocessed messages!", this->name.c_str(), (recvq_watermark*100)/this->recvq_size, recvq_watermark), LogTree::LOG_WARNING);
 			this->stat_messages_received.increment();
 			if (inmsg.netFn & 1) {
 				// Pair responses to stop retransmissions.
@@ -164,7 +164,7 @@ void IPMBSvc::run_thread() {
 					if (it->msg->match_reply(inmsg)) {
 						paired = true;
 						this->stat_messages_delivered.increment();
-						this->log_messages_in.log(std::string("Response received: ") + inmsg.format(), LogTree::LOG_INFO);
+						this->log_messages_in.log(std::string("Response received on ") + this->name + ": " + inmsg.format(), LogTree::LOG_INFO);
 						if (it->response_cb) {
 							response_cb_t response_cb = it->response_cb;
 							std::shared_ptr<IPMI_MSG> msg = it->msg;
@@ -179,7 +179,7 @@ void IPMBSvc::run_thread() {
 				xSemaphoreGive(this->sendq_mutex);
 				if (!paired) {
 					this->stat_unexpected_replies.increment();
-					this->log_messages_in.log(std::string("Unexpected response received (erroneous retry?): ") + inmsg.format(), LogTree::LOG_NOTICE);
+					this->log_messages_in.log(std::string("Unexpected response received on ") + this->name + " (erroneous retry?): " + inmsg.format(), LogTree::LOG_NOTICE);
 				}
 			}
 			else {
@@ -191,9 +191,9 @@ void IPMBSvc::run_thread() {
 				 */
 				inmsg.duplicate = this->check_duplicate(inmsg);
 				if (inmsg.duplicate)
-					this->log_messages_in.log(std::string("Request received:  ") + inmsg.format() + "  (duplicate)", LogTree::LOG_NOTICE);
+					this->log_messages_in.log(std::string("Request received on ") + this->name + ":  " + inmsg.format() + "  (duplicate)", LogTree::LOG_NOTICE);
 				else
-					this->log_messages_in.log(std::string("Request received:  ") + inmsg.format(), LogTree::LOG_INFO);
+					this->log_messages_in.log(std::string("Request received on ") + this->name + ":  " + inmsg.format(), LogTree::LOG_INFO);
 			}
 			this->ipmb_incoming->send(std::make_shared<const IPMI_MSG>(inmsg)); // Dispatch a shared_ptr copy.
 
@@ -217,7 +217,7 @@ void IPMBSvc::run_thread() {
 				if (it->retry_count >= this->max_retries) {
 					// Delivery failed.  Our last retry timed out.
 					this->stat_send_failures.increment();
-					this->log_messages_out.log(std::string("Retransmit abandoned: ") + it->msg->format(), LogTree::LOG_WARNING);
+					this->log_messages_out.log(std::string("Retransmit abandoned on ") + this->name + ": " + it->msg->format(), LogTree::LOG_WARNING);
 					if (it->response_cb) {
 						response_cb_t response_cb = it->response_cb;
 						std::shared_ptr<IPMI_MSG> msg = it->msg;
@@ -244,17 +244,17 @@ void IPMBSvc::run_thread() {
 					// Sent!  We don't retry responses, so we're done!
 					this->stat_messages_delivered.increment(); // We won't get a response to pair with this, so increment it now.
 					if (it->retry_count == 0)
-						this->log_messages_out.log(std::string("Response sent:     ") + it->msg->format(), LogTree::LOG_INFO);
+						this->log_messages_out.log(std::string("Response sent on ") + this->name + ":     " + it->msg->format(), LogTree::LOG_INFO);
 					else
-						this->log_messages_out.log(stdsprintf("Response resent:   %s  (retry %hhu)", it->msg->format().c_str(), it->retry_count), LogTree::LOG_NOTICE);
+						this->log_messages_out.log(stdsprintf("Response resent on %s:   %s  (retry %hhu)", this->name.c_str(), it->msg->format().c_str(), it->retry_count), LogTree::LOG_NOTICE);
 					it = this->outgoing_messages.erase(it);
 					continue;
 				}
 				else {
 					if (it->retry_count == 0)
-						this->log_messages_out.log(std::string("Request sent:      ") + it->msg->format(), LogTree::LOG_INFO);
+						this->log_messages_out.log(std::string("Request sent on ") + this->name + ":      " + it->msg->format(), LogTree::LOG_INFO);
 					else
-						this->log_messages_out.log(stdsprintf("Request resent:    %s  (retry %hhu)", it->msg->format().c_str(), it->retry_count), LogTree::LOG_NOTICE);
+						this->log_messages_out.log(stdsprintf("Request resent on %s:    %s  (retry %hhu)", this->name.c_str(), it->msg->format().c_str(), it->retry_count), LogTree::LOG_NOTICE);
 				}
 
 				/* Now, success or not, we can't discard this yet.
