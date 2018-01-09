@@ -22,20 +22,20 @@
 #include <libs/SkyRoad.h>
 #include <drivers/generics/IPMB.h>
 #include <services/ipmi/IPMI_MSG.h>
+#include <services/ipmi/ipmbsvc/IPMICommandParser.h>
 
 /**
  * An IPMBSvc driver.
  */
 class IPMBSvc {
 public:
-	const std::string name; ///< The name used for this IPMB in StatCounter, Messenger or Task names, as well as log messages.
+	const std::string name; ///< The name used for this IPMB in StatCounter or Task names, as well as log messages.
+	IPMICommandParser *command_parser; ///< The command parser used for incoming messages.
 
-	IPMBSvc(IPMB *ipmbA, IPMB *ipmbB, uint8_t ipmb_address, LogTree &logtree, const std::string name);
+	IPMBSvc(IPMB *ipmbA, IPMB *ipmbB, uint8_t ipmb_address, IPMICommandParser *command_parser, LogTree &logtree, const std::string name);
 	virtual ~IPMBSvc();
 
 	static uint8_t lookup_ipmb_address(const int gpios[8]);
-
-	SkyRoad::Messenger<const IPMI_MSG> * const ipmb_incoming; ///< A messenger topic to broadcast received messages on.
 
 	/**
 	 * The supplied function will be called when a response to this outgoing
@@ -69,7 +69,7 @@ protected:
 	u8 ipmb_address;  ///< The IPMB address of this node.
 	const size_t recvq_size = 16; ///< The length of the receive queue.
 	QueueHandle_t recvq; ///< A queue for received messages from both interfaces.
-	SemaphoreHandle_t sendq_mutex; ///< A mutex protecting the senq.
+	SemaphoreHandle_t sendq_mutex; ///< A mutex protecting the sendq.
 	SemaphoreHandle_t sendq_notify_sem; ///< A binary semaphore used to signal the task after a .send()
 	StatCounter stat_recvq_highwater;    ///< A statistics counter for the high-water fill mark for the receive queue.
 	StatCounter stat_sendq_highwater;    ///< A statistics counter for the high-water fill mark for the transmit queue.
