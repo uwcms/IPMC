@@ -67,13 +67,12 @@ protected:
 
 	IPMB *ipmb[2]; ///< The subordinate IPMBs.
 	u8 ipmb_address;  ///< The IPMB address of this node.
-	const size_t recvq_size = 8; ///< The length of the receive queue.
+	const size_t recvq_size = 16; ///< The length of the receive queue.
 	QueueHandle_t recvq; ///< A queue for received messages from both interfaces.
-	const size_t acceptq_size = 8; ///< The length of the receive queue.
-	QueueHandle_t acceptq; ///< A queue for outgoing messages delivered to send(), on their way to the real sendq.
+	SemaphoreHandle_t sendq_mutex; ///< A mutex protecting the senq.
+	SemaphoreHandle_t sendq_notify_sem; ///< A binary semaphore used to signal the task after a .send()
 	StatCounter stat_recvq_highwater;    ///< A statistics counter for the high-water fill mark for the receive queue.
 	StatCounter stat_sendq_highwater;    ///< A statistics counter for the high-water fill mark for the transmit queue.
-	StatCounter stat_acceptq_highwater;  ///< A statistics counter for the high-water fill mark for the accept queue.
 	StatCounter stat_messages_received;  ///< How many messages have been received by this IPMB
 	StatCounter stat_messages_delivered; ///< How many messages have been delivered successfully by this IPMB
 	StatCounter stat_send_attempts;      ///< How many delivery attempts have been made by this IPMB

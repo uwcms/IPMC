@@ -31,7 +31,6 @@ IPMBSvc::IPMBSvc(IPMB *ipmbA, IPMB *ipmbB, uint8_t ipmb_address, LogTree &logtre
 		ipmb{ipmbA, ipmbB}, ipmb_address(ipmb_address),
 		stat_recvq_highwater(name+".recvq_highwater"),
 		stat_sendq_highwater(name+".sendq_highwater"),
-		stat_acceptq_highwater(name+".acceptq_highwater"),
 		stat_messages_received(name+".messages.received"),
 		stat_messages_delivered(name+".messages.delivered"),
 		stat_send_attempts(name+".messages.send_attempts"),
@@ -47,12 +46,16 @@ IPMBSvc::IPMBSvc(IPMB *ipmbA, IPMB *ipmbB, uint8_t ipmb_address, LogTree &logtre
 	this->recvq = xQueueCreate(this->recvq_size, sizeof(IPMI_MSG));
 	configASSERT(this->recvq);
 
-	this->acceptq = xQueueCreate(this->acceptq_size, sizeof(IPMB_MsgRec*));
-	configASSERT(this->recvq);
+	this->sendq_notify_sem = xSemaphoreCreateBinary();
+	configASSERT(this->sendq_notify_sem);
 
-	this->qset = xQueueCreateSet(this->recvq_size + this->acceptq_size);
+	this->sendq_mutex = xSemaphoreCreateMutex();
+	configASSERT(this->sendq_mutex);
+
+	this->qset = xQueueCreateSet(this->recvq_size + 1);
 	configASSERT(this->qset);
 
+	configASSERT(pdPASS == xQueueAddToSet(this->sendq_notify_sem, this->qset));
 	configASSERT(pdPASS == xQueueAddToSet(this->recvq, this->qset));
 
 	ipmbA->incoming_message_queue = this->recvq;
@@ -68,6 +71,8 @@ IPMBSvc::~IPMBSvc() {
 	if (this->ipmb[1])
 		this->ipmb[1]->incoming_message_queue = NULL;
 	configASSERT(0); // Destruction is not supported, as QueueSets don't have a good delete functionality.
+	vSemaphoreDelete(this->sendq_mutex);
+	vSemaphoreDelete(this->sendq_notify_sem);
 	vQueueDelete(this->recvq);
 }
 
@@ -95,8 +100,7 @@ uint8_t IPMBSvc::lookup_ipmb_address(const int gpios[8]) {
 /**
  * Enqueue an outgoing IPMI_MSG.
  *
- * \note Once a request (not response) message has been accepted by the IPMBSvc
- *       task for delivery, the sequence number will be updated.
+ * \note This will update the sequence number on any request (not response) message.
  *
  * @param msg  A shared_ptr<IPMI_MSG> to enqueue.
  * @param response_cb  A response callback to be called when a response is
@@ -105,15 +109,31 @@ uint8_t IPMBSvc::lookup_ipmb_address(const int gpios[8]) {
  *                     ACK'd in IPMI.
  */
 void IPMBSvc::send(std::shared_ptr<IPMI_MSG> msg, response_cb_t response_cb) {
-	/* This technique is more elastic than using a mutex protecting the
-	 * outgoing message queue and directly inserting records, as that mutex
-	 * would have to be held for the entire iteration of the list when
-	 * transmitting enqueued outgoing messages.  This way there is some buffer
-	 * before tasks block, rather than forcing them to block immediately for
-	 * possibly that full duration.
-	 */
-	IPMB_MsgRec *acceptmsg = new IPMB_MsgRec(msg, response_cb);
-	xQueueSend(this->acceptq, &acceptmsg, portMAX_DELAY);
+	if (this->set_sequence(*msg)) {
+		/* std::list iterators are invalidated only by deleting the item they
+		 * point to, so inserts will never affect our iteration.  This allows us
+		 * to have this semaphore available and do insertions even during
+		 * iteration, such as from a response callback, or when we are
+		 * attempting to transmit a message physically onto the bus.  This
+		 * should keep wait times here to a minimum.
+		 */
+		xSemaphoreTake(this->sendq_mutex, portMAX_DELAY);
+		this->outgoing_messages.emplace_back(msg, response_cb);
+		this->stat_sendq_highwater.high_water(this->outgoing_messages.size());
+		xSemaphoreGive(this->sendq_mutex);
+		xSemaphoreGive(this->sendq_notify_sem);
+		this->log_messages_out.log(std::string("Message enqueued for transmit: ") + msg->format(), LogTree::LOG_DIAGNOSTIC);
+	}
+	else {
+		/* We've been flooding this target on this bus with this command
+		 * and are now out of unused sequence numbers.  We'll fail this
+		 * delivery without even making an attempt.
+		 */
+		this->stat_no_available_seq.increment();
+		if (response_cb)
+			response_cb(msg, NULL);
+		this->log_messages_out.log(std::string("Outgoing message discarded, no available sequence number: ") + msg->format(), LogTree::LOG_ERROR);
+	}
 }
 
 void IPMBSvc::run_thread() {
@@ -124,28 +144,9 @@ void IPMBSvc::run_thread() {
 	while (true) {
 		// Check for any incoming messages and process them.
 		QueueHandle_t q = xQueueSelectFromSet(this->qset, next_wait.get_timeout());
-		if (q == this->acceptq) {
-			IPMB_MsgRec *acceptmsg;
-			configASSERT(pdTRUE == xQueueReceive(this->acceptq, &acceptmsg, 0)); // If it selected it better receive.
-			UBaseType_t acceptq_watermark = uxQueueMessagesWaiting(this->acceptq) + 1;
-			this->stat_acceptq_highwater.high_water(acceptq_watermark);
-			if (acceptq_watermark >= this->acceptq_size/2)
-				this->log_messages_in.log(stdsprintf("The IPMBSvc acceptq is %lu%% full with %lu unprocessed messages!", (acceptq_watermark*100)/this->acceptq_size, acceptq_watermark), LogTree::LOG_WARNING);
-			if (this->set_sequence(*acceptmsg->msg)) {
-				this->outgoing_messages.push_back(*acceptmsg);
-				this->log_messages_out.log(std::string("Message enqueued for transmit: ") + acceptmsg->msg->format(), LogTree::LOG_DIAGNOSTIC);
-			}
-			else {
-				/* We've been flooding this target on this bus with this command
-				 * and are now out of unused sequence numbers.  We'll fail this
-				 * delivery without even making an attempt.
-				 */
-				this->stat_no_available_seq.increment();
-				if (acceptmsg->response_cb)
-					acceptmsg->response_cb(acceptmsg->msg, NULL);
-				this->log_messages_out.log(std::string("Outgoing message discarded, no available sequence number: ") + acceptmsg->msg->format(), LogTree::LOG_ERROR);
-			}
-			delete acceptmsg;
+		if (q == this->sendq_notify_sem) {
+			configASSERT(pdTRUE == xSemaphoreTake(this->sendq_notify_sem, 0));
+			// Notification received.  No specific action to take here.
 		}
 		else if (q == this->recvq) {
 			IPMI_MSG inmsg;
@@ -158,17 +159,24 @@ void IPMBSvc::run_thread() {
 			if (inmsg.netFn & 1) {
 				// Pair responses to stop retransmissions.
 				bool paired = false;
+				xSemaphoreTake(this->sendq_mutex, portMAX_DELAY);
 				for (auto it = this->outgoing_messages.begin(); it != this->outgoing_messages.end(); ++it) {
 					if (it->msg->match_reply(inmsg)) {
 						paired = true;
 						this->stat_messages_delivered.increment();
 						this->log_messages_in.log(std::string("Response received: ") + inmsg.format(), LogTree::LOG_INFO);
-						if (it->response_cb)
-							it->response_cb(it->msg, std::make_shared<IPMI_MSG>(inmsg));
+						if (it->response_cb) {
+							response_cb_t response_cb = it->response_cb;
+							std::shared_ptr<IPMI_MSG> msg = it->msg;
+							xSemaphoreGive(this->sendq_mutex);
+							response_cb(msg, std::make_shared<IPMI_MSG>(inmsg));
+							xSemaphoreTake(this->sendq_mutex, portMAX_DELAY);
+						}
 						this->outgoing_messages.erase(it); // Success!
 						break; // Done.
 					}
 				}
+				xSemaphoreGive(this->sendq_mutex);
 				if (!paired) {
 					this->stat_unexpected_replies.increment();
 					this->log_messages_in.log(std::string("Unexpected response received (erroneous retry?): ") + inmsg.format(), LogTree::LOG_NOTICE);
@@ -188,9 +196,20 @@ void IPMBSvc::run_thread() {
 					this->log_messages_in.log(std::string("Request received:  ") + inmsg.format(), LogTree::LOG_INFO);
 			}
 			this->ipmb_incoming->send(std::make_shared<const IPMI_MSG>(inmsg)); // Dispatch a shared_ptr copy.
+
+			/* We will attempt to drain our receive queue in preference to
+			 * flushing our send queue, as the latter is unbounded and a few
+			 * milliseconds of additional transmit or retransmit delay is not
+			 * likely to be significant.
+			 */
+			if (uxQueueMessagesWaiting(this->recvq) > 0) {
+				next_wait.timeout64 = 0; // Immediate.
+				continue;
+			}
 		}
 
 		// Figure out whether we have any timeouts to wait on next.
+		xSemaphoreTake(this->sendq_mutex, portMAX_DELAY);
 		this->stat_sendq_highwater.high_water(this->outgoing_messages.size());
 		next_wait.timeout64 = UINT64_MAX;
 		for (auto it = this->outgoing_messages.begin(); it != this->outgoing_messages.end(); ) {
@@ -199,8 +218,13 @@ void IPMBSvc::run_thread() {
 					// Delivery failed.  Our last retry timed out.
 					this->stat_send_failures.increment();
 					this->log_messages_out.log(std::string("Retransmit abandoned: ") + it->msg->format(), LogTree::LOG_WARNING);
-					if (it->response_cb)
-						it->response_cb(it->msg, NULL);
+					if (it->response_cb) {
+						response_cb_t response_cb = it->response_cb;
+						std::shared_ptr<IPMI_MSG> msg = it->msg;
+						xSemaphoreGive(this->sendq_mutex);
+						response_cb(msg, NULL);
+						xSemaphoreTake(this->sendq_mutex, portMAX_DELAY);
+					}
 					it = this->outgoing_messages.erase(it);
 					continue;
 				}
@@ -209,7 +233,13 @@ void IPMBSvc::run_thread() {
 				uint8_t ipmb_choice = it->retry_count % 2;
 				if (!this->ipmb[1])
 					ipmb_choice = 0;
-				bool success = this->ipmb[ipmb_choice]->send_message(*it->msg);
+
+				// We don't want to hold the mutex while waiting on the bus.
+				std::shared_ptr<IPMI_MSG> wireout_msg = it->msg;
+				xSemaphoreGive(this->sendq_mutex);
+				bool success = this->ipmb[ipmb_choice]->send_message(*wireout_msg);
+				xSemaphoreTake(this->sendq_mutex, portMAX_DELAY);
+
 				if (success && (it->msg->netFn & 1) /* response message */) {
 					// Sent!  We don't retry responses, so we're done!
 					this->stat_messages_delivered.increment(); // We won't get a response to pair with this, so increment it now.
@@ -246,6 +276,7 @@ void IPMBSvc::run_thread() {
 				next_wait = it->next_retry;
 			++it;
 		}
+		xSemaphoreGive(this->sendq_mutex);
 	}
 }
 
@@ -263,9 +294,12 @@ bool IPMBSvc::set_sequence(IPMI_MSG &msg) {
 	// First, expire old records, for cleanliness.
 	for (auto it = this->used_sequence_numbers.begin(); it != this->used_sequence_numbers.end(); ) {
 		/* The IPMB spec Table 4-1, specifies the sequence number expiration
-		 * interval as 5 seconds.  We'll wait 6 before reuse.
+		 * interval as 5 seconds.  We'll wait 6 before reuse, but it has to be
+		 * after the last retransmit or it doesn't really make sense.  Let's
+		 * estimate.
 		 */
-		if (now64 > 6*configTICK_RATE_HZ && it->second < (now64-(6 * configTICK_RATE_HZ)))
+		const uint64_t reuse_delay = 6*configTICK_RATE_HZ + 250*this->max_retries;
+		if (now64 > reuse_delay && it->second < (now64-reuse_delay))
 			it = this->used_sequence_numbers.erase(it);
 		else
 			++it;
