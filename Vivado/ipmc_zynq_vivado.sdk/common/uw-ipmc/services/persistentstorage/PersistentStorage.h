@@ -64,7 +64,7 @@ protected:
 	SemaphoreHandle_t index_mutex; ///< A mutex protecting the section index.
 	SemaphoreHandle_t flushq_mutex; ///< A mutex protecting the flush queue
 	std::priority_queue< FlushRequest, std::deque<FlushRequest> > flushq; ///< A queue of pending range flushes.
-	const TickType_t flush_ms = 10 * configTICK_RATE_HZ; ///< The delay between background flushes.
+	const TickType_t flush_ticks = 10 * configTICK_RATE_HZ; ///< The delay between background flushes.
 
 public:
 	void run_flush_thread(); ///< \protected Internal.
