@@ -36,39 +36,33 @@ SPI_EEPROM::~SPI_EEPROM() {
  */
 size_t SPI_EEPROM::read(u16 address, u8 *buf, size_t bytes) {
 	configASSERT(address + bytes <= this->size);
-	xSemaphoreTake(this->mutex, portMAX_DELAY);
 
-	/* Reads don't care about page boundaries, but page_size is a decent read
-	 * block size for avoiding stack overflow issues with large transfers.
-	 */
 	const u8 hdr_len = (this->size > 256 ? 3 : 2);
-	u8 txbuf[hdr_len+this->page_size];
-	size_t bytes_read = 0;
-	while (bytes_read < bytes) {
-		memset(txbuf, 0, 3+this->page_size); // Clear the buffer for shift out.
-		txbuf[0] = 3; // CMD_READ
-		if (hdr_len == 3) {
-			// Two byte address.
-			txbuf[1] = address >> 8;
-			txbuf[2] = address & 0xff;
-		}
-		else {
-			// One byte address.
-			configASSERT(address <= 0xff);
-			txbuf[1] = address & 0xff;
-		}
-		size_t to_read = bytes - bytes_read;
-		if (to_read > this->page_size)
-			to_read = this->page_size;
-		if (!this->spibus.transfer(this->cs, txbuf, txbuf, hdr_len+to_read))
-			break;
 
-		memcpy(buf+bytes_read, txbuf+hdr_len, to_read);
-		bytes_read += to_read;
-		address += to_read;
+	// Heap allocation to avoid stack overflow on large reads (like PersistentStorage startup)
+	u8 *txbuf = (u8*)pvPortMalloc(hdr_len + bytes);
+	txbuf[0] = 3; // CMD_READ
+	if (hdr_len == 3) {
+		// Two byte address.
+		txbuf[1] = address >> 8;
+		txbuf[2] = address & 0xff;
+	}
+	else {
+		// One byte address.
+		configASSERT(address <= 0xff);
+		txbuf[1] = address & 0xff;
+	}
+	xSemaphoreTake(this->mutex, portMAX_DELAY);
+	if (!this->spibus.transfer(this->cs, txbuf, txbuf, hdr_len+bytes)) {
+		xSemaphoreGive(this->mutex);
+		vPortFree(txbuf);
+		return 0;
 	}
 	xSemaphoreGive(this->mutex);
-	return bytes_read;
+
+	memcpy(buf, txbuf+hdr_len, bytes);
+	vPortFree(txbuf);
+	return bytes;
 }
 
 /**
