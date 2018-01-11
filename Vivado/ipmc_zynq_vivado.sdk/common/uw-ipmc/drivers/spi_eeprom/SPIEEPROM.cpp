@@ -105,12 +105,14 @@ size_t SPI_EEPROM::write(u16 address, u8 *buf, size_t bytes) {
 			configASSERT(address <= 0xff);
 			txbuf[1] = address & 0xff;
 		}
-		// We'll fill a page worth, but will only TRANSFER up to boundary.
-		memcpy(txbuf+hdr_len, buf+bytes_written, (bytes > this->page_size ? bytes : this->page_size));
 
 		size_t to_write = this->page_size - (address % this->page_size);
 		if (to_write > (bytes - bytes_written))
 			to_write = bytes - bytes_written;
+
+		// Fill as much as it will be written (up to one page)
+		memcpy(txbuf+hdr_len, buf+bytes_written, to_write);
+
 		if (!this->spibus.transfer(this->cs, txbuf, NULL, hdr_len+to_write))
 			break;
 
