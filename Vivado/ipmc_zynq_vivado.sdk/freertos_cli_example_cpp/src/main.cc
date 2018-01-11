@@ -100,6 +100,27 @@ void vApplicationGetTimerTaskMemory(StaticTask_t **ppxTimerTaskTCBBuffer, StackT
 	*pulTimerTaskStackSize = configTIMER_TASK_STACK_DEPTH;
 }
 
+void vApplicationMallocFailedHook( void )
+{
+	xil_printf( "vApplicationMallocFailedHook() called\n" );
+	configASSERT(0);
+}
+
+void vApplicationStackOverflowHook( TaskHandle_t xTask, char *pcTaskName )
+{
+	/* Attempt to prevent the handle and name of the task that overflowed its stack
+	from being optimised away because they are not used. */
+	volatile TaskHandle_t xOverflowingTaskHandle = xTask;
+	volatile char *pcOverflowingTaskName = pcTaskName;
+
+	( void ) xOverflowingTaskHandle;
+	( void ) pcOverflowingTaskName;
+
+	// TODO: Implement a printf method that is valid in this context.
+	xil_printf( "HALT: Task %s overflowed its stack.", pcOverflowingTaskName );
+	configASSERT(0);
+}
+
 /*-----------------------------------------------------------*/
 
 void vInitialiseTimerForRunTimeStats(void) {
