@@ -13,6 +13,7 @@
 #include <services/ipmi/ipmbsvc/IPMICommandParser.h>
 #include <drivers/ps_spi/PSSPI.h>
 #include <drivers/spi_eeprom/SPIEEPROM.h>
+#include <services/persistentstorage/PersistentStorage.h>
 #include <drivers/tracebuffer/TraceBuffer.h>
 #include <libs/LogTree.h>
 
@@ -34,6 +35,7 @@ static uint8_t tracebuffer_contents[TRACEBUFFER_SIZE];
 TraceBuffer TRACE(tracebuffer_contents, TRACEBUFFER_SIZE);
 SPI_EEPROM *eeprom_mac;
 SPI_EEPROM *eeprom_data;
+PersistentStorage *persistent_storage;
 
 static void console_log_handler(LogTree &logtree, const std::string &message, enum LogTree::LogLevel level);
 static void tracebuffer_log_handler(LogTree &logtree, const std::string &message, enum LogTree::LogLevel level);
@@ -69,6 +71,7 @@ void driver_init(bool use_pl) {
 	PS_SPI *ps_spi0 = new PS_SPI(XPAR_PS7_SPI_0_DEVICE_ID, XPAR_PS7_SPI_0_INTR);
 	eeprom_mac = new SPI_EEPROM(*ps_spi0, 0, 0x100, 16);
 	eeprom_data = new SPI_EEPROM(*ps_spi0, 1, 0x40000, 64);
+	persistent_storage = new PersistentStorage(*eeprom_data, LOG["persistent_storage"]);
 
 	XGpioPs_Config* gpiops_config = XGpioPs_LookupConfig(XPAR_PS7_GPIO_0_DEVICE_ID);
 	configASSERT(XST_SUCCESS == XGpioPs_CfgInitialize(&gpiops, gpiops_config, gpiops_config->BaseAddr));

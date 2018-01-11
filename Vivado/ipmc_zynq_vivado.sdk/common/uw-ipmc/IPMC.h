@@ -34,6 +34,8 @@ extern TraceBuffer TRACE;
 class SPI_EEPROM;
 extern SPI_EEPROM *eeprom_mac;
 extern SPI_EEPROM *eeprom_data;
+class PersistentStorage;
+extern PersistentStorage *persistent_storage;
 
 void driver_init(bool use_pl);
 void ipmc_service_init();
