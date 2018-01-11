@@ -12,6 +12,7 @@
 #include <event_groups.h>
 #include <IPMC.h>
 #include <drivers/spi_eeprom/SPIEEPROM.h>
+#include <drivers/tracebuffer/TraceBuffer.h>
 #include <libs/SkyRoad.h>
 #include <string.h>
 
@@ -336,6 +337,7 @@ bool PersistentStorage::FlushRequest::operator <(const FlushRequest &other) cons
 void PersistentStorage::run_flush_thread() {
 	this->logtree.log("Loading persistent storage.", LogTree::LOG_INFO);
 	this->eeprom.read(0, this->cache, this->eeprom.size);
+	this->logtree.log("Loaded persistent storage.", LogTree::LOG_INFO);
 	memcpy(this->data, this->cache, this->eeprom.size);
 
 	struct PersistentStorageHeader *hdr = reinterpret_cast<struct PersistentStorageHeader*>(this->data);
@@ -412,12 +414,22 @@ bool PersistentStorage::do_flush_range(u32 start, u32 end) {
 		end += this->eeprom.page_size - (end % this->eeprom.page_size);
 
 	bool changed = false;
-	for (unsigned int pgaddr = start; pgaddr < end; pgaddr += this->eeprom.page_size) {
-		if (0 == memcmp(this->cache + pgaddr, this->data + pgaddr, this->eeprom.page_size))
+	for (u32 pgaddr = start; pgaddr < end; pgaddr += this->eeprom.page_size) {
+		bool differ = false;
+		for (u32 i = start; i < start+this->eeprom.page_size; ++i) {
+			if (this->data[i] != this->cache[i]) {
+				differ = true;
+				break;
+			}
+		}
+		if (!differ)
 			continue; // Already clean.
+		this->logtree.log(stdsprintf("Difference found at 0x%lx", pgaddr), LogTree::LOG_TRACE);
+		TRACE.log(this->logtree.path.c_str(), this->logtree.path.size(), LogTree::LOG_TRACE, reinterpret_cast<char*>(this->cache+pgaddr), this->eeprom.page_size, true);
+		TRACE.log(this->logtree.path.c_str(), this->logtree.path.size(), LogTree::LOG_TRACE, reinterpret_cast<char*>(this->data+pgaddr), this->eeprom.page_size, true);
 
 		if (this->eeprom.write(pgaddr, this->data+pgaddr, this->eeprom.page_size) != this->eeprom.page_size) {
-			this->logtree.log(stdsprintf("EEPROM write failed during flush in Persistent Storage service at 0x%04x", pgaddr), LogTree::LOG_ERROR);
+			this->logtree.log(stdsprintf("EEPROM write failed during flush in Persistent Storage service at 0x%04lx", pgaddr), LogTree::LOG_ERROR);
 		}
 		else {
 			memcpy(this->cache + pgaddr, this->data + pgaddr, this->eeprom.page_size); // Update cache mirror to match EEPROM
