@@ -357,13 +357,14 @@ void PersistentStorage::run_flush_thread() {
 	xEventGroupSetBits(this->storage_loaded, 1);
 	vTaskPrioritySet(NULL, TASK_PRIORITY_BACKGROUND); // Now background.
 
-	AbsoluteTimeout next_bg_flush(get_tick64() + flush_ms);
+	AbsoluteTimeout next_bg_flush(get_tick64() + flush_ticks);
 	while (true) {
 		if (!ulTaskNotifyTake(pdTRUE, next_bg_flush.get_timeout())) {
 			// Nothing new.  Let's enqueue a full flush.
 			xSemaphoreTake(this->flushq_mutex, portMAX_DELAY);
 			// NULL callback means our current priority is irrelevant.
 			this->flushq.emplace(0, this->eeprom.size, std::function<void(void)>());
+			next_bg_flush.timeout64 = get_tick64() + this->flush_ticks;
 			xSemaphoreGive(this->flushq_mutex);
 		}
 
