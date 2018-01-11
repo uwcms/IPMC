@@ -45,7 +45,7 @@ size_t SPI_EEPROM::read(u16 address, u8 *buf, size_t bytes) {
 	u8 txbuf[hdr_len+this->page_size];
 	size_t bytes_read = 0;
 	while (bytes_read < bytes) {
-		memset(txbuf, 0, 3+bytes); // Clear the buffer for shift out.
+		memset(txbuf, 0, 3+this->page_size); // Clear the buffer for shift out.
 		txbuf[0] = 3; // CMD_READ
 		if (hdr_len == 3) {
 			// Two byte address.
