@@ -16,6 +16,9 @@
 #include <drivers/generics/EEPROM.h>
 #include <libs/SkyRoad.h>
 #include <libs/ThreadingPrimitives.h>
+#include <functional>
+#include <queue>
+#include <deque>
 
 /**
  * A persistent storage module backed by a SPI_EEPROM.
@@ -28,26 +31,45 @@ class PersistentStorage {
 public:
 	PersistentStorage(EEPROM &eeprom, LogTree &logtree);
 	virtual ~PersistentStorage();
-	bool flush(TickType_t timeout = 0);
+	void flush(std::function<void(void)> completion_cb = NULL);
+	void flush(void *start = NULL, size_t len = SIZE_MAX, std::function<void(void)> completion_cb = NULL);
+protected:
+	void flush_index();
 
+public:
 	u16 get_section_version(u16 section_id);
 	void set_section_version(u16 section_id, u16 section_version);
 	void *get_section(u16 section_id, u16 section_version, u16 section_size);
 	void delete_section(u16 section_id);
 
 protected:
+	/// A pending flush request
+	class FlushRequest {
+	public:
+		FlushRequest(u32 start, u32 end, std::function<void(void)> complete_cb, bool index_flush = false);
+		u32 start; ///< The start of the flush range
+		u32 end;   ///< The end of the flush range
+		u32 process_priority; ///< The priority of the calling process
+		std::function<void(void)> complete; ///< A callback to indicate completion.
+		u64 requested_at; ///< tick64 when the flush was requested
+		bool index_flush; ///< A marker indicating that this is an index flush, which overrides all priority.
+		bool operator<(const FlushRequest &other) const;
+	};
 	EEPROM &eeprom; ///< The eeprom backing this storage
 	TaskHandle_t flushtask; ///< The background flush task
 	u8 *cache; ///< The cache of true EEPROM contents for comparison in flush.
 	u8 *data; ///< The data for real use.
 	LogTree &logtree; ///< Log target
 	EventGroupHandle_t storage_loaded; ///< An event indicating storage loaded.
-	WaitList *flushwait[2]; ///< A pair of waitlists used to allow for synchronous flush.
 	SemaphoreHandle_t index_mutex; ///< A mutex protecting the section index.
-	SemaphoreHandle_t prio_mutex; ///< A mutex protecting the flush task's priority escalation.
+	SemaphoreHandle_t flushq_mutex; ///< A mutex protecting the flush queue
+	std::priority_queue< FlushRequest, std::deque<FlushRequest> > flushq; ///< A queue of pending range flushes.
+	const TickType_t flush_ms = 10 * configTICK_RATE_HZ; ///< The delay between background flushes.
 
 public:
 	void run_flush_thread(); ///< \protected Internal.
+protected:
+	bool do_flush_range(u32 start, u32 end);
 };
 
 /**
