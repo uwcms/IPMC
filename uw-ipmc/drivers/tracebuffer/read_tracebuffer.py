@@ -185,4 +185,11 @@ loglevels = dict(zip(range(0,len(loglevels)),map(lambda x: x[0:4], loglevels)))
 fmt = '{{rec.timestamp:{max_timestamp_len}d}} | {{rec.label:<{max_label_len}s}} | {{loglevel:<4s}} | {{data}}'.format(max_label_len=max_label_len, max_timestamp_len=max_timestamp_len)
 
 for rec in RECORDS:
-	print(fmt.format(rec=rec, data=rec.data.rstrip('\r\n'), loglevel=loglevels.get(rec.loglevel,str(rec.loglevel))))
+	if isinstance(rec.data, str):
+		msg = rec.data.rstrip('\r\n')
+	elif isinstance(rec.data, bytearray):
+		msg = 'BIN: ' + ' '.join(map(lambda x: '{:02x}'.format(x), rec.data))
+	else:
+		print(type(rec.data))
+		assert False, 'Unexpected record data type'
+	print(fmt.format(rec=rec, data=msg, loglevel=loglevels.get(rec.loglevel,str(rec.loglevel))))
