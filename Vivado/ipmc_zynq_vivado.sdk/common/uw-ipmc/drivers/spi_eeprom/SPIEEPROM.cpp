@@ -90,6 +90,10 @@ size_t SPI_EEPROM::write(u16 address, u8 *buf, size_t bytes) {
 	u8 txbuf[hdr_len+this->page_size];
 	size_t bytes_written = 0;
 	while (bytes_written < bytes) {
+		txbuf[0] = 6; // CMD_WRITE_ENABLE
+		if (!this->spibus.transfer(this->cs, txbuf, NULL, 1))
+				break;
+
 		txbuf[0] = 2; // CMD_WRITE
 		if (hdr_len == 3) {
 			// Two byte address.
