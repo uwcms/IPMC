@@ -1,8 +1,8 @@
 --Copyright 1986-2017 Xilinx, Inc. All Rights Reserved.
 ----------------------------------------------------------------------------------
 --Tool Version: Vivado v.2017.2 (lin64) Build 1909853 Thu Jun 15 18:39:10 MDT 2017
---Date        : Thu Aug 31 11:24:26 2017
---Host        : moonraker.cern.ch running 64-bit Scientific Linux CERN SLC release 6.9 (Carbon)
+--Date        : Thu Jan 11 17:53:21 2018
+--Host        : beck.hep.wisc.edu running 64-bit CentOS Linux release 7.4.1708 (Core)
 --Command     : generate_target ipmc_bd_wrapper.bd
 --Design      : ipmc_bd_wrapper
 --Purpose     : IP block netlist
@@ -106,65 +106,6 @@ end ipmc_bd_wrapper;
 architecture STRUCTURE of ipmc_bd_wrapper is
   component ipmc_bd is
   port (
-    ALARM_A : in STD_LOGIC;
-    ALARM_B : in STD_LOGIC;
-    ATCA_LEDS : out STD_LOGIC_VECTOR ( 3 downto 0 );
-    GPIO : inout STD_LOGIC_VECTOR ( 48 downto 0 );
-    HNDL_SW : in STD_LOGIC;
-    PG_A : in STD_LOGIC;
-    PG_B : in STD_LOGIC;
-    PL_LEDS : out STD_LOGIC_VECTOR ( 1 downto 0 );
-    PYLD12V_EN : out STD_LOGIC_VECTOR ( 0 to 0 );
-    I2C_1_scl : out STD_LOGIC;
-    I2C_1_sda : inout STD_LOGIC;
-    I2C_2_scl : out STD_LOGIC;
-    I2C_2_sda : inout STD_LOGIC;
-    I2C_0_scl : out STD_LOGIC;
-    I2C_0_sda : inout STD_LOGIC;
-    I2C_4_scl : out STD_LOGIC;
-    I2C_4_sda : inout STD_LOGIC;
-    I2C_3_scl : out STD_LOGIC;
-    I2C_3_sda : inout STD_LOGIC;
-    MC_1_ps1_n : in STD_LOGIC;
-    MC_1_enable_n : out STD_LOGIC;
-    MC_2_ps1_n : in STD_LOGIC;
-    MC_2_enable_n : out STD_LOGIC;
-    MC_0_ps1_n : in STD_LOGIC;
-    MC_0_enable_n : out STD_LOGIC;
-    MC_4_ps1_n : in STD_LOGIC;
-    MC_4_enable_n : out STD_LOGIC;
-    MC_3_ps1_n : in STD_LOGIC;
-    MC_3_enable_n : out STD_LOGIC;
-    TPS2358_1_mp_ena_n : out STD_LOGIC;
-    TPS2358_1_mp_pg_n : in STD_LOGIC;
-    TPS2358_1_pwr_pg_n : in STD_LOGIC;
-    TPS2358_1_pwr_flt_n : in STD_LOGIC;
-    TPS2358_1_mp_flt_n : in STD_LOGIC;
-    TPS2358_1_pwr_ena_n : out STD_LOGIC;
-    TPS2358_2_mp_ena_n : out STD_LOGIC;
-    TPS2358_2_mp_pg_n : in STD_LOGIC;
-    TPS2358_2_pwr_pg_n : in STD_LOGIC;
-    TPS2358_2_pwr_flt_n : in STD_LOGIC;
-    TPS2358_2_mp_flt_n : in STD_LOGIC;
-    TPS2358_2_pwr_ena_n : out STD_LOGIC;
-    TPS2358_0_mp_ena_n : out STD_LOGIC;
-    TPS2358_0_mp_pg_n : in STD_LOGIC;
-    TPS2358_0_pwr_pg_n : in STD_LOGIC;
-    TPS2358_0_pwr_flt_n : in STD_LOGIC;
-    TPS2358_0_mp_flt_n : in STD_LOGIC;
-    TPS2358_0_pwr_ena_n : out STD_LOGIC;
-    TPS2358_4_mp_ena_n : out STD_LOGIC;
-    TPS2358_4_mp_pg_n : in STD_LOGIC;
-    TPS2358_4_pwr_pg_n : in STD_LOGIC;
-    TPS2358_4_pwr_flt_n : in STD_LOGIC;
-    TPS2358_4_mp_flt_n : in STD_LOGIC;
-    TPS2358_4_pwr_ena_n : out STD_LOGIC;
-    TPS2358_3_mp_ena_n : out STD_LOGIC;
-    TPS2358_3_mp_pg_n : in STD_LOGIC;
-    TPS2358_3_pwr_pg_n : in STD_LOGIC;
-    TPS2358_3_pwr_flt_n : in STD_LOGIC;
-    TPS2358_3_mp_flt_n : in STD_LOGIC;
-    TPS2358_3_pwr_ena_n : out STD_LOGIC;
     ADC_A_clk : out STD_LOGIC;
     ADC_A_mosi : out STD_LOGIC;
     ADC_A_miso : in STD_LOGIC;
@@ -192,7 +133,66 @@ architecture STRUCTURE of ipmc_bd_wrapper is
     JTAG_tdi : out STD_LOGIC;
     JTAG_tms : out STD_LOGIC;
     JTAG_tck : out STD_LOGIC;
-    JTAG_tdo : in STD_LOGIC
+    JTAG_tdo : in STD_LOGIC;
+    ALARM_A : in STD_LOGIC;
+    ALARM_B : in STD_LOGIC;
+    HNDL_SW : in STD_LOGIC;
+    PYLD12V_EN : out STD_LOGIC_VECTOR ( 0 to 0 );
+    GPIO : inout STD_LOGIC_VECTOR ( 48 downto 0 );
+    PG_A : in STD_LOGIC;
+    PG_B : in STD_LOGIC;
+    PL_LEDS : out STD_LOGIC_VECTOR ( 1 downto 0 );
+    ATCA_LEDS : out STD_LOGIC_VECTOR ( 3 downto 0 );
+    I2C_3_scl : out STD_LOGIC;
+    I2C_3_sda : inout STD_LOGIC;
+    TPS2358_3_mp_ena_n : out STD_LOGIC;
+    TPS2358_3_mp_pg_n : in STD_LOGIC;
+    TPS2358_3_pwr_pg_n : in STD_LOGIC;
+    TPS2358_3_pwr_flt_n : in STD_LOGIC;
+    TPS2358_3_mp_flt_n : in STD_LOGIC;
+    TPS2358_3_pwr_ena_n : out STD_LOGIC;
+    MC_3_ps1_n : in STD_LOGIC;
+    MC_3_enable_n : out STD_LOGIC;
+    I2C_4_scl : out STD_LOGIC;
+    I2C_4_sda : inout STD_LOGIC;
+    TPS2358_4_mp_ena_n : out STD_LOGIC;
+    TPS2358_4_mp_pg_n : in STD_LOGIC;
+    TPS2358_4_pwr_pg_n : in STD_LOGIC;
+    TPS2358_4_pwr_flt_n : in STD_LOGIC;
+    TPS2358_4_mp_flt_n : in STD_LOGIC;
+    TPS2358_4_pwr_ena_n : out STD_LOGIC;
+    MC_4_ps1_n : in STD_LOGIC;
+    MC_4_enable_n : out STD_LOGIC;
+    I2C_0_scl : out STD_LOGIC;
+    I2C_0_sda : inout STD_LOGIC;
+    TPS2358_0_mp_ena_n : out STD_LOGIC;
+    TPS2358_0_mp_pg_n : in STD_LOGIC;
+    TPS2358_0_pwr_pg_n : in STD_LOGIC;
+    TPS2358_0_pwr_flt_n : in STD_LOGIC;
+    TPS2358_0_mp_flt_n : in STD_LOGIC;
+    TPS2358_0_pwr_ena_n : out STD_LOGIC;
+    MC_0_ps1_n : in STD_LOGIC;
+    MC_0_enable_n : out STD_LOGIC;
+    I2C_2_scl : out STD_LOGIC;
+    I2C_2_sda : inout STD_LOGIC;
+    TPS2358_2_mp_ena_n : out STD_LOGIC;
+    TPS2358_2_mp_pg_n : in STD_LOGIC;
+    TPS2358_2_pwr_pg_n : in STD_LOGIC;
+    TPS2358_2_pwr_flt_n : in STD_LOGIC;
+    TPS2358_2_mp_flt_n : in STD_LOGIC;
+    TPS2358_2_pwr_ena_n : out STD_LOGIC;
+    MC_2_ps1_n : in STD_LOGIC;
+    MC_2_enable_n : out STD_LOGIC;
+    I2C_1_scl : out STD_LOGIC;
+    I2C_1_sda : inout STD_LOGIC;
+    TPS2358_1_mp_ena_n : out STD_LOGIC;
+    TPS2358_1_mp_pg_n : in STD_LOGIC;
+    TPS2358_1_pwr_pg_n : in STD_LOGIC;
+    TPS2358_1_pwr_flt_n : in STD_LOGIC;
+    TPS2358_1_mp_flt_n : in STD_LOGIC;
+    TPS2358_1_pwr_ena_n : out STD_LOGIC;
+    MC_1_ps1_n : in STD_LOGIC;
+    MC_1_enable_n : out STD_LOGIC
   );
   end component ipmc_bd;
 begin

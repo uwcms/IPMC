@@ -149,16 +149,6 @@
 #define XPAR_AD7689_1_S_AXI_HIGHADDR 0x43C1FFFF
 
 
-/* Definitions for peripheral LED_0 */
-#define XPAR_LED_0_S_AXI_BASEADDR 0x43C80000
-#define XPAR_LED_0_S_AXI_HIGHADDR 0x43C8FFFF
-
-
-/* Definitions for peripheral LED_1 */
-#define XPAR_LED_1_S_AXI_BASEADDR 0x43C90000
-#define XPAR_LED_1_S_AXI_HIGHADDR 0x43C9FFFF
-
-
 /* Definitions for peripheral PS7_AFI_0 */
 #define XPAR_PS7_AFI_0_S_AXI_BASEADDR 0xF8008000
 #define XPAR_PS7_AFI_0_S_AXI_HIGHADDR 0xF8008FFF
@@ -528,6 +518,28 @@
 #define XPAR_INTC_0_IIC_2_VEC_ID XPAR_AXI_INTC_0_AMCS_AMC2_AXI_IIC_0_IIC2INTC_IRPT_INTR
 #define XPAR_INTC_0_IIC_3_VEC_ID XPAR_AXI_INTC_0_AMCS_AMC3_AXI_IIC_0_IIC2INTC_IRPT_INTR
 #define XPAR_INTC_0_IIC_4_VEC_ID XPAR_AXI_INTC_0_AMCS_AMC4_AXI_IIC_0_IIC2INTC_IRPT_INTR
+
+/******************************************************************/
+
+/* Definitions for driver LED_CONTROLLER */
+#define XPAR_LED_CONTROLLER_NUM_INSTANCES 2
+
+/* Definitions for peripheral LED_CONTROLLER_0 */
+#define XPAR_LED_CONTROLLER_0_DEVICE_ID 0
+#define XPAR_LED_CONTROLLER_0_S_AXI_BASEADDR 0x43C80000
+#define XPAR_LED_CONTROLLER_0_S_AXI_HIGHADDR 0x43C8FFFF
+#define XPAR_LED_CONTROLLER_0_LED_INTERFACES 2
+
+
+/* Definitions for peripheral LED_CONTROLLER_1 */
+#define XPAR_LED_CONTROLLER_1_DEVICE_ID 1
+#define XPAR_LED_CONTROLLER_1_S_AXI_BASEADDR 0x43C90000
+#define XPAR_LED_CONTROLLER_1_S_AXI_HIGHADDR 0x43C9FFFF
+#define XPAR_LED_CONTROLLER_1_LED_INTERFACES 4
+
+
+/******************************************************************/
+
 
 /******************************************************************/
 
