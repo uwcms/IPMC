@@ -31,8 +31,6 @@
 
 #endif
 
-#define xil_printf(...) printf(__VA_ARGS__)
-
 extern "C" {
 int _uwipmc_printf(const char *format, ...) __attribute__((format(printf,1,2)));
 int _uwipmc_sprintf(char *str, const char *format, ...) __attribute__((format(printf,2,3)));
