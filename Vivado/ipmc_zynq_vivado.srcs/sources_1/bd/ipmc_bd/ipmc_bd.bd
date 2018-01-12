@@ -464,16 +464,16 @@
           <spirit:configurableElementValue spirit:referenceId="PCW_MIO_6_SLEW">slow</spirit:configurableElementValue>
           <spirit:configurableElementValue spirit:referenceId="PCW_MIO_8_IOTYPE">LVCMOS 3.3V</spirit:configurableElementValue>
           <spirit:configurableElementValue spirit:referenceId="PCW_MIO_8_SLEW">slow</spirit:configurableElementValue>
-          <spirit:configurableElementValue spirit:referenceId="PCW_MIO_10_PULLUP">enabled</spirit:configurableElementValue>
+          <spirit:configurableElementValue spirit:referenceId="PCW_MIO_10_PULLUP">disabled</spirit:configurableElementValue>
           <spirit:configurableElementValue spirit:referenceId="PCW_MIO_10_IOTYPE">LVCMOS 3.3V</spirit:configurableElementValue>
           <spirit:configurableElementValue spirit:referenceId="PCW_MIO_10_SLEW">slow</spirit:configurableElementValue>
-          <spirit:configurableElementValue spirit:referenceId="PCW_MIO_11_PULLUP">enabled</spirit:configurableElementValue>
+          <spirit:configurableElementValue spirit:referenceId="PCW_MIO_11_PULLUP">disabled</spirit:configurableElementValue>
           <spirit:configurableElementValue spirit:referenceId="PCW_MIO_11_IOTYPE">LVCMOS 3.3V</spirit:configurableElementValue>
           <spirit:configurableElementValue spirit:referenceId="PCW_MIO_11_SLEW">slow</spirit:configurableElementValue>
-          <spirit:configurableElementValue spirit:referenceId="PCW_MIO_12_PULLUP">enabled</spirit:configurableElementValue>
+          <spirit:configurableElementValue spirit:referenceId="PCW_MIO_12_PULLUP">disabled</spirit:configurableElementValue>
           <spirit:configurableElementValue spirit:referenceId="PCW_MIO_12_IOTYPE">LVCMOS 3.3V</spirit:configurableElementValue>
           <spirit:configurableElementValue spirit:referenceId="PCW_MIO_12_SLEW">slow</spirit:configurableElementValue>
-          <spirit:configurableElementValue spirit:referenceId="PCW_MIO_13_PULLUP">enabled</spirit:configurableElementValue>
+          <spirit:configurableElementValue spirit:referenceId="PCW_MIO_13_PULLUP">disabled</spirit:configurableElementValue>
           <spirit:configurableElementValue spirit:referenceId="PCW_MIO_13_IOTYPE">LVCMOS 3.3V</spirit:configurableElementValue>
           <spirit:configurableElementValue spirit:referenceId="PCW_MIO_13_SLEW">slow</spirit:configurableElementValue>
           <spirit:configurableElementValue spirit:referenceId="PCW_MIO_14_PULLUP">enabled</spirit:configurableElementValue>
@@ -638,6 +638,8 @@
         <spirit:internalPortReference spirit:componentRef="proc_sys_reset_0" spirit:portRef="slowest_sync_clk"/>
         <spirit:internalPortReference spirit:componentRef="processing_system7_0" spirit:portRef="M_AXI_GP0_ACLK"/>
         <spirit:internalPortReference spirit:componentRef="xvc_0" spirit:portRef="s_axi_aclk"/>
+        <spirit:internalPortReference spirit:componentRef="led_controller_0" spirit:portRef="s_axi_aclk"/>
+        <spirit:internalPortReference spirit:componentRef="led_controller_1" spirit:portRef="s_axi_aclk"/>
         <spirit:internalPortReference spirit:componentRef="AMCs" spirit:portRef="S00_ACLK"/>
         <spirit:internalPortReference spirit:componentRef="GPIO" spirit:portRef="s_axi_aclk"/>
         <spirit:internalPortReference spirit:componentRef="Management" spirit:portRef="s_axi_aclk"/>
@@ -652,8 +654,6 @@
         <spirit:internalPortReference spirit:componentRef="axi_interconnect_0" spirit:portRef="M06_ACLK"/>
         <spirit:internalPortReference spirit:componentRef="axi_interconnect_0" spirit:portRef="M07_ACLK"/>
         <spirit:internalPortReference spirit:componentRef="axi_interconnect_0" spirit:portRef="M08_ACLK"/>
-        <spirit:internalPortReference spirit:componentRef="led_controller_0" spirit:portRef="s_axi_aclk"/>
-        <spirit:internalPortReference spirit:componentRef="led_controller_1" spirit:portRef="s_axi_aclk"/>
       </spirit:adHocConnection>
       <spirit:adHocConnection>
         <spirit:name>ALARM_A_1</spirit:name>
@@ -723,6 +723,8 @@
         <spirit:internalPortReference spirit:componentRef="ad7689_1" spirit:portRef="s_axi_aresetn"/>
         <spirit:internalPortReference spirit:componentRef="axi_intc_0" spirit:portRef="s_axi_aresetn"/>
         <spirit:internalPortReference spirit:componentRef="xvc_0" spirit:portRef="s_axi_aresetn"/>
+        <spirit:internalPortReference spirit:componentRef="led_controller_0" spirit:portRef="s_axi_aresetn"/>
+        <spirit:internalPortReference spirit:componentRef="led_controller_1" spirit:portRef="s_axi_aresetn"/>
         <spirit:internalPortReference spirit:componentRef="AMCs" spirit:portRef="M04_ARESETN"/>
         <spirit:internalPortReference spirit:componentRef="GPIO" spirit:portRef="s_axi_aresetn"/>
         <spirit:internalPortReference spirit:componentRef="Management" spirit:portRef="s_axi_aresetn"/>
@@ -736,8 +738,6 @@
         <spirit:internalPortReference spirit:componentRef="axi_interconnect_0" spirit:portRef="M06_ARESETN"/>
         <spirit:internalPortReference spirit:componentRef="axi_interconnect_0" spirit:portRef="M07_ARESETN"/>
         <spirit:internalPortReference spirit:componentRef="axi_interconnect_0" spirit:portRef="M08_ARESETN"/>
-        <spirit:internalPortReference spirit:componentRef="led_controller_0" spirit:portRef="s_axi_aresetn"/>
-        <spirit:internalPortReference spirit:componentRef="led_controller_1" spirit:portRef="s_axi_aresetn"/>
       </spirit:adHocConnection>
       <spirit:adHocConnection>
         <spirit:name>processing_system7_0_FCLK_RESET0_N</spirit:name>
