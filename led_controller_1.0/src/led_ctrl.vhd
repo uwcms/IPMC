@@ -32,13 +32,6 @@ architecture Behavioral of led_ctrlr is
 		O : out STD_LOGIC);
 	end component;
 	
-	component timed port (
-		CLK : in STD_LOGIC;
-		EN : in STD_LOGIC;
-		I : in STD_LOGIC;
-		O : out STD_LOGIC);
-	end component;
-	
 	component pulse port (
 		CLK : in STD_LOGIC;
 		EN : in STD_LOGIC;
@@ -59,9 +52,6 @@ architecture Behavioral of led_ctrlr is
 	signal pulse_o : std_logic_vector (7 downto 0);
 	signal pulse_d : std_logic;
 	
-	-- Timed block
-	signal timed_en : std_logic;
-	
 	-- Output signals
 	signal led_out : std_logic;
 	signal timed_out : std_logic;
@@ -73,16 +63,8 @@ begin
 		I => pwm_i,
 		O => pwm_out
 	);
-	pwm_en <= '1' when pulse_en = '1' or (RST = '0' and MODE = "11") else '0';
+	pwm_en <= '1' when pulse_en = '1' or (RST = '0' and MODE = "10") else '0';
 	pwm_i <= pulse_o when pulse_en = '1' else VAL;
-	
-	i2_timed : timed port map (
-		CLK => clk_o,
-		EN => timed_en,
-		I => VAL(0),
-		O => timed_out
-	);
-	timed_en <= '1' when RST = '0' and MODE = "01" else '0';
 	
 	i3_pulse : pulse port map (
 		CLK => clk_o,
@@ -91,7 +73,7 @@ begin
 		O => pulse_o,
 		D => pulse_d
 	);
-	pulse_en <= '1' when RST = '0' and MODE = "10" else '0';
+	pulse_en <= '1' when RST = '0' and MODE = "01" else '0';
 	
 	process (CLK) begin
 		if CLK'event and CLK = '1' then
@@ -102,9 +84,8 @@ begin
 	
 	-- Output
 	led_out <=	VAL(0)		when MODE = "00" else
-			    timed_out	when MODE = "01" else
-			    pwm_out		when MODE = "10" else -- Pulse block will control PWM
-			    pwm_out		when MODE = "11" else
+			    pwm_out		when MODE = "01" else -- Pulse block will control PWM
+			    pwm_out		when MODE = "10" else
 			    '0';
 			    
     LED <= led_out when ACTIVE_HIGH = true else not led_out;

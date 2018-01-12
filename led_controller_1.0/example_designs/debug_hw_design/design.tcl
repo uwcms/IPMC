@@ -84,8 +84,8 @@ proc create_ipi_design { offsetfile design_name } {
 	connect_bd_net [get_bd_pins sys_reset_0/slowest_sync_clk] [get_bd_pins sys_clk_0/clk_out1]
 	connect_bd_net [get_bd_pins sys_clk_0/locked] [get_bd_pins sys_reset_0/dcm_locked]
 
-	# Create instance: led_0, and set properties
-	set led_0 [ create_bd_cell -type ip -vlnv user.org:user:led:0.1 led_0 ]
+	# Create instance: led_controller_0, and set properties
+	set led_controller_0 [ create_bd_cell -type ip -vlnv user.org:user:led_controller:1.0 led_controller_0 ]
 
 	# Create instance: jtag_axi_0, and set properties
 	set jtag_axi_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:jtag_axi jtag_axi_0 ]
@@ -106,31 +106,31 @@ proc create_ipi_design { offsetfile design_name } {
 	connect_bd_net [get_bd_pins axi_peri_interconnect/M00_ACLK] [get_bd_pins sys_clk_0/clk_out1]
 	connect_bd_net [get_bd_pins axi_peri_interconnect/M00_ARESETN] [get_bd_pins sys_reset_0/peripheral_aresetn]
 
-	# Connect all clock & reset of led_0 slave interfaces..
-	connect_bd_intf_net [get_bd_intf_pins axi_peri_interconnect/M00_AXI] [get_bd_intf_pins led_0/S_AXI]
-	connect_bd_net [get_bd_pins led_0/s_axi_aclk] [get_bd_pins sys_clk_0/clk_out1]
-	connect_bd_net [get_bd_pins led_0/s_axi_aresetn] [get_bd_pins sys_reset_0/peripheral_aresetn]
+	# Connect all clock & reset of led_controller_0 slave interfaces..
+	connect_bd_intf_net [get_bd_intf_pins axi_peri_interconnect/M00_AXI] [get_bd_intf_pins led_controller_0/S_AXI]
+	connect_bd_net [get_bd_pins led_controller_0/s_axi_aclk] [get_bd_pins sys_clk_0/clk_out1]
+	connect_bd_net [get_bd_pins led_controller_0/s_axi_aresetn] [get_bd_pins sys_reset_0/peripheral_aresetn]
 
 
 	# Auto assign address
 	assign_bd_address
 
-	# Copy all address to led_v0_1_include.tcl file
+	# Copy all address to led_controller_v1_0_include.tcl file
 	set bd_path [get_property DIRECTORY [current_project]]/[current_project].srcs/[current_fileset]/bd
 	upvar 1 $offsetfile offset_file
-	set offset_file "${bd_path}/led_v0_1_include.tcl"
+	set offset_file "${bd_path}/led_controller_v1_0_include.tcl"
 	set fp [open $offset_file "w"]
 	puts $fp "# Configuration address parameters"
 
-	set offset [get_property OFFSET [get_bd_addr_segs /jtag_axi_0/Data/SEG_led_0_S_AXI_* ]]
+	set offset [get_property OFFSET [get_bd_addr_segs /jtag_axi_0/Data/SEG_led_controller_0_S_AXI_* ]]
 	puts $fp "set s_axi_addr ${offset}"
 
 	close $fp
 }
 
 # Set IP Repository and Update IP Catalogue 
-set ip_path [file dirname [file normalize [get_property XML_FILE_NAME [ipx::get_cores user.org:user:led:0.1]]]]
-set hw_test_file ${ip_path}/example_designs/debug_hw_design/led_v0_1_hw_test.tcl
+set ip_path [file dirname [file normalize [get_property XML_FILE_NAME [ipx::get_cores user.org:user:led_controller:1.0]]]]
+set hw_test_file ${ip_path}/example_designs/debug_hw_design/led_controller_v1_0_hw_test.tcl
 
 set repo_paths [get_property ip_repo_paths [current_fileset]] 
 if { [lsearch -exact -nocase $repo_paths $ip_path ] == -1 } {
@@ -148,7 +148,7 @@ lappend all_bd $bd_name
 }
 
 for { set i 1 } { 1 } { incr i } {
-	set design_name "led_v0_1_hw_${i}"
+	set design_name "led_controller_v1_0_hw_${i}"
 	if { [lsearch -exact -nocase $all_bd $design_name ] == -1 } {
 		break
 	}

@@ -2,8 +2,8 @@
 <spirit:component xmlns:xilinx="http://www.xilinx.com" xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <spirit:vendor>uw</spirit:vendor>
   <spirit:library>uw</spirit:library>
-  <spirit:name>led</spirit:name>
-  <spirit:version>0.1</spirit:version>
+  <spirit:name>led_controller</spirit:name>
+  <spirit:version>1.0</spirit:version>
   <spirit:busInterfaces>
     <spirit:busInterface>
       <spirit:name>S_AXI</spirit:name>
@@ -303,14 +303,14 @@
         <spirit:displayName>VHDL Synthesis</spirit:displayName>
         <spirit:envIdentifier>vhdlSource:vivado.xilinx.com:synthesis</spirit:envIdentifier>
         <spirit:language>vhdl</spirit:language>
-        <spirit:modelName>led_v0_1</spirit:modelName>
+        <spirit:modelName>led_controller_v1_0</spirit:modelName>
         <spirit:fileSetRef>
           <spirit:localName>xilinx_vhdlsynthesis_view_fileset</spirit:localName>
         </spirit:fileSetRef>
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>38d837b1</spirit:value>
+            <spirit:value>04aa40fe</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -319,14 +319,14 @@
         <spirit:displayName>VHDL Simulation</spirit:displayName>
         <spirit:envIdentifier>vhdlSource:vivado.xilinx.com:simulation</spirit:envIdentifier>
         <spirit:language>vhdl</spirit:language>
-        <spirit:modelName>led_v0_1</spirit:modelName>
+        <spirit:modelName>led_controller_v1_0</spirit:modelName>
         <spirit:fileSetRef>
           <spirit:localName>xilinx_vhdlbehavioralsimulation_view_fileset</spirit:localName>
         </spirit:fileSetRef>
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>38d837b1</spirit:value>
+            <spirit:value>04aa40fe</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -340,7 +340,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>a7fcc119</spirit:value>
+            <spirit:value>89689920</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -354,7 +354,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>962c3628</spirit:value>
+            <spirit:value>cb081fc2</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -396,7 +396,7 @@
         <spirit:wire>
           <spirit:direction>in</spirit:direction>
           <spirit:vector>
-            <spirit:left spirit:format="long" spirit:resolve="dependent" spirit:dependency="(spirit:decode(id(&apos;MODELPARAM_VALUE.C_S_AXI_ADDR_WIDTH&apos;)) - 1)">2</spirit:left>
+            <spirit:left spirit:format="long" spirit:resolve="dependent" spirit:dependency="(spirit:decode(id(&apos;MODELPARAM_VALUE.C_S_AXI_ADDR_WIDTH&apos;)) - 1)">6</spirit:left>
             <spirit:right spirit:format="long">0</spirit:right>
           </spirit:vector>
           <spirit:wireTypeDefs>
@@ -559,7 +559,7 @@
         <spirit:wire>
           <spirit:direction>in</spirit:direction>
           <spirit:vector>
-            <spirit:left spirit:format="long" spirit:resolve="dependent" spirit:dependency="(spirit:decode(id(&apos;MODELPARAM_VALUE.C_S_AXI_ADDR_WIDTH&apos;)) - 1)">2</spirit:left>
+            <spirit:left spirit:format="long" spirit:resolve="dependent" spirit:dependency="(spirit:decode(id(&apos;MODELPARAM_VALUE.C_S_AXI_ADDR_WIDTH&apos;)) - 1)">6</spirit:left>
             <spirit:right spirit:format="long">0</spirit:right>
           </spirit:vector>
           <spirit:wireTypeDefs>
@@ -712,7 +712,7 @@
         <spirit:name>C_S_AXI_ADDR_WIDTH</spirit:name>
         <spirit:displayName>C S AXI ADDR WIDTH</spirit:displayName>
         <spirit:description>Width of S_AXI address bus</spirit:description>
-        <spirit:value spirit:format="long" spirit:resolve="generated" spirit:id="MODELPARAM_VALUE.C_S_AXI_ADDR_WIDTH" spirit:order="4" spirit:rangeType="long">3</spirit:value>
+        <spirit:value spirit:format="long" spirit:resolve="generated" spirit:id="MODELPARAM_VALUE.C_S_AXI_ADDR_WIDTH" spirit:order="4" spirit:rangeType="long">7</spirit:value>
       </spirit:modelParameter>
       <spirit:modelParameter spirit:dataType="integer">
         <spirit:name>C_LED_INTERFACES</spirit:name>
@@ -746,15 +746,7 @@
     <spirit:fileSet>
       <spirit:name>xilinx_vhdlsynthesis_view_fileset</spirit:name>
       <spirit:file>
-        <spirit:name>src/timed.vhd</spirit:name>
-        <spirit:fileType>vhdlSource</spirit:fileType>
-      </spirit:file>
-      <spirit:file>
-        <spirit:name>src/pwm.vhd</spirit:name>
-        <spirit:fileType>vhdlSource</spirit:fileType>
-      </spirit:file>
-      <spirit:file>
-        <spirit:name>src/pulse.vhd</spirit:name>
+        <spirit:name>src/led_controller_v1_0_S_AXI.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
@@ -762,27 +754,23 @@
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>hdl/led_v0_1_S_AXI.vhd</spirit:name>
+        <spirit:name>src/pulse.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>hdl/led_v0_1.vhd</spirit:name>
+        <spirit:name>src/pwm.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
-        <spirit:userFileType>CHECKSUM_b87f43a3</spirit:userFileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>hdl/led_controller_v1_0.vhd</spirit:name>
+        <spirit:fileType>vhdlSource</spirit:fileType>
+        <spirit:userFileType>CHECKSUM_7993f1ee</spirit:userFileType>
       </spirit:file>
     </spirit:fileSet>
     <spirit:fileSet>
       <spirit:name>xilinx_vhdlbehavioralsimulation_view_fileset</spirit:name>
       <spirit:file>
-        <spirit:name>src/timed.vhd</spirit:name>
-        <spirit:fileType>vhdlSource</spirit:fileType>
-      </spirit:file>
-      <spirit:file>
-        <spirit:name>src/pwm.vhd</spirit:name>
-        <spirit:fileType>vhdlSource</spirit:fileType>
-      </spirit:file>
-      <spirit:file>
-        <spirit:name>src/pulse.vhd</spirit:name>
+        <spirit:name>src/led_controller_v1_0_S_AXI.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
@@ -790,42 +778,41 @@
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>hdl/led_v0_1_S_AXI.vhd</spirit:name>
+        <spirit:name>src/pulse.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>hdl/led_v0_1.vhd</spirit:name>
+        <spirit:name>src/pwm.vhd</spirit:name>
+        <spirit:fileType>vhdlSource</spirit:fileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>hdl/led_controller_v1_0.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
     </spirit:fileSet>
     <spirit:fileSet>
       <spirit:name>xilinx_softwaredriver_view_fileset</spirit:name>
       <spirit:file>
-        <spirit:name>drivers/led_v1_0/data/led.mdd</spirit:name>
+        <spirit:name>drivers/led_controller_v1_0/data/led_controller.mdd</spirit:name>
         <spirit:userFileType>mdd</spirit:userFileType>
         <spirit:userFileType>driver_mdd</spirit:userFileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>drivers/led_v1_0/data/led.tcl</spirit:name>
+        <spirit:name>drivers/led_controller_v1_0/data/led_controller.tcl</spirit:name>
         <spirit:fileType>tclSource</spirit:fileType>
         <spirit:userFileType>driver_tcl</spirit:userFileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>drivers/led_v1_0/src/Makefile</spirit:name>
+        <spirit:name>drivers/led_controller_v1_0/src/Makefile</spirit:name>
         <spirit:userFileType>driver_src</spirit:userFileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>drivers/led_v1_0/src/led.h</spirit:name>
+        <spirit:name>drivers/led_controller_v1_0/src/led_controller.h</spirit:name>
         <spirit:fileType>cSource</spirit:fileType>
         <spirit:userFileType>driver_src</spirit:userFileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>drivers/led_v1_0/src/led.c</spirit:name>
-        <spirit:fileType>cSource</spirit:fileType>
-        <spirit:userFileType>driver_src</spirit:userFileType>
-      </spirit:file>
-      <spirit:file>
-        <spirit:name>drivers/led_v1_0/src/led_selftest.c</spirit:name>
+        <spirit:name>drivers/led_controller_v1_0/src/led_controller.c</spirit:name>
         <spirit:fileType>cSource</spirit:fileType>
         <spirit:userFileType>driver_src</spirit:userFileType>
       </spirit:file>
@@ -833,9 +820,9 @@
     <spirit:fileSet>
       <spirit:name>xilinx_xpgui_view_fileset</spirit:name>
       <spirit:file>
-        <spirit:name>xgui/led_v0_1.tcl</spirit:name>
+        <spirit:name>xgui/led_controller_v1_0.tcl</spirit:name>
         <spirit:fileType>tclSource</spirit:fileType>
-        <spirit:userFileType>CHECKSUM_962c3628</spirit:userFileType>
+        <spirit:userFileType>CHECKSUM_cb081fc2</spirit:userFileType>
         <spirit:userFileType>XGUI_VERSION_2</spirit:userFileType>
       </spirit:file>
     </spirit:fileSet>
@@ -847,7 +834,7 @@
       </spirit:file>
     </spirit:fileSet>
   </spirit:fileSets>
-  <spirit:description>AXI to LED interface</spirit:description>
+  <spirit:description>AXI LED Controller with On/Off, Pulse and Dim features</spirit:description>
   <spirit:parameters>
     <spirit:parameter>
       <spirit:name>C_S_AXI_DATA_WIDTH</spirit:name>
@@ -866,7 +853,7 @@
       <spirit:name>C_S_AXI_ADDR_WIDTH</spirit:name>
       <spirit:displayName>C S AXI ADDR WIDTH</spirit:displayName>
       <spirit:description>Width of S_AXI address bus</spirit:description>
-      <spirit:value spirit:format="long" spirit:resolve="user" spirit:id="PARAM_VALUE.C_S_AXI_ADDR_WIDTH" spirit:order="4">3</spirit:value>
+      <spirit:value spirit:format="long" spirit:resolve="user" spirit:id="PARAM_VALUE.C_S_AXI_ADDR_WIDTH" spirit:order="4">7</spirit:value>
       <spirit:vendorExtensions>
         <xilinx:parameterInfo>
           <xilinx:enablement>
@@ -901,16 +888,16 @@
     </spirit:parameter>
     <spirit:parameter>
       <spirit:name>Component_Name</spirit:name>
-      <spirit:value spirit:resolve="user" spirit:id="PARAM_VALUE.Component_Name" spirit:order="1">led_v0_1</spirit:value>
+      <spirit:value spirit:resolve="user" spirit:id="PARAM_VALUE.Component_Name" spirit:order="1">led_controller_v1_0</spirit:value>
     </spirit:parameter>
     <spirit:parameter>
       <spirit:name>C_LED_INTERFACES</spirit:name>
-      <spirit:displayName>Number of LED interfaces</spirit:displayName>
-      <spirit:value spirit:format="long" spirit:resolve="user" spirit:id="PARAM_VALUE.C_LED_INTERFACES" spirit:minimum="1" spirit:maximum="4" spirit:rangeType="long">2</spirit:value>
+      <spirit:displayName>LED interfaces</spirit:displayName>
+      <spirit:value spirit:format="long" spirit:resolve="user" spirit:id="PARAM_VALUE.C_LED_INTERFACES" spirit:minimum="1" spirit:maximum="16" spirit:rangeType="long">2</spirit:value>
     </spirit:parameter>
     <spirit:parameter>
       <spirit:name>C_ACTIVE_HIGH</spirit:name>
-      <spirit:displayName>LED active high</spirit:displayName>
+      <spirit:displayName>Active high</spirit:displayName>
       <spirit:value spirit:format="bool" spirit:resolve="user" spirit:id="PARAM_VALUE.C_ACTIVE_HIGH">false</spirit:value>
     </spirit:parameter>
   </spirit:parameters>
@@ -922,26 +909,27 @@
       <xilinx:taxonomies>
         <xilinx:taxonomy>AXI_Peripheral</xilinx:taxonomy>
       </xilinx:taxonomies>
-      <xilinx:displayName>led_v0.1</xilinx:displayName>
-      <xilinx:coreRevision>3</xilinx:coreRevision>
+      <xilinx:displayName>AXI LED Controller</xilinx:displayName>
+      <xilinx:vendorDisplayName>University of Wisconsin-Madison</xilinx:vendorDisplayName>
+      <xilinx:coreRevision>8</xilinx:coreRevision>
       <xilinx:upgrades>
-        <xilinx:canUpgradeFrom>user.org:user:led:0.1</xilinx:canUpgradeFrom>
+        <xilinx:canUpgradeFrom>user.org:user:led_controller:1.0</xilinx:canUpgradeFrom>
       </xilinx:upgrades>
-      <xilinx:coreCreationDateTime>2017-04-20T13:28:30Z</xilinx:coreCreationDateTime>
+      <xilinx:coreCreationDateTime>2018-01-11T23:50:50Z</xilinx:coreCreationDateTime>
       <xilinx:tags>
-        <xilinx:tag xilinx:name="user.org:user:led:0.1_ARCHIVE_LOCATION">/data/mpv/ip_repo/led_0.1</xilinx:tag>
-        <xilinx:tag xilinx:name="uw:user:led:0.1_ARCHIVE_LOCATION">/data/mpv/ip_repo/led_0.1</xilinx:tag>
-        <xilinx:tag xilinx:name="uw:uw:led:0.1_ARCHIVE_LOCATION">/data/mpv/ip_repo/led_0.1</xilinx:tag>
+        <xilinx:tag xilinx:name="user.org:user:led_controller:1.0_ARCHIVE_LOCATION">/scratch/mpv/IPMC/Vivado/ip_repo/led_controller_1.0</xilinx:tag>
+        <xilinx:tag xilinx:name="uw:user:led_controller:1.0_ARCHIVE_LOCATION">/scratch/mpv/IPMC/Vivado/ip_repo/led_controller_1.0</xilinx:tag>
+        <xilinx:tag xilinx:name="uw:uw:led_controller:1.0_ARCHIVE_LOCATION">/scratch/mpv/IPMC/Vivado/ip_repo/led_controller_1.0</xilinx:tag>
       </xilinx:tags>
     </xilinx:coreExtensions>
     <xilinx:packagingInfo>
-      <xilinx:xilinxVersion>2016.4</xilinx:xilinxVersion>
-      <xilinx:checksum xilinx:scope="busInterfaces" xilinx:value="58606cd9"/>
+      <xilinx:xilinxVersion>2017.2</xilinx:xilinxVersion>
+      <xilinx:checksum xilinx:scope="busInterfaces" xilinx:value="7c295cd4"/>
       <xilinx:checksum xilinx:scope="memoryMaps" xilinx:value="59f5074b"/>
-      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="e57c6944"/>
-      <xilinx:checksum xilinx:scope="ports" xilinx:value="f8fe9406"/>
-      <xilinx:checksum xilinx:scope="hdlParameters" xilinx:value="31d8abbc"/>
-      <xilinx:checksum xilinx:scope="parameters" xilinx:value="d813af4d"/>
+      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="10c8a77c"/>
+      <xilinx:checksum xilinx:scope="ports" xilinx:value="69b1ec52"/>
+      <xilinx:checksum xilinx:scope="hdlParameters" xilinx:value="51fe9631"/>
+      <xilinx:checksum xilinx:scope="parameters" xilinx:value="a4c07809"/>
     </xilinx:packagingInfo>
   </spirit:vendorExtensions>
 </spirit:component>
