@@ -52,51 +52,68 @@
 
 #include "led_controller.h"
 
+/* Three different demos, 0-On/Off, 1-Pulse, 2-Dim */
+int LED_Controller_demo(int demo)
+{
+	int i, k, Status;
+
+	LED_Controller led_controller_list[XPAR_LED_CONTROLLER_NUM_INSTANCES];
+
+	/* Initialize the LED Controller drivers */
+	for (i = 0; i < XPAR_LED_CONTROLLER_NUM_INSTANCES; i++) {
+		Status = LED_Controller_Initialize(&(led_controller_list[i]), i);
+		if (Status != XST_SUCCESS) {
+			xil_printf("LED_Controller Initialization Failed\r\n");
+			return XST_FAILURE;
+		}
+	}
+
+	/* Switch based on the desired demo */
+	switch (demo) {
+		case 0:
+			// Demo 1: Turn ON all LEDs
+			for (i = 0; i < XPAR_LED_CONTROLLER_NUM_INSTANCES; i++) {
+				for (k = 0; k < led_controller_list[i].InterfaceCount; k++) {
+					LED_Controller_SetOnOff(&(led_controller_list[i]), k, 1);
+				}
+			}
+			break;
+		case 1:
+			// Demo 2: Set all LEDs on normal pulsing mode
+			for (i = 0; i < XPAR_LED_CONTROLLER_NUM_INSTANCES; i++) {
+				for (k = 0; k < led_controller_list[i].InterfaceCount; k++) {
+					LED_Controller_Pulse(&(led_controller_list[i]), k, LED_PULSE_NORMAL);
+				}
+			}
+			break;
+		case 2:
+			// Demo 3: Set all LEDs at 50% dimming
+			for (i = 0; i < XPAR_LED_CONTROLLER_NUM_INSTANCES; i++) {
+				for (k = 0; k < led_controller_list[i].InterfaceCount; k++) {
+					LED_Controller_Dim(&(led_controller_list[i]), k, LED_DIM_50);
+				}
+			}
+			break;
+		default: break;
+	}
+
+	return XST_SUCCESS;
+}
+
 int main()
 {
-	LED_Controller led_intf[2];
-	int i = 0, k;
-	u8 state[6] = {0};
-
-	LED_Controller *target_ctrl;
-	u32 target_intf;
-	u32 mode = 0;
-
     init_platform();
 
     print("Hello World\n\r");
 
     // LED demo
-    LED_Controller_Initialize(&(led_intf[0]), 0);
-    LED_Controller_Initialize(&(led_intf[1]), 1);
-
     while (1) {
-		for (i = 0; i < 6; i++) {
-			if (i < 2) {
-				target_ctrl = &(led_intf[0]);
-				target_intf = i;
-			} else {
-				target_ctrl = &(led_intf[1]);
-				target_intf = i - 2;
-			}
-
-			if (mode == 0) {
-				LED_Controller_SetOnOff(target_ctrl, target_intf, state[i]);
-				state[i] = (state[i]!=0?0:1);
-			} else if (mode == 1) {
-				LED_Controller_Pulse(target_ctrl, target_intf, LED_PULSE_NORMAL);
-			} else {
-				LED_Controller_Dim(target_ctrl, target_intf, LED_DIM_50);
-			}
-
-
-			if (i == 5) {
-				mode++;
-				if (mode > 2) mode = 0;
-			}
-
-			usleep(200000);
-		}
+    	LED_Controller_demo(0);
+		sleep(3);
+		LED_Controller_demo(1);
+		sleep(3);
+		LED_Controller_demo(2);
+		sleep(3);
     }
 
     cleanup_platform();
