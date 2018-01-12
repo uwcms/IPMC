@@ -378,22 +378,6 @@
         </spirit:configurableElementValues>
       </spirit:componentInstance>
       <spirit:componentInstance>
-        <spirit:instanceName>led_0</spirit:instanceName>
-        <spirit:componentRef spirit:library="uw" spirit:name="led" spirit:vendor="uw" spirit:version="0.1"/>
-        <spirit:configurableElementValues>
-          <spirit:configurableElementValue spirit:referenceId="bd:xciName">ipmc_bd_led_0_0</spirit:configurableElementValue>
-          <spirit:configurableElementValue spirit:referenceId="C_ACTIVE_HIGH">false</spirit:configurableElementValue>
-        </spirit:configurableElementValues>
-      </spirit:componentInstance>
-      <spirit:componentInstance>
-        <spirit:instanceName>led_1</spirit:instanceName>
-        <spirit:componentRef spirit:library="uw" spirit:name="led" spirit:vendor="uw" spirit:version="0.1"/>
-        <spirit:configurableElementValues>
-          <spirit:configurableElementValue spirit:referenceId="bd:xciName">ipmc_bd_led_1_0</spirit:configurableElementValue>
-          <spirit:configurableElementValue spirit:referenceId="C_LED_INTERFACES">4</spirit:configurableElementValue>
-        </spirit:configurableElementValues>
-      </spirit:componentInstance>
-      <spirit:componentInstance>
         <spirit:instanceName>proc_sys_reset_0</spirit:instanceName>
         <spirit:componentRef spirit:library="ip" spirit:name="proc_sys_reset" spirit:vendor="xilinx.com" spirit:version="5.0"/>
         <spirit:configurableElementValues>
@@ -576,6 +560,21 @@
           <spirit:configurableElementValue spirit:referenceId="bd:xciName">ipmc_bd_xvc_0_0</spirit:configurableElementValue>
         </spirit:configurableElementValues>
       </spirit:componentInstance>
+      <spirit:componentInstance>
+        <spirit:instanceName>led_controller_0</spirit:instanceName>
+        <spirit:componentRef spirit:library="uw" spirit:name="led_controller" spirit:vendor="uw" spirit:version="1.0"/>
+        <spirit:configurableElementValues>
+          <spirit:configurableElementValue spirit:referenceId="bd:xciName">ipmc_bd_led_controller_0_0</spirit:configurableElementValue>
+        </spirit:configurableElementValues>
+      </spirit:componentInstance>
+      <spirit:componentInstance>
+        <spirit:instanceName>led_controller_1</spirit:instanceName>
+        <spirit:componentRef spirit:library="uw" spirit:name="led_controller" spirit:vendor="uw" spirit:version="1.0"/>
+        <spirit:configurableElementValues>
+          <spirit:configurableElementValue spirit:referenceId="bd:xciName">ipmc_bd_led_controller_1_0</spirit:configurableElementValue>
+          <spirit:configurableElementValue spirit:referenceId="C_LED_INTERFACES">4</spirit:configurableElementValue>
+        </spirit:configurableElementValues>
+      </spirit:componentInstance>
     </spirit:componentInstances>
     <spirit:interconnections>
       <spirit:interconnection>
@@ -609,16 +608,6 @@
         <spirit:activeInterface spirit:busRef="M04_AXI" spirit:componentRef="axi_interconnect_0"/>
       </spirit:interconnection>
       <spirit:interconnection>
-        <spirit:name>axi_interconnect_0_M05_AXI</spirit:name>
-        <spirit:activeInterface spirit:busRef="S_AXI" spirit:componentRef="led_0"/>
-        <spirit:activeInterface spirit:busRef="M05_AXI" spirit:componentRef="axi_interconnect_0"/>
-      </spirit:interconnection>
-      <spirit:interconnection>
-        <spirit:name>axi_interconnect_0_M06_AXI</spirit:name>
-        <spirit:activeInterface spirit:busRef="S_AXI" spirit:componentRef="led_1"/>
-        <spirit:activeInterface spirit:busRef="M06_AXI" spirit:componentRef="axi_interconnect_0"/>
-      </spirit:interconnection>
-      <spirit:interconnection>
         <spirit:name>axi_interconnect_0_M07_AXI</spirit:name>
         <spirit:activeInterface spirit:busRef="M07_AXI" spirit:componentRef="axi_interconnect_0"/>
         <spirit:activeInterface spirit:busRef="S_AXI" spirit:componentRef="GPIO"/>
@@ -628,6 +617,16 @@
         <spirit:activeInterface spirit:busRef="M08_AXI" spirit:componentRef="axi_interconnect_0"/>
         <spirit:activeInterface spirit:busRef="S_AXI" spirit:componentRef="Management"/>
       </spirit:interconnection>
+      <spirit:interconnection>
+        <spirit:name>axi_interconnect_0_M05_AXI</spirit:name>
+        <spirit:activeInterface spirit:busRef="S_AXI" spirit:componentRef="led_controller_0"/>
+        <spirit:activeInterface spirit:busRef="M05_AXI" spirit:componentRef="axi_interconnect_0"/>
+      </spirit:interconnection>
+      <spirit:interconnection>
+        <spirit:name>axi_interconnect_0_M06_AXI</spirit:name>
+        <spirit:activeInterface spirit:busRef="S_AXI" spirit:componentRef="led_controller_1"/>
+        <spirit:activeInterface spirit:busRef="M06_AXI" spirit:componentRef="axi_interconnect_0"/>
+      </spirit:interconnection>
     </spirit:interconnections>
     <spirit:adHocConnections>
       <spirit:adHocConnection>
@@ -635,12 +634,12 @@
         <spirit:internalPortReference spirit:componentRef="processing_system7_0" spirit:portRef="FCLK_CLK0"/>
         <spirit:internalPortReference spirit:componentRef="ad7689_0" spirit:portRef="s_axi_aclk"/>
         <spirit:internalPortReference spirit:componentRef="ad7689_1" spirit:portRef="s_axi_aclk"/>
-        <spirit:internalPortReference spirit:componentRef="led_0" spirit:portRef="s_axi_aclk"/>
-        <spirit:internalPortReference spirit:componentRef="led_1" spirit:portRef="s_axi_aclk"/>
         <spirit:internalPortReference spirit:componentRef="axi_intc_0" spirit:portRef="s_axi_aclk"/>
         <spirit:internalPortReference spirit:componentRef="proc_sys_reset_0" spirit:portRef="slowest_sync_clk"/>
         <spirit:internalPortReference spirit:componentRef="processing_system7_0" spirit:portRef="M_AXI_GP0_ACLK"/>
         <spirit:internalPortReference spirit:componentRef="xvc_0" spirit:portRef="s_axi_aclk"/>
+        <spirit:internalPortReference spirit:componentRef="led_controller_0" spirit:portRef="s_axi_aclk"/>
+        <spirit:internalPortReference spirit:componentRef="led_controller_1" spirit:portRef="s_axi_aclk"/>
         <spirit:internalPortReference spirit:componentRef="AMCs" spirit:portRef="S00_ACLK"/>
         <spirit:internalPortReference spirit:componentRef="GPIO" spirit:portRef="s_axi_aclk"/>
         <spirit:internalPortReference spirit:componentRef="Management" spirit:portRef="s_axi_aclk"/>
@@ -718,24 +717,14 @@
         <spirit:internalPortReference spirit:componentRef="processing_system7_0" spirit:portRef="IRQ_F2P"/>
       </spirit:adHocConnection>
       <spirit:adHocConnection>
-        <spirit:name>led_0_m_led_out</spirit:name>
-        <spirit:internalPortReference spirit:componentRef="led_0" spirit:portRef="m_led_out"/>
-        <spirit:externalPortReference spirit:portRef="PL_LEDS"/>
-      </spirit:adHocConnection>
-      <spirit:adHocConnection>
-        <spirit:name>led_1_m_led_out</spirit:name>
-        <spirit:internalPortReference spirit:componentRef="led_1" spirit:portRef="m_led_out"/>
-        <spirit:externalPortReference spirit:portRef="ATCA_LEDS"/>
-      </spirit:adHocConnection>
-      <spirit:adHocConnection>
         <spirit:name>proc_sys_reset_0_peripheral_aresetn</spirit:name>
         <spirit:internalPortReference spirit:componentRef="proc_sys_reset_0" spirit:portRef="peripheral_aresetn"/>
         <spirit:internalPortReference spirit:componentRef="ad7689_0" spirit:portRef="s_axi_aresetn"/>
         <spirit:internalPortReference spirit:componentRef="ad7689_1" spirit:portRef="s_axi_aresetn"/>
-        <spirit:internalPortReference spirit:componentRef="led_0" spirit:portRef="s_axi_aresetn"/>
-        <spirit:internalPortReference spirit:componentRef="led_1" spirit:portRef="s_axi_aresetn"/>
         <spirit:internalPortReference spirit:componentRef="axi_intc_0" spirit:portRef="s_axi_aresetn"/>
         <spirit:internalPortReference spirit:componentRef="xvc_0" spirit:portRef="s_axi_aresetn"/>
+        <spirit:internalPortReference spirit:componentRef="led_controller_0" spirit:portRef="s_axi_aresetn"/>
+        <spirit:internalPortReference spirit:componentRef="led_controller_1" spirit:portRef="s_axi_aresetn"/>
         <spirit:internalPortReference spirit:componentRef="AMCs" spirit:portRef="M04_ARESETN"/>
         <spirit:internalPortReference spirit:componentRef="GPIO" spirit:portRef="s_axi_aresetn"/>
         <spirit:internalPortReference spirit:componentRef="Management" spirit:portRef="s_axi_aresetn"/>
@@ -764,6 +753,16 @@
         <spirit:name>xlconcat_1_dout</spirit:name>
         <spirit:internalPortReference spirit:componentRef="Management" spirit:portRef="dout"/>
         <spirit:internalPortReference spirit:componentRef="xlconcat_0" spirit:portRef="In3"/>
+      </spirit:adHocConnection>
+      <spirit:adHocConnection>
+        <spirit:name>led_controller_0_m_led_out</spirit:name>
+        <spirit:internalPortReference spirit:componentRef="led_controller_0" spirit:portRef="m_led_out"/>
+        <spirit:externalPortReference spirit:portRef="PL_LEDS"/>
+      </spirit:adHocConnection>
+      <spirit:adHocConnection>
+        <spirit:name>led_controller_1_m_led_out</spirit:name>
+        <spirit:internalPortReference spirit:componentRef="led_controller_1" spirit:portRef="m_led_out"/>
+        <spirit:externalPortReference spirit:portRef="ATCA_LEDS"/>
       </spirit:adHocConnection>
     </spirit:adHocConnections>
     <spirit:hierConnections>
@@ -12613,14 +12612,14 @@
             <spirit:range>64K</spirit:range>
           </spirit:segment>
           <spirit:segment>
-            <spirit:name>SEG_led_0_S_AXI_reg</spirit:name>
-            <spirit:displayName>/led_0/S_AXI/S_AXI_reg</spirit:displayName>
+            <spirit:name>SEG_led_controller_0_S_AXI_reg</spirit:name>
+            <spirit:displayName>/led_controller_0/S_AXI/S_AXI_reg</spirit:displayName>
             <spirit:addressOffset>0x43C80000</spirit:addressOffset>
             <spirit:range>64K</spirit:range>
           </spirit:segment>
           <spirit:segment>
-            <spirit:name>SEG_led_1_S_AXI_reg</spirit:name>
-            <spirit:displayName>/led_1/S_AXI/S_AXI_reg</spirit:displayName>
+            <spirit:name>SEG_led_controller_1_S_AXI_reg</spirit:name>
+            <spirit:displayName>/led_controller_1/S_AXI/S_AXI_reg</spirit:displayName>
             <spirit:addressOffset>0x43C90000</spirit:addressOffset>
             <spirit:range>64K</spirit:range>
           </spirit:segment>

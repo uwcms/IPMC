@@ -1,7 +1,7 @@
 --Copyright 1986-2017 Xilinx, Inc. All Rights Reserved.
 ----------------------------------------------------------------------------------
 --Tool Version: Vivado v.2017.2 (lin64) Build 1909853 Thu Jun 15 18:39:10 MDT 2017
---Date        : Fri Dec 22 10:36:39 2017
+--Date        : Fri Jan 12 11:35:57 2018
 --Host        : beck.hep.wisc.edu running 64-bit CentOS Linux release 7.4.1708 (Core)
 --Command     : generate_target ipmc_bd.bd
 --Design      : ipmc_bd
@@ -11888,58 +11888,6 @@ architecture STRUCTURE of ipmc_bd is
     irq : out STD_LOGIC
   );
   end component ipmc_bd_axi_intc_0_0;
-  component ipmc_bd_led_0_0 is
-  port (
-    m_led_out : out STD_LOGIC_VECTOR ( 1 downto 0 );
-    s_axi_awaddr : in STD_LOGIC_VECTOR ( 2 downto 0 );
-    s_axi_awprot : in STD_LOGIC_VECTOR ( 2 downto 0 );
-    s_axi_awvalid : in STD_LOGIC;
-    s_axi_awready : out STD_LOGIC;
-    s_axi_wdata : in STD_LOGIC_VECTOR ( 31 downto 0 );
-    s_axi_wstrb : in STD_LOGIC_VECTOR ( 3 downto 0 );
-    s_axi_wvalid : in STD_LOGIC;
-    s_axi_wready : out STD_LOGIC;
-    s_axi_bresp : out STD_LOGIC_VECTOR ( 1 downto 0 );
-    s_axi_bvalid : out STD_LOGIC;
-    s_axi_bready : in STD_LOGIC;
-    s_axi_araddr : in STD_LOGIC_VECTOR ( 2 downto 0 );
-    s_axi_arprot : in STD_LOGIC_VECTOR ( 2 downto 0 );
-    s_axi_arvalid : in STD_LOGIC;
-    s_axi_arready : out STD_LOGIC;
-    s_axi_rdata : out STD_LOGIC_VECTOR ( 31 downto 0 );
-    s_axi_rresp : out STD_LOGIC_VECTOR ( 1 downto 0 );
-    s_axi_rvalid : out STD_LOGIC;
-    s_axi_rready : in STD_LOGIC;
-    s_axi_aclk : in STD_LOGIC;
-    s_axi_aresetn : in STD_LOGIC
-  );
-  end component ipmc_bd_led_0_0;
-  component ipmc_bd_led_1_0 is
-  port (
-    m_led_out : out STD_LOGIC_VECTOR ( 3 downto 0 );
-    s_axi_awaddr : in STD_LOGIC_VECTOR ( 2 downto 0 );
-    s_axi_awprot : in STD_LOGIC_VECTOR ( 2 downto 0 );
-    s_axi_awvalid : in STD_LOGIC;
-    s_axi_awready : out STD_LOGIC;
-    s_axi_wdata : in STD_LOGIC_VECTOR ( 31 downto 0 );
-    s_axi_wstrb : in STD_LOGIC_VECTOR ( 3 downto 0 );
-    s_axi_wvalid : in STD_LOGIC;
-    s_axi_wready : out STD_LOGIC;
-    s_axi_bresp : out STD_LOGIC_VECTOR ( 1 downto 0 );
-    s_axi_bvalid : out STD_LOGIC;
-    s_axi_bready : in STD_LOGIC;
-    s_axi_araddr : in STD_LOGIC_VECTOR ( 2 downto 0 );
-    s_axi_arprot : in STD_LOGIC_VECTOR ( 2 downto 0 );
-    s_axi_arvalid : in STD_LOGIC;
-    s_axi_arready : out STD_LOGIC;
-    s_axi_rdata : out STD_LOGIC_VECTOR ( 31 downto 0 );
-    s_axi_rresp : out STD_LOGIC_VECTOR ( 1 downto 0 );
-    s_axi_rvalid : out STD_LOGIC;
-    s_axi_rready : in STD_LOGIC;
-    s_axi_aclk : in STD_LOGIC;
-    s_axi_aresetn : in STD_LOGIC
-  );
-  end component ipmc_bd_led_1_0;
   component ipmc_bd_proc_sys_reset_0_0 is
   port (
     slowest_sync_clk : in STD_LOGIC;
@@ -12061,6 +12009,58 @@ architecture STRUCTURE of ipmc_bd is
     s_axi_aresetn : in STD_LOGIC
   );
   end component ipmc_bd_xvc_0_0;
+  component ipmc_bd_led_controller_0_0 is
+  port (
+    m_led_out : out STD_LOGIC_VECTOR ( 1 downto 0 );
+    s_axi_awaddr : in STD_LOGIC_VECTOR ( 6 downto 0 );
+    s_axi_awprot : in STD_LOGIC_VECTOR ( 2 downto 0 );
+    s_axi_awvalid : in STD_LOGIC;
+    s_axi_awready : out STD_LOGIC;
+    s_axi_wdata : in STD_LOGIC_VECTOR ( 31 downto 0 );
+    s_axi_wstrb : in STD_LOGIC_VECTOR ( 3 downto 0 );
+    s_axi_wvalid : in STD_LOGIC;
+    s_axi_wready : out STD_LOGIC;
+    s_axi_bresp : out STD_LOGIC_VECTOR ( 1 downto 0 );
+    s_axi_bvalid : out STD_LOGIC;
+    s_axi_bready : in STD_LOGIC;
+    s_axi_araddr : in STD_LOGIC_VECTOR ( 6 downto 0 );
+    s_axi_arprot : in STD_LOGIC_VECTOR ( 2 downto 0 );
+    s_axi_arvalid : in STD_LOGIC;
+    s_axi_arready : out STD_LOGIC;
+    s_axi_rdata : out STD_LOGIC_VECTOR ( 31 downto 0 );
+    s_axi_rresp : out STD_LOGIC_VECTOR ( 1 downto 0 );
+    s_axi_rvalid : out STD_LOGIC;
+    s_axi_rready : in STD_LOGIC;
+    s_axi_aclk : in STD_LOGIC;
+    s_axi_aresetn : in STD_LOGIC
+  );
+  end component ipmc_bd_led_controller_0_0;
+  component ipmc_bd_led_controller_1_0 is
+  port (
+    m_led_out : out STD_LOGIC_VECTOR ( 3 downto 0 );
+    s_axi_awaddr : in STD_LOGIC_VECTOR ( 6 downto 0 );
+    s_axi_awprot : in STD_LOGIC_VECTOR ( 2 downto 0 );
+    s_axi_awvalid : in STD_LOGIC;
+    s_axi_awready : out STD_LOGIC;
+    s_axi_wdata : in STD_LOGIC_VECTOR ( 31 downto 0 );
+    s_axi_wstrb : in STD_LOGIC_VECTOR ( 3 downto 0 );
+    s_axi_wvalid : in STD_LOGIC;
+    s_axi_wready : out STD_LOGIC;
+    s_axi_bresp : out STD_LOGIC_VECTOR ( 1 downto 0 );
+    s_axi_bvalid : out STD_LOGIC;
+    s_axi_bready : in STD_LOGIC;
+    s_axi_araddr : in STD_LOGIC_VECTOR ( 6 downto 0 );
+    s_axi_arprot : in STD_LOGIC_VECTOR ( 2 downto 0 );
+    s_axi_arvalid : in STD_LOGIC;
+    s_axi_arready : out STD_LOGIC;
+    s_axi_rdata : out STD_LOGIC_VECTOR ( 31 downto 0 );
+    s_axi_rresp : out STD_LOGIC_VECTOR ( 1 downto 0 );
+    s_axi_rvalid : out STD_LOGIC;
+    s_axi_rready : in STD_LOGIC;
+    s_axi_aclk : in STD_LOGIC;
+    s_axi_aresetn : in STD_LOGIC
+  );
+  end component ipmc_bd_led_controller_1_0;
   signal ACLK_1 : STD_LOGIC;
   signal ALARM_A_1 : STD_LOGIC;
   signal ALARM_B_1 : STD_LOGIC;
@@ -12335,8 +12335,8 @@ architecture STRUCTURE of ipmc_bd is
   signal axi_interconnect_0_M08_AXI_WREADY : STD_LOGIC_VECTOR ( 0 to 0 );
   signal axi_interconnect_0_M08_AXI_WSTRB : STD_LOGIC_VECTOR ( 3 downto 0 );
   signal axi_interconnect_0_M08_AXI_WVALID : STD_LOGIC_VECTOR ( 0 to 0 );
-  signal led_0_m_led_out : STD_LOGIC_VECTOR ( 1 downto 0 );
-  signal led_1_m_led_out : STD_LOGIC_VECTOR ( 3 downto 0 );
+  signal led_controller_0_m_led_out : STD_LOGIC_VECTOR ( 1 downto 0 );
+  signal led_controller_1_m_led_out : STD_LOGIC_VECTOR ( 3 downto 0 );
   signal proc_sys_reset_0_peripheral_aresetn : STD_LOGIC_VECTOR ( 0 to 0 );
   signal processing_system7_0_DDR_ADDR : STD_LOGIC_VECTOR ( 14 downto 0 );
   signal processing_system7_0_DDR_BA : STD_LOGIC_VECTOR ( 2 downto 0 );
@@ -12405,7 +12405,7 @@ begin
   AMCs_TPS2362_MP_PG_N <= TPS2358_3_mp_pg_n;
   AMCs_TPS2362_PWR_FLT_N <= TPS2358_3_pwr_flt_n;
   AMCs_TPS2362_PWR_PG_N <= TPS2358_3_pwr_pg_n;
-  ATCA_LEDS(3 downto 0) <= led_1_m_led_out(3 downto 0);
+  ATCA_LEDS(3 downto 0) <= led_controller_1_m_led_out(3 downto 0);
   HNDL_SW_1 <= HNDL_SW;
   I2C_0_scl <= AMCs_I2C2_scl;
   I2C_1_scl <= AMCs_I2C_scl;
@@ -12423,7 +12423,7 @@ begin
   MC_4_enable_n <= AMCs_MC3_enable_n;
   PG_A_1 <= PG_A;
   PG_B_1 <= PG_B;
-  PL_LEDS(1 downto 0) <= led_0_m_led_out(1 downto 0);
+  PL_LEDS(1 downto 0) <= led_controller_0_m_led_out(1 downto 0);
   PYLD12V_EN(0) <= Management_gpio2_io_o(0);
   TPS2358_0_mp_ena_n <= AMCs_TPS2360_MP_ENA_N;
   TPS2358_0_pwr_ena_n <= AMCs_TPS2360_PWR_ENA_N;
@@ -12876,16 +12876,16 @@ axi_interconnect_0: entity work.ipmc_bd_axi_interconnect_0_0
       S00_AXI_wstrb(3 downto 0) => S00_AXI_1_WSTRB(3 downto 0),
       S00_AXI_wvalid => S00_AXI_1_WVALID
     );
-led_0: component ipmc_bd_led_0_0
+led_controller_0: component ipmc_bd_led_controller_0_0
      port map (
-      m_led_out(1 downto 0) => led_0_m_led_out(1 downto 0),
+      m_led_out(1 downto 0) => led_controller_0_m_led_out(1 downto 0),
       s_axi_aclk => ACLK_1,
-      s_axi_araddr(2 downto 0) => axi_interconnect_0_M05_AXI_ARADDR(2 downto 0),
+      s_axi_araddr(6 downto 0) => axi_interconnect_0_M05_AXI_ARADDR(6 downto 0),
       s_axi_aresetn => proc_sys_reset_0_peripheral_aresetn(0),
       s_axi_arprot(2 downto 0) => axi_interconnect_0_M05_AXI_ARPROT(2 downto 0),
       s_axi_arready => axi_interconnect_0_M05_AXI_ARREADY,
       s_axi_arvalid => axi_interconnect_0_M05_AXI_ARVALID,
-      s_axi_awaddr(2 downto 0) => axi_interconnect_0_M05_AXI_AWADDR(2 downto 0),
+      s_axi_awaddr(6 downto 0) => axi_interconnect_0_M05_AXI_AWADDR(6 downto 0),
       s_axi_awprot(2 downto 0) => axi_interconnect_0_M05_AXI_AWPROT(2 downto 0),
       s_axi_awready => axi_interconnect_0_M05_AXI_AWREADY,
       s_axi_awvalid => axi_interconnect_0_M05_AXI_AWVALID,
@@ -12901,16 +12901,16 @@ led_0: component ipmc_bd_led_0_0
       s_axi_wstrb(3 downto 0) => axi_interconnect_0_M05_AXI_WSTRB(3 downto 0),
       s_axi_wvalid => axi_interconnect_0_M05_AXI_WVALID
     );
-led_1: component ipmc_bd_led_1_0
+led_controller_1: component ipmc_bd_led_controller_1_0
      port map (
-      m_led_out(3 downto 0) => led_1_m_led_out(3 downto 0),
+      m_led_out(3 downto 0) => led_controller_1_m_led_out(3 downto 0),
       s_axi_aclk => ACLK_1,
-      s_axi_araddr(2 downto 0) => axi_interconnect_0_M06_AXI_ARADDR(2 downto 0),
+      s_axi_araddr(6 downto 0) => axi_interconnect_0_M06_AXI_ARADDR(6 downto 0),
       s_axi_aresetn => proc_sys_reset_0_peripheral_aresetn(0),
       s_axi_arprot(2 downto 0) => axi_interconnect_0_M06_AXI_ARPROT(2 downto 0),
       s_axi_arready => axi_interconnect_0_M06_AXI_ARREADY,
       s_axi_arvalid => axi_interconnect_0_M06_AXI_ARVALID,
-      s_axi_awaddr(2 downto 0) => axi_interconnect_0_M06_AXI_AWADDR(2 downto 0),
+      s_axi_awaddr(6 downto 0) => axi_interconnect_0_M06_AXI_AWADDR(6 downto 0),
       s_axi_awprot(2 downto 0) => axi_interconnect_0_M06_AXI_AWPROT(2 downto 0),
       s_axi_awready => axi_interconnect_0_M06_AXI_AWREADY,
       s_axi_awvalid => axi_interconnect_0_M06_AXI_AWVALID,
