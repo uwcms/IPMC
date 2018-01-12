@@ -69,8 +69,8 @@ void driver_init(bool use_pl) {
 	console_log_filter = new LogTree::Filter(LOG, console_log_handler, LogTree::LOG_NOTICE);
 
 	PS_SPI *ps_spi0 = new PS_SPI(XPAR_PS7_SPI_0_DEVICE_ID, XPAR_PS7_SPI_0_INTR);
-	eeprom_mac = new SPI_EEPROM(*ps_spi0, 0, 0x100, 16);
-	eeprom_data = new SPI_EEPROM(*ps_spi0, 1, 0x40000, 64);
+	eeprom_data = new SPI_EEPROM(*ps_spi0, 0, 0x8000, 64);
+	eeprom_mac = new SPI_EEPROM(*ps_spi0, 1, 0x100, 16);
 	persistent_storage = new PersistentStorage(*eeprom_data, LOG["persistent_storage"]);
 
 	XGpioPs_Config* gpiops_config = XGpioPs_LookupConfig(XPAR_PS7_GPIO_0_DEVICE_ID);
