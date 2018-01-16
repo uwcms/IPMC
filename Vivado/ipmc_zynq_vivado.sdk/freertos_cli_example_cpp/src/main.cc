@@ -110,7 +110,7 @@ void vApplicationMallocFailedHook( void )
 void vApplicationStackOverflowHook( TaskHandle_t xTask, char *pcTaskName )
 {
 	/* Attempt to prevent the handle and name of the task that overflowed its stack
-	from being optimised away because they are not used. */
+	from being optimized away because they are not used. */
 	volatile TaskHandle_t xOverflowingTaskHandle = xTask;
 	volatile char *pcOverflowingTaskName = pcTaskName;
 
