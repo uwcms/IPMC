@@ -5,8 +5,6 @@
  *      Author: jtikalsky
  */
 
-#define SRC_LIBWRAP_C_
-#include <libwrap.h> // auto-included from IPMC.h, but include first here to ensure there are no failed hidden dependencies in libwrap.h
 #include <IPMC.h>
 #include <drivers/ps_uart/PSUART.h>
 #include <libs/StatCounter.h>
@@ -20,16 +18,56 @@
 #include <stdarg.h>
 #include <cxxabi.h> // for cxa_demangle()
 
-static volatile SemaphoreHandle_t libwrap_mutex = NULL;
+extern "C" {
+int __real_printf(const char *format, ...);
+int __real_sprintf(char *str, const char *format, ...);
+int __real_snprintf(char *str, size_t size, const char *format, ...);
+int __real_vprintf(const char *format, va_list ap);
+int __real_vsprintf(char *str, const char *format, va_list ap);
+int __real_vsnprintf(char *str, size_t size, const char *format, va_list ap);
 
-static inline void init_libwrap_mutex() {
-	if (libwrap_mutex)
+void *__wrap_malloc(size_t size);
+void __wrap_free(void *ptr);
+void *__wrap_calloc(size_t nmemb, size_t size);
+void *__wrap_realloc(void *ptr, size_t size);
+int __wrap_printf(const char *format, ...);
+int __wrap_sprintf(char *str, const char *format, ...);
+int __wrap_snprintf(char *str, size_t size, const char *format, ...);
+int __wrap_vprintf(const char *format, va_list ap);
+int __wrap_vsprintf(char *str, const char *format, va_list ap);
+int __wrap_vsnprintf(char *str, size_t size, const char *format, va_list ap);
+void __wrap_xil_printf( const char8 *ctrl1, ...);
+void __wrap_print( const char8 *ptr);
+} // extern "C"
+
+volatile SemaphoreHandle_t stdlib_mutex = NULL;
+
+void *__wrap_malloc(size_t size) {
+	return pvPortMalloc(size);
+}
+
+void __wrap_free(void *ptr) {
+	vPortFree(ptr);
+}
+
+void *__wrap_calloc(size_t nmemb, size_t size) {
+	configASSERT(0); // Unimplemented.  Check manpage for memory initialization requirements.
+	return NULL;
+}
+
+void *__wrap_realloc(void *ptr, size_t size) {
+	configASSERT(0); // Unimplemented.  Check manpage for 'smaller vs larger' requirements.
+	return NULL;
+}
+
+static inline void init_stdlib_mutex() {
+	if (stdlib_mutex)
 		return;
 	SemaphoreHandle_t sem = xSemaphoreCreateMutex();
 	configASSERT(sem);
 	taskENTER_CRITICAL();
-	if (!libwrap_mutex) {
-		libwrap_mutex = sem;
+	if (!stdlib_mutex) {
+		stdlib_mutex = sem;
 		sem = NULL;
 	}
 	taskEXIT_CRITICAL();
@@ -37,32 +75,32 @@ static inline void init_libwrap_mutex() {
 		vSemaphoreDelete(sem);
 }
 
-int _uwipmc_printf(const char *format, ...) {
+int __wrap_printf(const char *format, ...) {
     va_list args;
     va_start(args, format);
-    int ret = _uwipmc_vprintf(format, args);
+    int ret = vprintf(format, args);
     va_end(args);
     return ret;
 }
 
-int _uwipmc_sprintf(char *str, const char *format, ...) {
-	init_libwrap_mutex();
+int __wrap_sprintf(char *str, const char *format, ...) {
+	init_stdlib_mutex();
 	va_list args;
 	va_start(args, format);
-	xSemaphoreTake(libwrap_mutex, portMAX_DELAY);
-	int ret = vsprintf(str, format, args);
-	xSemaphoreGive(libwrap_mutex);
+	xSemaphoreTake(stdlib_mutex, portMAX_DELAY);
+	int ret = __real_vsprintf(str, format, args);
+	xSemaphoreGive(stdlib_mutex);
 	va_end(args);
 	return ret;
 }
 
-int _uwipmc_snprintf(char *str, size_t size, const char *format, ...) {
-	init_libwrap_mutex();
+int __wrap_snprintf(char *str, size_t size, const char *format, ...) {
+	init_stdlib_mutex();
 	va_list args;
 	va_start(args, format);
-	xSemaphoreTake(libwrap_mutex, portMAX_DELAY);
-	int ret = vsnprintf(str, size, format, args);
-	xSemaphoreGive(libwrap_mutex);
+	xSemaphoreTake(stdlib_mutex, portMAX_DELAY);
+	int ret = __real_vsnprintf(str, size, format, args);
+	xSemaphoreGive(stdlib_mutex);
 	va_end(args);
 	return ret;
 }
@@ -72,7 +110,7 @@ StatCounter printf_overrun_discard_bytes("printf.stdout_full.lost_bytes");
 StatCounter printfs_count("printf.count");
 StatCounter printfs_bytes("printf.bytes");
 
-int _uwipmc_vprintf(const char *format, va_list ap) {
+int __wrap_vprintf(const char *format, va_list ap) {
 	/* We have to do this printf ourself, but we'll do it onto the heap.
 	 *
 	 * We're going to do a snprintf with length 0, to get the hypothetical
@@ -82,14 +120,14 @@ int _uwipmc_vprintf(const char *format, va_list ap) {
 	 */
 	va_list ap2;
 	va_copy(ap2, ap);
-	int s = _uwipmc_vsnprintf(NULL, 0, format, ap) + 1;
+	int s = __real_vsnprintf(NULL, 0, format, ap) + 1;
 	if (s <= 0) {
 		va_end(ap);
 		va_end(ap2);
 		return s;
 	}
 	char *str = (char*) pvPortMalloc(s);
-	_uwipmc_vsnprintf(str, s, format, ap2);
+	__real_vsnprintf(str, s, format, ap2);
 	va_end(ap);
 	va_end(ap2);
 	std::string outstr(str);
@@ -116,46 +154,31 @@ int _uwipmc_vprintf(const char *format, va_list ap) {
 	return written;
 }
 
-int _uwipmc_vsprintf(char *str, const char *format, va_list ap) {
-	init_libwrap_mutex();
-	xSemaphoreTake(libwrap_mutex, portMAX_DELAY);
+int __wrap_vsprintf(char *str, const char *format, va_list ap) {
+	init_stdlib_mutex();
+	xSemaphoreTake(stdlib_mutex, portMAX_DELAY);
 	int ret = vsprintf(str, format, ap);
-	xSemaphoreGive(libwrap_mutex);
+	xSemaphoreGive(stdlib_mutex);
 	return ret;
 }
 
-int _uwipmc_vsnprintf(char *str, size_t size, const char *format, va_list ap) {
-	init_libwrap_mutex();
-	xSemaphoreTake(libwrap_mutex, portMAX_DELAY);
-	int ret = vsnprintf(str, size, format, ap);
-	xSemaphoreGive(libwrap_mutex);
+int __wrap_vsnprintf(char *str, size_t size, const char *format, va_list ap) {
+	init_stdlib_mutex();
+	xSemaphoreTake(stdlib_mutex, portMAX_DELAY);
+	int ret = __real_vsnprintf(str, size, format, ap);
+	xSemaphoreGive(stdlib_mutex);
 	return ret;
 }
 
-std::string stdsprintf(const char *fmt, ...) {
-    va_list va;
-    va_list va2;
-    va_start(va, fmt);
-    va_copy(va2, va);
-    size_t s = _uwipmc_vsnprintf(NULL, 0, fmt, va) + 1;
-    char str[s];
-    _uwipmc_vsnprintf(str, s, fmt, va2);
-    va_end(va);
-    va_end(va2);
-    return std::string(str);
+void __wrap_xil_printf( const char8 *ctrl1, ...) {
+    va_list args;
+    va_start(args, ctrl1);
+    vprintf(ctrl1, args);
+    va_end(args);
 }
 
-/**
- * Modify a std::string in place to contain \r\n where it currently contains \n.
- * @param input The string to modify.
- */
-void windows_newline(std::string &input) {
-	for (unsigned int i = 0; i < input.size(); ++i) {
-		if (input[i] == '\n') {
-			input.replace(i, 1, "\r\n");
-			i++; // We don't want to hit that \n again on the (now) next character.
-		}
-	}
+void __wrap_print( const char8 *ptr) {
+	printf("%s", ptr);
 }
 
 /**
@@ -163,22 +186,20 @@ void windows_newline(std::string &input) {
  * demangle a C++ type name.
  *
  * @param name The name to be demangled, perhaps returned from typeid(T).name()
- * @return The demangled form of name, or name if an error occured.
+ * @return The demangled form of name, or name if an error occurred.
  */
 std::string cxa_demangle(const char *name) {
-	init_libwrap_mutex();
+	init_stdlib_mutex();
 	size_t length = 0;
 	int status = 0;
 	std::string result(name);
-	xSemaphoreTake(libwrap_mutex, portMAX_DELAY);
-	// __cxa_demangle will malloc, so it needs this protection.
+	xSemaphoreTake(stdlib_mutex, portMAX_DELAY);
+	// __cxa_demangle will malloc, but that's now intercepted, but it might still need this protection.
 	char *demangled = abi::__cxa_demangle(name, NULL, &length, &status);
+	xSemaphoreGive(stdlib_mutex);
 	if (status == 0 && demangled)
 		result = demangled;
-#undef free
 	if (demangled)
 		free(demangled);
-#define free(p) vPortFree(p)
-	xSemaphoreGive(libwrap_mutex);
 	return result;
 }

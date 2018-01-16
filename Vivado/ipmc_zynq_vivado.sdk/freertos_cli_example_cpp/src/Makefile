@@ -28,6 +28,20 @@ export INCLUDE_PATHS = \
 	-I"$(WORKSPACE)/freertos_cli_example_cpp/src/common/FreeRTOS/include" \
 	-I"$(WORKSPACE)/ipmc_standalone_bsp/ps7_cortexa9_0/include" \
 
+export FUNCTION_WRAPPERS = \
+	-Wl,-wrap=malloc \
+	-Wl,-wrap=free \
+	-Wl,-wrap=calloc \
+	-Wl,-wrap=realloc \
+	-Wl,-wrap=printf \
+	-Wl,-wrap=sprintf \
+	-Wl,-wrap=snprintf \
+	-Wl,-wrap=vprintf \
+	-Wl,-wrap=vsprintf \
+	-Wl,-wrap=vsnprintf \
+	-Wl,-wrap=xil_printf \
+	-Wl,-wrap=print \
+
 export LIBRARY_PATHS = \
 	-L"$(WORKSPACE)/ipmc_standalone_bsp/ps7_cortexa9_0/lib" \
 
@@ -59,6 +73,7 @@ export LDFLAGS := \
 	-Wl,-build-id=none \
 	-specs=Xilinx.spec \
 	-Wl,-T -Wl,lscript.ld \
+	$(FUNCTION_WRAPPERS) \
 
 OBJS := \
 	$(patsubst ./%.c,.obj/$(BUILD_CONFIGURATION)/%.o,$(shell find -L . -type f -name '*.c')) \

@@ -124,7 +124,7 @@ void init_emacps(xemacpsif_s *xemacps, struct netif *netif)
 #endif
 
 	if (link_speed == XST_FAILURE) {
-		xil_printf("Assert due to phy setup failure \n\r",__func__);
+		xil_printf("Assert due to phy setup failure %s\n\r",__func__);
 	}
 
 	XEmacPs_SetOperatingSpeed(xemacpsp, link_speed);

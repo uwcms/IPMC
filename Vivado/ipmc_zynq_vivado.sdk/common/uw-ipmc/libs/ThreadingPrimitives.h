@@ -6,7 +6,6 @@
 #include <task.h>
 #include <event_groups.h>
 #include <list>
-#include <libwrap.h>
 #include <memory>
 
 /**

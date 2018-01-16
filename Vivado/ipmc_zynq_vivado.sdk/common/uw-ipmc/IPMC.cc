@@ -129,3 +129,29 @@ static void console_log_handler(LogTree &logtree, const std::string &message,
 static void tracebuffer_log_handler(LogTree &logtree, const std::string &message, enum LogTree::LogLevel level) {
 	TRACE.log(logtree.path.data(), logtree.path.size(), level, message.data(), message.size());
 }
+
+/**
+ * Modify a std::string in place to contain \r\n where it currently contains \n.
+ * @param input The string to modify.
+ */
+void windows_newline(std::string &input) {
+	for (unsigned int i = 0; i < input.size(); ++i) {
+		if (input[i] == '\n') {
+			input.replace(i, 1, "\r\n");
+			i++; // We don't want to hit that \n again on the (now) next character.
+		}
+	}
+}
+
+std::string stdsprintf(const char *fmt, ...) {
+    va_list va;
+    va_list va2;
+    va_start(va, fmt);
+    va_copy(va2, va);
+    size_t s = vsnprintf(NULL, 0, fmt, va) + 1;
+    char str[s];
+    vsnprintf(str, s, fmt, va2);
+    va_end(va);
+    va_end(va2);
+    return std::string(str);
+}

@@ -10,7 +10,6 @@
 
 #include <FreeRTOS.h>
 #include <semphr.h>
-#include <libwrap.h>
 #include <services/ipmi/IPMI_MSG.h>
 #include <functional>
 #include <map>
