@@ -303,6 +303,7 @@ void PersistentStorage::flush_index() {
  * @param start Start of range
  * @param end   End of range
  * @param complete_cb Completion callback
+ * @param index_flush Indicate whether this is an index flush (and thus max priority).
  */
 PersistentStorage::FlushRequest::FlushRequest(u32 start, u32 end, std::function<void(void)> complete_cb, bool index_flush)
 	: start(start), end(end), process_priority(uxTaskPriorityGet(NULL)), complete(complete_cb), requested_at(get_tick64()), index_flush(index_flush) {
