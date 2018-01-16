@@ -55,9 +55,46 @@ void *__wrap_calloc(size_t nmemb, size_t size) {
 	return NULL;
 }
 
+/* We need to allocate this somewhere, and the FreeRTOS managed allocation is
+ * declared as static, so we can't check it's address or offsets relative to it,
+ * which we will need to do for abort safety in realloc, below.
+ */
+uint8_t ucHeap[ configTOTAL_HEAP_SIZE ];
+
 void *__wrap_realloc(void *ptr, size_t size) {
-	configASSERT(0); // Unimplemented.  Check manpage for 'smaller vs larger' requirements.
-	return NULL;
+	/* man malloc:
+	 *
+	 * The  realloc() function changes the size of the memory block pointed to
+     * by ptr to size bytes.  The contents will be unchanged in the range from
+     * the start of the region up to the minimum of the old and new sizes.  If
+     * the new size is larger than the old size, the added memory will not  be
+     * initialized.   If  ptr  is  NULL,  then  the call is equivalent to mal‐
+     * loc(size), for all values of size; if size is equal to zero, and ptr is
+     * not  NULL,  then  the  call  is equivalent to free(ptr).  Unless ptr is
+     * NULL, it must have been returned by an earlier call to  malloc(),  cal‐
+     * loc()  or  realloc().  If the area pointed to was moved, a free(ptr) is
+     * done.
+	 */
+	if (!ptr)
+		return (size ? malloc(size) : NULL);
+
+	if (!size) {
+		free(ptr);
+		return NULL;
+	}
+
+	// We... aren't going to be smart about this, sorry.
+
+	// But we'll at least avoid a data fault on the copy.
+	size_t copysize = size;
+	if (reinterpret_cast<uint8_t*>(ptr)+size > ucHeap+configTOTAL_HEAP_SIZE)
+		copysize = (ucHeap+configTOTAL_HEAP_SIZE) - (reinterpret_cast<uint8_t*>(ptr));
+
+	// New memory.
+	void *newptr = malloc(size);
+	memcpy(newptr, ptr, copysize);
+	free(ptr);
+	return newptr;
 }
 
 static inline void init_stdlib_mutex() {
