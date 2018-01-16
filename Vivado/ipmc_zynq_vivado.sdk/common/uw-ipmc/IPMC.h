@@ -50,7 +50,12 @@ void ipmc_service_init();
 
 std::string stdsprintf(const char *fmt, ...) __attribute__((format(printf,1,2)));
 void windows_newline(std::string &input);
+
 std::string cxa_demangle(const char *name); // From libwrap.cc
+
+// From libwrap.cc
+void init_stdlib_mutex();
+extern volatile SemaphoreHandle_t stdlib_mutex;
 
 // From version.cc
 extern const char *GIT_SHORT;

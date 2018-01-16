@@ -97,7 +97,7 @@ void *__wrap_realloc(void *ptr, size_t size) {
 	return newptr;
 }
 
-static inline void init_stdlib_mutex() {
+void init_stdlib_mutex() {
 	if (stdlib_mutex)
 		return;
 	SemaphoreHandle_t sem = xSemaphoreCreateMutex();
