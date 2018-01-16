@@ -10,7 +10,6 @@
 
 #include <FreeRTOS.h>
 #include <semphr.h>
-#include <libwrap.h>
 #include <string>
 #include <map>
 
