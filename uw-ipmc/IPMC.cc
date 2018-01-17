@@ -112,9 +112,6 @@ void operator delete(void* p) throw() {
  */
 static void console_log_handler(LogTree &logtree, const std::string &message,
 		enum LogTree::LogLevel level) {
-	/* We use this silly method of concatenation to avoid printf length limits.
-	 * See libwrap.cc
-	 */
 	std::string logmsg = stdsprintf("[%4.4s] ", LogTree::LogLevel_strings[level]) + message + "\n";
 	/* We write with 0 timeout, because we'd rather lose lines than hang on UART
 	 * output.  That's what the tracebuffer is for anyway
