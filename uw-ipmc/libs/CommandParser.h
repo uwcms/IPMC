@@ -38,11 +38,13 @@ public:
 		CommandParameters(const std::vector<std::string> &parameters) : parameters(parameters) { };
 		virtual ~CommandParameters() { };
 
+		typedef std::vector<std::string>::size_type size_type; ///< Inherit size_type from our underlying storage.
+
 		/**
 		 * Get the number of parameters supplied.
 		 * @return The number of parameters.
 		 */
-		size_t nargs() { return this->parameters.size(); };
+		size_type nargs() const { return this->parameters.size(); };
 
 		/**
 		 * Parse the parameters stored in this object into their appropriate types.
@@ -67,11 +69,11 @@ public:
 			else
 				return true;
 		}
+
+		const std::vector<std::string> parameters; ///< The internal unparsed parameter list.
 	protected:
 		/// \overload
 		bool parse_parameters(int start, bool total_parse) const { configASSERT(0); return false; /* We should never get here, but typing requires it. */ };
-
-		const std::vector<std::string> parameters; ///< The internal unparsed parameter list.
 
 		/// Parse one argument.
 		static bool parse_one(const std::string &arg, uint32_t *u32val);

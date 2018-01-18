@@ -117,10 +117,18 @@ static void console_log_handler(LogTree &logtree, const std::string &message,
 		enum LogTree::LogLevel level) {
 	std::string logmsg = stdsprintf("[%4.4s] ", LogTree::LogLevel_strings[level]) + message + "\n";
 	/* We write with 0 timeout, because we'd rather lose lines than hang on UART
-	 * output.  That's what the tracebuffer is for anyway
+	 * output.  That's what the tracebuffer is for anyway.
 	 */
-	windows_newline(logmsg);
-	uart_ps0->write(logmsg.data(), logmsg.size(), 0);
+	if (!console_service || IN_INTERRUPT() || IN_CRITICAL()) {
+		// Still early startup.
+		windows_newline(logmsg);
+		uart_ps0->write(logmsg.data(), logmsg.size(), 0);
+	}
+	else {
+		// We have to use a short timeout here, rather than none, due to the mutex involved.
+		// TODO: Maybe there's a better way?
+		console_service->safe_write(logmsg, 1);
+	}
 }
 
 /**

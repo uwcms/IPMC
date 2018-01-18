@@ -54,8 +54,9 @@ std::vector<std::string> CommandParser::tokenize(const std::string &commandline)
 		}
 		// Else, This is not quoted, nor a quote change.
 		prev_endquote = 0;
-		if (!token.empty() && commandline[i] == ' ') {
-			tokens.push_back(token);
+		if (commandline[i] == ' ') {
+			if (!token.empty())
+				tokens.push_back(token);
 			token = "";
 		}
 		else {
@@ -101,7 +102,7 @@ bool CommandParser::parse(std::function<void(std::string)> print, const std::str
  */
 void CommandParser::register_command(const std::string &command, handler_t handler, const std::string &helptext) {
 	xSemaphoreTake(this->mutex, portMAX_DELAY);
-	if (!!handler) {
+	if (!handler) {
 		this->commandset.erase(command);
 		this->commandhelp.erase(command);
 	}
