@@ -195,8 +195,7 @@ static void TaskPrinter(void *dummy0) {
 		*(wbuf++) = '\n';
 		*(wbuf++) = '\0';
 		vPortExitCritical();
-		tasklog->log(buf, LogTree::LOG_DIAGNOSTIC);
-		uart_ps0->write(buf, strlen(buf), portMAX_DELAY);
+		tasklog->log(buf, LogTree::LOG_NOTICE);
 	}
 }
 
