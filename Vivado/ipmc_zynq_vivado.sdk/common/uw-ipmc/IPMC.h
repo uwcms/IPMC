@@ -36,6 +36,9 @@ extern SPI_EEPROM *eeprom_data;
 class PersistentStorage;
 extern PersistentStorage *persistent_storage;
 
+class CommandParser;
+extern CommandParser console_command_parser;
+
 void driver_init(bool use_pl);
 void ipmc_service_init();
 
@@ -49,7 +52,7 @@ void ipmc_service_init();
 #define TASK_PRIORITY_IDLE        0 // Used by FreeRTOS.
 
 std::string stdsprintf(const char *fmt, ...) __attribute__((format(printf,1,2)));
-void windows_newline(std::string &input);
+void windows_newline(std::string &input, char nlchar='\n');
 
 std::string cxa_demangle(const char *name); // From libwrap.cc
 

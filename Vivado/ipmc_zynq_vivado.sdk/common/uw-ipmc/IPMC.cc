@@ -15,6 +15,7 @@
 #include <drivers/spi_eeprom/SPIEEPROM.h>
 #include <services/persistentstorage/PersistentStorage.h>
 #include <drivers/tracebuffer/TraceBuffer.h>
+#include <services/console/UARTConsoleSvc.h>
 #include <libs/LogTree.h>
 
 /* Xilinx includes. */
@@ -36,6 +37,8 @@ TraceBuffer TRACE(tracebuffer_contents, TRACEBUFFER_SIZE);
 SPI_EEPROM *eeprom_mac;
 SPI_EEPROM *eeprom_data;
 PersistentStorage *persistent_storage;
+CommandParser console_command_parser;
+UARTConsoleSvc *console_service;
 
 static void console_log_handler(LogTree &logtree, const std::string &message, enum LogTree::LogLevel level);
 static void tracebuffer_log_handler(LogTree &logtree, const std::string &message, enum LogTree::LogLevel level);
@@ -96,7 +99,7 @@ void driver_init(bool use_pl) {
  * \note This function is called before the FreeRTOS scheduler has been started.
  */
 void ipmc_service_init() {
-
+	console_service = new UARTConsoleSvc(*uart_ps0, console_command_parser, "console", LOG["console"]["uart"], true);
 }
 
 
@@ -130,10 +133,11 @@ static void tracebuffer_log_handler(LogTree &logtree, const std::string &message
 /**
  * Modify a std::string in place to contain \r\n where it currently contains \n.
  * @param input The string to modify.
+ * @param nlchar The newline character to detect, if not '\n'.
  */
-void windows_newline(std::string &input) {
+void windows_newline(std::string &input, char nlchar) {
 	for (unsigned int i = 0; i < input.size(); ++i) {
-		if (input[i] == '\n') {
+		if (input[i] == nlchar) {
 			input.replace(i, 1, "\r\n");
 			i++; // We don't want to hit that \n again on the (now) next character.
 		}
