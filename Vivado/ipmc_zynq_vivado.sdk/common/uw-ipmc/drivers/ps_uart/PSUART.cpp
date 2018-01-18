@@ -95,13 +95,15 @@ PS_UART::~PS_UART() {
  * \param buf The buffer to read into.
  * \param len The maximum number of bytes to read.
  * \param timeout The timeout for this read, in standard FreeRTOS format.
+ * \param data_timeout A second timeout used to shorten `timeout` if data is present.
  *
  * \note This function is interrupt and critical safe if timeout=0.
  */
-size_t PS_UART::read(u8 *buf, size_t len, TickType_t timeout) {
+size_t PS_UART::read(u8 *buf, size_t len, TickType_t timeout, TickType_t data_timeout) {
 	configASSERT(timeout == 0 || !(IN_INTERRUPT() || IN_CRITICAL()));
 
 	AbsoluteTimeout abstimeout(timeout);
+	AbsoluteTimeout abs_data_timeout(data_timeout);
 	size_t bytesread = 0;
 	while (bytesread < len) {
 		/* We join the readwait queue now, because if we did this later we would
@@ -133,6 +135,8 @@ size_t PS_UART::read(u8 *buf, size_t len, TickType_t timeout) {
 			break; // Interrupts can't wait for more.
 		if (bytesread == len)
 			break;
+		if (bytesread && abs_data_timeout < abstimeout)
+			abstimeout = abs_data_timeout; // We have data, so if we have a data_timeout, we're now on it instead.
 		if (!sub.wait(abstimeout.get_timeout()))
 			break; // Timed out.
 	}
