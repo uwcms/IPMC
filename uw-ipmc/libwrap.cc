@@ -142,8 +142,6 @@ int __wrap_snprintf(char *str, size_t size, const char *format, ...) {
 	return ret;
 }
 
-StatCounter printf_overrun_discard_count("printf.stdout_full.count");
-StatCounter printf_overrun_discard_bytes("printf.stdout_full.lost_bytes");
 StatCounter printfs_count("printf.count");
 StatCounter printfs_bytes("printf.bytes");
 
@@ -157,38 +155,28 @@ int __wrap_vprintf(const char *format, va_list ap) {
 	 */
 	va_list ap2;
 	va_copy(ap2, ap);
-	int s = __real_vsnprintf(NULL, 0, format, ap) + 1;
+	int s = vsnprintf(NULL, 0, format, ap) + 1;
 	if (s <= 0) {
 		va_end(ap);
 		va_end(ap2);
 		return s;
 	}
 	char *str = (char*) pvPortMalloc(s);
-	__real_vsnprintf(str, s, format, ap2);
+	vsnprintf(str, s, format, ap2);
 	va_end(ap);
 	va_end(ap2);
 	std::string outstr(str);
 	vPortFree(str);
 	windows_newline(outstr);
 
-	/* Log all printf output to the trace buffer.
-	 *
-	 * Even if this is turned on, the log relay mechanism uses a direct UART
-	 * write, not a printf, so this won't recurse.
-	 */
+	// printf goes through the log facility now.
 	static LogTree *printf_trace = NULL;
 	if (!printf_trace)
 		printf_trace = &LOG["printf"];
-	printf_trace->log(outstr, LogTree::LOG_TRACE);
-
-	size_t written = uart_ps0->write(outstr.data(), outstr.size(), 0);
-	if (written != outstr.size()) {
-		printf_overrun_discard_count.increment();
-		printf_overrun_discard_bytes.increment(outstr.size() - written);
-	}
+	printf_trace->log(outstr, LogTree::LOG_NOTICE);
 	printfs_count.increment();
 	printfs_bytes.increment(outstr.size());
-	return written;
+	return outstr.size();
 }
 
 int __wrap_vsprintf(char *str, const char *format, va_list ap) {
