@@ -177,11 +177,6 @@ static void TaskPrinter(void *dummy0) {
 	char buf[518];
 	while (1) {
 		char *wbuf = buf;
-#ifdef __cplusplus
-		printf("C++\n");
-#else
-		printf("C--\n");
-#endif
 		//u32 int_mask = XUartPs_GetInterruptMask(&uart0.UartInstPtr);
 		//printf("test 0x%08x \n", int_mask);
 		vTaskDelay(10000);
