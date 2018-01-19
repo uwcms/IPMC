@@ -54,8 +54,9 @@ protected:
 		CommandHistory(size_type length) : length(length) {
 			this->history_position = this->history.begin();
 		};
-		std::string go_back(std::string line_to_cache);
-		std::string go_forward(std::string line_to_cache);
+		std::string go_back(std::string line_to_cache, std::string::size_type cursor=0);
+		std::string go_forward(std::string line_to_cache, std::string::size_type cursor=0);
+		std::string go_latest(std::string line_to_cache, std::string::size_type cursor=0);
 		void record_entry(std::string line);
 	protected:
 		std::deque<std::string> history; ///< The history itself.
