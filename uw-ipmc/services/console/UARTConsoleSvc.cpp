@@ -121,6 +121,7 @@ void UARTConsoleSvc::_run_thread() {
 			std::string tracebuf = this->linebuf.buffer + rawbuffer.substr(0, rst_before+1);
 			TRACE.log(ctrlc_erased_facility.c_str(), ctrlc_erased_facility.size(), LogTree::LOG_TRACE, tracebuf.data(), tracebuf.size(), true);
 			echobuf.append("\r\n");
+			history.go_latest("",0);
 			echobuf.append(this->linebuf.clear());
 			rawbuffer.erase(0, rst_before+1);
 			this->linebuf.overwrite_mode = false; // Force disable this, to return to normal state.
@@ -219,6 +220,18 @@ void UARTConsoleSvc::_run_thread() {
 				else if (ansi_code.name == "END") {
 					echobuf.append(this->linebuf.end());
 				}
+				else if (ansi_code.name == "ARROW_UP") {
+					this->linebuf.buffer = history.go_back(this->linebuf.buffer, this->linebuf.cursor);
+					if (this->linebuf.cursor > this->linebuf.buffer.size())
+						this->linebuf.cursor = this->linebuf.buffer.size();
+					echobuf.append(this->linebuf.refresh());
+				}
+				else if (ansi_code.name == "ARROW_DOWN") {
+					this->linebuf.buffer = history.go_forward(this->linebuf.buffer, this->linebuf.cursor);
+					if (this->linebuf.cursor > this->linebuf.buffer.size())
+						this->linebuf.cursor = this->linebuf.buffer.size();
+					echobuf.append(this->linebuf.refresh());
+				}
 				else if (ansi_code.name == "INSERT") {
 					/* Toggle overwrite mode.
 					 *
@@ -253,32 +266,86 @@ void UARTConsoleSvc::_run_thread() {
  * Step back in time.
  *
  * @param line_to_cache The current input line.
+ * @param cursor The cursor position, used for prefix-search.
  * @return The new input line.
  */
-std::string UARTConsoleSvc::CommandHistory::go_back(std::string line_to_cache) {
+std::string UARTConsoleSvc::CommandHistory::go_back(std::string line_to_cache, std::string::size_type cursor) {
 	if (this->history_position == this->history.end())
 		this->cached_line = line_to_cache;
-	if (this->history_position != this->history.begin())
-		--this->history_position; // Go back if we can, else stay at the beginning of time.
-	return *this->history_position;
+
+	if (this->history_position == this->history.begin()) {
+		return line_to_cache; // We can't go backward more.
+	}
+	else {
+		auto it = this->history_position;
+		while (--it != this->history.begin())
+			if (it->substr(0, cursor) == line_to_cache.substr(0, cursor))
+				break;
+
+		if (it->substr(0, cursor) == line_to_cache.substr(0, cursor)) {
+			// Oh good, we found something.
+			this->history_position = it;
+			return *this->history_position;
+		}
+		else {
+			// No match found.
+			// Ok, well.  Don't move.
+			return line_to_cache;
+		}
+	}
 }
 
 /**
  * Step forward in time.
  *
  * @param line_to_cache The current input line.
+ * @param cursor The cursor position, used for prefix-search.
  * @return The new input line.
  */
-std::string UARTConsoleSvc::CommandHistory::go_forward(std::string line_to_cache) {
+std::string UARTConsoleSvc::CommandHistory::go_forward(std::string line_to_cache, std::string::size_type cursor) {
 	if (this->history_position == this->history.end()) {
 		return line_to_cache; // We can't go forward more.
 	}
 	else {
-		++history_position;
-		if (this->history_position == this->history.end())
-			return this->cached_line; // Out of history.
-		else
-			return *this->history_position; // Here you go.
+		auto it = this->history_position;
+		while (++it != this->history.end())
+			if (it->substr(0, cursor) == line_to_cache.substr(0, cursor))
+				break;
+
+		if (it == this->history.end()) {
+			// No match found.
+			if (this->cached_line.substr(0, cursor) == line_to_cache.substr(0, cursor)) {
+				// Nevermind, the cached line matches!
+				this->history_position = this->history.end();
+				return this->cached_line;
+			}
+			else {
+				// Ok, well.  Don't move.
+				return line_to_cache;
+			}
+		}
+		else {
+			// Oh good, we found something.
+			this->history_position = it;
+			return *this->history_position;
+		}
+	}
+}
+
+/**
+ * Step to the present.
+ *
+ * @param line_to_cache The current input line.
+ * @param cursor The cursor position, used for prefix-search.
+ * @return The new input line.
+ */
+std::string UARTConsoleSvc::CommandHistory::go_latest(std::string line_to_cache, std::string::size_type cursor) {
+	if (this->history_position == this->history.end()) {
+		return line_to_cache; // We can't go forward more.
+	}
+	else {
+		this->history_position = this->history.end();
+		return this->cached_line; // Out of history.
 	}
 }
 
@@ -353,19 +420,13 @@ std::string UARTConsoleSvc::InputBuffer::refresh_cursor() {
 }
 
 std::string UARTConsoleSvc::InputBuffer::home() {
-	std::string out;
-	if (this->cursor != 0)
-		out = stdsprintf(ANSICode::ANSI_CURSOR_BACK_INTFMT.c_str(), this->cursor);
 	this->cursor = 0;
-	return out;
+	return this->refresh_cursor();
 }
 
 std::string UARTConsoleSvc::InputBuffer::end() {
-	std::string out;
-	if (this->cursor != this->buffer.size())
-		out = stdsprintf(ANSICode::ANSI_CURSOR_FORWARD_INTFMT.c_str(), this->buffer.size() - this->cursor);
 	this->cursor = this->buffer.size();
-	return out;
+	return this->refresh_cursor();
 }
 
 std::string UARTConsoleSvc::InputBuffer::left() {
