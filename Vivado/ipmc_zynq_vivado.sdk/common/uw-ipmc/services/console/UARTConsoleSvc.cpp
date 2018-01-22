@@ -11,6 +11,10 @@
 #include <drivers/tracebuffer/TraceBuffer.h>
 #include <libs/ThreadingPrimitives.h>
 
+template <typename T> static inline T div_ceil(T val, T divisor) {
+	return (val / divisor) + (val % divisor ? 1 : 0);
+}
+
 static void run_uartconsolesvc_thread(void *cb_ucs) {
 	reinterpret_cast<UARTConsoleSvc*>(cb_ucs)->_run_thread();
 }
@@ -29,7 +33,7 @@ UARTConsoleSvc::UARTConsoleSvc(UART &uart, CommandParser &parser, const std::str
 	: uart(uart), parser(parser), name(name), logtree(logtree),
 	  log_input(logtree["input"]), log_output(logtree["output"]),
 	  echo(echo), read_data_timeout(read_data_timeout),
-	  linebuf(this->prompt, 256) {
+	  linebuf("> ", 2048) {
 	this->linebuf_mutex = xSemaphoreCreateMutex();
 	configASSERT(this->linebuf_mutex);
 	configASSERT(xTaskCreate(run_uartconsolesvc_thread, name.c_str(), configMINIMAL_STACK_SIZE+1024, this, TASK_PRIORITY_SERVICE, NULL));
@@ -53,26 +57,29 @@ bool UARTConsoleSvc::safe_write(std::string data, TickType_t timeout) {
 	if (!xSemaphoreTake(this->linebuf_mutex, abstimeout.get_timeout()))
 		return false;
 
-	/* 1. Push prompt line (assumed current) up one to create a throwaway line.
-	 * 2. Move cursor up to prompt line.
-	 * 3. Insert, pushing prompt line down overwriting throwaway line.
+	/* 1. Move to proper position to resume writing.
+	 * 2. Write.
+	 * 3. Move down if needed.
+	 * 4. Refresh prompt.
 	 */
-	static const std::string insertline = std::string("\r\n") + ANSICode::ANSI_CURSOR_UP_ONE + ANSICode::VT102_INSERT_LINE;
-	std::string out;
+	InputBuffer::size_type input_cursor = this->linebuf.cursor;
+	std::string out = this->linebuf.set_cursor(0); // Move to top line of prompt;
 	if (this->safe_write_line_cursor) {
 		// Restore cursor.
-		out += ANSICode::ANSI_CURSOR_UP_ONE + stdsprintf(ANSICode::ANSI_ABSOLUTE_HORIZONTAL_POSITION_INTFMT.c_str(), this->safe_write_line_cursor + 1 /* 1-indexed */);
+		out += ANSICode::ANSI_CURSOR_UP_ONE;
+		out += stdsprintf(ANSICode::ANSI_CURSOR_ABSOLUTE_HORIZONTAL_POSITION_INTFMT.c_str(), (this->safe_write_line_cursor % this->linebuf.cols) + 1 /* 1-indexed */);
 	}
 	else {
-		// Create line.
-		out += insertline;
+		// Move to the start of the prompt, and clear below us.
+		out += "\r";
+		out += ANSICode::ANSI_ERASE_DOWN;
 	}
 	std::string::size_type pos;
 	while ( ( pos = data.find_first_of("\n") ) != std::string::npos ) {
 		out += data.substr(0, pos);
 		data.erase(0, pos+1);
 		if (data.size())
-			out += std::string("\r\n") /* back down to prompt */ + insertline;
+			out += std::string("\r\n") /* back down to prompt */;
 
 		// Either way, we just put out a line, so our cursor is 0 now.
 		this->safe_write_line_cursor = 0;
@@ -84,7 +91,12 @@ bool UARTConsoleSvc::safe_write(std::string data, TickType_t timeout) {
 
 	// And now return to the prompt line.
 	out += "\r\n";
-	out += this->linebuf.refresh_cursor();
+	out += std::string("\1",1);
+	out += this->linebuf.refresh();
+	out += std::string("\2",1);
+	out += this->linebuf.set_cursor(input_cursor);
+	out += std::string("\3",1);
+	TRACE.log("safewrite", 9, LogTree::LOG_TRACE, out.data(), out.size(), true);
 	this->uart.write(out.data(), out.size(), abstimeout.get_timeout());
 	xSemaphoreGive(this->linebuf_mutex);
 	return true;
@@ -102,11 +114,20 @@ void UARTConsoleSvc::_run_thread() {
 	xSemaphoreTake(this->linebuf_mutex, portMAX_DELAY);
 
 	if (this->echo)
-		this->uart.write(this->prompt.data(), this->prompt.size(), portMAX_DELAY);
+		this->uart.write(this->linebuf.prompt.data(), this->linebuf.prompt.size(), portMAX_DELAY);
+	if (this->echo)
+		this->uart.write(ANSICode::ANSI_CURSOR_QUERY_POSITION.data(), ANSICode::ANSI_CURSOR_QUERY_POSITION.size(), portMAX_DELAY);
 
+	static const char reset_control_keys[] = {
+			ANSICode::render_ascii_controlkey('R'),
+			ANSICode::render_ascii_controlkey('C'),
+			ANSICode::render_ascii_controlkey('D'),
+			'\0', // String Terminator
+	};
 	ANSICode ansi_code;
 	uint64_t last_ansi_tick = 0;
 	CommandHistory history(50);
+	bool history_browse = false;
 	while (true) {
 		char readbuf[128];
 		xSemaphoreGive(this->linebuf_mutex);
@@ -115,14 +136,13 @@ void UARTConsoleSvc::_run_thread() {
 		std::string rawbuffer(readbuf, bytes_read);
 		std::string echobuf;
 
-		std::string::size_type rst_before = rawbuffer.find_last_of("\x03\x04\x12");
+		std::string::size_type rst_before = rawbuffer.find_last_of(reset_control_keys);
 		if (rst_before != std::string::npos) {
 			// Clear all buffer found before any Ctrl-C (or D, or R), and replace it with an empty line to retrigger the prompt.
 			std::string tracebuf = this->linebuf.buffer + rawbuffer.substr(0, rst_before+1);
 			TRACE.log(ctrlc_erased_facility.c_str(), ctrlc_erased_facility.size(), LogTree::LOG_TRACE, tracebuf.data(), tracebuf.size(), true);
-			echobuf.append("\r\n");
 			history.go_latest("",0);
-			echobuf.append(this->linebuf.clear());
+			echobuf.append(this->linebuf.reset(80, 24)); // This will internally send a new terminal size query.
 			rawbuffer.erase(0, rst_before+1);
 			this->linebuf.overwrite_mode = false; // Force disable this, to return to normal state.
 		}
@@ -134,6 +154,9 @@ void UARTConsoleSvc::_run_thread() {
 					echobuf.append(this->linebuf.update(ansi_code.buffer.substr(1))); // Don't include the ESC.
 					ansi_code.buffer.clear();
 				}
+
+				// Ensure the entire (possibly multiline) command is visible in the terminal history.
+				echobuf.append(this->linebuf.end());
 
 				// Newlines are received as \r, sent as \r\n.
 				echobuf.append("\r\n");
@@ -166,8 +189,8 @@ void UARTConsoleSvc::_run_thread() {
 					ansi_code.buffer.clear();
 				}
 			}
-			else if (*it == '\x0c') {
-				// Ctrl L is customarily "screen redraw".  We will rerender the prompt.
+			else if (*it == ANSICode::render_ascii_controlkey('L') || *it == ANSICode::render_ascii_controlkey('K')) {
+				// Ctrl-L is customarily "screen redraw".  We will rerender the prompt.
 				echobuf.append(this->linebuf.refresh());
 			}
 			else if (*it == '\x7f') {
@@ -180,6 +203,10 @@ void UARTConsoleSvc::_run_thread() {
 				}
 
 				echobuf.append(this->linebuf.backspace());
+			}
+			else if (*it == ANSICode::render_ascii_controlkey('I')) {
+				echobuf.append(stdsprintf("\r\n%s mode.  Last detected console size: %ux%u.\r\n", (this->linebuf.overwrite_mode ? "Overwrite" : "Insert"), this->linebuf.cols, this->linebuf.rows));
+				echobuf.append(this->linebuf.refresh());
 			}
 			else {
 				if (!ansi_code.buffer.empty() && last_ansi_tick + 50 < get_tick64()) {
@@ -202,6 +229,7 @@ void UARTConsoleSvc::_run_thread() {
 						ansi_code.buffer.erase(0,1); // Discard the ESC.
 					echobuf.append(this->linebuf.update(ansi_code.buffer));
 					ansi_code.buffer.clear();
+					history_browse = false;
 					continue;
 				case ANSICode::PARSE_COMPLETE:
 					// Well that IS interesting now, isn't it? Let's handle that.
@@ -210,27 +238,37 @@ void UARTConsoleSvc::_run_thread() {
 
 				if (ansi_code.name == "ARROW_LEFT") {
 					echobuf.append(this->linebuf.left());
+					history_browse = false;
 				}
 				else if (ansi_code.name == "ARROW_RIGHT") {
 					echobuf.append(this->linebuf.right());
+					history_browse = false;
 				}
 				else if (ansi_code.name == "HOME") {
 					echobuf.append(this->linebuf.home());
+					history_browse = false;
 				}
 				else if (ansi_code.name == "END") {
 					echobuf.append(this->linebuf.end());
+					history_browse = false;
 				}
 				else if (ansi_code.name == "ARROW_UP") {
-					this->linebuf.buffer = history.go_back(this->linebuf.buffer, this->linebuf.cursor);
-					if (this->linebuf.cursor > this->linebuf.buffer.size())
-						this->linebuf.cursor = this->linebuf.buffer.size();
-					echobuf.append(this->linebuf.refresh());
+					bool moved = false;
+					if (history.is_current())
+						history_browse = this->linebuf.buffer.empty(); // Browse if starting point is null, else search.
+					std::string histline = history.go_back(this->linebuf.buffer, (history_browse ? 0 : this->linebuf.cursor), &moved);
+					if (moved)
+						echobuf.append(this->linebuf.set_buffer(histline, (history_browse ? histline.size() : this->linebuf.cursor)));
+					else
+						echobuf.append(ANSICode::ASCII_BELL);
 				}
 				else if (ansi_code.name == "ARROW_DOWN") {
-					this->linebuf.buffer = history.go_forward(this->linebuf.buffer, this->linebuf.cursor);
-					if (this->linebuf.cursor > this->linebuf.buffer.size())
-						this->linebuf.cursor = this->linebuf.buffer.size();
-					echobuf.append(this->linebuf.refresh());
+					bool moved = false;
+					std::string histline = history.go_forward(this->linebuf.buffer, (history_browse ? 0 : this->linebuf.cursor), &moved);
+					if (moved)
+						echobuf.append(this->linebuf.set_buffer(histline, (history_browse ? histline.size() : this->linebuf.cursor)));
+					else
+						echobuf.append(ANSICode::ASCII_BELL);
 				}
 				else if (ansi_code.name == "INSERT") {
 					/* Toggle overwrite mode.
@@ -242,6 +280,11 @@ void UARTConsoleSvc::_run_thread() {
 				}
 				else if (ansi_code.name == "DELETE") {
 					echobuf.append(this->linebuf.delkey());
+					history_browse = false;
+				}
+				else if (ansi_code.name == "CURSOR_POSITION_REPORT") {
+					if (ansi_code.parameters.size() == 2)
+						echobuf.append(this->linebuf.resize(ansi_code.parameters[1], ansi_code.parameters[0]));
 				}
 				else {
 					// For now we don't support any, so we'll just pass them as commands.
@@ -267,13 +310,19 @@ void UARTConsoleSvc::_run_thread() {
  *
  * @param line_to_cache The current input line.
  * @param cursor The cursor position, used for prefix-search.
+ * @param moved [out] true if the history position changed, else false.
  * @return The new input line.
  */
-std::string UARTConsoleSvc::CommandHistory::go_back(std::string line_to_cache, std::string::size_type cursor) {
+std::string UARTConsoleSvc::CommandHistory::go_back(std::string line_to_cache, std::string::size_type cursor, bool *moved) {
+	if (moved)
+		*moved = true;
+
 	if (this->history_position == this->history.end())
 		this->cached_line = line_to_cache;
 
 	if (this->history_position == this->history.begin()) {
+		if (moved)
+			*moved = false;
 		return line_to_cache; // We can't go backward more.
 	}
 	else {
@@ -290,6 +339,8 @@ std::string UARTConsoleSvc::CommandHistory::go_back(std::string line_to_cache, s
 		else {
 			// No match found.
 			// Ok, well.  Don't move.
+			if (moved)
+				*moved = false;
 			return line_to_cache;
 		}
 	}
@@ -300,10 +351,15 @@ std::string UARTConsoleSvc::CommandHistory::go_back(std::string line_to_cache, s
  *
  * @param line_to_cache The current input line.
  * @param cursor The cursor position, used for prefix-search.
+ * @param moved [out] true if the history position changed, else false.
  * @return The new input line.
  */
-std::string UARTConsoleSvc::CommandHistory::go_forward(std::string line_to_cache, std::string::size_type cursor) {
+std::string UARTConsoleSvc::CommandHistory::go_forward(std::string line_to_cache, std::string::size_type cursor, bool *moved) {
+	if (moved)
+		*moved = true;
 	if (this->history_position == this->history.end()) {
+		if (moved)
+			*moved = false;
 		return line_to_cache; // We can't go forward more.
 	}
 	else {
@@ -321,6 +377,8 @@ std::string UARTConsoleSvc::CommandHistory::go_forward(std::string line_to_cache
 			}
 			else {
 				// Ok, well.  Don't move.
+				if (moved)
+					*moved = false;
 				return line_to_cache;
 			}
 		}
@@ -337,16 +395,29 @@ std::string UARTConsoleSvc::CommandHistory::go_forward(std::string line_to_cache
  *
  * @param line_to_cache The current input line.
  * @param cursor The cursor position, used for prefix-search.
+ * @param moved [out] true if the history position changed, else false.
  * @return The new input line.
  */
-std::string UARTConsoleSvc::CommandHistory::go_latest(std::string line_to_cache, std::string::size_type cursor) {
+std::string UARTConsoleSvc::CommandHistory::go_latest(std::string line_to_cache, std::string::size_type cursor, bool *moved) {
+	if (moved)
+		*moved = true;
 	if (this->history_position == this->history.end()) {
+		if (moved)
+			*moved = false;
 		return line_to_cache; // We can't go forward more.
 	}
 	else {
 		this->history_position = this->history.end();
 		return this->cached_line; // Out of history.
 	}
+}
+
+/**
+ * Identify whether the current history position is the present.
+ * @return true if the history position is the present, else false
+ */
+bool UARTConsoleSvc::CommandHistory::is_current() {
+	return this->history_position == this->history.end();
 }
 
 /**
@@ -373,28 +444,77 @@ std::string UARTConsoleSvc::InputBuffer::clear() {
 }
 
 /**
+ * Reset the input buffer.
+ * @return echo data
+ */
+std::string UARTConsoleSvc::InputBuffer::reset(size_type cols, size_type rows) {
+	this->clear();
+	this->cols = cols;
+	this->rows = rows;
+	return this->refresh();
+}
+
+/**
  * Insert characters into the buffer.
  * @param input The data to insert.
  * @return echo data
  */
 std::string UARTConsoleSvc::InputBuffer::update(std::string input) {
-	if (this->buffer.size() >= this->maxlen)
-		return ""; // Ignore keystrokes, buffer full.
+	if (this->buffer.size() + input.size() > this->maxlen)
+		input.erase(this->maxlen - this->buffer.size()); // Ignore keystrokes, buffer full.
+	if (input.empty())
+		return ""; // Nothing to do.
+
 	if (this->overwrite_mode && this->cursor != this->buffer.size())
 		this->buffer.erase(this->cursor, input.size());
 
 	this->buffer.insert(this->cursor, input);
 	this->cursor += input.size();
+
 	if (this->cursor == this->buffer.size())
-		return input;
+		return input; // Appending.
 
 	if (this->overwrite_mode)
-		return input; // Skip the whole "creating space" business.
+		return input; // Overwriting. Skip the whole "creating space" business.
 
 	// Looks like we're doing a midline insert.  Gotta create spaces so we don't overwrite.
 	std::string out;
 	for (auto it = input.begin(), eit = input.end(); it != eit; ++it)
-		out += ANSICode::VT102_INSERT_CHARACTER_POSITION + *it;
+		out += ANSICode::ANSI_INSERT_CHARACTER_POSITION + *it;
+
+	if (this->buffer.size() >= this->cols) {
+		// And, Sigh.  We have to manually rerender from here to end of line.
+		out += this->buffer.substr(this->cursor) + ANSICode::ANSI_ERASE_TO_END_OF_LINE;
+		for (size_type i = this->buffer.size(); i > this->cursor; --i)
+			out += ANSICode::ASCII_BACKSPACE;
+	}
+	return out;
+}
+
+std::string UARTConsoleSvc::InputBuffer::set_buffer(std::string buffer, size_type cursor) {
+	// This is really just refresh, with a buffer update in the middle.
+
+	std::string out;
+	size_type cursor_row = this->get_cursor_row();
+	if (cursor_row > 1)
+		out += stdsprintf(ANSICode::ANSI_CURSOR_UP_INTFMT.c_str(), cursor_row-1);
+	out += "\r";
+	out += this->query_size();
+	out += ANSICode::ANSI_CURSOR_SAVE;
+	out += ANSICode::ANSI_ERASE_DOWN;
+
+	// The only actual set_buffer portion.
+	this->buffer = buffer;
+	this->cursor = (cursor == std::string::npos ? this->cursor : cursor);
+
+	out += this->prompt + this->buffer;
+
+	// Ensure our cursor is not past our buffer.
+	if (this->cursor > this->buffer.size())
+		this->cursor = this->buffer.size();
+
+	for (size_type i = this->buffer.size(); i > this->cursor; --i)
+		out += ANSICode::ASCII_BACKSPACE;
 	return out;
 }
 
@@ -403,44 +523,84 @@ std::string UARTConsoleSvc::InputBuffer::update(std::string input) {
  * @return echo data
  */
 std::string UARTConsoleSvc::InputBuffer::refresh() {
-	std::string out = "\r";
-	out += ANSICode::ANSI_ERASE_TO_END_OF_LINE;
-	out += this->prompt + this->buffer;
-	if (this->cursor != this->buffer.size())
-		out += this->refresh_cursor();
-	return out;
+	return this->set_buffer(this->buffer, this->cursor);
 }
 
 /**
- * Return echo data to restore the correct cursor position.
+ * Return the current row position of the cursor, relative to the start, one-indexed.
+ * @return The row the cursor is presently on.
+ */
+UARTConsoleSvc::InputBuffer::size_type UARTConsoleSvc::InputBuffer::get_cursor_row() {
+	return div_ceil<size_type>((this->prompt.size() + this->cursor), this->cols);
+}
+
+/**
+ * Return the number of rows occupied by this input buffer.
+ * @return The number of rows
+ */
+UARTConsoleSvc::InputBuffer::size_type UARTConsoleSvc::InputBuffer::get_rowcount() {
+	return div_ceil<size_type>((this->prompt.size() + this->buffer.size()), this->cols);
+}
+
+/**
+ * Resize the buffer's perception of the console size.
+ * @param cols columns
+ * @param rows rows
  * @return echo data
  */
-std::string UARTConsoleSvc::InputBuffer::refresh_cursor() {
-	return stdsprintf(ANSICode::ANSI_ABSOLUTE_HORIZONTAL_POSITION_INTFMT.c_str(), this->prompt.size() + this->cursor + 1 /* 1-indexed */);
+std::string UARTConsoleSvc::InputBuffer::resize(size_type cols, size_type rows) {
+	if (this->cols == cols && this->rows == rows)
+		return ""; // NOOP
+
+	// Update our perspective.  The terminal client will have handled any wrap.
+	this->cols = cols;
+	this->rows = rows;
+
+	// Refresh for good measure.
+	return this->refresh();
+}
+
+/**
+ * Query the terminal size.
+ * @return echo data
+ */
+std::string UARTConsoleSvc::InputBuffer::query_size() {
+	return ANSICode::ANSI_CURSOR_SAVE
+			+ stdsprintf(ANSICode::ANSI_CURSOR_HOME_2INTFMT.c_str(), 999, 999)
+			+ ANSICode::ANSI_CURSOR_QUERY_POSITION
+			+ ANSICode::ANSI_CURSOR_RESTORE;
 }
 
 std::string UARTConsoleSvc::InputBuffer::home() {
-	this->cursor = 0;
-	return this->refresh_cursor();
+	std::string out;
+	// Reposition ourselves correctly, physically & logically.
+	while (this->cursor) {
+		out += ANSICode::ASCII_BACKSPACE;
+		--this->cursor;
+	}
+	// Refresh for good measure.
+	out += this->refresh();
+	return out;
 }
 
 std::string UARTConsoleSvc::InputBuffer::end() {
+	size_type old_cursor = this->cursor;
 	this->cursor = this->buffer.size();
-	return this->refresh_cursor();
+	return this->buffer.substr(old_cursor);
 }
 
 std::string UARTConsoleSvc::InputBuffer::left() {
 	if (this->cursor == 0)
 		return ""; // Nothing to do...
 	this->cursor--;
-	return ANSICode::ANSI_CURSOR_BACK_ONE;
+	return ANSICode::ASCII_BACKSPACE;
 }
 
 std::string UARTConsoleSvc::InputBuffer::right() {
-	if (this->cursor == this->buffer.size())
+	if (this->cursor >= this->buffer.size())
 		return ""; // Nothing to do...
-	this->cursor++;
-	return ANSICode::ANSI_CURSOR_FORWARD_ONE;
+	// Rerender the character to physically advance the cursor.
+	return this->buffer.substr(this->cursor++, 1);
 }
 
 std::string UARTConsoleSvc::InputBuffer::backspace() {
@@ -452,13 +612,48 @@ std::string UARTConsoleSvc::InputBuffer::backspace() {
 
 	this->cursor--;
 	this->buffer.erase(this->cursor, 1);
-	return ANSICode::ANSI_CURSOR_BACK_ONE + ANSICode::VT102_DELETE_CHARACTER_POSITION; // Move back one space, then delete character slot.
+	std::string out = ANSICode::ASCII_BACKSPACE + ANSICode::ANSI_DELETE_CHARACTER_POSITION; // Move back one space, then delete character slot.
+	if (this->buffer.size() >= this->cols && this->cursor != this->buffer.size()) {
+		// Sigh.  We have to manually rerender from here to end of line.
+		out += this->buffer.substr(this->cursor) + ANSICode::ANSI_ERASE_TO_END_OF_LINE;
+		for (size_type i = this->buffer.size(); i > this->cursor; --i)
+			out += ANSICode::ASCII_BACKSPACE;
+	}
+	return out;
 }
 
 std::string UARTConsoleSvc::InputBuffer::delkey() {
-	if (this->cursor == this->buffer.size())
+	if (this->cursor >= this->buffer.size())
 		return ""; // Can't delete at end of line.
 
 	this->buffer.erase(this->cursor, 1);
-	return ANSICode::VT102_DELETE_CHARACTER_POSITION;
+	std::string out = ANSICode::ANSI_DELETE_CHARACTER_POSITION;
+	if (this->buffer.size() >= this->cols && this->cursor != this->buffer.size()) {
+		// Sigh.  We have to manually rerender from here to end of line.
+		out += this->buffer.substr(this->cursor) + ANSICode::ANSI_ERASE_TO_END_OF_LINE;
+		for (size_type i = this->buffer.size(); i > this->cursor; --i)
+			out += ANSICode::ASCII_BACKSPACE;
+	}
+	return out;
+}
+
+std::string UARTConsoleSvc::InputBuffer::set_cursor(size_type cursor) {
+	if (cursor > this->buffer.size())
+		cursor = this->buffer.size();
+
+	std::string out;
+	// Move cursor backward to position.
+	while (cursor < this->cursor) {
+		out += ANSICode::ASCII_BACKSPACE;
+		--this->cursor;
+	}
+	if (cursor > this->cursor) {
+		// Move cursor forward to position.
+
+		// Rerender the characters to physically advance the cursor.
+		out += this->buffer.substr(this->cursor, cursor - this->cursor);
+		// Logically advance the cursor.
+		this->cursor = cursor;
+	}
+	return out;
 }
