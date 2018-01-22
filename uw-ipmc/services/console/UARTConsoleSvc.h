@@ -16,6 +16,7 @@
 #include "semphr.h"
 #include <deque>
 #include <string>
+#include <vector>
 
 /**
  * A UART based console service.
@@ -37,7 +38,6 @@ public:
 	bool safe_write(std::string data, TickType_t timeout=portMAX_DELAY);
 
 protected:
-	const std::string prompt = "> "; ///< The command prompt.
 	std::string::size_type safe_write_line_cursor; ///< The safe_write output cursor.
 
 	/**
@@ -54,9 +54,10 @@ protected:
 		CommandHistory(size_type length) : length(length) {
 			this->history_position = this->history.begin();
 		};
-		std::string go_back(std::string line_to_cache, std::string::size_type cursor=0);
-		std::string go_forward(std::string line_to_cache, std::string::size_type cursor=0);
-		std::string go_latest(std::string line_to_cache, std::string::size_type cursor=0);
+		std::string go_back(std::string line_to_cache, std::string::size_type cursor=0, bool *moved=NULL);
+		std::string go_forward(std::string line_to_cache, std::string::size_type cursor=0, bool *moved=NULL);
+		std::string go_latest(std::string line_to_cache, std::string::size_type cursor=0, bool *moved=NULL);
+		bool is_current();
 		void record_entry(std::string line);
 	protected:
 		std::deque<std::string> history; ///< The history itself.
@@ -73,20 +74,28 @@ protected:
 
 		/**
 		 * Instantiate an input buffer
-		 * @param prompt The prompt to be displayed when refreshing the display.
+		 * @param prompt The prompt to be used by this input buffer.
 		 * @param maxlen The maximum size limit to this buffer.
 		 */
-		InputBuffer(std::string prompt = "", size_type maxlen=0) : prompt(prompt), maxlen(maxlen) { };
+		InputBuffer(std::string prompt, size_type maxlen=0) : prompt(prompt), maxlen(maxlen), cols(80), rows(24) { };
 		std::string buffer; ///< The buffer.
 		size_type cursor; ///< The cursor position within the buffer.
 		std::string prompt; ///< The prompt used for this input line.
-		const size_type maxlen; ///< A hard limit on this so we don't get into stack overflow territory with our various operations.
+		const size_type maxlen; ///< A hard limit on this so we don't expand stupidly due to random garbage input.
 		bool overwrite_mode; ///< Overwrite mode.
 
+		size_type cols; ///< Terminal columns.
+		size_type rows; ///< Terminal rows.
+
 		std::string clear();
+		std::string reset(size_type cols=80, size_type rows=24);
 		std::string update(std::string input);
+		std::string set_buffer(std::string buffer, size_type cursor = std::string::npos);
 		std::string refresh();
-		std::string refresh_cursor();
+		size_type get_cursor_row();
+		size_type get_rowcount();
+		std::string resize(size_type cols, size_type rows);
+		std::string query_size();
 		/**
 		 * Cursor Movement
 		 * @return echo data
@@ -98,6 +107,7 @@ protected:
 		std::string right();
 		std::string backspace();
 		std::string delkey();
+		std::string set_cursor(size_type cursor);
 		///@}
 	};
 

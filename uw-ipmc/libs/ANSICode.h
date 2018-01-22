@@ -29,22 +29,57 @@ public:
 
 	static const std::map<std::string, std::string> codenames; ///< A mapping of ANSICode().code to ANSICode().name
 
+	/**
+	 * Convert 'A' to '^A'.
+	 * @param key 'A'
+	 * @return '^A'
+	 */
+	static constexpr char render_ascii_controlkey(char key) {
+		// ref: http://jkorpela.fi/chars/c0.html
+		return ( key >= 'A' && key <= '_' ? key-('A'-1) : 0);
+	}
+	/**
+	 * Convert '^A' to 'A'.
+	 * @param key '^A'
+	 * @return 'A'
+	 */
+	static constexpr char parse_ascii_controlkey(char key) {
+		// ref: http://jkorpela.fi/chars/c0.html
+		return ( key >= 1 && key <= 31 ? key+('A'-1) : 0 );
+	}
+
+	/// ASCII character constants
+	///@{
+	static const std::string ASCII_BELL;
+	static const std::string ASCII_BACKSPACE;
+	///@}
+
 	/// ANSI escape code constants
 	///@{
 	static const std::string ANSI_ERASE_TO_END_OF_LINE;
 	static const std::string ANSI_ERASE_TO_START_OF_LINE;
 	static const std::string ANSI_ERASE_LINE;
+	static const std::string ANSI_ERASE_DOWN;
+	static const std::string ANSI_CURSOR_SAVE;
+	static const std::string ANSI_CURSOR_RESTORE;
 	static const std::string ANSI_CURSOR_FORWARD_ONE;
 	static const std::string ANSI_CURSOR_FORWARD_INTFMT;
 	static const std::string ANSI_CURSOR_BACK_ONE;
 	static const std::string ANSI_CURSOR_BACK_INTFMT;
-	static const std::string ANSI_ABSOLUTE_HORIZONTAL_POSITION_INTFMT;
+	static const std::string ANSI_CURSOR_ABSOLUTE_HORIZONTAL_POSITION_INTFMT;
 	static const std::string ANSI_CURSOR_UP_ONE;
 	static const std::string ANSI_CURSOR_UP_INTFMT;
-	static const std::string VT102_INSERT_CHARACTER_POSITION;
-	static const std::string VT102_DELETE_CHARACTER_POSITION;
-	static const std::string VT102_INSERT_LINE;
-	static const std::string VT102_INSERT_LINE_INTFMT;
+	static const std::string ANSI_CURSOR_DOWN_ONE;
+	static const std::string ANSI_CURSOR_DOWN_INTFMT;
+	static const std::string ANSI_CURSOR_HOME;
+	static const std::string ANSI_CURSOR_HOME_2INTFMT; // row, column
+	static const std::string ANSI_CURSOR_QUERY_POSITION;
+	static const std::string ANSI_INSERT_CHARACTER_POSITION;
+	static const std::string ANSI_DELETE_CHARACTER_POSITION;
+	static const std::string ANSI_INSERT_LINE;
+	static const std::string ANSI_INSERT_LINE_INTFMT;
+	static const std::string ANSI_DELETE_LINE;
+	static const std::string ANSI_DELETE_LINE_INTFMT;
 	///@}
 };
 
