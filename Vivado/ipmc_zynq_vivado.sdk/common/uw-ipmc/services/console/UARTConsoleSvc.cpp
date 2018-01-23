@@ -104,6 +104,7 @@ bool UARTConsoleSvc::safe_write(std::string data, TickType_t timeout) {
 void UARTConsoleSvc::_run_thread() {
 	this->logtree.log("Starting UART Console Service \"" + this->name + "\"", LogTree::LOG_INFO);
 	const std::string ctrlc_erased_facility = this->logtree.path + ".ctrlc_erased";
+	const std::string timed_out_ansi_facility = this->logtree.path + ".timed_out_ansi";
 	std::function<void(std::string)> console_output = [this](std::string data) -> void {
 		this->log_output.log(data, LogTree::LOG_DIAGNOSTIC);
 		this->safe_write(data, portMAX_DELAY);
@@ -201,8 +202,11 @@ void UARTConsoleSvc::_run_thread() {
 			else {
 				if (!ansi_code.buffer.empty() && last_ansi_tick + 50 < get_tick64()) {
 					// This control code took too long to come through.  Invalidating it.
+					TRACE.log(timed_out_ansi_facility.c_str(), timed_out_ansi_facility.size(), LogTree::LOG_TRACE, ansi_code.buffer.data(), ansi_code.buffer.size(), true);
 					ansi_code.buffer.clear();
 				}
+				if (*it == '\x1b')
+					ansi_code.buffer.clear(); // Whatever code we were building got interrupted.  Toss it.
 				enum ANSICode::ParseState ansi_state = ansi_code.parse(*it);
 				switch (ansi_state) {
 				case ANSICode::PARSE_EMPTY:
@@ -487,19 +491,26 @@ std::string UARTConsoleSvc::InputBuffer::set_buffer(std::string buffer, size_typ
 	if (cursor_row > 1)
 		out += stdsprintf(ANSICode::ANSI_CURSOR_UP_INTFMT.c_str(), cursor_row-1);
 	out += "\r";
-	out += this->query_size();
-	out += ANSICode::ANSI_CURSOR_SAVE;
-	out += ANSICode::ANSI_ERASE_DOWN;
+
+	/* Only redraw if the buffer changed, else we're assuming no line count
+	 * changes occurred (or matter), and our "erase to end of line" later will
+	 * take care of any stray characters from oddness.  They can always request
+	 * a redraw.
+	 */
+	if (this->buffer != buffer)
+		out += ANSICode::ANSI_ERASE_DOWN;
 
 	// The only actual set_buffer portion.
 	this->buffer = buffer;
 	this->cursor = (cursor == std::string::npos ? this->cursor : cursor);
 
-	out += this->prompt + this->buffer;
+	out += this->prompt + this->buffer + ANSICode::ANSI_ERASE_TO_END_OF_LINE;
 
 	// Ensure our cursor is not past our buffer.
 	if (this->cursor > this->buffer.size())
 		this->cursor = this->buffer.size();
+
+	out += this->query_size();
 
 	for (size_type i = this->buffer.size(); i > this->cursor; --i)
 		out += ANSICode::ASCII_BACKSPACE;
