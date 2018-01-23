@@ -19,9 +19,9 @@
 template <typename T> class RingBuffer {
 protected:
 	T *buffer;                      ///< The actual buffer space itself.
-	size_t buflen;                  ///< The size of the buffer in units of sizeof(T) (maxlength()+1 for bookkeeping.)
-	volatile size_t next_read_idx;  ///< The next read position in the ringbuffer.
-	volatile size_t next_write_idx; ///< The next write position in the ringbuffer.
+	ssize_t buflen;                  ///< The size of the buffer in units of sizeof(T) (maxlength()+1 for bookkeeping.)
+	volatile ssize_t next_read_idx;  ///< The next read position in the ringbuffer.
+	volatile ssize_t next_write_idx; ///< The next write position in the ringbuffer.
 public:
 	/**
 	 * Instantiate a new RingBuffer. Space for `items` items will be allocated
@@ -90,7 +90,7 @@ public:
 	size_t length() {
 		if (!IN_INTERRUPT())
 			portENTER_CRITICAL();
-		size_t ret = (this->next_write_idx - this->next_read_idx) % this->buflen;
+		ssize_t ret = (this->next_write_idx - this->next_read_idx) % this->buflen;
 		if (!IN_INTERRUPT())
 			portEXIT_CRITICAL();
 		return ret;
