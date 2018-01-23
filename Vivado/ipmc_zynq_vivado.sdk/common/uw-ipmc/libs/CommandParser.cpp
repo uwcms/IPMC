@@ -177,6 +177,26 @@ bool CommandParser::CommandParameters::parse_one(const std::string &arg, int *in
 	return true;
 }
 
+bool CommandParser::CommandParameters::parse_one(const std::string &arg, bool *boolval) {
+	static const std::vector<std::string> truevals = {"1","true","True","TRUE","yes","Yes","YES"};
+	static const std::vector<std::string> falsevals = {"0","false","False","FALSE","no","No","NO"};
+	if (arg.empty())
+		return false;
+	for (auto it = truevals.begin(), eit = truevals.end(); it != eit; ++it) {
+		if (arg == it->substr(0, arg.size())) {
+			*boolval = true;
+			return true;
+		}
+	}
+	for (auto it = falsevals.begin(), eit = falsevals.end(); it != eit; ++it) {
+		if (arg == it->substr(0, arg.size())) {
+			*boolval = false;
+			return true;
+		}
+	}
+	return false;
+}
+
 bool CommandParser::CommandParameters::parse_one(const std::string &arg, double *dblval) {
 	char *endptr = NULL;
 	init_stdlib_mutex();
