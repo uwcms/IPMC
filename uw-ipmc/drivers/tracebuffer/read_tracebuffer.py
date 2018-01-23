@@ -77,6 +77,7 @@ parser.add_argument('-t','--target', help='The debug target to connect to when u
 parser.add_argument('-a','--address', help='The start address of the buffer (int/hex) or ELF filename when using the JTAG access method', default=None)
 parser.add_argument('-f','--file', help='A binary memory dump of the trace buffer', default=None)
 parser.add_argument('--dump-script', help='Instead of reading a trace buffer, specify the size of the trace buffer to print an xsdb script to create a file dump.', type=lambda x: int(x,0), default=0)
+parser.add_argument('-B','--binary-as-text', help='Output binary entries as escaped strings', action='store_true')
 ARGS = parser.parse_args()
 del parser
 
@@ -188,7 +189,10 @@ for rec in RECORDS:
 	if isinstance(rec.data, str):
 		msg = rec.data.rstrip('\r\n')
 	elif isinstance(rec.data, bytearray):
-		msg = 'BIN: ' + ' '.join(map(lambda x: '{:02x}'.format(x), rec.data))
+		if ARGS.binary_as_text:
+			msg = 'BIN: ' + repr(bytes(rec.data))[1:]
+		else:
+			msg = 'BIN: ' + ' '.join(map(lambda x: '{:02x}'.format(x), rec.data))
 	else:
 		print(type(rec.data))
 		assert False, 'Unexpected record data type'
