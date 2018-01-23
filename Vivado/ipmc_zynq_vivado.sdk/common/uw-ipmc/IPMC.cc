@@ -68,7 +68,7 @@ void driver_init(bool use_pl) {
 	 * sequence, since it can't be flushed properly until interrupts are enabled
 	 * when the FreeRTOS scheduler starts.  We've got the space.
 	 */
-	uart_ps0 = new PS_UART(XPAR_PS7_UART_0_DEVICE_ID, XPAR_PS7_UART_0_INTR, 4096, 128*1024);
+	uart_ps0 = new PS_UART(XPAR_PS7_UART_0_DEVICE_ID, XPAR_PS7_UART_0_INTR, 4096, 32768);
 	console_log_filter = new LogTree::Filter(LOG, console_log_handler, LogTree::LOG_NOTICE);
 
 	PS_SPI *ps_spi0 = new PS_SPI(XPAR_PS7_SPI_0_DEVICE_ID, XPAR_PS7_SPI_0_INTR);

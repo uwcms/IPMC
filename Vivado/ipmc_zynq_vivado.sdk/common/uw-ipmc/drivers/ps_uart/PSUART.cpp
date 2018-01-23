@@ -57,8 +57,8 @@ static void XUartPs_DisableInterruptMask(XUartPs *InstancePtr, u32 Mask)
  */
 PS_UART::PS_UART(u32 DeviceId, u32 IntrId, u32 ibufsize, u32 obufsize,
 		u32 oblocksize) :
-		error_mask(0), inbuf(RingBuffer<u8>(4096)), outbuf(
-				RingBuffer<u8>(4096)), write_running(false), oblocksize(
+		error_mask(0), inbuf(RingBuffer<u8>(ibufsize)), outbuf(
+				RingBuffer<u8>(obufsize)), write_running(false), oblocksize(
 				oblocksize), IntrId(IntrId) {
 
 	XUartPs_Config *Config = XUartPs_LookupConfig(DeviceId);
