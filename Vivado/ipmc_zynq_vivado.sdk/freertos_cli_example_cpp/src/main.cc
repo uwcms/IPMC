@@ -223,7 +223,7 @@ int main() {
 	bannerstr = ""; // Save heap memory.
 
 	//xTaskCreate(lwip_startup_thread, "lwip_start", configMINIMAL_STACK_SIZE, NULL, configLWIP_TASK_PRIORITY, NULL);
-    xTaskCreate(TaskPrinter, "TaskPrint", configMINIMAL_STACK_SIZE+256, NULL, TASK_PRIORITY_INTERACTIVE, NULL);
+    xTaskCreate(TaskPrinter, "TaskPrint", UWIPMC_STANDARD_STACK_SIZE, NULL, TASK_PRIORITY_INTERACTIVE, NULL);
 
 	/* Start the tasks and timer running. */
 	vTaskStartScheduler();

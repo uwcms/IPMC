@@ -39,7 +39,7 @@ PersistentStorage::PersistentStorage(EEPROM &eeprom, LogTree &logtree)
 	this->index_mutex = xSemaphoreCreateMutex();
 	this->flushq_mutex = xSemaphoreCreateMutex();
 	// We are a driver task until the initial load is complete, then will change to a background task.
-	configASSERT(xTaskCreate(run_persistentstorage_thread, "PersistentFlush", configMINIMAL_STACK_SIZE+256, this, TASK_PRIORITY_DRIVER, &this->flushtask));
+	configASSERT(xTaskCreate(run_persistentstorage_thread, "PersistentFlush", UWIPMC_STANDARD_STACK_SIZE, this, TASK_PRIORITY_DRIVER, &this->flushtask));
 }
 
 PersistentStorage::~PersistentStorage() {

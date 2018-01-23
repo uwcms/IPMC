@@ -63,7 +63,7 @@ IPMBSvc::IPMBSvc(IPMB *ipmbA, IPMB *ipmbB, uint8_t ipmb_address, IPMICommandPars
 	if (ipmbB)
 		ipmbB->incoming_message_queue = this->recvq;
 
-	configASSERT(xTaskCreate(ipmb0_run_thread, name.c_str(), configMINIMAL_STACK_SIZE+512, this, TASK_PRIORITY_DRIVER, &this->task));
+	configASSERT(xTaskCreate(ipmb0_run_thread, name.c_str(), UWIPMC_STANDARD_STACK_SIZE, this, TASK_PRIORITY_DRIVER, &this->task));
 }
 
 IPMBSvc::~IPMBSvc() {
