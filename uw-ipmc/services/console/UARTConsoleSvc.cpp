@@ -96,7 +96,6 @@ bool UARTConsoleSvc::safe_write(std::string data, TickType_t timeout) {
 	out += std::string("\2",1);
 	out += this->linebuf.set_cursor(input_cursor);
 	out += std::string("\3",1);
-	TRACE.log("safewrite", 9, LogTree::LOG_TRACE, out.data(), out.size(), true);
 	this->uart.write(out.data(), out.size(), abstimeout.get_timeout());
 	xSemaphoreGive(this->linebuf_mutex);
 	return true;
@@ -150,10 +149,7 @@ void UARTConsoleSvc::_run_thread() {
 		for (auto it = rawbuffer.begin(), eit = rawbuffer.end(); it != eit; ++it) {
 			if (*it == '\r') {
 				// Newlines aren't valid in ANSI sequences.
-				if (!ansi_code.buffer.empty()) {
-					echobuf.append(this->linebuf.update(ansi_code.buffer.substr(1))); // Don't include the ESC.
-					ansi_code.buffer.clear();
-				}
+				ansi_code.buffer.clear();
 
 				// Ensure the entire (possibly multiline) command is visible in the terminal history.
 				echobuf.append(this->linebuf.end());
@@ -184,10 +180,7 @@ void UARTConsoleSvc::_run_thread() {
 				// Ignore it.  We don't understand that so, if you sent us \r\n, we'll just trigger on the \r.
 
 				// Newlines aren't valid in ANSI sequences.
-				if (!ansi_code.buffer.empty()) {
-					echobuf.append(this->linebuf.update(ansi_code.buffer.substr(1))); // Don't include the ESC.
-					ansi_code.buffer.clear();
-				}
+				ansi_code.buffer.clear();
 			}
 			else if (*it == ANSICode::render_ascii_controlkey('L') || *it == ANSICode::render_ascii_controlkey('K')) {
 				// Ctrl-L is customarily "screen redraw".  We will rerender the prompt.
@@ -197,10 +190,7 @@ void UARTConsoleSvc::_run_thread() {
 				// DEL (sent by backspace key)
 
 				// DEL isn't valid in ANSI sequences.
-				if (!ansi_code.buffer.empty()) {
-					echobuf.append(this->linebuf.update(ansi_code.buffer.substr(1))); // Don't include the ESC.
-					ansi_code.buffer.clear();
-				}
+				ansi_code.buffer.clear();
 
 				echobuf.append(this->linebuf.backspace());
 			}
@@ -211,7 +201,6 @@ void UARTConsoleSvc::_run_thread() {
 			else {
 				if (!ansi_code.buffer.empty() && last_ansi_tick + 50 < get_tick64()) {
 					// This control code took too long to come through.  Invalidating it.
-					echobuf.append(this->linebuf.update(ansi_code.buffer.substr(1))); // Don't include the ESC.
 					ansi_code.buffer.clear();
 				}
 				enum ANSICode::ParseState ansi_state = ansi_code.parse(*it);
@@ -225,9 +214,8 @@ void UARTConsoleSvc::_run_thread() {
 					continue;
 				case ANSICode::PARSE_INVALID:
 					// Guess it wasn't an ANSI code.  Put it back in the buffers.
-					if (ansi_code.buffer[0] == '\x1b')
-						ansi_code.buffer.erase(0,1); // Discard the ESC.
-					echobuf.append(this->linebuf.update(ansi_code.buffer));
+					if (ansi_code.buffer[0] != '\x1b')
+						echobuf.append(this->linebuf.update(ansi_code.buffer));
 					ansi_code.buffer.clear();
 					history_browse = false;
 					continue;
