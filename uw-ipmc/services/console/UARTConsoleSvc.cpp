@@ -36,7 +36,7 @@ UARTConsoleSvc::UARTConsoleSvc(UART &uart, CommandParser &parser, const std::str
 	  linebuf("> ", 2048) {
 	this->linebuf_mutex = xSemaphoreCreateMutex();
 	configASSERT(this->linebuf_mutex);
-	configASSERT(xTaskCreate(run_uartconsolesvc_thread, name.c_str(), configMINIMAL_STACK_SIZE+1024, this, TASK_PRIORITY_SERVICE, NULL));
+	configASSERT(xTaskCreate(run_uartconsolesvc_thread, name.c_str(), UWIPMC_STANDARD_STACK_SIZE, this, TASK_PRIORITY_SERVICE, NULL));
 }
 
 UARTConsoleSvc::~UARTConsoleSvc() {
