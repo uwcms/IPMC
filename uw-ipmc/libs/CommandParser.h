@@ -86,6 +86,8 @@ public:
 		/// overload
 		static bool parse_one(const std::string &arg, int *intval);
 		/// overload
+		static bool parse_one(const std::string &arg, bool *boolval);
+		/// overload
 		static bool parse_one(const std::string &arg, double *dblval);
 		/// overload
 		static bool parse_one(const std::string &arg, std::string *strval);
