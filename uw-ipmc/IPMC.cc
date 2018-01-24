@@ -43,6 +43,7 @@ UARTConsoleSvc *console_service;
 static void console_log_handler(LogTree &logtree, const std::string &message, enum LogTree::LogLevel level);
 static void tracebuffer_log_handler(LogTree &logtree, const std::string &message, enum LogTree::LogLevel level);
 static void tick_command(std::function<void(std::string)> print, const CommandParser::CommandParameters &parameters);
+static void version_command(std::function<void(std::string)> print, const CommandParser::CommandParameters &parameters);
 
 /** Stage 1 driver initialization.
  *
@@ -74,6 +75,7 @@ void driver_init(bool use_pl) {
 	console_log_filter->register_console_commands(console_command_parser);
 	LOG["console_log_command"].register_console_commands(console_command_parser);
 	console_command_parser.register_command("tick", tick_command, "tick");
+	console_command_parser.register_command("version", version_command, "version");
 
 	PS_SPI *ps_spi0 = new PS_SPI(XPAR_PS7_SPI_0_DEVICE_ID, XPAR_PS7_SPI_0_INTR);
 	eeprom_data = new SPI_EEPROM(*ps_spi0, 0, 0x8000, 64);
@@ -159,6 +161,18 @@ static void tracebuffer_log_handler(LogTree &logtree, const std::string &message
 
 static void tick_command(std::function<void(std::string)> print, const CommandParser::CommandParameters &parameters) {
 	print(stdsprintf("The current tick is %llu.\n", get_tick64()));
+};
+
+static void version_command(std::function<void(std::string)> print, const CommandParser::CommandParameters &parameters) {
+	std::string bannerstr;
+	bannerstr += "********************************************************************************\n";
+	bannerstr += "\n";
+	bannerstr += std::string("University of Wisconsin IPMC ") + GIT_DESCRIBE + "\n";
+	if (GIT_STATUS[0] != '\0')
+		bannerstr += std::string("\n") + GIT_STATUS; // contains a trailing \n
+	bannerstr += "\n";
+	bannerstr += "********************************************************************************\n";
+	print(bannerstr);
 };
 
 /**
