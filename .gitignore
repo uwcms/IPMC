@@ -64,9 +64,10 @@
 !*.xdc
 *ooc.xdc
 #########
-#TCL - files
+#TCL and MDD - files
 #########
 !*.tcl
+!*.mdd
 #########
 #Journal - files
 #########
