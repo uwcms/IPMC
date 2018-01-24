@@ -42,6 +42,22 @@ public:
 	void *get_section(u16 section_id, u16 section_version, u16 section_size);
 	void delete_section(u16 section_id);
 
+	/**
+	 * An entry in the persistent storage section index.
+	 */
+	struct PersistentStorageIndexRecord {
+		u16 id;      ///< The ID of the section.
+		u16 pgoff;   ///< The page number of the section start.
+		u16 pgcount; ///< The length in pages of the section.
+		u16 version; ///< The version of the section.
+	};
+	std::vector<struct PersistentStorageIndexRecord> list_sections();
+
+	void register_console_commands(CommandParser &parser, const std::string &prefix="");
+	void deregister_console_commands(CommandParser &parser, const std::string &prefix="");
+
+	EEPROM &eeprom; ///< The eeprom backing this storage
+
 protected:
 	/// A pending flush request
 	class FlushRequest {
@@ -55,7 +71,6 @@ protected:
 		bool index_flush; ///< A marker indicating that this is an index flush, which overrides all priority.
 		bool operator<(const FlushRequest &other) const;
 	};
-	EEPROM &eeprom; ///< The eeprom backing this storage
 	TaskHandle_t flushtask; ///< The background flush task
 	u8 *cache; ///< The cache of true EEPROM contents for comparison in flush.
 	u8 *data; ///< The data for real use.
@@ -72,6 +87,23 @@ protected:
 	bool do_flush_range(u32 start, u32 end);
 };
 
+#ifdef __PERSISTENT_STORAGE_CPP
+#define PERSISTENT_STORAGE_ALLOCATE(id, name) \
+	const u16 name = id; \
+	static void _ps_reg_section_ ## name() __attribute__((constructor(1000))); \
+	static void _ps_reg_section_ ## name() { \
+		if (!name_to_id) \
+			name_to_id = new std::map<std::string, u16>(); \
+		if (!id_to_name) \
+			id_to_name = new std::map<u16, std::string>(); \
+		(*name_to_id)[#name] = id; \
+		(*id_to_name)[id] = #name; \
+	}
+#else // __PERSISTENT_STORAGE_CPP
+#define PERSISTENT_STORAGE_ALLOCATE(id, name) \
+		const u16 name = id;
+#endif // __PERSISTENT_STORAGE_CPP
+
 /**
  * This namespace contains ID allocations for sections of persistent storage.
  *
@@ -84,10 +116,15 @@ protected:
  * repository.
  */
 namespace PersistentStorageAllocations {
+	extern std::map<u16, std::string> *id_to_name; ///< Allocation ID to Name mapping.
+	extern std::map<std::string, u16> *name_to_id; ///< Allocation Name to ID mapping.
+
 	/* Vendor 0: RESERVED */
-	const u16 RESERVED_END_OF_INDEX = 0x0000; ///< A marker to internally denote the end of the index.
+	PERSISTENT_STORAGE_ALLOCATE(0x0000, RESERVED_END_OF_INDEX); ///< A marker to internally denote the end of the index.
 	/* Vendor 1: University of Wisconsin */
-	const u16 WISC_SDR_REPOSITORY = 0x0101; ///< The SDR repository.
+	PERSISTENT_STORAGE_ALLOCATE(0x0101, WISC_SDR_REPOSITORY); ///< The SDR repository.
 };
+
+#undef PERSISTENT_STORAGE_ALLOCATE
 
 #endif /* SRC_COMMON_UW_IPMC_SERVICES_PERSISTENTSTORAGE_PERSISTENTSTORAGE_H_ */

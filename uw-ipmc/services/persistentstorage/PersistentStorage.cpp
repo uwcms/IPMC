@@ -5,6 +5,7 @@
  *      Author: jtikalsky
  */
 
+#define __PERSISTENT_STORAGE_CPP
 #include <services/persistentstorage/PersistentStorage.h>
 #include <FreeRTOS.h>
 #include <semphr.h>
@@ -14,6 +15,7 @@
 #include <drivers/spi_eeprom/SPIEEPROM.h>
 #include <drivers/tracebuffer/TraceBuffer.h>
 #include <libs/SkyRoad.h>
+#include <libs/CommandParser.h>
 #include <string.h>
 
 #define NVREG32(baseptr, offset) (*((uint32_t*)((baseptr)+(offset))))
@@ -56,16 +58,6 @@ PersistentStorage::~PersistentStorage() {
  */
 struct PersistentStorageHeader {
 	u16 version; ///< The version of this persistent storage format.
-};
-
-/**
- * An entry in the persistent storage section index.
- */
-struct PersistentStorageIndexRecord {
-	u16 id;      ///< The ID of the section.
-	u16 pgoff;   ///< The page number of the section start.
-	u16 pgcount; ///< The length in pages of the section.
-	u16 version; ///< The version of the section.
 };
 
 /**
@@ -216,6 +208,21 @@ void PersistentStorage::delete_section(u16 section_id) {
 	}
 	xSemaphoreGive(this->index_mutex);
 	this->flush_index();
+}
+
+/**
+ * Return a list of all persistent storage sections.
+ * @return The list.
+ */
+std::vector<struct PersistentStorage::PersistentStorageIndexRecord> PersistentStorage::list_sections() {
+	xEventGroupWaitBits(this->storage_loaded, 1, 0, pdTRUE, portMAX_DELAY);
+	struct PersistentStorageIndexRecord *index = reinterpret_cast<struct PersistentStorageIndexRecord *>(this->data + sizeof(struct PersistentStorageHeader));
+	xSemaphoreTake(this->index_mutex, portMAX_DELAY);
+	std::vector<struct PersistentStorageIndexRecord> sections;
+	for (int i = 0; index[i].id != PersistentStorageAllocations::RESERVED_END_OF_INDEX; ++i)
+		sections.push_back(index[i]);
+	xSemaphoreGive(this->index_mutex);
+	return std::move(sections);
 }
 
 /**
@@ -440,3 +447,237 @@ bool PersistentStorage::do_flush_range(u32 start, u32 end) {
 	}
 	return changed;
 }
+
+static const std::string consolecmd_list_sections_helptext =
+		"%slist_sections\n"
+		"\n"
+		"Lists all persistent storage sections.\n";
+
+static void consolecmd_list_sections(PersistentStorage &storage, std::function<void(std::string)> print, const CommandParser::CommandParameters &parameters) {
+	std::string out;
+	std::vector<struct PersistentStorage::PersistentStorageIndexRecord> sections = storage.list_sections();
+	for (auto it = sections.begin(), eit = sections.end(); it != eit; ++it) {
+		std::string name = "UNKNOWN!  MISSING ALLOCATION!";
+		if (PersistentStorageAllocations::id_to_name->count(it->id))
+			name = PersistentStorageAllocations::id_to_name->at(it->id);
+		out += stdsprintf("Section 0x%04hx (ver %hu), at pages 0x%04hx-0x%04hx: %s\n", it->id, it->version, it->pgoff, it->pgoff + it->pgcount - 1, name.c_str());
+	}
+	print(out);
+}
+
+static const std::string consolecmd_read_helptext =
+		"%sread $section $start $length\n"
+		"\n"
+		"Read from a given section.\n";
+
+static void consolecmd_read(PersistentStorage &storage, std::function<void(std::string)> print, const CommandParser::CommandParameters &parameters) {
+	u16 sect_id = 0;
+	std::string sect_name;
+	u32 start;
+	u32 length;
+	if (!parameters.parse_parameters(1, true, &sect_id, &start, &length)) {
+		// Fine, parse $section as a string.
+		if (!parameters.parse_parameters(1, true, &sect_name, &start, &length)) {
+			print("Invalid parameters.  See help.\n");
+			return;
+		}
+		if (PersistentStorageAllocations::name_to_id->count(sect_name))
+			sect_id = PersistentStorageAllocations::name_to_id->at(sect_name);
+	}
+
+	if (!sect_id) {
+		print("Invalid section.\n");
+		return;
+	}
+
+	// We have to look the section up to get its version and size so we can request it.
+	std::vector<struct PersistentStorage::PersistentStorageIndexRecord> sections = storage.list_sections();
+	for (auto it = sections.begin(), eit = sections.end(); it != eit; ++it) {
+		if (it->id == sect_id) {
+			u8 *buf = (u8*)storage.get_section(it->id, it->version, it->pgcount*storage.eeprom.page_size);
+			if (!buf) {
+				print("Failed to fetch section!\n");
+				return;
+			}
+			std::string out;
+			for (u32 i = start; i < start+length && i < (it->pgcount*storage.eeprom.page_size); ++i)
+				out += stdsprintf(" %2hhx", buf[i]);
+			print(stdsprintf("0x%04hx[0x%04lx:0x%04lx]:", sect_id, start, start+length) + out + "\n");
+			return;
+		}
+	}
+	print("Section not found.\n");
+}
+
+static const std::string consolecmd_write_helptext =
+		"%swrite $section $start $byte [...]\n"
+		"\n"
+		"Write to a given section.\n";
+
+static void consolecmd_write(PersistentStorage &storage, std::function<void(std::string)> print, const CommandParser::CommandParameters &parameters) {
+	u16 sect_id = 0;
+	std::string sect_name;
+	u32 start;
+	if (!parameters.parse_parameters(1, false, &sect_id, &start)) {
+		// Fine, parse $section as a string.
+		if (!parameters.parse_parameters(1, false, &sect_name, &start)) {
+			print("Invalid parameters.  See help.\n");
+			return;
+		}
+		if (PersistentStorageAllocations::name_to_id->count(sect_name))
+			sect_id = PersistentStorageAllocations::name_to_id->at(sect_name);
+	}
+
+	if (!sect_id) {
+		print("Invalid section.\n");
+		return;
+	}
+
+	const CommandParser::CommandParameters::size_type writebytecount = parameters.nargs()-3;
+	u8 writebytes[writebytecount];
+	for (CommandParser::CommandParameters::size_type i = 0; i < parameters.nargs()-3; ++i) {
+		if (!parameters.parse_parameters(i+3, false, &writebytes[i])) {
+			print("Unable to parse input bytes.\n");
+			return;
+		}
+	}
+
+	// We have to look the section up to get its version and size so we can request it.
+	std::vector<struct PersistentStorage::PersistentStorageIndexRecord> sections = storage.list_sections();
+	for (auto it = sections.begin(), eit = sections.end(); it != eit; ++it) {
+		if (it->id == sect_id) {
+			u8 *buf = (u8*)storage.get_section(it->id, it->version, it->pgcount*storage.eeprom.page_size);
+			if (!buf) {
+				print("Failed to fetch section!\n");
+				return;
+			}
+			std::string out;
+			if (start + writebytecount > (it->pgcount*storage.eeprom.page_size)) {
+				print("This write would overflow the region.  Cancelled.\n");
+				return;
+			}
+			for (u32 i = 0; i < writebytecount; ++i)
+				buf[start+i] = writebytes[i];
+			print(stdsprintf("0x%04hx[0x%04lx:0x%04lx] written.\n", sect_id, start, start+writebytecount));
+			storage.flush(buf+start, writebytecount);
+			return;
+		}
+	}
+	print("Section not found.\n");
+}
+
+static const std::string consolecmd_set_section_version_helptext =
+		"%sset_section_version $section $version [$size]\n"
+		"\n"
+		"Sets the version number of a given section, automatically creating it if a size is specified.\n";
+
+static void consolecmd_set_section_version(PersistentStorage &storage, std::function<void(std::string)> print, const CommandParser::CommandParameters &parameters) {
+	u16 sect_id = 0;
+	std::string sect_name;
+	u16 version;
+	u16 size = 0;
+
+	if (parameters.parse_parameters(1, true, &sect_id, &version, &size)) {
+		// Okay!
+	}
+	else if (parameters.parse_parameters(1, true, &sect_id, &version)) {
+		// Still okay!
+	}
+	else if (parameters.parse_parameters(1, true, &sect_name, &version, &size)) {
+		// Fine, parse $section as a string.
+		if (PersistentStorageAllocations::name_to_id->count(sect_name))
+			sect_id = PersistentStorageAllocations::name_to_id->at(sect_name);
+	}
+	else if (parameters.parse_parameters(1, true, &sect_name, &version)) {
+		// Fine, parse $section as a string, and there's no size specified.
+		if (PersistentStorageAllocations::name_to_id->count(sect_name))
+			sect_id = PersistentStorageAllocations::name_to_id->at(sect_name);
+	}
+	else {
+		print("Invalid parameters.\n");
+		return;
+	}
+
+	if (!sect_id) {
+		print("Invalid section.\n");
+		return;
+	}
+
+	if (size) {
+		if (storage.get_section(sect_id, version, size)) {
+			print("Section created or already correct.\n");
+			return;
+		}
+		else if (storage.get_section(sect_id, storage.get_section_version(sect_id), size)) {
+			// Section exists.  Version will be updated below.
+		}
+		else {
+			print("Section exists with a different size.  Aborting.\n");
+			return;
+		}
+	}
+	storage.set_section_version(sect_id, version);
+}
+
+static const std::string consolecmd_DELETE_SECTION_helptext =
+		"%sDELETE_SECTION $section\n"
+		"\n"
+		"Deletes a given storage section.\n"
+		"\n"
+		"*************************************************\n"
+		"* DO NOT DO THIS IF IT IS IN USE BY OTHER CODE. *\n"
+		"*************************************************\n";
+
+static void consolecmd_DELETE_SECTION(PersistentStorage &storage, std::function<void(std::string)> print, const CommandParser::CommandParameters &parameters) {
+	u16 sect_id = 0;
+	std::string sect_name;
+
+	if (parameters.parse_parameters(1, true, &sect_id)) {
+		// Okay!
+	}
+	else if (parameters.parse_parameters(1, true, &sect_name)) {
+		// Fine, parse $section as a string, and there's no size specified.
+		if (PersistentStorageAllocations::name_to_id->count(sect_name))
+			sect_id = PersistentStorageAllocations::name_to_id->at(sect_name);
+	}
+	else {
+		print("Invalid parameters.\n");
+		return;
+	}
+
+	if (!sect_id) {
+		print("Invalid section.\n");
+		return;
+	}
+
+	storage.delete_section(sect_id);
+}
+
+/**
+ * Register console commands related to this storage.
+ * @param parser The command parser to register to.
+ * @param prefix A prefix for the registered commands.
+ */
+void PersistentStorage::register_console_commands(CommandParser &parser, const std::string &prefix) {
+	parser.register_command(prefix + "list_sections", std::bind(consolecmd_list_sections, std::ref(*this), std::placeholders::_1, std::placeholders::_2), stdsprintf(consolecmd_list_sections_helptext.c_str(), prefix.c_str()));
+	parser.register_command(prefix + "read", std::bind(consolecmd_read, std::ref(*this), std::placeholders::_1, std::placeholders::_2), stdsprintf(consolecmd_read_helptext.c_str(), prefix.c_str()));
+	parser.register_command(prefix + "write", std::bind(consolecmd_write, std::ref(*this), std::placeholders::_1, std::placeholders::_2), stdsprintf(consolecmd_write_helptext.c_str(), prefix.c_str()));
+	parser.register_command(prefix + "set_section_version", std::bind(consolecmd_set_section_version, std::ref(*this), std::placeholders::_1, std::placeholders::_2), stdsprintf(consolecmd_set_section_version_helptext.c_str(), prefix.c_str()));
+	parser.register_command(prefix + "DELETE_SECTION", std::bind(consolecmd_DELETE_SECTION, std::ref(*this), std::placeholders::_1, std::placeholders::_2), stdsprintf(consolecmd_DELETE_SECTION_helptext.c_str(), prefix.c_str()));
+}
+
+/**
+ * Unregister console commands related to this storage.
+ * @param parser The command parser to unregister from.
+ * @param prefix A prefix for the registered commands.
+ */
+void PersistentStorage::deregister_console_commands(CommandParser &parser, const std::string &prefix) {
+	parser.register_command(prefix + "list_sections", NULL, "");
+	parser.register_command(prefix + "read", NULL, "");
+	parser.register_command(prefix + "write", NULL, "");
+	parser.register_command(prefix + "set_section_version", NULL, "");
+	parser.register_command(prefix + "DELETE_SECTION", NULL, "");
+}
+
+std::map<u16, std::string> *PersistentStorageAllocations::id_to_name;
+std::map<std::string, u16> *PersistentStorageAllocations::name_to_id;
