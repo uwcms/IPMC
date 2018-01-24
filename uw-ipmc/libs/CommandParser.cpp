@@ -11,10 +11,15 @@
 #include <IPMC.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <algorithm>
+
+static void consolecmd_help(CommandParser &parser, std::function<void(std::string)> print, const CommandParser::CommandParameters &parameters);
 
 CommandParser::CommandParser() {
 	this->mutex = xSemaphoreCreateMutex();
 	configASSERT(this->mutex);
+	// Register a help command by default.
+	this->register_command("help", std::bind(consolecmd_help, std::ref(*this), std::placeholders::_1, std::placeholders::_2), "help [command]");
 }
 
 CommandParser::~CommandParser() {
@@ -111,6 +116,22 @@ void CommandParser::register_command(const std::string &command, handler_t handl
 		this->commandhelp[command] = helptext;
 	}
 	xSemaphoreGive(this->mutex);
+}
+
+
+/**
+ * List installed commands.
+ *
+ * @return All installed commands.
+ */
+std::vector<std::string> CommandParser::list_commands() {
+	xSemaphoreTake(this->mutex, portMAX_DELAY);
+	std::vector<std::string> commands;
+	commands.reserve(this->commandhelp.size());
+	for (auto it = this->commandhelp.begin(), eit = this->commandhelp.end(); it != eit; ++it)
+		commands.push_back(it->first);
+	xSemaphoreGive(this->mutex);
+	return std::move(commands);
 }
 
 /**
@@ -212,4 +233,24 @@ bool CommandParser::CommandParameters::parse_one(const std::string &arg, double 
 bool CommandParser::CommandParameters::parse_one(const std::string &arg, std::string *strval) {
 	*strval = arg;
 	return true;
+}
+
+static void consolecmd_help(CommandParser &parser, std::function<void(std::string)> print, const CommandParser::CommandParameters &parameters) {
+	std::string out;
+	std::string command;
+
+	if (parameters.parse_parameters(1, true, &command)) {
+		out = parser.get_helptext(command);
+		if (out.empty())
+			out = "Unknown command.  Try help.\n";
+	}
+	else {
+		std::vector<std::string> commands = parser.list_commands();
+		std::sort(commands.begin(), commands.end());
+		for (auto it = commands.begin(), eit = commands.end(); it != eit; ++it)
+			if (it->substr(0,5) != "ANSI_") {
+				out += *it + "\n";
+			}
+	}
+	print(out);
 }

@@ -36,6 +36,31 @@ UARTConsoleSvc::UARTConsoleSvc(UART &uart, CommandParser &parser, const std::str
 	  linebuf("> ", 2048) {
 	this->linebuf_mutex = xSemaphoreCreateMutex();
 	configASSERT(this->linebuf_mutex);
+
+#if 0 // Debugging only.
+	CommandParser::handler_t colormecmd = [](std::function<void(std::string)> print, const CommandParser::CommandParameters &parameters) -> void {
+		int fg = 9;
+		int bg = 9;
+		bool bold = false;
+		bool underline = false;
+		bool inverse = false;
+		parameters.parse_parameters(1, false, &fg);
+		parameters.parse_parameters(2, false, &bg);
+		parameters.parse_parameters(3, false, &bold);
+		parameters.parse_parameters(3, false, &underline);
+		parameters.parse_parameters(3, false, &inverse);
+		print(ANSICode::color(static_cast<enum ANSICode::TermColor>(fg),static_cast<enum ANSICode::TermColor>(bg),bold,underline,inverse) + "Colorful, isn't it?" + ANSICode::color() + "\n");
+	};
+	parser.register_command("colorme", colormecmd, "colorme fgnum bgnum bold underline inverse");
+
+	CommandParser::handler_t ansicmd = [](std::function<void(std::string)> print, const CommandParser::CommandParameters &parameters) -> void {
+			std::string arg;
+			if (parameters.parse_parameters(0, true, &arg))
+				print(std::string("I just heard a ") + arg + "\n");
+	};
+	for (auto it = ANSICode::codenames.begin(), eit = ANSICode::codenames.end(); it != eit; ++it)
+		parser.register_command("ANSI_" + it->second, ansicmd, "");
+#endif
 	configASSERT(xTaskCreate(run_uartconsolesvc_thread, name.c_str(), UWIPMC_STANDARD_STACK_SIZE, this, TASK_PRIORITY_SERVICE, NULL));
 }
 

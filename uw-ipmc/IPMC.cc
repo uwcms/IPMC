@@ -42,6 +42,7 @@ UARTConsoleSvc *console_service;
 
 static void console_log_handler(LogTree &logtree, const std::string &message, enum LogTree::LogLevel level);
 static void tracebuffer_log_handler(LogTree &logtree, const std::string &message, enum LogTree::LogLevel level);
+static void tick_command(std::function<void(std::string)> print, const CommandParser::CommandParameters &parameters);
 
 /** Stage 1 driver initialization.
  *
@@ -70,6 +71,9 @@ void driver_init(bool use_pl) {
 	 */
 	uart_ps0 = new PS_UART(XPAR_PS7_UART_0_DEVICE_ID, XPAR_PS7_UART_0_INTR, 4096, 32768);
 	console_log_filter = new LogTree::Filter(LOG, console_log_handler, LogTree::LOG_NOTICE);
+	console_log_filter->register_console_commands(console_command_parser);
+	LOG["console_log_command"].register_console_commands(console_command_parser);
+	console_command_parser.register_command("tick", tick_command, "tick");
 
 	PS_SPI *ps_spi0 = new PS_SPI(XPAR_PS7_SPI_0_DEVICE_ID, XPAR_PS7_SPI_0_INTR);
 	eeprom_data = new SPI_EEPROM(*ps_spi0, 0, 0x8000, 64);
@@ -151,6 +155,10 @@ static void console_log_handler(LogTree &logtree, const std::string &message,
 static void tracebuffer_log_handler(LogTree &logtree, const std::string &message, enum LogTree::LogLevel level) {
 	TRACE.log(logtree.path.data(), logtree.path.size(), level, message.data(), message.size());
 }
+
+static void tick_command(std::function<void(std::string)> print, const CommandParser::CommandParameters &parameters) {
+	print(stdsprintf("The current tick is %llu.\n", get_tick64()));
+};
 
 /**
  * Modify a std::string in place to contain \r\n where it currently contains \n.

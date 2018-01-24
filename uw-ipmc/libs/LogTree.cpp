@@ -9,6 +9,9 @@
 #include "semphr.h"
 #include <IPMC.h>
 #include <libs/LogTree.h>
+#include <libs/CommandParser.h>
+#include <deque>
+#include <algorithm>
 
 /**
  * Instantiate a new LogTree root node.
@@ -147,6 +150,34 @@ LogTree& LogTree::operator[](const std::string &label) {
 }
 
 /**
+ * Return the number of children (i.e. 0 or 1) with a given label.
+ * @param label The label
+ * @return 0 if no children, else 1.
+ */
+LogTree::size_type LogTree::count(const std::string &label) {
+	xSemaphoreTakeRecursive(this->mutex, portMAX_DELAY);
+	size_type count = this->children.count(label);
+	xSemaphoreGiveRecursive(this->mutex);
+	return count;
+}
+
+/**
+ * Return a list of this node's children.
+ * @return A list of this node's children
+ */
+std::vector<std::string> LogTree::list_children() {
+	xSemaphoreTakeRecursive(this->mutex, portMAX_DELAY);
+
+	std::vector<std::string> children;
+	children.reserve(this->children.size());
+	for (auto it = this->children.begin(), eit = this->children.end(); it != eit; ++it)
+		children.push_back(it->first);
+
+	xSemaphoreGiveRecursive(this->mutex);
+	return std::move(children);
+}
+
+/**
  * Log a message to the given LogTree node, and dispatch it to all relevant
  * handlers.
  *
@@ -162,6 +193,74 @@ void LogTree::log(const std::string &message, enum LogLevel level) {
 		if (it->second.level >= level && it->first->handler)
 			it->first->handler(*this, message, level);
 	xSemaphoreGiveRecursive(this->mutex);
+}
+
+static const std::string consolecmd_log_helptext =
+		"%slog LOGLEVEL \"text\" [...]\n"
+		"\n"
+		"LOGLEVEL is any prefix of:\n"
+		"  CRITICAL\n"
+		"  ERROR\n"
+		"  WARNING\n"
+		"  NOTICE\n"
+		"  INFO\n"
+		"  DIAGNOSTIC\n"
+		"  TRACE\n";
+
+static void consolecmd_log(LogTree &logtree, std::function<void(std::string)> print, const CommandParser::CommandParameters &parameters) {
+	std::string out;
+	std::string levelstr;
+	if (!parameters.parse_parameters(1, false, &levelstr)) {
+		print("Invalid parameters. See help.\n");
+		return;
+	}
+	LogTree::LogLevel level = LogTree::LOG_SILENT;
+	if (levelstr == std::string("CRITICAL").substr(0,levelstr.size()))
+		level = LogTree::LOG_CRITICAL;
+	else if (levelstr == std::string("ERROR").substr(0,levelstr.size()))
+		level = LogTree::LOG_ERROR;
+	else if (levelstr == std::string("WARNING").substr(0,levelstr.size()))
+		level = LogTree::LOG_WARNING;
+	else if (levelstr == std::string("NOTICE").substr(0,levelstr.size()))
+		level = LogTree::LOG_NOTICE;
+	else if (levelstr == std::string("INFO").substr(0,levelstr.size()))
+		level = LogTree::LOG_INFO;
+	else if (levelstr == std::string("DIAGNOSTIC").substr(0,levelstr.size()))
+		level = LogTree::LOG_DIAGNOSTIC;
+	else if (levelstr == std::string("TRACE").substr(0,levelstr.size()))
+		level = LogTree::LOG_TRACE;
+
+	if (level == LogTree::LOG_SILENT) {
+		print("Unknown loglevel.\n");
+		return;
+	}
+
+	for (CommandParser::CommandParameters::size_type i = 2; i < parameters.nargs(); ++i) {
+		std::string arg;
+		parameters.parse_parameters(i, false, &arg);
+		if (out.size())
+			out += " ";
+		out += arg;
+	}
+	logtree.log(out, level);
+}
+
+/**
+ * Register console commands related to this logtree.
+ * @param parser The command parser to register to.
+ * @param prefix A prefix for the registered commands.
+ */
+void LogTree::register_console_commands(CommandParser &parser, const std::string &prefix) {
+	parser.register_command(prefix + "log", std::bind(consolecmd_log, std::ref(*this), std::placeholders::_1, std::placeholders::_2), stdsprintf(consolecmd_log_helptext.c_str(), prefix.c_str()));
+}
+
+/**
+ * Unregister console commands related to this logtree.
+ * @param parser The command parser to unregister from.
+ * @param prefix A prefix for the registered commands.
+ */
+void LogTree::deregister_console_commands(CommandParser &parser, const std::string &prefix) {
+	parser.register_command(prefix + "log", NULL, "");
 }
 
 /**
@@ -226,6 +325,144 @@ LogTree::Filter::Filter(LogTree &logtree, handler_t handler, enum LogLevel level
 
 LogTree::Filter::~Filter() {
 	this->logtree->filter_unsubscribe(this);
+}
+
+static const std::string consolecmd_loglevel_helptext =
+		"%sloglevel logtree [LOGLEVEL]\n"
+		"\n"
+		"With a loglevel parameter, change the current loglevel of the target.\n"
+		"Without a loglevel parameter, print the current loglevel of the target.\n"
+		"  You may specify target.* to list immediate children's loglevels.\n"
+		"  You may specify the special target * to list ALL log facilities.\n"
+		"\n"
+		"LOGLEVEL is any prefix of:\n"
+		"  SILENT\n"
+		"  CRITICAL\n"
+		"  ERROR\n"
+		"  WARNING\n"
+		"  NOTICE\n"
+		"  INFO\n"
+		"  DIAGNOSTIC\n"
+		"  TRACE\n"
+		"  ALL\n"
+		"  PARENT (restore inheritance)\n";
+
+static void consolecmd_loglevel(LogTree::Filter &filter, LogTree &root, std::function<void(std::string)> print, const CommandParser::CommandParameters &parameters) {
+	std::string out;
+	std::string facilitystr;
+	std::string levelstr;
+
+	if (!parameters.parse_parameters(1, true, &facilitystr)) {
+		print("Invalid parameters. See help.\n");
+		return;
+	}
+	parameters.parse_parameters(2, true, &levelstr); // Optionally parse levelstr
+
+	LogTree *facility = &root;
+	if (facilitystr == "*") {
+		// MASS Listings!
+		std::map<std::string, LogTree*> facilities;
+		std::deque<LogTree*> open_nodes;
+		open_nodes.push_back(&root);
+		while (!open_nodes.empty()) {
+			facilities.emplace(open_nodes.front()->path, open_nodes.front());
+			std::vector<std::string> children = open_nodes.front()->list_children();
+			for (auto it = children.begin(), eit = children.end(); it != eit; ++it)
+				open_nodes.push_back(&((*open_nodes.front())[*it]));
+			open_nodes.pop_front();
+		}
+		for (auto it = facilities.begin(), eit = facilities.end(); it != eit; ++it) {
+			LogTree::LogLevel curlevel = filter.get_configuration(*it->second);
+			configASSERT(curlevel <= LogTree::LOG_INHERIT);
+			print(stdsprintf("%-10s %s\n", LogTree::LogLevel_strings[curlevel], it->second->path.c_str()));
+		}
+		return;
+	}
+	else if (facilitystr != root.path) {
+		if (facilitystr.substr(0, root.path.size()+1) != root.path + ".") {
+			print("Unknown log facility.\n");
+			return;
+		}
+		facilitystr = facilitystr.substr(root.path.size()+1);
+		while (facilitystr.size()) {
+			std::string::size_type nextdot = facilitystr.find_first_of(".");
+			std::string part = facilitystr.substr(0, nextdot);
+
+			if (part == "*" && nextdot == std::string::npos && levelstr.empty()) {
+				// Listings!
+				std::vector<std::string> children = facility->list_children();
+				std::sort(children.begin(), children.end());
+				for (auto it = children.begin(), eit = children.end(); it != eit; ++it) {
+					LogTree::LogLevel curlevel = filter.get_configuration((*facility)[*it]);
+					configASSERT(curlevel <= LogTree::LOG_INHERIT);
+					print(stdsprintf("%-10s %s\n", LogTree::LogLevel_strings[curlevel], (*facility)[*it].path.c_str()));
+				}
+				return;
+			}
+			else if (!facility->count(part)) {
+				print("Unknown log facility.\n");
+				return;
+			}
+			facility = &((*facility)[part]);
+
+			if (nextdot == std::string::npos)
+				break; // No further dots after the one we just processed.
+			facilitystr = facilitystr.substr(nextdot+1);
+		}
+	}
+
+	if (levelstr.empty()) {
+		LogTree::LogLevel curlevel = filter.get_configuration(*facility);
+		configASSERT(curlevel <= LogTree::LOG_INHERIT);
+		print(std::string(LogTree::LogLevel_strings[curlevel]) + "\n");
+		return;
+	}
+
+	LogTree::LogLevel level = LogTree::LOG_SILENT;
+	if (levelstr == std::string("SILENT").substr(0,levelstr.size()))
+		level = LogTree::LOG_SILENT;
+	else if (levelstr == std::string("CRITICAL").substr(0,levelstr.size()))
+		level = LogTree::LOG_CRITICAL;
+	else if (levelstr == std::string("ERROR").substr(0,levelstr.size()))
+		level = LogTree::LOG_ERROR;
+	else if (levelstr == std::string("WARNING").substr(0,levelstr.size()))
+		level = LogTree::LOG_WARNING;
+	else if (levelstr == std::string("NOTICE").substr(0,levelstr.size()))
+		level = LogTree::LOG_NOTICE;
+	else if (levelstr == std::string("INFO").substr(0,levelstr.size()))
+		level = LogTree::LOG_INFO;
+	else if (levelstr == std::string("DIAGNOSTIC").substr(0,levelstr.size()))
+		level = LogTree::LOG_DIAGNOSTIC;
+	else if (levelstr == std::string("TRACE").substr(0,levelstr.size()))
+		level = LogTree::LOG_TRACE;
+	else if (levelstr == std::string("ALL").substr(0,levelstr.size()))
+		level = LogTree::LOG_ALL;
+	else if (levelstr == std::string("PARENT").substr(0,levelstr.size()))
+		level = LogTree::LOG_INHERIT;
+	else {
+		print("Unknown loglevel. See help.\n");
+		return;
+	}
+
+	filter.reconfigure(*facility, level);
+}
+
+/**
+ * Register console commands related to this filter.
+ * @param parser The command parser to register to.
+ * @param prefix A prefix for the registered commands.
+ */
+void LogTree::Filter::register_console_commands(CommandParser &parser, const std::string &prefix) {
+	parser.register_command(prefix + "loglevel", std::bind(consolecmd_loglevel, std::ref(*this), std::ref(*this->logtree), std::placeholders::_1, std::placeholders::_2), stdsprintf(consolecmd_log_helptext.c_str(), prefix.c_str()));
+}
+
+/**
+ * Unregister console commands related to this filter.
+ * @param parser The command parser to unregister from.
+ * @param prefix A prefix for the registered commands.
+ */
+void LogTree::Filter::deregister_console_commands(CommandParser &parser, const std::string &prefix) {
+	parser.register_command(prefix + "loglevel", NULL, "");
 }
 
 const char *LogTree::LogLevel_strings[10] = {

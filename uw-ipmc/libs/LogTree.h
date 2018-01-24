@@ -12,8 +12,11 @@
 #include "semphr.h"
 #include <string>
 #include <list>
+#include <vector>
 #include <map>
 #include <functional>
+
+class CommandParser;
 
 /**
  * The LogTree class provides as tree of logging facilities which can be
@@ -81,6 +84,9 @@ public:
 		virtual ~Filter();
 		void reconfigure(LogTree &logtree, enum LogLevel level);
 		enum LogLevel get_configuration(LogTree &logtree);
+
+		void register_console_commands(CommandParser &parser, const std::string &prefix="");
+		void deregister_console_commands(CommandParser &parser, const std::string &prefix="");
 	protected:
 		LogTree *logtree; ///< A reference to the (root) LogTree this Filter is associated with.
 
@@ -90,8 +96,15 @@ public:
 	};
 	friend class Filter;
 
+	/// Inherit the underlying container's size_type.
+	typedef std::map<const std::string, LogTree*>::size_type size_type;
 	LogTree& operator[](const std::string &label);
+	size_type count(const std::string &label);
+	std::vector<std::string> list_children();
+
 	void log(const std::string &message, enum LogLevel level);
+	void register_console_commands(CommandParser &parser, const std::string &prefix="");
+	void deregister_console_commands(CommandParser &parser, const std::string &prefix="");
 
 protected:
 	LogTree * const parent;                         ///< The parent of this LogTree node.
