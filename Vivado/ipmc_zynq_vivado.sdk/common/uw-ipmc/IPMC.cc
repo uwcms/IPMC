@@ -115,7 +115,21 @@ void operator delete(void* p) throw() {
  */
 static void console_log_handler(LogTree &logtree, const std::string &message,
 		enum LogTree::LogLevel level) {
-	std::string logmsg = stdsprintf("[%4.4s] ", LogTree::LogLevel_strings[level]) + message + "\n";
+	static const std::vector<std::string> colormap = {
+			ANSICode::color(),                                          // LOG_SILENT:     "null" (reset) (placeholder)
+			ANSICode::color(ANSICode::WHITE, ANSICode::RED, true),      // LOG_CRITICAL:   bold white on red
+			ANSICode::color(ANSICode::RED, ANSICode::NOCOLOR, true),    // LOG_ERROR:      bold red
+			ANSICode::color(ANSICode::YELLOW, ANSICode::NOCOLOR, true), // LOG_WARNING:    bold yellow
+			ANSICode::color(ANSICode::TUROQUOISE),                      // LOG_NOTICE:     turquoise
+			ANSICode::color(ANSICode::GREEN),                           // LOG_INFO:       green
+			ANSICode::color(ANSICode::LIGHTGREY),                       // LOG_DIAGNOSTIC: lightgrey
+			ANSICode::color(ANSICode::DARKGREY),                        // LOG_TRACE:      darkgrey
+	};
+	std::string color = ANSICode::color(ANSICode::BLUE);
+	if (level < colormap.size())
+		color = colormap.at(level);
+
+	std::string logmsg = color + stdsprintf("[%4.4s] ", LogTree::LogLevel_strings[level]) + message + ANSICode::color() + "\n";
 	/* We write with 0 timeout, because we'd rather lose lines than hang on UART
 	 * output.  That's what the tracebuffer is for anyway.
 	 */

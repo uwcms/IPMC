@@ -81,6 +81,29 @@ public:
 	static const std::string ANSI_DELETE_LINE;
 	static const std::string ANSI_DELETE_LINE_INTFMT;
 	///@}
+
+	/// Terminal color choices.
+	enum TermColor {
+		BLACK      = 0,
+		DARKGREY   = 60,
+		RED        = 1,
+		SALMON     = 61,
+		GREEN      = 2,
+		LIME       = 62,
+		ORANGE     = 3,
+		YELLOW     = 63,
+		INDIGO     = 4,
+		BLUE       = 4,
+		LILAC      = 64,
+		MAGENTA    = 5,
+		PINK       = 65,
+		TUROQUOISE = 6,
+		CYAN       = 66,
+		LIGHTGREY  = 7,
+		WHITE      = 67,
+		NOCOLOR    = 9,
+	};
+	static std::string color(enum TermColor fgcolor=NOCOLOR, enum TermColor bgcolor=NOCOLOR, bool bold=false, bool underline=false, bool inverse=false);
 };
 
 #endif /* SRC_COMMON_UW_IPMC_LIBS_ANSICODE_H_ */
