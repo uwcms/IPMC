@@ -491,6 +491,7 @@ std::string UARTConsoleSvc::InputBuffer::set_buffer(std::string buffer, size_typ
 	if (cursor_row > 1)
 		out += stdsprintf(ANSICode::ANSI_CURSOR_UP_INTFMT.c_str(), cursor_row-1);
 	out += "\r";
+	out += ANSICode::color(); // Reset terminal color.
 
 	/* Only redraw if the buffer changed, else we're assuming no line count
 	 * changes occurred (or matter), and our "erase to end of line" later will

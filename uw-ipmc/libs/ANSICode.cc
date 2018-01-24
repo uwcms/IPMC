@@ -186,3 +186,28 @@ const std::string ANSICode::ANSI_INSERT_LINE = "\x1b[L";
 const std::string ANSICode::ANSI_INSERT_LINE_INTFMT = "\x1b[%dL";
 const std::string ANSICode::ANSI_DELETE_LINE = "\x1b[M";
 const std::string ANSICode::ANSI_DELETE_LINE_INTFMT = "\x1b[%dM";
+
+/**
+ * Render an ANSI color code.
+ * @param fgcolor   The foreground color
+ * @param bgcolor   The background color
+ * @param bold      Bold font if true
+ * @param underline Underlined font if true
+ * @param inverse   Inverse display mode if true
+ * @return An ANSI color code
+ */
+std::string ANSICode::color(enum TermColor fgcolor, enum TermColor bgcolor, bool bold, bool underline, bool inverse) {
+	std::string out = "\x1b[0";
+	if (bold)
+		out += ";1";
+	if (underline)
+		out += ";4";
+	if (inverse)
+		out += ";7";
+	if (fgcolor != NOCOLOR)
+		out += stdsprintf(";%d", 30+static_cast<int>(fgcolor));
+	if (bgcolor != NOCOLOR)
+		out += stdsprintf(";%d", 40+static_cast<int>(bgcolor));
+	out += "m";
+	return out;
+}
