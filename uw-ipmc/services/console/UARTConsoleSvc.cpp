@@ -508,6 +508,12 @@ std::string UARTConsoleSvc::InputBuffer::update(std::string input) {
 	return out;
 }
 
+/**
+ * Update the buffer and refresh the screen
+ * @param buffer New buffer
+ * @param cursor New cursor
+ * @return echo data
+ */
 std::string UARTConsoleSvc::InputBuffer::set_buffer(std::string buffer, size_type cursor) {
 	// This is really just refresh, with a buffer update in the middle.
 
