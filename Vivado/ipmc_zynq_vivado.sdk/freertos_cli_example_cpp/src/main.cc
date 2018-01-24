@@ -170,30 +170,6 @@ static void prvSetupHardware(void) {
 }
 } // extern "C"
 
-//#define PS_UART_INITIAL_TEST
-static void TaskPrinter(void *dummy0) {
-	printf("TaskPrinter Started\n");
-	LogTree *tasklog = &LOG["task_listing"];
-	char buf[518];
-	while (1) {
-		char *wbuf = buf;
-		//u32 int_mask = XUartPs_GetInterruptMask(&uart0.UartInstPtr);
-		//printf("test 0x%08x \n", int_mask);
-		vTaskDelay(10000);
-		vPortEnterCritical();
-		*(wbuf++) = '\n';
-		vTaskList(wbuf);
-		wbuf += strlen(wbuf);
-		*(wbuf++) = '\n';
-		vTaskGetRunTimeStats(wbuf);
-		wbuf += strlen(wbuf);
-		*(wbuf++) = '\n';
-		*(wbuf++) = '\0';
-		vPortExitCritical();
-		tasklog->log(buf, LogTree::LOG_NOTICE);
-	}
-}
-
 int main() {
 	/*
 	 * If you want to run this application outside of SDK,
@@ -223,7 +199,6 @@ int main() {
 	bannerstr.clear(); // Save heap memory.
 
 	//xTaskCreate(lwip_startup_thread, "lwip_start", configMINIMAL_STACK_SIZE, NULL, configLWIP_TASK_PRIORITY, NULL);
-    xTaskCreate(TaskPrinter, "TaskPrint", UWIPMC_STANDARD_STACK_SIZE, NULL, TASK_PRIORITY_INTERACTIVE, NULL);
 
 	/* Start the tasks and timer running. */
 	vTaskStartScheduler();

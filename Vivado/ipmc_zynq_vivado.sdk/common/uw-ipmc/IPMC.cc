@@ -18,6 +18,8 @@
 #include <services/console/UARTConsoleSvc.h>
 #include <libs/LogTree.h>
 
+#include <algorithm>
+
 /* Xilinx includes. */
 #include "xparameters.h"
 #include "xscutimer.h"
@@ -44,6 +46,7 @@ static void console_log_handler(LogTree &logtree, const std::string &message, en
 static void tracebuffer_log_handler(LogTree &logtree, const std::string &message, enum LogTree::LogLevel level);
 static void tick_command(std::function<void(std::string)> print, const CommandParser::CommandParameters &parameters);
 static void version_command(std::function<void(std::string)> print, const CommandParser::CommandParameters &parameters);
+static void ps_command(std::function<void(std::string)> print, const CommandParser::CommandParameters &parameters);
 
 /** Stage 1 driver initialization.
  *
@@ -76,6 +79,7 @@ void driver_init(bool use_pl) {
 	LOG["console_log_command"].register_console_commands(console_command_parser);
 	console_command_parser.register_command("tick", tick_command, "tick");
 	console_command_parser.register_command("version", version_command, "version");
+	console_command_parser.register_command("ps", ps_command, "ps\n\nPrint task information.");
 
 	PS_SPI *ps_spi0 = new PS_SPI(XPAR_PS7_SPI_0_DEVICE_ID, XPAR_PS7_SPI_0_INTR);
 	eeprom_data = new SPI_EEPROM(*ps_spi0, 0, 0x8000, 64);
@@ -173,6 +177,51 @@ static void version_command(std::function<void(std::string)> print, const Comman
 	bannerstr += "\n";
 	bannerstr += "********************************************************************************\n";
 	print(bannerstr);
+};
+
+static void ps_command(std::function<void(std::string)> print, const CommandParser::CommandParameters &parameters) {
+	std::string out;
+	UBaseType_t task_count = uxTaskGetNumberOfTasks();
+	TaskStatus_t taskinfo[task_count+2];
+	UBaseType_t total_runtime;
+	if (!uxTaskGetSystemState(taskinfo, task_count+2, &total_runtime)) {
+		print("Failed to generate process listing.\n");
+		return;
+	}
+
+	// Runtime stats are accurate only if they havent rolled over.  I think their clock is ~6Mhz
+	bool runstats = get_tick64() < portMAX_DELAY/7000;
+
+	std::vector<TaskStatus_t> tasks;
+	tasks.reserve(task_count);
+	for (UBaseType_t i = 0; i < task_count; ++i)
+		tasks.push_back(taskinfo[i]);
+	if (runstats)
+		std::sort(tasks.begin(), tasks.end(), [](const TaskStatus_t &a, const TaskStatus_t &b) -> bool { return a.ulRunTimeCounter > b.ulRunTimeCounter; });
+	else
+		std::sort(tasks.begin(), tasks.end(), [](const TaskStatus_t &a, const TaskStatus_t &b) -> bool { return (a.uxCurrentPriority > b.uxCurrentPriority) || (a.uxCurrentPriority == b.uxCurrentPriority && a.xTaskNumber < b.xTaskNumber); });
+
+	out += "PID Name             BasePrio CurPrio StackHW";
+	if (runstats)
+		out += " CPU% CPU";
+	out += "\n";
+	for (auto it = tasks.begin(), eit = tasks.end(); it != eit; ++it) {
+		out += stdsprintf("%3lu %-16s %8lu %7lu %7hu",
+				it->xTaskNumber,
+				it->pcTaskName,
+				it->uxBasePriority,
+				it->uxCurrentPriority,
+				it->usStackHighWaterMark);
+		if (runstats) {
+			UBaseType_t cpu_percent = it->ulRunTimeCounter / (total_runtime/100);
+			if (it->ulRunTimeCounter && cpu_percent < 1)
+				out += stdsprintf("  <1%% %lu", it->ulRunTimeCounter);
+			else
+				out += stdsprintf("  %2lu%% %lu", cpu_percent, it->ulRunTimeCounter);
+		}
+		out += "\n";
+	}
+	print(out);
 };
 
 /**
