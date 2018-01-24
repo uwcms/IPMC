@@ -221,6 +221,8 @@ static void ps_command(std::function<void(std::string)> print, const CommandPars
 		}
 		out += "\n";
 	}
+	if (!runstats)
+		out += "\nNote: Runtime stats were not displayed, as we are likely past the point\nof counter wrapping and they are no longer accurate.\n";
 	print(out);
 };
 
