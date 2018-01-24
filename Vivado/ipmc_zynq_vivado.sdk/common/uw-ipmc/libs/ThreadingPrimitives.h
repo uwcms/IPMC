@@ -20,12 +20,15 @@ public:
 	virtual ~AbsoluteTimeout() { };
 	TickType_t get_timeout();
 	uint64_t timeout64; ///< The 64bit timeout.
-	bool operator==(const AbsoluteTimeout &b) const { return this->timeout64 == b.timeout64; }; ///< Comparison
-	bool operator!=(const AbsoluteTimeout &b) const { return this->timeout64 != b.timeout64; }; ///< Comparison
-	bool operator<(const AbsoluteTimeout &b)  const { return this->timeout64 <  b.timeout64; }; ///< Comparison
-	bool operator<=(const AbsoluteTimeout &b) const { return this->timeout64 <= b.timeout64; }; ///< Comparison
-	bool operator>(const AbsoluteTimeout &b)  const { return this->timeout64 >  b.timeout64; }; ///< Comparison
-	bool operator>=(const AbsoluteTimeout &b) const { return this->timeout64 >= b.timeout64; }; ///< Comparison
+	/// Comparison Operators
+	///@{
+	bool operator==(const AbsoluteTimeout &b) const { return this->timeout64 == b.timeout64; };
+	bool operator!=(const AbsoluteTimeout &b) const { return this->timeout64 != b.timeout64; };
+	bool operator<(const AbsoluteTimeout &b)  const { return this->timeout64 <  b.timeout64; };
+	bool operator<=(const AbsoluteTimeout &b) const { return this->timeout64 <= b.timeout64; };
+	bool operator>(const AbsoluteTimeout &b)  const { return this->timeout64 >  b.timeout64; };
+	bool operator>=(const AbsoluteTimeout &b) const { return this->timeout64 >= b.timeout64; };
+	///@}
 };
 
 /**
