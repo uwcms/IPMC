@@ -220,7 +220,7 @@ int main() {
 	bannerstr += "\n";
 	bannerstr += "********************************************************************************\n";
 	LOG.log(bannerstr, LogTree::LOG_NOTICE); // This is the ONLY place that should EVER log directly to LOG rather than a subtree.
-	bannerstr = ""; // Save heap memory.
+	bannerstr.clear(); // Save heap memory.
 
 	//xTaskCreate(lwip_startup_thread, "lwip_start", configMINIMAL_STACK_SIZE, NULL, configLWIP_TASK_PRIORITY, NULL);
     xTaskCreate(TaskPrinter, "TaskPrint", UWIPMC_STANDARD_STACK_SIZE, NULL, TASK_PRIORITY_INTERACTIVE, NULL);
