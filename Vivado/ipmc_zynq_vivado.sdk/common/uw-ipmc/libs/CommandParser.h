@@ -103,6 +103,7 @@ public:
 
 	virtual bool parse(std::function<void(std::string)> print, const std::string &commandline);
 	virtual void register_command(const std::string &command, handler_t handler, const std::string &helptext);
+	virtual std::vector<std::string> list_commands();
 	virtual std::string get_helptext(const std::string &command);
 
 	static std::vector<std::string> tokenize(const std::string &commandline);
