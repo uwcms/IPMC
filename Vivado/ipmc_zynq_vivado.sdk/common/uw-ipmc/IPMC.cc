@@ -189,8 +189,8 @@ static void ps_command(std::function<void(std::string)> print, const CommandPars
 		return;
 	}
 
-	// Runtime stats are accurate only if they havent rolled over.  I think their clock is ~6Mhz
-	bool runstats = get_tick64() < portMAX_DELAY/7000;
+	// Runtime stats are accurate only if they havent rolled over.  It seems to be a tad under 666 per tick.
+	bool runstats = get_tick64() < portMAX_DELAY/666;
 
 	std::vector<TaskStatus_t> tasks;
 	tasks.reserve(task_count);
