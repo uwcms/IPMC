@@ -28,10 +28,10 @@ int __real_vprintf(const char *format, va_list ap);
 int __real_vsprintf(char *str, const char *format, va_list ap);
 int __real_vsnprintf(char *str, size_t size, const char *format, va_list ap);
 
-void *__wrap_malloc(size_t size) WRAP_ATTR;
+void *__wrap_malloc(size_t size) WRAP_ATTR __attribute__((malloc, alloc_size(1)));
 void __wrap_free(void *ptr) WRAP_ATTR;
-void *__wrap_calloc(size_t nmemb, size_t size) WRAP_ATTR;
-void *__wrap_realloc(void *ptr, size_t size) WRAP_ATTR;
+void *__wrap_calloc(size_t nmemb, size_t size) WRAP_ATTR __attribute__((malloc, alloc_size(1,2)));
+void *__wrap_realloc(void *ptr, size_t size) WRAP_ATTR __attribute__((alloc_size(1))); // __attribute__((malloc)) is not valid for realloc.
 int __wrap_printf(const char *format, ...) WRAP_ATTR;
 int __wrap_sprintf(char *str, const char *format, ...) WRAP_ATTR;
 int __wrap_snprintf(char *str, size_t size, const char *format, ...) WRAP_ATTR;
