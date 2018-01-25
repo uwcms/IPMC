@@ -44,7 +44,7 @@ UARTConsoleSvc *console_service;
 
 static void console_log_handler(LogTree &logtree, const std::string &message, enum LogTree::LogLevel level);
 static void tracebuffer_log_handler(LogTree &logtree, const std::string &message, enum LogTree::LogLevel level);
-static void tick_command(std::function<void(std::string)> print, const CommandParser::CommandParameters &parameters);
+static void uptime_command(std::function<void(std::string)> print, const CommandParser::CommandParameters &parameters);
 static void version_command(std::function<void(std::string)> print, const CommandParser::CommandParameters &parameters);
 static void ps_command(std::function<void(std::string)> print, const CommandParser::CommandParameters &parameters);
 
@@ -77,7 +77,7 @@ void driver_init(bool use_pl) {
 	console_log_filter = new LogTree::Filter(LOG, console_log_handler, LogTree::LOG_NOTICE);
 	console_log_filter->register_console_commands(console_command_parser);
 	LOG["console_log_command"].register_console_commands(console_command_parser);
-	console_command_parser.register_command("tick", tick_command, "tick");
+	console_command_parser.register_command("uptime", uptime_command, "uptime");
 	console_command_parser.register_command("version", version_command, "version");
 	console_command_parser.register_command("ps", ps_command, "ps\n\nPrint task information.");
 
@@ -163,8 +163,22 @@ static void tracebuffer_log_handler(LogTree &logtree, const std::string &message
 	TRACE.log(logtree.path.data(), logtree.path.size(), level, message.data(), message.size());
 }
 
-static void tick_command(std::function<void(std::string)> print, const CommandParser::CommandParameters &parameters) {
-	print(stdsprintf("The current tick is %llu.\n", get_tick64()));
+static void uptime_command(std::function<void(std::string)> print, const CommandParser::CommandParameters &parameters) {
+	uint64_t now64 = get_tick64();
+	//u16 ms = now64 % 1000;
+	u16 s  = (now64 / 1000) % 60;
+	u16 m  = (now64 / (60*1000)) % 60;
+	u16 h  = (now64 / (60*60*1000)) % 24;
+	u32 d  = (now64 / (24*60*60*1000));
+	std::string out = "Up for ";
+	if (d)
+		out += stdsprintf("%lud", d);
+	if (d||h)
+		out += stdsprintf("%huh", h);
+	if (d||h||m)
+		out += stdsprintf("%hum", m);
+	out += stdsprintf("%hus", s);
+	print(out + "\n");
 };
 
 static void version_command(std::function<void(std::string)> print, const CommandParser::CommandParameters &parameters) {
