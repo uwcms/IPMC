@@ -243,6 +243,8 @@ static void consolecmd_help(CommandParser &parser, std::function<void(std::strin
 		out = parser.get_helptext(command);
 		if (out.empty())
 			out = "Unknown command.  Try help.\n";
+		else if (out.back() != '\n')
+			out += "\n";
 	}
 	else {
 		std::vector<std::string> commands = parser.list_commands();
