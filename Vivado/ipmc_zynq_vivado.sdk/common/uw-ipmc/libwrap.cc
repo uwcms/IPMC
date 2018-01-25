@@ -18,6 +18,8 @@
 #include <stdarg.h>
 #include <cxxabi.h> // for cxa_demangle()
 
+#define WRAP_ATTR __attribute__((externally_visible))
+
 extern "C" {
 int __real_printf(const char *format, ...);
 int __real_sprintf(char *str, const char *format, ...);
@@ -26,18 +28,18 @@ int __real_vprintf(const char *format, va_list ap);
 int __real_vsprintf(char *str, const char *format, va_list ap);
 int __real_vsnprintf(char *str, size_t size, const char *format, va_list ap);
 
-void *__wrap_malloc(size_t size);
-void __wrap_free(void *ptr);
-void *__wrap_calloc(size_t nmemb, size_t size);
-void *__wrap_realloc(void *ptr, size_t size);
-int __wrap_printf(const char *format, ...);
-int __wrap_sprintf(char *str, const char *format, ...);
-int __wrap_snprintf(char *str, size_t size, const char *format, ...);
-int __wrap_vprintf(const char *format, va_list ap);
-int __wrap_vsprintf(char *str, const char *format, va_list ap);
-int __wrap_vsnprintf(char *str, size_t size, const char *format, va_list ap);
-void __wrap_xil_printf( const char8 *ctrl1, ...);
-void __wrap_print( const char8 *ptr);
+void *__wrap_malloc(size_t size) WRAP_ATTR;
+void __wrap_free(void *ptr) WRAP_ATTR;
+void *__wrap_calloc(size_t nmemb, size_t size) WRAP_ATTR;
+void *__wrap_realloc(void *ptr, size_t size) WRAP_ATTR;
+int __wrap_printf(const char *format, ...) WRAP_ATTR;
+int __wrap_sprintf(char *str, const char *format, ...) WRAP_ATTR;
+int __wrap_snprintf(char *str, size_t size, const char *format, ...) WRAP_ATTR;
+int __wrap_vprintf(const char *format, va_list ap) WRAP_ATTR;
+int __wrap_vsprintf(char *str, const char *format, va_list ap) WRAP_ATTR;
+int __wrap_vsnprintf(char *str, size_t size, const char *format, va_list ap) WRAP_ATTR;
+void __wrap_xil_printf( const char8 *ctrl1, ...) WRAP_ATTR;
+void __wrap_print( const char8 *ptr) WRAP_ATTR;
 } // extern "C"
 
 volatile SemaphoreHandle_t stdlib_mutex = NULL;
