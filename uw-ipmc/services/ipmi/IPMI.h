@@ -4,8 +4,8 @@
 
 namespace IPMI {
 	namespace NetFn {
-		extern const std::map<u8, std::string> id_to_netfn; ///< Mapping for runtime lookups.
-		extern const std::map<std::string, u8> netfn_to_id; ///< Mapping for runtime lookups.
+		extern const std::map<u8, std::string> id_to_netfn; ///< Mapping for runtime lookups. (Contains only request NetFns.)
+		extern const std::map<std::string, u8> netfn_to_id; ///< Mapping for runtime lookups. (Contains only request NetFns.)
 
 		/// NetFn Code Constants
 		///@{
@@ -18,10 +18,38 @@ namespace IPMI {
 		const u8 PICMG       = 0x2c;
 		const u8 CMS         = 0x3c;
 		///@}
+
+		/**
+		 * Convert NetFn code to equivalent Request NetFn
+		 * @param netfn A NetFn code
+		 * @return The equivalent Request NetFn code
+		 */
+		static constexpr inline u8 request_netfn(const u8 netfn) { return netfn & 0xfe; };
+
+		/**
+		 * Convert NetFn code to equivalent Response NetFn
+		 * @param netfn A NetFn cod
+		 * @return The equivalent Response NetFn code
+		 */
+		static constexpr inline u8 response_netfn(const u8 netfn) { return netfn | 0x01; };
 	}
 
-	extern const std::map< u16, std::pair<std::string, std::string> > id_to_cmd; ///< Mapping for runtime lookups.
-	extern const std::map<std::string, u16> cmd_to_id; ///< Mapping for runtime lookups.
+	extern const std::map< u16, std::pair<std::string, std::string> > id_to_cmd; ///< Mapping for runtime lookups. (Contains only request commands.)
+	extern const std::map<std::string, u16> cmd_to_id; ///< Mapping for runtime lookups.  (Contains only request commands.)
+
+	/**
+	 * Convert an IPMI command to an equivalent Request command
+	 * @param cmd An IPMI command code
+	 * @return The equivalent Request command code
+	 */
+	static constexpr inline u16 request_cmd(const u16 cmd) { return cmd & 0xfeff; };
+
+	/**
+	 * Convert an IPMI command to an equivalent Response command
+	 * @param cmdAn IPMI command code
+	 * @return The equivalent Response command code
+	 */
+	static constexpr inline u16 response_cmd(const u8 cmd) { return cmd | 0x0100; };
 
 	namespace Chassis {
 		/// Chassis Device Commands
