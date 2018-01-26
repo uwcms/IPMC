@@ -94,6 +94,7 @@ void IPMI_MSG::prepare_reply(IPMI_MSG &reply) const {
 	reply.netFn |= 1; // Mark as response.
 	reply.cmd = this->cmd;
 	reply.rqSeq = this->rqSeq;
+	reply.broadcast = false;
 }
 
 /**

@@ -51,6 +51,8 @@ public:
 
 	void send(std::shared_ptr<IPMI_MSG> msg, response_cb_t response_cb = NULL);
 
+	LogTree &logroot; ///< The root logtree for this object.
+
 protected:
 	/**
 	 * A record representing a message in the outgoing message queue.
@@ -79,7 +81,6 @@ protected:
 	StatCounter stat_send_failures;      ///< How many delivery failures have occurred on this IPMB
 	StatCounter stat_no_available_seq;   ///< How many times we have run out of sequence numbers for a specific command on this IPMB
 	StatCounter stat_unexpected_replies; ///< How many unexpected replies have been received on this IPMB
-	LogTree &log_ipmb0;                  ///< The root logtree for this object.
 	LogTree &log_messages_in;            ///< Messages received on our IPMB.
 	LogTree &log_messages_out;           ///< Messages transmitted on our IPMB.
 
