@@ -31,7 +31,7 @@ public:
 	 */
 	typedef std::function<void(IPMBSvc &ipmb, const IPMI_MSG &message)> ipmi_cmd_handler_t;
 
-	IPMICommandParser(ipmi_cmd_handler_t default_handler = NULL);
+	IPMICommandParser(ipmi_cmd_handler_t default_handler = NULL, const std::map<uint16_t, ipmi_cmd_handler_t> commandset = std::map<uint16_t, ipmi_cmd_handler_t>());
 	virtual ~IPMICommandParser();
 
 	ipmi_cmd_handler_t default_handler; ///< The handler to call if the command is unknown.

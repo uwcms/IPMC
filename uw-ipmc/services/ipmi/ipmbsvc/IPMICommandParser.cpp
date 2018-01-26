@@ -17,9 +17,10 @@
  * Instantiate an IPMI command parser.
  *
  * @param default_handler Called when an unknown command is received. (or NULL)
+ * @param commandset A mapping to use to populate the initial IPMI command set.
  */
-IPMICommandParser::IPMICommandParser(ipmi_cmd_handler_t default_handler)
-	: default_handler(default_handler) {
+IPMICommandParser::IPMICommandParser(ipmi_cmd_handler_t default_handler, const std::map<uint16_t, ipmi_cmd_handler_t> commandset)
+	: default_handler(default_handler), commandset(commandset) {
 	this->mutex = xSemaphoreCreateMutex();
 	configASSERT(this->mutex);
 }

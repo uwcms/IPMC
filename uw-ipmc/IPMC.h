@@ -23,7 +23,7 @@ extern XGpioPs gpiops;
 class IPMBSvc;
 class IPMICommandParser;
 extern IPMBSvc *ipmb0;
-extern IPMICommandParser ipmi_command_parser;
+extern IPMICommandParser *ipmi_command_parser;
 
 extern LogTree LOG;
 extern LogTree::Filter *console_log_filter;
