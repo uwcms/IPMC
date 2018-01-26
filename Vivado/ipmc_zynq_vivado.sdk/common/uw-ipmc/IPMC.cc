@@ -11,6 +11,7 @@
 #include <drivers/ps_ipmb/PSIPMB.h>
 #include <services/ipmi/ipmbsvc/IPMBSvc.h>
 #include <services/ipmi/ipmbsvc/IPMICommandParser.h>
+#include <services/ipmi/commands/IPMICmd_Index.h>
 #include <drivers/ps_spi/PSSPI.h>
 #include <drivers/spi_eeprom/SPIEEPROM.h>
 #include <services/persistentstorage/PersistentStorage.h>
@@ -29,7 +30,7 @@
 
 PS_UART *uart_ps0;
 IPMBSvc *ipmb0;
-IPMICommandParser ipmi_command_parser;
+IPMICommandParser *ipmi_command_parser;
 XGpioPs gpiops;
 LogTree LOG("ipmc");
 LogTree::Filter *console_log_filter;
@@ -97,7 +98,8 @@ void driver_init(bool use_pl) {
 	PS_IPMB *ps_ipmb[2];
 	ps_ipmb[0] = new PS_IPMB(XPAR_PS7_I2C_0_DEVICE_ID, XPAR_PS7_I2C_0_INTR, hwaddr);
 	ps_ipmb[1] = new PS_IPMB(XPAR_PS7_I2C_1_DEVICE_ID, XPAR_PS7_I2C_1_INTR, hwaddr);
-	ipmb0 = new IPMBSvc(ps_ipmb[0], ps_ipmb[1], hwaddr, &ipmi_command_parser, log_ipmb0, "ipmb0");
+	ipmi_command_parser = new IPMICommandParser(NULL, *ipmicmd_index);
+	ipmb0 = new IPMBSvc(ps_ipmb[0], ps_ipmb[1], hwaddr, ipmi_command_parser, log_ipmb0, "ipmb0");
 }
 
 /** IPMC service initialization.
