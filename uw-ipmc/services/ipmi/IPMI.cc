@@ -8,6 +8,7 @@ const std::map<u8, std::string> IPMI::NetFn::id_to_netfn {
 	{ IPMI::NetFn::Firmware,    "Firmware"     },
 	{ IPMI::NetFn::Storage,     "Storage"      },
 	{ IPMI::NetFn::PICMG,       "PICMG"        },
+	{ IPMI::NetFn::CMS,         "CMS"          },
 };
 const std::map<std::string, u8> IPMI::NetFn::netfn_to_id {
 	{ "Chassis",      IPMI::NetFn::Chassis     },
@@ -17,6 +18,7 @@ const std::map<std::string, u8> IPMI::NetFn::netfn_to_id {
 	{ "Firmware",     IPMI::NetFn::Firmware    },
 	{ "Storage",      IPMI::NetFn::Storage     },
 	{ "PICMG",        IPMI::NetFn::PICMG       },
+	{ "CMS",          IPMI::NetFn::CMS         },
 };
 
 const std::map< u16, std::pair<std::string, std::string> > IPMI::id_to_cmd {
@@ -186,7 +188,6 @@ const std::map< u16, std::pair<std::string, std::string> > IPMI::id_to_cmd {
 	{ IPMI::PICMG::Get_Telco_Alarm_State,                   { "PICMG",        "Get Telco Alarm State"                   } },
 	{ IPMI::PICMG::Get_Telco_Alarm_Location,                { "PICMG",        "Get Telco Alarm Location"                } },
 	{ IPMI::PICMG::Set_FRU_Extracted,                       { "PICMG",        "Set FRU Extracted"                       } },
-#if 0
 	{ IPMI::Transport::Set_LAN_Configuration_Parameters,    { "Transport",    "Set LAN Configuration Parameters"        } },
 	{ IPMI::Transport::Get_LAN_Configuration_Parameters,    { "Transport",    "Get LAN Configuration Parameters"        } },
 	{ IPMI::Transport::Suspend_BMC_ARPs,                    { "Transport",    "Suspend BMC ARPs"                        } },
@@ -202,7 +203,6 @@ const std::map< u16, std::pair<std::string, std::string> > IPMI::id_to_cmd {
 	{ IPMI::Transport::Serial_Modem_Connection_Active,      { "Transport",    "Serial Modem Connection Active"          } },
 	{ IPMI::Transport::Set_User_Callback_Options,           { "Transport",    "Set User Callback Options"               } },
 	{ IPMI::Transport::Get_User_Callback_Options,           { "Transport",    "Get User Callback Options"               } },
-#endif
 };
 
 const std::map<std::string, u16> IPMI::cmd_to_id {
@@ -372,7 +372,6 @@ const std::map<std::string, u16> IPMI::cmd_to_id {
 	{ "Get Telco Alarm State",                   IPMI::PICMG::Get_Telco_Alarm_State                   },
 	{ "Get Telco Alarm Location",                IPMI::PICMG::Get_Telco_Alarm_Location                },
 	{ "Set FRU Extracted",                       IPMI::PICMG::Set_FRU_Extracted                       },
-#if 0
 	{ "Set LAN Configuration Parameters",        IPMI::Transport::Set_LAN_Configuration_Parameters    },
 	{ "Get LAN Configuration Parameters",        IPMI::Transport::Get_LAN_Configuration_Parameters    },
 	{ "Suspend BMC ARPs",                        IPMI::Transport::Suspend_BMC_ARPs                    },
@@ -388,5 +387,4 @@ const std::map<std::string, u16> IPMI::cmd_to_id {
 	{ "Serial Modem Connection Active",          IPMI::Transport::Serial_Modem_Connection_Active      },
 	{ "Set User Callback Options",               IPMI::Transport::Set_User_Callback_Options           },
 	{ "Get User Callback Options",               IPMI::Transport::Get_User_Callback_Options           },
-#endif
 };

@@ -16,6 +16,7 @@ namespace IPMI {
 		const u8 Firmware    = 0x08;
 		const u8 Storage     = 0x0a;
 		const u8 PICMG       = 0x2c;
+		const u8 CMS         = 0x3c;
 		///@}
 	}
 
@@ -264,37 +265,34 @@ namespace IPMI {
 		///@}
 	}
 
-#if 0
-	// I don't know the NetFn code for Transport.
 	namespace Transport {
 		/// LAN Device Commands
 		///@{
-		const u16 Set_LAN_Configuration_Parameters         = 0xFF01; // O/M
-		const u16 Get_LAN_Configuration_Parameters         = 0xFF02; // O/M
-		const u16 Suspend_BMC_ARPs                         = 0xFF03; // O/M
-		const u16 Get_IP_UDP_RMCP_Statistics               = 0xFF04; // O
+		const u16 Set_LAN_Configuration_Parameters         = 0x0C01; // O/M
+		const u16 Get_LAN_Configuration_Parameters         = 0x0C02; // O/M
+		const u16 Suspend_BMC_ARPs                         = 0x0C03; // O/M
+		const u16 Get_IP_UDP_RMCP_Statistics               = 0x0C04; // O
 		///@}
 
 		/// Serial/Modem Device Commands
 		///@{
-		const u16 Set_Serial_Modem_Configuration           = 0xFF10; // O/M
-		const u16 Get_Serial_Modem_Configuration           = 0xFF11; // O/M
-		const u16 Set_Serial_Modem_Mux                     = 0xFF12; // O
-		const u16 Get_TAP_Response_Codes                   = 0xFF13; // O
-		const u16 Set_PPP_UDP_Proxy_Transmit_Data          = 0xFF14; // O
-		const u16 Get_PPP_UDP_Proxy_Transmit_Data          = 0xFF15; // O
-		const u16 Send_PPP_UDP_Proxy_Packet_Transport      = 0xFF16; // O
-		const u16 Get_PPP_UDP_Proxy_Receive_Data           = 0xFF17; // O
-		const u16 Serial_Modem_Connection_Active           = 0xFF18; // O/M
+		const u16 Set_Serial_Modem_Configuration           = 0x0C10; // O/M
+		const u16 Get_Serial_Modem_Configuration           = 0x0C11; // O/M
+		const u16 Set_Serial_Modem_Mux                     = 0x0C12; // O
+		const u16 Get_TAP_Response_Codes                   = 0x0C13; // O
+		const u16 Set_PPP_UDP_Proxy_Transmit_Data          = 0x0C14; // O
+		const u16 Get_PPP_UDP_Proxy_Transmit_Data          = 0x0C15; // O
+		const u16 Send_PPP_UDP_Proxy_Packet_Transport      = 0x0C16; // O
+		const u16 Get_PPP_UDP_Proxy_Receive_Data           = 0x0C17; // O
+		const u16 Serial_Modem_Connection_Active           = 0x0C18; // O/M
 		///@}
 
 		/// Callback
 		///@{
-		const u16 Set_User_Callback_Options                = 0xFF1A; // O
-		const u16 Get_User_Callback_Options                = 0xFF1B; // O
+		const u16 Set_User_Callback_Options                = 0x0C1A; // O
+		const u16 Get_User_Callback_Options                = 0x0C1B; // O
 		///@}
 	}
-#endif
 
 	using namespace Chassis;
 	using namespace Bridge;
@@ -302,5 +300,5 @@ namespace IPMI {
 	using namespace App;
 	using namespace Storage;
 	using namespace PICMG;
-	//using namespace Transport;
+	using namespace Transport;
 }
