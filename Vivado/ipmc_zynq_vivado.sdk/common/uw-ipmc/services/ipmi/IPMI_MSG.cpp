@@ -95,6 +95,9 @@ void IPMI_MSG::prepare_reply(IPMI_MSG &reply) const {
 	reply.cmd = this->cmd;
 	reply.rqSeq = this->rqSeq;
 	reply.broadcast = false;
+	for (int i = 0; i < IPMI_MSG::max_data_len; ++i)
+		reply.data[i] = 0;
+	reply.data_len = 0;
 }
 
 /**
