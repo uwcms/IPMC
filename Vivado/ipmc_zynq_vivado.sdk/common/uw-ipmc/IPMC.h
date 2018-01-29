@@ -16,6 +16,8 @@ extern "C" {
 	extern XScuGic xInterruptController;
 }
 
+extern u8 IPMC_HW_REVISION;
+
 class PS_UART;
 extern PS_UART *uart_ps0;
 extern XGpioPs gpiops;

@@ -28,6 +28,8 @@
 #include "xil_exception.h"
 #include "xgpiops.h"
 
+u8 IPMC_HW_REVISION = 1; // TODO: Detect, Update, etc
+
 PS_UART *uart_ps0;
 IPMBSvc *ipmb0;
 IPMICommandParser *ipmi_command_parser;
