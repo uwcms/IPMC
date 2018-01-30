@@ -29,10 +29,12 @@ static void ipmicmd_Get_Device_ID(IPMBSvc &ipmb, const IPMI_MSG &message) {
 	reply.data[9] = 0; // Manufacturer ID (MSB):   Unspecified[2]
 	reply.data[10] = 0; // Product ID (LSB): Unspecified[0]
 	reply.data[11] = 0; // Product ID (MSB): Unspecified[1]
-	reply.data[12] = (GIT_SHORT_INT >> 24) & 0xff; // Aux Firmware Revision
-	reply.data[13] = (GIT_SHORT_INT >> 16) & 0xff; // Aux Firmware Revision
-	reply.data[14] = (GIT_SHORT_INT >>  8) & 0xff; // Aux Firmware Revision
-	reply.data[15] = (GIT_SHORT_INT >>  0) & 0xff; // Aux Firmware Revision
+	const long int git = (GIT_SHORT_INT << 4) | (GIT_STATUS[0] ? 1 : 0);
+	reply.data[12] = (git >> 24) & 0xff; // Aux Firmware Revision
+	reply.data[13] = (git >> 16) & 0xff; // Aux Firmware Revision
+	reply.data[14] = (git >>  8) & 0xff; // Aux Firmware Revision
+	reply.data[15] = (git >>  0) & 0xff; // Aux Firmware Revision
+	reply.data_len = 16;
 	ipmb.send(std::make_shared<IPMI_MSG>(reply));
 }
 IPMICMD_INDEX_REGISTER(Get_Device_ID);
