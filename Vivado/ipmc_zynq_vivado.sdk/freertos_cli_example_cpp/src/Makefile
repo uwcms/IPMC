@@ -49,12 +49,12 @@ export LIBS := -Wl,--start-group,-lxil,-lgcc,-lc,-lstdc++,--end-group
 
 ifeq ($(BUILD_CONFIGURATION),Debug)
 # "-Og Optimize debugging experience.  -Og enables optimizations that do not interfere with debugging." from man g++
-OPTIMIZE_OPTIONS := -Og -ggdb3 \
-	-flto -fuse-linker-plugin -fno-fat-lto-objects
+OPTIMIZE_OPTIONS := -Og -ggdb3
+#-flto -fuse-linker-plugin -fno-fat-lto-objects
 else
 # "-Os Optimize for size.  -Os enables all -O2 optimizations that do not typically increase code size." from man g++
-OPTIMIZE_OPTIONS := -Os -g0 \
-	-flto -fuse-linker-plugin -fno-fat-lto-objects
+OPTIMIZE_OPTIONS := -Os -g0
+#-flto -fuse-linker-plugin -fno-fat-lto-objects
 endif
 
 export CFLAGS = \
