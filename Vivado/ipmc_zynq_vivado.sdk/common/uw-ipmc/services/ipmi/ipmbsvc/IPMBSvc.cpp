@@ -29,6 +29,7 @@ static void ipmb0_run_thread(void *ipmb_void) {
 IPMBSvc::IPMBSvc(IPMB *ipmbA, IPMB *ipmbB, uint8_t ipmb_address, IPMICommandParser *command_parser, LogTree &logtree, const std::string name) :
 		name(name),
 		command_parser(command_parser),
+		logroot(logtree),
 		ipmb{ipmbA, ipmbB}, ipmb_address(ipmb_address),
 		stat_recvq_highwater(name+".recvq_highwater"),
 		stat_sendq_highwater(name+".sendq_highwater"),
@@ -38,7 +39,6 @@ IPMBSvc::IPMBSvc(IPMB *ipmbA, IPMB *ipmbB, uint8_t ipmb_address, IPMICommandPars
 		stat_send_failures(name+".messages.send_failures"),
 		stat_no_available_seq(name+".messages.no_available_sequence_number"),
 		stat_unexpected_replies(name+".messages.unexpected_replies"),
-		logroot(logtree),
 		log_messages_in(logtree["incoming_messages"]),
 		log_messages_out(logtree["outgoing_messages"]) {
 
