@@ -33,6 +33,7 @@ static void ipmicmd_Get_Device_ID(IPMBSvc &ipmb, const IPMI_MSG &message) {
 	reply.data[13] = (GIT_SHORT_INT >> 16) & 0xff; // Aux Firmware Revision
 	reply.data[14] = (GIT_SHORT_INT >>  8) & 0xff; // Aux Firmware Revision
 	reply.data[15] = (GIT_SHORT_INT >>  0) & 0xff; // Aux Firmware Revision
+	ipmb.send(std::make_shared<IPMI_MSG>(reply));
 }
 IPMICMD_INDEX_REGISTER(Get_Device_ID);
 
