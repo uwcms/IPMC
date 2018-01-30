@@ -1,5 +1,5 @@
 #include <services/ipmi/IPMI.h>
-#include <services/ipmi/ipmbsvc/IPMICommandParser.h>
+#include <services/ipmi/ipmbsvc/IPMBSvc.h>
 #include "IPMICmd_Index.h"
 #include <IPMC.h>
 
