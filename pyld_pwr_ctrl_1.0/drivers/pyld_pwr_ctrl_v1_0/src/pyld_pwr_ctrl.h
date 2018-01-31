@@ -1,83 +1,80 @@
 
-#ifndef PYLD_PWR_CTRL_H
-#define PYLD_PWR_CTRL_H
-
+#ifndef Pyld_Pwr_Ctrl_H
+#define Pyld_Pwr_Ctrl_H
 
 /****************** Include Files ********************/
 #include "xil_types.h"
 #include "xstatus.h"
 
-#define PYLD_PWR_CTRL_S_AXI_SLV_REG0_OFFSET 0
-#define PYLD_PWR_CTRL_S_AXI_SLV_REG1_OFFSET 4
-#define PYLD_PWR_CTRL_S_AXI_SLV_REG2_OFFSET 8
-#define PYLD_PWR_CTRL_S_AXI_SLV_REG3_OFFSET 12
-#define PYLD_PWR_CTRL_S_AXI_SLV_REG4_OFFSET 16
-#define PYLD_PWR_CTRL_S_AXI_SLV_REG5_OFFSET 20
-#define PYLD_PWR_CTRL_S_AXI_SLV_REG6_OFFSET 24
-#define PYLD_PWR_CTRL_S_AXI_SLV_REG7_OFFSET 28
+
+#define CORE_VER_REG 			 0
+#define SW_OFF_REG 				 4
+#define PD_INIT_REG 			 8
+#define PU_INIT_REG 			12
+#define PE_STATUS_REG 			16
+#define PG_STATUS_REG 			20
+
+#define PE_0_MASTER_CFG_REG     32
+#define PE_0_SEQ_TMR_CFG_REG    36
+
+#define PE_2_PE_ADDR_OFFSET      8
+
+#define SW_OFF_MAGIC_WORD      0xC0DEa0FF
 
 
 /**************************** Type Definitions *****************************/
-/**
- *
- * Write a value to a PYLD_PWR_CTRL register. A 32 bit write is performed.
- * If the component is implemented in a smaller width, only the least
- * significant data is written.
- *
- * @param   BaseAddress is the base address of the PYLD_PWR_CTRLdevice.
- * @param   RegOffset is the register offset from the base to write to.
- * @param   Data is the data written to the register.
- *
- * @return  None.
- *
- * @note
- * C-style signature:
- * 	void PYLD_PWR_CTRL_mWriteReg(u32 BaseAddress, unsigned RegOffset, u32 Data)
- *
- */
-#define PYLD_PWR_CTRL_mWriteReg(BaseAddress, RegOffset, Data) \
-  	Xil_Out32((BaseAddress) + (RegOffset), (u32)(Data))
 
 /**
- *
- * Read a value from a PYLD_PWR_CTRL register. A 32 bit read is performed.
- * If the component is implemented in a smaller width, only the least
- * significant data is read from the register. The most significant data
- * will be read as 0.
- *
- * @param   BaseAddress is the base address of the PYLD_PWR_CTRL device.
- * @param   RegOffset is the register offset from the base to write to.
- *
- * @return  Data is the data from the register.
- *
- * @note
- * C-style signature:
- * 	u32 PYLD_PWR_CTRL_mReadReg(u32 BaseAddress, unsigned RegOffset)
- *
+ * This typedef contains configuration information for the device.
  */
-#define PYLD_PWR_CTRL_mReadReg(BaseAddress, RegOffset) \
-    Xil_In32((BaseAddress) + (RegOffset))
+typedef struct {
+    u16 DeviceId; /* Unique ID of device */
+    UINTPTR BaseAddress; /* Device base address */
+    u32 PECount; /* Number of available Power Enable output pins */
+    u32 PGCount; /* Number of available Power Good input pins */
+} Pyld_Pwr_Ctrl_Config_t;
 
-/************************** Function Prototypes ****************************/
 /**
- *
- * Run a self-test on the driver/device. Note this may be a destructive test if
- * resets of the device are performed.
- *
- * If the hardware system is not built correctly, this function may never
- * return to the caller.
- *
- * @param   baseaddr_p is the base address of the PYLD_PWR_CTRL instance to be worked on.
- *
- * @return
- *
- *    - XST_SUCCESS   if all self-test code passed
- *    - XST_FAILURE   if any self-test code failed
- *
- * @note    Caching must be turned off for this function to work.
- * @note    Self test may fail if data memory and device are not on the same bus.
- *
- */
-XStatus PYLD_PWR_CTRL_Reg_SelfTest(void * baseaddr_p);
+ * The Pyld_Pwr_Ctrl driver instance data. The user is required to allocate a
+ * variable of this type for every Pyld_Pwr_Ctrl device in the system. A pointer
+ * to a variable of this type is then passed to the driver API functions.
+ **/
+typedef struct {
+    UINTPTR BaseAddress;    /* Device base address */
+    u32 IsReady;        /* Device is initialized and ready */
+    u32 PECount; /* Number of available Power Enable output pins */
+    u32 PGCount; /* Number of available Power Good input pins */
+} Pyld_Pwr_Ctrl_t;
 
-#endif // PYLD_PWR_CTRL_H
+/**
+ * Power Enable Pin Configuration
+ **/
+typedef struct {
+    u32 group;        /* power enable group  */
+    u32 seq_tmr;      /* power up/down sequence timer config, in microseconds */
+    bool sw_pd_en;    /* enable emergency power down triggered by SW */
+    bool ext_pd_en;   /* enable emergency power down triggered by PL FW */
+} PE_cfg_t;
+
+/*
+ * API Basic functions implemented in axi_Pyld_Pwr_Ctrl.c
+ */
+int Pyld_Pwr_Ctrl_Initialize(Pyld_Pwr_Ctrl_t *InstancePtr, u16 DeviceId);
+Pyld_Pwr_Ctrl_Config_t *Pyld_Pwr_Ctrl_LookupConfig(u16 DeviceId);
+
+int Pyld_Pwr_Ctrl_CfgInitialize(Pyld_Pwr_Ctrl_t *InstancePtr, Pyld_Pwr_Ctrl_Config_t * Config, UINTPTR EffectiveAddr);
+
+u32 Pyld_Pwr_Ctrl_Get_Core_Ver(Pyld_Pwr_Ctrl_t *InstancePtr);
+u32 Pyld_Pwr_Ctrl_Get_PE_Cnt(Pyld_Pwr_Ctrl_t *InstancePtr);
+u32 Pyld_Pwr_Ctrl_Get_PG_Cnt(Pyld_Pwr_Ctrl_t *InstancePtr);
+
+void Pyld_Pwr_Ctrl_Get_Pin_Cfg(Pyld_Pwr_Ctrl_t *InstancePtr, u32 pin, PE_cfg_t * PE_cfg);
+void Pyld_Pwr_Ctrl_Set_Pin_Cfg(Pyld_Pwr_Ctrl_t *InstancePtr, u32 pin, PE_cfg_t PE_cfg);
+
+void Pyld_Pwr_Ctrl_PDown_Force(Pyld_Pwr_Ctrl_t *InstancePtr);
+void Pyld_Pwr_Ctrl_PDown_Release(Pyld_Pwr_Ctrl_t *InstancePtr);
+
+void Pyld_Pwr_Ctrl_Init_PDown_Seq(Pyld_Pwr_Ctrl_t *InstancePtr, u32 group);
+void Pyld_Pwr_Ctrl_Init_PUp_Seq(Pyld_Pwr_Ctrl_t *InstancePtr, u32 group);
+
+#endif // Pyld_Pwr_Ctrl_H
