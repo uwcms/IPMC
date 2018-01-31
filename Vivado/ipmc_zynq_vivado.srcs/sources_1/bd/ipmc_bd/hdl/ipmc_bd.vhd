@@ -1,8 +1,8 @@
 --Copyright 1986-2017 Xilinx, Inc. All Rights Reserved.
 ----------------------------------------------------------------------------------
 --Tool Version: Vivado v.2017.2 (lin64) Build 1909853 Thu Jun 15 18:39:10 MDT 2017
---Date        : Wed Jan 31 17:40:10 2018
---Host        : moonraker.cern.ch running 64-bit Scientific Linux CERN SLC release 6.9 (Carbon)
+--Date        : Wed Jan 31 12:25:47 2018
+--Host        : beck.hep.wisc.edu running 64-bit CentOS Linux release 7.4.1708 (Core)
 --Command     : generate_target ipmc_bd.bd
 --Design      : ipmc_bd
 --Purpose     : IP block netlist
@@ -80,12 +80,12 @@ architecture STRUCTURE of GPIO_imp_1V8HBDC is
     dout : out STD_LOGIC_VECTOR ( 48 downto 0 )
   );
   end component ipmc_bd_xlconcat_2_0;
-  component ipmc_bd_xlslice_0_0 is
+  component ipmc_bd_xlslice_0_1 is
   port (
     Din : in STD_LOGIC_VECTOR ( 48 downto 0 );
     Dout : out STD_LOGIC_VECTOR ( 31 downto 0 )
   );
-  end component ipmc_bd_xlslice_0_0;
+  end component ipmc_bd_xlslice_0_1;
   component ipmc_bd_xlslice_1_0 is
   port (
     Din : in STD_LOGIC_VECTOR ( 48 downto 0 );
@@ -196,7 +196,7 @@ xlconcat_2: component ipmc_bd_xlconcat_2_0
       In1(16 downto 0) => axi_gpio_0_gpio2_io_t(16 downto 0),
       dout(48 downto 0) => xlconcat_2_dout(48 downto 0)
     );
-xlslice_0: component ipmc_bd_xlslice_0_0
+xlslice_0: component ipmc_bd_xlslice_0_1
      port map (
       Din(48 downto 0) => tri_state_buffer_0_O(48 downto 0),
       Dout(31 downto 0) => xlslice_0_Dout(31 downto 0)
@@ -12054,7 +12054,7 @@ entity ipmc_bd is
     TPS2358_4_pwr_pg_n : in STD_LOGIC
   );
   attribute CORE_GENERATION_INFO : string;
-  attribute CORE_GENERATION_INFO of ipmc_bd : entity is "ipmc_bd,IP_Integrator,{x_ipVendor=xilinx.com,x_ipLibrary=BlockDiagram,x_ipName=ipmc_bd,x_ipVersion=1.00.a,x_ipLanguage=VHDL,numBlks=102,numReposBlks=55,numNonXlnxBlks=22,numHierBlks=47,maxHierDepth=2,numSysgenBlks=0,numHlsBlks=0,numHdlrefBlks=11,numPkgbdBlks=0,bdsource=USER,da_axi4_cnt=2,synth_mode=OOC_per_IP}";
+  attribute CORE_GENERATION_INFO of ipmc_bd : entity is "ipmc_bd,IP_Integrator,{x_ipVendor=xilinx.com,x_ipLibrary=BlockDiagram,x_ipName=ipmc_bd,x_ipVersion=1.00.a,x_ipLanguage=VHDL,numBlks=102,numReposBlks=55,numNonXlnxBlks=22,numHierBlks=47,maxHierDepth=2,numSysgenBlks=0,numHlsBlks=0,numHdlrefBlks=11,numPkgbdBlks=0,bdsource=USER,synth_mode=OOC_per_IP}";
   attribute HW_HANDOFF : string;
   attribute HW_HANDOFF of ipmc_bd : entity is "ipmc_bd.hwdef";
 end ipmc_bd;
@@ -12324,12 +12324,12 @@ architecture STRUCTURE of ipmc_bd is
     probe0 : in STD_LOGIC_VECTOR ( 12 downto 0 )
   );
   end component ipmc_bd_ila_0_0;
-  component ipmc_bd_xlslice_0_1 is
+  component ipmc_bd_xlslice_0_0 is
   port (
     Din : in STD_LOGIC_VECTOR ( 12 downto 0 );
     Dout : out STD_LOGIC_VECTOR ( 12 downto 0 )
   );
-  end component ipmc_bd_xlslice_0_1;
+  end component ipmc_bd_xlslice_0_0;
   component ipmc_bd_pyld_pwr_ctrl_0_0 is
   port (
     PE_pin_o : out STD_LOGIC_VECTOR ( 12 downto 0 );
@@ -13385,7 +13385,7 @@ xlconcat_0: component ipmc_bd_xlconcat_0_0
       In3(4 downto 0) => xlconcat_1_dout(4 downto 0),
       dout(26 downto 0) => xlconcat_0_dout(26 downto 0)
     );
-xlslice_0: component ipmc_bd_xlslice_0_1
+xlslice_0: component ipmc_bd_xlslice_0_0
      port map (
       Din(12 downto 0) => pyld_pwr_ctrl_0_PE_pin_o(12 downto 0),
       Dout(12 downto 0) => xlslice_0_Dout(12 downto 0)
