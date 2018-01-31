@@ -35,6 +35,39 @@ namespace IPMI {
 		static constexpr inline u8 response_netfn(const u8 netfn) { return netfn | 0x01; };
 	}
 
+	namespace Completion {
+		extern const std::map<u8, std::string> id_to_cmplcode; ///< Mapping for runtime lookups.
+		extern const std::map<std::string, u8> cmplcode_to_id; ///< Mapping for runtime lookups.
+
+		/// Completion Code Constants
+		///@{
+		const u8 Success                                                                 = 0x00;
+		const u8 Node_Busy                                                               = 0xc0;
+		const u8 Invalid_Command                                                         = 0xc1;
+		const u8 Command_Invalid_For_Lun                                                 = 0xc2;
+		const u8 Processing_Timeout                                                      = 0xc3;
+		const u8 Out_Of_Space                                                            = 0xc4;
+		const u8 Reservation_Cancelled                                                   = 0xc5;
+		const u8 Request_Data_Truncated                                                  = 0xc6;
+		const u8 Request_Data_Length_Invalid                                             = 0xc7;
+		const u8 Request_Data_Field_Length_Limit_Exceeded                                = 0xc8;
+		const u8 Parameter_Out_Of_Range                                                  = 0xc9;
+		const u8 Cannot_Return_Requested_Number_Of_Data_Bytes                            = 0xca;
+		const u8 Requested_Sensor_Data_Or_Record_Not_Present                             = 0xcb;
+		const u8 Invalid_Data_Field_In_Request                                           = 0xcc;
+		const u8 Command_Illegal_For_Specific_Sensor_Or_Record_Type                      = 0xcd;
+		const u8 Command_Response_Could_Not_Be_Provided                                  = 0xce;
+		const u8 Cannot_Execute_Duplicated_Request                                       = 0xcf;
+		const u8 Command_Response_Could_Not_Be_Provided_SDR_Repository_Is_In_Update_Mode = 0xd0;
+		const u8 Command_Response_Could_Not_Be_Provided_Device_In_Firmware_Update_Mode   = 0xd1;
+		const u8 Command_Response_Could_Not_Be_Provided_BMC_Initialization_In_Progress   = 0xd2;
+		const u8 Destination_Unavailable                                                 = 0xd3;
+		const u8 Insufficient_Privilege                                                  = 0xd4;
+		const u8 Command_Or_Parameters_Not_Supported_In_Current_State                    = 0xd5;
+		const u8 Command_Subfunction_Disabled_Or_Unavailable                             = 0xd6;
+		///@}
+	}
+
 	extern const std::map< u16, std::pair<std::string, std::string> > id_to_cmd; ///< Mapping for runtime lookups. (Contains only request commands.)
 	extern const std::map<std::string, u16> cmd_to_id; ///< Mapping for runtime lookups.  (Contains only request commands.)
 

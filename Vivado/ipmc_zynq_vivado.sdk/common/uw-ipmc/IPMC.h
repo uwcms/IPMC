@@ -16,6 +16,9 @@ extern "C" {
 	extern XScuGic xInterruptController;
 }
 
+const u8 IPMC_FW_REVISION[2] = { 0, 1 }; // 0.1 (Max: 63.100, see Get Device ID)
+extern u8 IPMC_HW_REVISION;
+
 class PS_UART;
 extern PS_UART *uart_ps0;
 extern XGpioPs gpiops;
@@ -63,6 +66,7 @@ void init_stdlib_mutex();
 extern volatile SemaphoreHandle_t stdlib_mutex;
 
 // From version.cc
+extern const long int GIT_SHORT_INT;
 extern const char *GIT_SHORT;
 extern const char *GIT_LONG;
 extern const char *GIT_DESCRIBE;

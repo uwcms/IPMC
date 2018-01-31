@@ -49,12 +49,12 @@ export LIBS := -Wl,--start-group,-lxil,-lgcc,-lc,-lstdc++,--end-group
 
 ifeq ($(BUILD_CONFIGURATION),Debug)
 # "-Og Optimize debugging experience.  -Og enables optimizations that do not interfere with debugging." from man g++
-OPTIMIZE_OPTIONS := -Og -ggdb3 \
-	-flto -fuse-linker-plugin -fno-fat-lto-objects
+OPTIMIZE_OPTIONS := -Og -ggdb3
+#-flto -fuse-linker-plugin -fno-fat-lto-objects
 else
 # "-Os Optimize for size.  -Os enables all -O2 optimizations that do not typically increase code size." from man g++
-OPTIMIZE_OPTIONS := -Os -g0 \
-	-flto -fuse-linker-plugin -fno-fat-lto-objects
+OPTIMIZE_OPTIONS := -Os -g0
+#-flto -fuse-linker-plugin -fno-fat-lto-objects
 endif
 
 export CFLAGS = \
@@ -112,7 +112,7 @@ bin/$(BUILD_CONFIGURATION)/freertos_cli_example_cpp.elf: $(OBJS) .obj/$(BUILD_CO
 	@mkdir -p "$(dir $@)" "$(dir $(patsubst .obj/$(BUILD_CONFIGURATION)/%,.dep/$(BUILD_CONFIGURATION)/%,$@))"
 	rm -f .obj/$(BUILD_CONFIGURATION)/common/uw-ipmc/version.*.o
 	$(CXX) -c $(CFLAGS) $(CXXFLAGS) $(LDFLAGS) $(INCLUDE_PATHS) $(LIBRARY_PATHS) \
-		-DD_GIT_SHORT="\"$(shell git rev-parse --short HEAD)\"" -DD_GIT_LONG="\"$(shell git rev-parse HEAD)\"" -DD_GIT_DESCRIBE="\"$$GIT_DESCRIBE\"" -DD_GIT_BRANCH="\"$$GIT_BRANCH\"" -DD_GIT_STATUS="$$GIT_STATUS" -o "$@" "$<" $(LIBS)
+		-DD_GIT_SHORT_INT="0x$(shell git rev-parse --short HEAD)" -DD_GIT_SHORT="\"$(shell git rev-parse --short HEAD)\"" -DD_GIT_LONG="\"$(shell git rev-parse HEAD)\"" -DD_GIT_DESCRIBE="\"$$GIT_DESCRIBE\"" -DD_GIT_BRANCH="\"$$GIT_BRANCH\"" -DD_GIT_STATUS="$$GIT_STATUS" -o "$@" "$<" $(LIBS)
 
 .obj/$(BUILD_CONFIGURATION)/%.o: %.cpp
 	@echo
