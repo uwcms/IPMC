@@ -2,6 +2,7 @@
 /***************************** Include Files *******************************/
 #include "pyld_pwr_ctrl.h"
 #include "xparameters.h"
+#include "stdio.h"
 #include "xil_io.h"
 
 /************************** Constant Definitions ***************************/
@@ -22,12 +23,20 @@
  *    - XST_SUCCESS   if all self-test code passed
  *    - XST_FAILURE   if any self-test code failed
  *
+ * @note    Caching must be turned off for this function to work.
  * @note    Self test may fail if data memory and device are not on the same bus.
  *
  */
 XStatus PYLD_PWR_CTRL_Reg_SelfTest(void * baseaddr_p)
 {
-	// TODO: not implemented (yet)
+	u32 baseaddr;
+	int write_loop_index;
+	int read_loop_index;
+	int Index;
+
+	baseaddr = (u32) baseaddr_p;
+	
+	// not implemented (yet)
 
 	return XST_SUCCESS;
 }
