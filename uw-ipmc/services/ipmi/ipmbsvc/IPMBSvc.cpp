@@ -94,7 +94,13 @@ uint8_t IPMBSvc::lookup_ipmb_address(const int gpios[8]) {
 		address |= val << i;
 		parity ^= val;
 	}
-	configASSERT(parity); // Failed address (odd-)parity (bad slot wiring) is simply unsupported at this time.
+	/* TODO: Failed address (odd-)parity (bad slot wiring) is simply unsupported
+	 * at this time.
+	 *
+	 * We should eventually find a way to do as specified for this, send an
+	 * error report, and at least mention something on the console.
+	 */
+	configASSERT(parity);
 	return address & 0xfe; // I'm just going to assume this is how it works, given how the IPMB works. TODO: Validate
 }
 
