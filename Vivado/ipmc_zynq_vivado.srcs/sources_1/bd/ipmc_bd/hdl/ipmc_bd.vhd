@@ -1,7 +1,7 @@
 --Copyright 1986-2017 Xilinx, Inc. All Rights Reserved.
 ----------------------------------------------------------------------------------
 --Tool Version: Vivado v.2017.2 (lin64) Build 1909853 Thu Jun 15 18:39:10 MDT 2017
---Date        : Wed Jan 31 12:25:47 2018
+--Date        : Thu Feb  1 17:06:08 2018
 --Host        : beck.hep.wisc.edu running 64-bit CentOS Linux release 7.4.1708 (Core)
 --Command     : generate_target ipmc_bd.bd
 --Design      : ipmc_bd
@@ -12161,6 +12161,7 @@ architecture STRUCTURE of ipmc_bd is
   end component ipmc_bd_proc_sys_reset_0_0;
   component ipmc_bd_processing_system7_0_0 is
   port (
+    WDT_RST_OUT : out STD_LOGIC;
     M_AXI_GP0_ARVALID : out STD_LOGIC;
     M_AXI_GP0_AWVALID : out STD_LOGIC;
     M_AXI_GP0_BREADY : out STD_LOGIC;
@@ -12688,6 +12689,7 @@ architecture STRUCTURE of ipmc_bd is
   signal NLW_processing_system7_0_PS_CLK_UNCONNECTED : STD_LOGIC;
   signal NLW_processing_system7_0_PS_PORB_UNCONNECTED : STD_LOGIC;
   signal NLW_processing_system7_0_PS_SRSTB_UNCONNECTED : STD_LOGIC;
+  signal NLW_processing_system7_0_WDT_RST_OUT_UNCONNECTED : STD_LOGIC;
   signal NLW_processing_system7_0_MIO_UNCONNECTED : STD_LOGIC_VECTOR ( 53 downto 0 );
 begin
   ADC_A_clk <= ad7689_0_spi_clk;
@@ -13348,7 +13350,8 @@ processing_system7_0: component ipmc_bd_processing_system7_0_0
       M_AXI_GP0_WVALID => S00_AXI_1_WVALID,
       PS_CLK => NLW_processing_system7_0_PS_CLK_UNCONNECTED,
       PS_PORB => NLW_processing_system7_0_PS_PORB_UNCONNECTED,
-      PS_SRSTB => NLW_processing_system7_0_PS_SRSTB_UNCONNECTED
+      PS_SRSTB => NLW_processing_system7_0_PS_SRSTB_UNCONNECTED,
+      WDT_RST_OUT => NLW_processing_system7_0_WDT_RST_OUT_UNCONNECTED
     );
 pyld_pwr_ctrl_0: component ipmc_bd_pyld_pwr_ctrl_0_0
      port map (
