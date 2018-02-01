@@ -42,7 +42,7 @@ void vAssertCalled(const char * pcFile, unsigned long ulLine) {
 			 *
 			 * Step over this instruction to continue.
 			 */
-			__asm__("bkpt");
+			__asm__ volatile ("bkpt");
 
 			portNOP();
 		}
