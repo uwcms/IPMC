@@ -7,6 +7,7 @@
 #include <FreeRTOS.h>
 #include <task.h>
 #include <IPMC.h>
+#include <drivers/watchdog/PSWDT.h>
 #include <drivers/ps_uart/PSUART.h>
 #include <drivers/ps_ipmb/PSIPMB.h>
 #include <services/ipmi/ipmbsvc/IPMBSvc.h>
@@ -30,6 +31,7 @@
 
 u8 IPMC_HW_REVISION = 1; // TODO: Detect, Update, etc
 
+PS_WDT *SWDT;
 PS_UART *uart_ps0;
 IPMBSvc *ipmb0;
 IPMICommandParser *ipmi_command_parser;
@@ -69,6 +71,9 @@ void driver_init(bool use_pl) {
 	 * We don't need to keep a reference.  This will never require adjustment.
 	 */
 	new LogTree::Filter(LOG, tracebuffer_log_handler, LogTree::LOG_TRACE);
+
+	// Initialize the watchdog.
+	SWDT = new PS_WDT(XPAR_PS7_WDT_0_DEVICE_ID, 8, LOG["watchdog"]);
 
 	/* Initialize the UART console.
 	 *
