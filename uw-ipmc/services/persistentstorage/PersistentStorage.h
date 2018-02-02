@@ -14,6 +14,7 @@
 #include <event_groups.h>
 #include <IPMC.h>
 #include <drivers/generics/EEPROM.h>
+#include <drivers/watchdog/PSWDT.h>
 #include <libs/SkyRoad.h>
 #include <libs/ThreadingPrimitives.h>
 #include <functional>
@@ -29,7 +30,7 @@
  */
 class PersistentStorage {
 public:
-	PersistentStorage(EEPROM &eeprom, LogTree &logtree);
+	PersistentStorage(EEPROM &eeprom, LogTree &logtree, PS_WDT *watchdog=NULL);
 	virtual ~PersistentStorage();
 	void flush(std::function<void(void)> completion_cb = NULL);
 	void flush(void *start = NULL, size_t len = SIZE_MAX, std::function<void(void)> completion_cb = NULL);
@@ -80,6 +81,8 @@ protected:
 	SemaphoreHandle_t flushq_mutex; ///< A mutex protecting the flush queue
 	std::priority_queue< FlushRequest, std::deque<FlushRequest> > flushq; ///< A queue of pending range flushes.
 	const TickType_t flush_ticks = 10 * configTICK_RATE_HZ; ///< The delay between background flushes.
+	PS_WDT *wdt; ///< The watchdog.
+	PS_WDT::slot_handle_t wdt_slot; ///< The watchdog slot handle to activate and service.
 
 public:
 	void run_flush_thread(); ///< \protected Internal.
