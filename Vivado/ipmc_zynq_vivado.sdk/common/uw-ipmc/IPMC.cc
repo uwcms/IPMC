@@ -92,7 +92,7 @@ void driver_init(bool use_pl) {
 	PS_SPI *ps_spi0 = new PS_SPI(XPAR_PS7_SPI_0_DEVICE_ID, XPAR_PS7_SPI_0_INTR);
 	eeprom_data = new SPI_EEPROM(*ps_spi0, 0, 0x8000, 64);
 	eeprom_mac = new SPI_EEPROM(*ps_spi0, 1, 0x100, 16);
-	persistent_storage = new PersistentStorage(*eeprom_data, LOG["persistent_storage"]);
+	persistent_storage = new PersistentStorage(*eeprom_data, LOG["persistent_storage"], SWDT);
 	persistent_storage->register_console_commands(console_command_parser, "eeprom.");
 
 	XGpioPs_Config* gpiops_config = XGpioPs_LookupConfig(XPAR_PS7_GPIO_0_DEVICE_ID);

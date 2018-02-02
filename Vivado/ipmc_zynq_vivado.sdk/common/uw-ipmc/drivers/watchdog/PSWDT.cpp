@@ -125,6 +125,7 @@ PS_WDT::slot_handle_t PS_WDT::register_slot(uint32_t lifetime) {
 	u8 slotid = this->free_slot++;
 	struct wdtslot &slot = this->slots[slotid];
 	slot.enabled = 0;
+	slot.lifetime = lifetime;
 	slot.config_cksum = ((~((static_cast<uint64_t>(slot.enabled)<<32)|static_cast<uint64_t>(slot.lifetime))) ^ (slotkey_lshifted1>>1));
 	slot.timeout_cksum = ((~slot.timeout) ^ (slotkey_lshifted1>>1));
 	portEXIT_CRITICAL();
@@ -132,7 +133,7 @@ PS_WDT::slot_handle_t PS_WDT::register_slot(uint32_t lifetime) {
 }
 
 /**
- * Enable the provided watchdog slot.
+ * Enable & service the provided watchdog slot.
  *
  * @param slot_handle The slot to enable.
  */
@@ -149,7 +150,10 @@ void PS_WDT::activate_slot(slot_handle_t slot_handle) {
 	}
 	slot.enabled = UINT32_MAX;
 	slot.config_cksum = ((~((static_cast<uint64_t>(slot.enabled)<<32)|static_cast<uint64_t>(slot.lifetime))) ^ (slotkey_lshifted1>>1));
+	slot.timeout = get_tick64() + slot.lifetime;
+	slot.timeout_cksum = ((~slot.timeout) ^ (slotkey_lshifted1>>1));
 	portEXIT_CRITICAL();
+	this->log.log(stdsprintf("Watchdog slot %hhu activated by %s.", slotid, pcTaskGetName(NULL)), LogTree::LOG_INFO);
 }
 
 /**
@@ -176,6 +180,7 @@ void PS_WDT::deactivate_slot(slot_handle_t slot_handle, uint32_t deactivate_code
 	slot.enabled = 0;
 	slot.config_cksum = ((~((static_cast<uint64_t>(slot.enabled)<<32)|static_cast<uint64_t>(slot.lifetime))) ^ (slotkey_lshifted1>>1));
 	portEXIT_CRITICAL();
+	this->log.log(stdsprintf("Watchdog slot %hhu deactivated by %s.", slotid, pcTaskGetName(NULL)), LogTree::LOG_INFO);
 }
 
 /**
@@ -203,6 +208,7 @@ void PS_WDT::service_slot(slot_handle_t slot_handle) {
 	slot.timeout = get_tick64() + slot.lifetime;
 	slot.timeout_cksum = ((~slot.timeout) ^ (slotkey_lshifted1>>1));
 	portEXIT_CRITICAL();
+	this->log.log(stdsprintf("Watchdog slot %hhu serviced by %s.", slotid, pcTaskGetName(NULL)), LogTree::LOG_DIAGNOSTIC);
 }
 
 const volatile uint32_t PS_WDT::deactivate_code_lshifted1 = 0x508030a4UL;
