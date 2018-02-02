@@ -106,7 +106,7 @@ void driver_init(bool use_pl) {
 	ps_ipmb[0] = new PS_IPMB(XPAR_PS7_I2C_0_DEVICE_ID, XPAR_PS7_I2C_0_INTR, hwaddr);
 	ps_ipmb[1] = new PS_IPMB(XPAR_PS7_I2C_1_DEVICE_ID, XPAR_PS7_I2C_1_INTR, hwaddr);
 	ipmi_command_parser = new IPMICommandParser(ipmicmd_default, *ipmicmd_index);
-	ipmb0 = new IPMBSvc(ps_ipmb[0], ps_ipmb[1], hwaddr, ipmi_command_parser, log_ipmb0, "ipmb0");
+	ipmb0 = new IPMBSvc(ps_ipmb[0], ps_ipmb[1], hwaddr, ipmi_command_parser, log_ipmb0, "ipmb0", SWDT);
 }
 
 /** IPMC service initialization.

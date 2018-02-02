@@ -21,6 +21,7 @@
 #include <libs/LogTree.h>
 #include <libs/SkyRoad.h>
 #include <drivers/generics/IPMB.h>
+#include <drivers/watchdog/PSWDT.h>
 #include <services/ipmi/IPMI_MSG.h>
 #include <services/ipmi/ipmbsvc/IPMICommandParser.h>
 
@@ -32,7 +33,7 @@ public:
 	const std::string name; ///< The name used for this IPMB in StatCounter or Task names, as well as log messages.
 	IPMICommandParser *command_parser; ///< The command parser used for incoming messages.
 
-	IPMBSvc(IPMB *ipmbA, IPMB *ipmbB, uint8_t ipmb_address, IPMICommandParser *command_parser, LogTree &logtree, const std::string name);
+	IPMBSvc(IPMB *ipmbA, IPMB *ipmbB, uint8_t ipmb_address, IPMICommandParser *command_parser, LogTree &logtree, const std::string name, PS_WDT *wdt);
 	virtual ~IPMBSvc();
 
 	static uint8_t lookup_ipmb_address(const int gpios[8]);
@@ -92,6 +93,9 @@ protected:
 	std::list<IPMB_MsgRec> outgoing_messages; ///< The queue of outgoing IPMI messages.
 	TaskHandle_t task; ///< A reference to the IPMBSvc task owned by this object.
 	QueueSetHandle_t qset; ///< A queueset for use in the thread task.
+
+	PS_WDT *wdt; ///< The watchdog
+	PS_WDT::slot_handle_t wdt_slot; ///< Our watchdog slot
 
 	/**
 	 * A record of used sequence numbers for commands.
