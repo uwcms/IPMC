@@ -54,15 +54,18 @@ void vLwipAppsReleaseTxBuffer( void );
 #define DEFAULT_ACCEPTMBOX_SIZE 5
 #define TCPIP_MBOX_SIZE			 		10
 
+#define LWIP_DEBUG
+
 #define NO_SYS							0
 #define LWIP_SOCKET						(NO_SYS==0)
+#define LWIP_COMPAT_SOCKETS             0
 #define LWIP_NETCONN              		1
 
 #define LWIP_SNMP						0
 #define LWIP_IGMP						0
 #define LWIP_ICMP						1
 
-#define LWIP_DNS						0
+#define LWIP_DNS						1
 
 #define LWIP_HAVE_LOOPIF				0
 #define TCP_LISTEN_BACKLOG				0
@@ -261,6 +264,7 @@ a lot of data that needs to be copied, this should be set high. */
 #define LWIP_UDP				1
 #define LWIP_UDPLITE			1
 #define UDP_TTL					255
+#define DEFAULT_UDP_RECVMBOX_SIZE 1
 
 
 /* ---------- Statistics options ---------- */

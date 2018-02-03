@@ -26,9 +26,6 @@
 #include "lwip/dhcp.h"
 #include "lwip/init.h"
 
-#include "CLI_server/CLI_server.h"
-#include "CLI_commands/CLI_commands.h"
-
 #if LWIP_DHCP==1
 extern volatile int dhcp_timoutcntr;
 err_t dhcp_start(struct netif *netif);
@@ -64,7 +61,7 @@ void network_thread(void *p) {
 
 #if LWIP_DHCP==0
 	/* initliaze IP addresses to be used */
-	IP4_ADDR(&ipaddr, 192, 168, 248, 69);
+	IP4_ADDR(&ipaddr, 192, 168, 248, 70);
 	IP4_ADDR(&netmask, 255, 255, 0, 0);
 	IP4_ADDR(&gw, 192, 168, 1, 1);
 #endif
@@ -115,8 +112,8 @@ void network_thread(void *p) {
 #else
 
 	// create cli interpreter task
-	vRegisterCLICommands();
-	sys_thread_new("clid", CLI_Interpreter_Task, 0, THREAD_STACKSIZE, DEFAULT_THREAD_PRIO);
+	//vRegisterCLICommands();
+	//sys_thread_new("clid", CLI_Interpreter_Task, 0, THREAD_STACKSIZE, DEFAULT_THREAD_PRIO);
 
 	vTaskDelete(NULL);
 #endif
