@@ -17,6 +17,7 @@
 #include <services/persistentstorage/PersistentStorage.h>
 #include <drivers/tracebuffer/TraceBuffer.h>
 #include <services/console/UARTConsoleSvc.h>
+#include <services/influxdb/InfluxDBClient.h>
 #include <libs/LogTree.h>
 
 #include <algorithm>
@@ -42,6 +43,7 @@ TraceBuffer TRACE(tracebuffer_contents, TRACEBUFFER_SIZE);
 SPI_EEPROM *eeprom_mac;
 SPI_EEPROM *eeprom_data;
 PersistentStorage *persistent_storage;
+InfluxDBClient *influxdbclient;
 CommandParser console_command_parser;
 UARTConsoleSvc *console_service;
 
@@ -89,6 +91,10 @@ void driver_init(bool use_pl) {
 	eeprom_mac = new SPI_EEPROM(*ps_spi0, 1, 0x100, 16);
 	persistent_storage = new PersistentStorage(*eeprom_data, LOG["persistent_storage"]);
 	persistent_storage->register_console_commands(console_command_parser, "eeprom.");
+
+	influxdbclient = new InfluxDBClient(LOG["influxdb"]);
+	influxdbclient->register_console_commands(console_command_parser, "influxdb.");
+
 
 	XGpioPs_Config* gpiops_config = XGpioPs_LookupConfig(XPAR_PS7_GPIO_0_DEVICE_ID);
 	configASSERT(XST_SUCCESS == XGpioPs_CfgInitialize(&gpiops, gpiops_config, gpiops_config->BaseAddr));
