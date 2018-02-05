@@ -156,9 +156,10 @@ void IPMBSvc::run_thread() {
 	AbsoluteTimeout next_wait(UINT64_MAX);
 	while (true) {
 		if (this->wdt) {
+			uint64_t now64 = get_tick64();
 			this->wdt->service_slot(this->wdt_slot);
-			if (next_wait.timeout64 > configTICK_RATE_HZ/2)
-				next_wait.timeout64 = configTICK_RATE_HZ/2; // Don't wait past our service frequency.
+			if (next_wait.timeout64 > now64 + (configTICK_RATE_HZ/2))
+				next_wait.timeout64 = now64 + (configTICK_RATE_HZ/2); // Don't wait past our service frequency.
 		}
 		// Check for any incoming messages and process them.
 		QueueHandle_t q = xQueueSelectFromSet(this->qset, next_wait.get_timeout());
