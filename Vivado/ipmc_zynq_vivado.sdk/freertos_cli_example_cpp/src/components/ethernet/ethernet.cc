@@ -29,6 +29,9 @@
 static struct netif server_netif;
 struct netif *echo_netif;
 
+/* the mac address of the board. this should be unique per board */
+extern u8 mac_address[6];
+
 #define THREAD_STACKSIZE 1024
 
 void print_ip(char *msg, struct ip_addr *ip) {
@@ -49,8 +52,6 @@ void network_thread(void *p) {
 #if LWIP_DHCP==1
 	int mscnt = 0;
 #endif
-	/* the mac address of the board. this should be unique per board */
-	unsigned char mac_ethernet_address[] = { 0x00, 0x0a, 0x35, 0x00, 0x01, 0x02 };
 
 	netif = &server_netif;
 
@@ -76,7 +77,7 @@ void network_thread(void *p) {
 	netmask.addr = 0;
 #endif
 	/* Add network interface to the netif_list, and set it as default */
-	if (!xemac_add(netif, &ipaddr, &netmask, &gw, mac_ethernet_address, XPAR_XEMACPS_0_BASEADDR)) {
+	if (!xemac_add(netif, &ipaddr, &netmask, &gw, mac_address, XPAR_XEMACPS_0_BASEADDR)) {
 		xil_printf("Error adding N/W interface\r\n");
 		return;
 	}

@@ -41,6 +41,7 @@ extern SPI_EEPROM *eeprom_mac;
 extern SPI_EEPROM *eeprom_data;
 class PersistentStorage;
 extern PersistentStorage *persistent_storage;
+extern u8 mac_address[6];
 
 class CommandParser;
 extern CommandParser console_command_parser;
