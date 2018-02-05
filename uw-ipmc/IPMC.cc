@@ -45,9 +45,10 @@ TraceBuffer TRACE(tracebuffer_contents, TRACEBUFFER_SIZE);
 SPI_EEPROM *eeprom_mac;
 SPI_EEPROM *eeprom_data;
 PersistentStorage *persistent_storage;
-InfluxDBClient *influxdbclient;
+u8 mac_address[6];
 CommandParser console_command_parser;
 UARTConsoleSvc *console_service;
+InfluxDBClient *influxdbclient;
 
 static void console_log_handler(LogTree &logtree, const std::string &message, enum LogTree::LogLevel level);
 static void tracebuffer_log_handler(LogTree &logtree, const std::string &message, enum LogTree::LogLevel level);
@@ -96,6 +97,9 @@ void driver_init(bool use_pl) {
 	eeprom_mac = new SPI_EEPROM(*ps_spi0, 1, 0x100, 16);
 	persistent_storage = new PersistentStorage(*eeprom_data, LOG["persistent_storage"], SWDT);
 	persistent_storage->register_console_commands(console_command_parser, "eeprom.");
+	configASSERT(eeprom_mac->read(250, mac_address, 6));
+	LOG["network"].log(stdsprintf("Our MAC address is %02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx",
+			mac_address[0], mac_address[1], mac_address[2], mac_address[3], mac_address[4], mac_address[5]), LogTree::LOG_NOTICE);
 
 	influxdbclient = new InfluxDBClient(LOG["influxdb"]);
 	influxdbclient->register_console_commands(console_command_parser, "influxdb.");
