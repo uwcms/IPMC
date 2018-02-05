@@ -6,12 +6,12 @@
  */
 
 /* Standard includes. */
+#include <IPMC.h>
 #include <string.h>
 #include <stdio.h>
 #include "xparameters.h"
 #include "netif/xadapter.h"
 #include "platform_config.h"
-#include "xil_printf.h"
 
 #include <atheros/atheros.h>
 
@@ -26,15 +26,10 @@
 #include "lwip/dhcp.h"
 #include "lwip/init.h"
 
-#if LWIP_DHCP==1
-extern volatile int dhcp_timoutcntr;
-err_t dhcp_start(struct netif *netif);
-#endif
-
-#define THREAD_STACKSIZE 1024
-
 static struct netif server_netif;
 struct netif *echo_netif;
+
+#define THREAD_STACKSIZE 1024
 
 void print_ip(char *msg, struct ip_addr *ip) {
 	xil_printf(msg);
@@ -137,11 +132,11 @@ void lwip_startup_thread(void *p) {
 		if (server_netif.ip_addr.addr) {
 			xil_printf("DHCP request success\r\n");
 			print_ip_settings(&(server_netif.ip_addr), &(server_netif.netmask), &(server_netif.gw));
-			print_echo_app_header();
-			xil_printf("\r\n");
-			sys_thread_new("echod", echo_application_thread, 0,
+			//print_echo_app_header();
+			//xil_printf("\r\n");
+			/*sys_thread_new("echod", echo_application_thread, 0,
 					THREAD_STACKSIZE,
-					DEFAULT_THREAD_PRIO);
+					DEFAULT_THREAD_PRIO);*/
 			break;
 		}
 		mscnt += DHCP_FINE_TIMER_MSECS;
@@ -157,11 +152,11 @@ void lwip_startup_thread(void *p) {
 			xil_printf("%20s %6s %s\r\n", "Server", "Port", "Connect With..");
 			xil_printf("%20s %6s %s\r\n", "--------------------", "------", "--------------------");
 
-			print_echo_app_header();
-			xil_printf("\r\n");
-			sys_thread_new("echod", echo_application_thread, 0,
+			//print_echo_app_header();
+			//xil_printf("\r\n");
+			/*sys_thread_new("echod", echo_application_thread, 0,
 					THREAD_STACKSIZE,
-					DEFAULT_THREAD_PRIO);
+					DEFAULT_THREAD_PRIO);*/
 			break;
 		}
 	}
