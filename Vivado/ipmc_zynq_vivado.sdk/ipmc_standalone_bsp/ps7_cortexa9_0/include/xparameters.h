@@ -246,6 +246,11 @@
 #define XPAR_XVC_0_S_AXI_HIGHADDR 0x43C7FFFF
 
 
+/* Definitions for peripheral XADC_WIZ_0 */
+#define XPAR_XADC_WIZ_0_BASEADDR 0x43CB0000
+#define XPAR_XADC_WIZ_0_HIGHADDR 0x43CBFFFF
+
+
 /******************************************************************/
 
 /* Definitions for driver GPIO */
