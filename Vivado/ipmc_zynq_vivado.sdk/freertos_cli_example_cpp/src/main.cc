@@ -170,20 +170,7 @@ static void prvSetupHardware(void) {
 }
 } // extern "C"
 
-int main() {
-	/*
-	 * If you want to run this application outside of SDK,
-	 * uncomment one of the following two lines and also #include "ps7_init.h"
-	 * or #include "ps7_init.h" at the top, depending on the target.
-	 * Make sure that the ps7/psu_init.c and ps7/psu_init.h files are included
-	 * along with this example source files for compilation.
-	 */
-	/* ps7_init();*/
-	/* psu_init();*/
-
-	/* See http://www.freertos.org/RTOS-Xilinx-Zynq.html. */
-	prvSetupHardware();
-
+void init_task(void *dummy0 __attribute__((unused))) {
 	driver_init(true);
 	ipmc_service_init();
 
@@ -199,6 +186,25 @@ int main() {
 	bannerstr.clear(); // Save heap memory.
 
 	//xTaskCreate(lwip_startup_thread, "lwip_start", configMINIMAL_STACK_SIZE, NULL, configLWIP_TASK_PRIORITY, NULL);
+
+	vTaskDelete(NULL); // Clean up after ourselves.
+}
+
+int main() {
+	/*
+	 * If you want to run this application outside of SDK,
+	 * uncomment one of the following two lines and also #include "ps7_init.h"
+	 * or #include "ps7_init.h" at the top, depending on the target.
+	 * Make sure that the ps7/psu_init.c and ps7/psu_init.h files are included
+	 * along with this example source files for compilation.
+	 */
+	/* ps7_init();*/
+	/* psu_init();*/
+
+	/* See http://www.freertos.org/RTOS-Xilinx-Zynq.html. */
+	prvSetupHardware();
+
+	xTaskCreate(init_task, "init", UWIPMC_STANDARD_STACK_SIZE, NULL, TASK_PRIORITY_PRIORITY, NULL);
 
 	/* Start the tasks and timer running. */
 	vTaskStartScheduler();
