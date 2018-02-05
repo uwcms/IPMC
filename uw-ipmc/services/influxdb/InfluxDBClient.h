@@ -10,6 +10,7 @@
 
 #include <FreeRTOS.h>
 #include <IPMC.h>
+#include <xadcps.h>
 
 /**
  * TBD
@@ -23,9 +24,18 @@ public:
 
 	void connect(std::string host, int port);
 	void write(std::string database, std::string message);
+	std::string measurement();
+
+	void dtask();
+
+	void startd();
+	void stopd();
 
 	void register_console_commands(CommandParser &parser, const std::string &prefix="");
 	void deregister_console_commands(CommandParser &parser, const std::string &prefix="");
+
+
+	XAdcPs xadc;
 
 protected:
 	int sockfd;
