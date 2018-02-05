@@ -44,6 +44,7 @@ TraceBuffer TRACE(tracebuffer_contents, TRACEBUFFER_SIZE);
 SPI_EEPROM *eeprom_mac;
 SPI_EEPROM *eeprom_data;
 PersistentStorage *persistent_storage;
+u8 mac_address[6];
 CommandParser console_command_parser;
 UARTConsoleSvc *console_service;
 
@@ -94,6 +95,9 @@ void driver_init(bool use_pl) {
 	eeprom_mac = new SPI_EEPROM(*ps_spi0, 1, 0x100, 16);
 	persistent_storage = new PersistentStorage(*eeprom_data, LOG["persistent_storage"], SWDT);
 	persistent_storage->register_console_commands(console_command_parser, "eeprom.");
+	configASSERT(eeprom_mac->read(250, mac_address, 6));
+	LOG["network"].log(stdsprintf("Our MAC address is %02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx",
+			mac_address[0], mac_address[1], mac_address[2], mac_address[3], mac_address[4], mac_address[5]), LogTree::LOG_NOTICE);
 
 	XGpioPs_Config* gpiops_config = XGpioPs_LookupConfig(XPAR_PS7_GPIO_0_DEVICE_ID);
 	configASSERT(XST_SUCCESS == XGpioPs_CfgInitialize(&gpiops, gpiops_config, gpiops_config->BaseAddr));
