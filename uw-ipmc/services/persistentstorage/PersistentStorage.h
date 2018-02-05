@@ -33,7 +33,7 @@ public:
 	PersistentStorage(EEPROM &eeprom, LogTree &logtree, PS_WDT *watchdog=NULL);
 	virtual ~PersistentStorage();
 	void flush(std::function<void(void)> completion_cb = NULL);
-	void flush(void *start = NULL, size_t len = SIZE_MAX, std::function<void(void)> completion_cb = NULL);
+	void flush(void *start, size_t len, std::function<void(void)> completion_cb = NULL);
 protected:
 	void flush_index();
 
