@@ -336,4 +336,13 @@ BEGIN DRIVER
  PARAMETER HW_INSTANCE = ps7_wdt_0
 END
 
+<<<<<<< Updated upstream
+=======
+BEGIN DRIVER
+ PARAMETER DRIVER_NAME = generic
+ PARAMETER DRIVER_VER = 2.0
+ PARAMETER HW_INSTANCE = xadc_wiz_0
+END
+
+>>>>>>> Stashed changes
 

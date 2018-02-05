@@ -200,7 +200,7 @@
 			</matcher>
 		</filter>
 		<filter>
-			<id>1517353062151</id>
+			<id>1517387020935</id>
 			<name></name>
 			<type>6</type>
 			<matcher>
@@ -209,7 +209,7 @@
 			</matcher>
 		</filter>
 		<filter>
-			<id>1517353062160</id>
+			<id>1517387020944</id>
 			<name></name>
 			<type>6</type>
 			<matcher>
@@ -218,7 +218,34 @@
 			</matcher>
 		</filter>
 		<filter>
-			<id>1517353062164</id>
+			<id>1517387020950</id>
+			<name></name>
+			<type>6</type>
+			<matcher>
+				<id>org.eclipse.ui.ide.multiFilter</id>
+				<arguments>1.0-name-matches-false-false-*.hwh</arguments>
+			</matcher>
+		</filter>
+		<filter>
+			<id>1517428487721</id>
+			<name></name>
+			<type>6</type>
+			<matcher>
+				<id>org.eclipse.ui.ide.multiFilter</id>
+				<arguments>1.0-name-matches-false-false-*.xml</arguments>
+			</matcher>
+		</filter>
+		<filter>
+			<id>1517428487729</id>
+			<name></name>
+			<type>6</type>
+			<matcher>
+				<id>org.eclipse.ui.ide.multiFilter</id>
+				<arguments>1.0-name-matches-false-false-*.svd</arguments>
+			</matcher>
+		</filter>
+		<filter>
+			<id>1517428487734</id>
 			<name></name>
 			<type>6</type>
 			<matcher>

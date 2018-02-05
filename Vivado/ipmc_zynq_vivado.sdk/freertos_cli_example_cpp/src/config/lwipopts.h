@@ -84,7 +84,7 @@ void vLwipAppsReleaseTxBuffer( void );
 #define API_MSG_DEBUG              LWIP_DBG_OFF
 #define TCPIP_DEBUG                LWIP_DBG_OFF
 #define NETIF_DEBUG                LWIP_DBG_OFF
-#define SOCKETS_DEBUG              LWIP_DBG_OFF
+#define SOCKETS_DEBUG              LWIP_DBG_ON
 #define DNS_DEBUG                  LWIP_DBG_OFF
 #define AUTOIP_DEBUG               LWIP_DBG_OFF
 #define DHCP_DEBUG                 LWIP_DBG_OFF
@@ -118,7 +118,7 @@ void vLwipAppsReleaseTxBuffer( void );
 
 /* MEM_SIZE: the size of the heap memory. If the application will send
 a lot of data that needs to be copied, this should be set high. */
-#define MEM_SIZE				0x20000
+#define MEM_SIZE				0x40000
 
 /* MEMP_NUM_PBUF: the number of memp struct pbufs. If the application
    sends a lot of data out of ROM (or other static memory), this
