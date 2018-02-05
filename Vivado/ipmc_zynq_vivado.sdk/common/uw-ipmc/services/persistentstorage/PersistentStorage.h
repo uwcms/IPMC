@@ -126,6 +126,7 @@ namespace PersistentStorageAllocations {
 	PERSISTENT_STORAGE_ALLOCATE(0x0000, RESERVED_END_OF_INDEX); ///< A marker to internally denote the end of the index.
 	/* Vendor 1: University of Wisconsin */
 	PERSISTENT_STORAGE_ALLOCATE(0x0101, WISC_SDR_REPOSITORY); ///< The SDR repository.
+	PERSISTENT_STORAGE_ALLOCATE(0x0102, WISC_INFLUXDBCLIENT_CONFIG); ///< InfluxDB configuration
 };
 
 #undef PERSISTENT_STORAGE_ALLOCATE
