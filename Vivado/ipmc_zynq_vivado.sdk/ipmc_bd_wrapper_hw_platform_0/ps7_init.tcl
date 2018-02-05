@@ -38,6 +38,7 @@ proc ps7_clock_init_data_3_0 {} {
     mask_write 0XF8000180 0x03F03F30 0x00200500
     mask_write 0XF80001C4 0x00000001 0x00000001
     mask_write 0XF800012C 0x01FFCCCD 0x01DC404D
+    mask_write 0XF8000304 0x00000001 0x00000000
     mwr -force 0XF8000004 0x0000767B
 }
 proc ps7_ddr_init_data_3_0 {} {
@@ -273,6 +274,7 @@ proc ps7_clock_init_data_2_0 {} {
     mask_write 0XF8000180 0x03F03F30 0x00200500
     mask_write 0XF80001C4 0x00000001 0x00000001
     mask_write 0XF800012C 0x01FFCCCD 0x01DC404D
+    mask_write 0XF8000304 0x00000001 0x00000000
     mwr -force 0XF8000004 0x0000767B
 }
 proc ps7_ddr_init_data_2_0 {} {
@@ -509,6 +511,7 @@ proc ps7_clock_init_data_1_0 {} {
     mask_write 0XF8000180 0x03F03F30 0x00200500
     mask_write 0XF80001C4 0x00000001 0x00000001
     mask_write 0XF800012C 0x01FFCCCD 0x01DC404D
+    mask_write 0XF8000304 0x00000001 0x00000000
     mwr -force 0XF8000004 0x0000767B
 }
 proc ps7_ddr_init_data_1_0 {} {

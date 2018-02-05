@@ -678,6 +678,27 @@
 
 /******************************************************************/
 
+/* Definitions for driver WDTPS */
+#define XPAR_XWDTPS_NUM_INSTANCES 1
+
+/* Definitions for peripheral PS7_WDT_0 */
+#define XPAR_PS7_WDT_0_DEVICE_ID 0
+#define XPAR_PS7_WDT_0_BASEADDR 0xF8005000
+#define XPAR_PS7_WDT_0_HIGHADDR 0xF8005FFF
+#define XPAR_PS7_WDT_0_WDT_CLK_FREQ_HZ 111111115
+
+
+/******************************************************************/
+
+/* Canonical definitions for peripheral PS7_WDT_0 */
+#define XPAR_XWDTPS_0_DEVICE_ID XPAR_PS7_WDT_0_DEVICE_ID
+#define XPAR_XWDTPS_0_BASEADDR 0xF8005000
+#define XPAR_XWDTPS_0_HIGHADDR 0xF8005FFF
+#define XPAR_XWDTPS_0_WDT_CLK_FREQ_HZ 111111115
+
+
+/******************************************************************/
+
 /* Definitions for driver XADCPS */
 #define XPAR_XADCPS_NUM_INSTANCES 1
 

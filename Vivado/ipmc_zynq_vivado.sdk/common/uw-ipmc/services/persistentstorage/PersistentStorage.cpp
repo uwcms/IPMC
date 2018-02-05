@@ -30,8 +30,8 @@ static void run_persistentstorage_thread(void *cb_ps) {
  * @param eeprom  The EEPROM providing the backing for this module.
  * @param logtree Where to send log messages from this module
  */
-PersistentStorage::PersistentStorage(EEPROM &eeprom, LogTree &logtree)
-	: eeprom(eeprom), logtree(logtree) {
+PersistentStorage::PersistentStorage(EEPROM &eeprom, LogTree &logtree, PS_WDT *watchdog)
+	: eeprom(eeprom), logtree(logtree), wdt(watchdog) {
 	configASSERT((eeprom.size / eeprom.page_size) <= UINT16_MAX); // Ensure that the EEPROM will not overflow our u16 fields.
 	this->cache = (u8*)pvPortMalloc(this->eeprom.size*2 + 4);
 	NVREG32(this->cache, this->eeprom.size) = 0x1234dead; // Set Canary
@@ -41,6 +41,10 @@ PersistentStorage::PersistentStorage(EEPROM &eeprom, LogTree &logtree)
 	this->index_mutex = xSemaphoreCreateMutex();
 	this->flushq_mutex = xSemaphoreCreateMutex();
 	// We are a driver task until the initial load is complete, then will change to a background task.
+	if (this->wdt) {
+		this->wdt_slot = this->wdt->register_slot(this->flush_ticks * 10); // We're background, but we should get service EVENTUALLY.
+		this->wdt->activate_slot(this->wdt_slot);
+	}
 	configASSERT(xTaskCreate(run_persistentstorage_thread, "PersistentFlush", UWIPMC_STANDARD_STACK_SIZE, this, TASK_PRIORITY_DRIVER, &this->flushtask));
 }
 
@@ -379,6 +383,8 @@ void PersistentStorage::run_flush_thread() {
 		bool changed = false;
 		bool done = false;
 		while (!done) {
+			if (this->wdt)
+				this->wdt->service_slot(this->wdt_slot); // This will get hit by our regularly enqueued full flush, in any case.
 			// Step 1: Check the Canary.
 			if (0x1234dead != NVREG32(this->cache, this->eeprom.size)) {
 				this->logtree.log("Canary INVALID.  There has been a buffer overrun in the vicinity of the persistent storage system. EEPROM flushes are PERMANENTLY DISABLED.", LogTree::LOG_CRITICAL);

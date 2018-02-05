@@ -26,7 +26,7 @@ static void ipmb0_run_thread(void *ipmb_void) {
  * \param logtree        The logtree for messages from the IPMBSvc.
  * \param name           Used for StatCounter, Messenger and thread name.
  */
-IPMBSvc::IPMBSvc(IPMB *ipmbA, IPMB *ipmbB, uint8_t ipmb_address, IPMICommandParser *command_parser, LogTree &logtree, const std::string name) :
+IPMBSvc::IPMBSvc(IPMB *ipmbA, IPMB *ipmbB, uint8_t ipmb_address, IPMICommandParser *command_parser, LogTree &logtree, const std::string name, PS_WDT *wdt) :
 		name(name),
 		command_parser(command_parser),
 		logroot(logtree),
@@ -40,7 +40,8 @@ IPMBSvc::IPMBSvc(IPMB *ipmbA, IPMB *ipmbB, uint8_t ipmb_address, IPMICommandPars
 		stat_no_available_seq(name+".messages.no_available_sequence_number"),
 		stat_unexpected_replies(name+".messages.unexpected_replies"),
 		log_messages_in(logtree["incoming_messages"]),
-		log_messages_out(logtree["outgoing_messages"]) {
+		log_messages_out(logtree["outgoing_messages"]),
+		wdt(wdt) {
 
 	configASSERT(ipmbA); // One physical IPMB is required, but not two.
 
@@ -62,6 +63,11 @@ IPMBSvc::IPMBSvc(IPMB *ipmbA, IPMB *ipmbB, uint8_t ipmb_address, IPMICommandPars
 	ipmbA->incoming_message_queue = this->recvq;
 	if (ipmbB)
 		ipmbB->incoming_message_queue = this->recvq;
+
+	if (this->wdt) {
+		this->wdt_slot = this->wdt->register_slot(configTICK_RATE_HZ);
+		this->wdt->activate_slot(this->wdt_slot);
+	}
 
 	configASSERT(xTaskCreate(ipmb0_run_thread, name.c_str(), UWIPMC_STANDARD_STACK_SIZE, this, TASK_PRIORITY_DRIVER, &this->task));
 }
@@ -94,7 +100,13 @@ uint8_t IPMBSvc::lookup_ipmb_address(const int gpios[8]) {
 		address |= val << i;
 		parity ^= val;
 	}
-	configASSERT(parity); // Failed address (odd-)parity (bad slot wiring) is simply unsupported at this time.
+	/* TODO: Failed address (odd-)parity (bad slot wiring) is simply unsupported
+	 * at this time.
+	 *
+	 * We should eventually find a way to do as specified for this, send an
+	 * error report, and at least mention something on the console.
+	 */
+	configASSERT(parity);
 	return address & 0xfe; // I'm just going to assume this is how it works, given how the IPMB works. TODO: Validate
 }
 
@@ -143,6 +155,12 @@ void IPMBSvc::run_thread() {
 
 	AbsoluteTimeout next_wait(UINT64_MAX);
 	while (true) {
+		if (this->wdt) {
+			uint64_t now64 = get_tick64();
+			this->wdt->service_slot(this->wdt_slot);
+			if (next_wait.timeout64 > now64 + (configTICK_RATE_HZ/2))
+				next_wait.timeout64 = now64 + (configTICK_RATE_HZ/2); // Don't wait past our service frequency.
+		}
 		// Check for any incoming messages and process them.
 		QueueHandle_t q = xQueueSelectFromSet(this->qset, next_wait.get_timeout());
 		if (q == this->sendq_notify_sem) {
