@@ -7,6 +7,7 @@
 #include <FreeRTOS.h>
 #include <task.h>
 #include <IPMC.h>
+#include <drivers/watchdog/PSWDT.h>
 #include <drivers/ps_uart/PSUART.h>
 #include <drivers/ps_ipmb/PSIPMB.h>
 #include <services/ipmi/ipmbsvc/IPMBSvc.h>
@@ -31,6 +32,7 @@
 
 u8 IPMC_HW_REVISION = 1; // TODO: Detect, Update, etc
 
+PS_WDT *SWDT;
 PS_UART *uart_ps0;
 IPMBSvc *ipmb0;
 IPMICommandParser *ipmi_command_parser;
@@ -72,6 +74,9 @@ void driver_init(bool use_pl) {
 	 */
 	new LogTree::Filter(LOG, tracebuffer_log_handler, LogTree::LOG_TRACE);
 
+	// Initialize the watchdog.
+	SWDT = new PS_WDT(XPAR_PS7_WDT_0_DEVICE_ID, 8, LOG["watchdog"]);
+
 	/* Initialize the UART console.
 	 *
 	 * We use a largeish output buffer to avoid overruns during the startup
@@ -89,7 +94,7 @@ void driver_init(bool use_pl) {
 	PS_SPI *ps_spi0 = new PS_SPI(XPAR_PS7_SPI_0_DEVICE_ID, XPAR_PS7_SPI_0_INTR);
 	eeprom_data = new SPI_EEPROM(*ps_spi0, 0, 0x8000, 64);
 	eeprom_mac = new SPI_EEPROM(*ps_spi0, 1, 0x100, 16);
-	persistent_storage = new PersistentStorage(*eeprom_data, LOG["persistent_storage"]);
+	persistent_storage = new PersistentStorage(*eeprom_data, LOG["persistent_storage"], SWDT);
 	persistent_storage->register_console_commands(console_command_parser, "eeprom.");
 
 	influxdbclient = new InfluxDBClient(LOG["influxdb"]);
@@ -107,7 +112,7 @@ void driver_init(bool use_pl) {
 	ps_ipmb[0] = new PS_IPMB(XPAR_PS7_I2C_0_DEVICE_ID, XPAR_PS7_I2C_0_INTR, hwaddr);
 	ps_ipmb[1] = new PS_IPMB(XPAR_PS7_I2C_1_DEVICE_ID, XPAR_PS7_I2C_1_INTR, hwaddr);
 	ipmi_command_parser = new IPMICommandParser(ipmicmd_default, *ipmicmd_index);
-	ipmb0 = new IPMBSvc(ps_ipmb[0], ps_ipmb[1], hwaddr, ipmi_command_parser, log_ipmb0, "ipmb0");
+	ipmb0 = new IPMBSvc(ps_ipmb[0], ps_ipmb[1], hwaddr, ipmi_command_parser, log_ipmb0, "ipmb0", SWDT);
 }
 
 /** IPMC service initialization.
