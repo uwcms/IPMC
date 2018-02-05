@@ -29,6 +29,7 @@ static void run_persistentstorage_thread(void *cb_ps) {
  *
  * @param eeprom  The EEPROM providing the backing for this module.
  * @param logtree Where to send log messages from this module
+ * @param watchdog The watchdog to register with & service
  */
 PersistentStorage::PersistentStorage(EEPROM &eeprom, LogTree &logtree, PS_WDT *watchdog)
 	: eeprom(eeprom), logtree(logtree), wdt(watchdog) {
