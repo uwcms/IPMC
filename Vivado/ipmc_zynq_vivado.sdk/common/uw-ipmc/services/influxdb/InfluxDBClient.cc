@@ -7,6 +7,7 @@
 
 #define __INFLUXDBCLIENT_CPP
 #include <services/influxdb/InfluxDBClient.h>
+#include <services/persistentstorage/PersistentStorage.h>
 #include <FreeRTOS.h>
 #include <lwip/sockets.h>
 #include <lwip/netdb.h>
@@ -26,25 +27,34 @@
  * TBD
  */
 InfluxDBClient::InfluxDBClient(LogTree &logtree) :
-host(""), port(0), sockfd(-1), logtree(logtree) {
+sockfd(-1), logtree(logtree) {
 
 	XAdcPs_Config *xadcps_config = XAdcPs_LookupConfig(XPAR_XADCPS_0_DEVICE_ID);
 
 	XAdcPs_CfgInitialize(&xadc, xadcps_config, xadcps_config->BaseAddress);
 
+	uint16_t psver = persistent_storage->get_section_version(PersistentStorageAllocations::WISC_INFLUXDBCLIENT_CONFIG);
+	configASSERT(psver <= 1); // TODO: Error handling: Unexpected version.
+
+	this->config = (InfluxDBClient_Config*)persistent_storage->get_section(PersistentStorageAllocations::WISC_INFLUXDBCLIENT_CONFIG, 1, sizeof(InfluxDBClient_Config));
+	configASSERT(this->config); // Despite verifying things, something is WRONG.
+
+	if (psver == 0) {
+		// TODO: Get info from PS
+		memset(this->config->host, '\0', sizeof(this->config->host));
+		this->config->port = 8086;
+		this->config->interval = 30;
+		this->config->startOnBoot = false;
+		persistent_storage->flush(this->config, sizeof(InfluxDBClient_Config));
+	}
 }
 
 InfluxDBClient::~InfluxDBClient() {
 }
 
-void InfluxDBClient::connect(std::string host, int port) {
-	this->host = host;
-	this->port = port;
-
-	// check if current socket is open, if so close it
-	if (sockfd > 0) {
-		lwip_close(sockfd);
-	}
+void InfluxDBClient::set_configuration(const InfluxDBClient_Config &c) {
+	// TODO: Mutex here!
+	memcpy(this->config, &c, sizeof(InfluxDBClient_Config));
 }
 
 void InfluxDBClient::write(std::string database, std::string message) {
@@ -60,9 +70,9 @@ void InfluxDBClient::write(std::string database, std::string message) {
 	}
 
 	// get the host's DNS entry
-	struct hostent *server = lwip_gethostbyname(host.c_str());
+	struct hostent *server = lwip_gethostbyname(config->host);
 	if (server == NULL) {
-		logtree.log("Failed to get DNS entry for host " + host, LogTree::LOG_ERROR);
+		logtree.log("Failed to get DNS entry for host " + std::string(config->host), LogTree::LOG_ERROR);
 		return;
 	}
 
@@ -71,13 +81,13 @@ void InfluxDBClient::write(std::string database, std::string message) {
 	memset(&serveraddr, 0, sizeof(serveraddr));
 	serveraddr.sin_family = AF_INET;
 	memcpy(&serveraddr.sin_addr.s_addr, server->h_addr, server->h_length);
-	serveraddr.sin_port = htons(port);
+	serveraddr.sin_port = htons(config->port);
 
 	// connect to server
 	int serverlen = sizeof(serveraddr);
 	int n = lwip_connect(sockfd, (struct sockaddr*)&serveraddr, serverlen);
 	if (n < 0) {
-		logtree.log("Failed to connect to host " + host + ":" + std::to_string(port), LogTree::LOG_ERROR);
+		logtree.log("Failed to connect to host " + std::string(config->host) + ":" + std::to_string(config->port), LogTree::LOG_ERROR);
 
 		// close the socket
 		lwip_close(sockfd);
@@ -88,7 +98,7 @@ void InfluxDBClient::write(std::string database, std::string message) {
 	// form the post message
 	std::string postmsg = "";
 
-	postmsg += "POST http://" + this->host + ":" + std::to_string(this->port) + "/write?db=" + database + " HTTP/1.0\r\n";
+	postmsg += "POST http://" + std::string(config->host) + ":" + std::to_string(config->port) + "/write?db=" + database + " HTTP/1.0\r\n";
 	postmsg += "Content-Length: " + std::to_string(message.length()) + "\r\n";
 	postmsg += "\r\n";
 	postmsg += message;
@@ -190,21 +200,42 @@ void InfluxDBClient::startd() {
 	}
 }
 
-static const std::string consolecmd_connect_helptext =
-		"%connect $host $port\n"
+static const std::string consolecmd_config_helptext =
+		"%config $host $port $interval\n"
 		"\n"
-		"Connects to an InfluxDB server with TCP/IP.\n";
+		"Configures the InfluxDB client.\n";
 
-static void consolecmd_connect(InfluxDBClient &influxdb, std::function<void(std::string)> print, const CommandParser::CommandParameters &parameters) {
-	std::string host;
-	int port;
+static void consolecmd_config(InfluxDBClient &influxdb, std::function<void(std::string)> print, const CommandParser::CommandParameters &parameters) {
+	InfluxDBClient::InfluxDBClient_Config c;
+	c.startOnBoot = false;
 
-	if (!parameters.parse_parameters(1, true, &host, &port)) {
+	std::string url;
+
+	if (!parameters.parse_parameters(1, true, &url, &(c.port), &(c.interval))) {
 		print("Invalid parameters.  See help.\n");
 		return;
 	}
 
-	influxdb.connect(host, port);
+	if (url.length() >= 32) {
+		print("Host URL is too long, aborting.\n");
+		return;
+	}
+
+	strcpy(c.host, url.c_str());
+
+	influxdb.set_configuration(c);
+}
+
+static const std::string consolecmd_read_config_helptext =
+		"%read_config\n"
+		"\n"
+		"Prints current configuration.\n";
+
+static void consolecmd_read_config(InfluxDBClient &influxdb, std::function<void(std::string)> print, const CommandParser::CommandParameters &parameters) {
+	const InfluxDBClient::InfluxDBClient_Config *c = influxdb.read_configuration();
+
+	print("Current configuration for InfluxDB Client:");
+	print("Host: " + std::string(c->host) + ":" + std::to_string(c->port));
 }
 
 static const std::string consolecmd_post_helptext =
@@ -242,8 +273,8 @@ static void consolecmd_startd(InfluxDBClient &influxdb, std::function<void(std::
  * @param prefix A prefix for the registered commands.
  */
 void InfluxDBClient::register_console_commands(CommandParser &parser, const std::string &prefix) {
-	parser.register_command(prefix + "connect", std::bind(consolecmd_connect, std::ref(*this), std::placeholders::_1, std::placeholders::_2), stdsprintf(consolecmd_connect_helptext.c_str(), prefix.c_str()));
-	parser.register_command(prefix + "post", std::bind(consolecmd_post, std::ref(*this), std::placeholders::_1, std::placeholders::_2), stdsprintf(consolecmd_post_helptext.c_str(), prefix.c_str()));
+	parser.register_command(prefix + "config", std::bind(consolecmd_config, std::ref(*this), std::placeholders::_1, std::placeholders::_2), stdsprintf(consolecmd_config_helptext.c_str(), prefix.c_str()));
+	parser.register_command(prefix + "read_config", std::bind(consolecmd_read_config, std::ref(*this), std::placeholders::_1, std::placeholders::_2), stdsprintf(consolecmd_read_config_helptext.c_str(), prefix.c_str()));
 	parser.register_command(prefix + "measurements", std::bind(consolecmd_measurements, std::ref(*this), std::placeholders::_1, std::placeholders::_2), stdsprintf(consolecmd_measurements_helptext.c_str(), prefix.c_str()));
 	parser.register_command(prefix + "startd", std::bind(consolecmd_startd, std::ref(*this), std::placeholders::_1, std::placeholders::_2), stdsprintf(consolecmd_startd_helptext.c_str(), prefix.c_str()));
 }

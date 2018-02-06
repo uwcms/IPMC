@@ -37,12 +37,24 @@ public:
 
 	XAdcPs xadc;
 
+	typedef struct {
+		char host[32];
+		uint16_t port;
+		uint16_t interval; // in seconds
+		bool startOnBoot : 1;
+	} InfluxDBClient_Config;
+
 protected:
+	InfluxDBClient_Config *config;
 	int sockfd;
-	std::string host;
-	int port;
 
 	LogTree &logtree; ///< Log target
+
+public:
+	void set_configuration(const InfluxDBClient_Config &c);
+	inline const InfluxDBClient_Config* read_configuration() {
+		return this->config;
+	}
 };
 
 #endif /* SRC_COMMON_UW_IPMC_SERVICES_INFLUXDBCLIENT_INFLUXDBCLIENT_H_ */

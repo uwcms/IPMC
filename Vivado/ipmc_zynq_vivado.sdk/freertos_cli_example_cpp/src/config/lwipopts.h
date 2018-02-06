@@ -34,6 +34,12 @@
 
 #include <limits.h>
 
+/*void xil_printf( const char *ctrl1, ...);
+static inline void xil_printf_hacked( const char *ctrl1, ...) {
+	xil_printf("Bad! Bad printf, bad!\r\n");
+}
+#define xil_printf(...) xil_printf_hacked(__VA_ARGS__)*/
+
 #define PROCESSOR_LITTLE_ENDIAN
 
 /* Functions used to obtain and release exclusive access to the Tx buffer.  The
