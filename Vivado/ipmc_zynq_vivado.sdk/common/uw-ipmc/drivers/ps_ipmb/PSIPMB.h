@@ -48,7 +48,6 @@ protected:
 	XIicPs IicInst;                    ///< The I2C driver instance handle.
 	u8 SlaveAddr;                      ///< The local IPMB slave address.
 	u8 i2c_inbuf[i2c_bufsize];         ///< The buffer for incoming I2C data.
-	u32 i2c_result;                    ///< The result of the I2C operation.
 	SemaphoreHandle_t mutex;           ///< A mutex serializing IPMB message requests.
 	u32 IntrId;                        ///< Interrupt ID, used to disable interrupts in the destructor.
 	QueueHandle_t sendresult_q;        ///< A queue to transfer the Send result from ISR land back to the send() function.
