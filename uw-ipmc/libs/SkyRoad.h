@@ -162,7 +162,8 @@ public:
 		 */
 		Messenger(std::string address, LogTree &logtree)
 		    : Hermes(address, logtree, cxa_demangle(typeid(T).name())),
-			  delivery_made_log_message(stdsprintf("Messenger<%s>(\"%s\") made a delivery.", cxa_demangle(typeid(T).name()).c_str(), address.c_str()))
+			  delivery_made_log_message(stdsprintf("Messenger<%s>(\"%s\") made a delivery.", cxa_demangle(typeid(T).name()).c_str(), address.c_str())),
+			  last_cbid(0)
 			  { };
 		friend class SkyRoad;
 		~Messenger() {

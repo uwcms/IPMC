@@ -19,7 +19,8 @@ static void PS_SPI_InterruptPassthrough(PS_SPI *ps_spi, u32 event_status, u32 by
  * \param DeviceId    The DeviceId, used for XUartPs_LookupConfig(), etc
  * \param IntrId      The interrupt ID, for configuring the GIC.
  */
-PS_SPI::PS_SPI(u16 DeviceId, u32 IntrId) {
+PS_SPI::PS_SPI(u16 DeviceId, u32 IntrId) :
+	IntrId(IntrId) {
 
 	this->mutex = xSemaphoreCreateMutex();
 	configASSERT(this->mutex);
