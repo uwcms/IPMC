@@ -217,9 +217,18 @@ void UARTConsoleSvc::_run_thread() {
 
 				echobuf.append(this->linebuf.backspace());
 			}
-			else if (*it == ANSICode::render_ascii_controlkey('I')) {
+			else if (*it == ANSICode::render_ascii_controlkey('O')) {
 				echobuf.append(stdsprintf("\r\n%s mode.  Last detected console size: %ux%u.\r\n", (this->linebuf.overwrite_mode ? "Overwrite" : "Insert"), this->linebuf.cols, this->linebuf.rows));
 				echobuf.append(this->linebuf.refresh());
+			}
+			else if (*it == '\t') {
+				// Tab isn't valid in ANSI sequences.
+				ansi_code.buffer.clear();
+
+				CommandParser::CompletionResult completed = this->parser.complete(this->linebuf.buffer, this->linebuf.cursor);
+				std::string compl_append = completed.common_prefix.substr(completed.cursor);
+				if (!compl_append.empty())
+					echobuf += this->linebuf.set_buffer(this->linebuf.buffer.substr(0, this->linebuf.cursor) + compl_append + this->linebuf.buffer.substr(this->linebuf.cursor), this->linebuf.cursor + compl_append.size());
 			}
 			else {
 				if (!ansi_code.buffer.empty() && last_ansi_tick + 50 < get_tick64()) {
