@@ -16,6 +16,7 @@
 #include <type_traits>
 #include <functional>
 #include <map>
+#include <memory>
 
 /**
  * A commandline parser class, which handles registration of commands and
@@ -31,14 +32,17 @@ public:
 	 */
 	class CommandParameters {
 	public:
+		typedef std::vector<std::string>::size_type size_type; ///< Inherit size_type from our underlying storage.
+
 		/**
 		 * Construct an intelligent parameterset from an unparsed parameter list.
 		 * @param parameters The list of string parameters.
+		 * @param cursor_parameter The parameter under the cursor.
+		 * @param cursor_character The parameter-relative cursor position.
 		 */
-		CommandParameters(const std::vector<std::string> &parameters) : parameters(parameters) { };
+		CommandParameters(const std::vector<std::string> &parameters, size_type cursor_parameter, size_type cursor_character)
+			: parameters(parameters), cursor_parameter(cursor_parameter), cursor_char(cursor_character) { };
 		virtual ~CommandParameters() { };
-
-		typedef std::vector<std::string>::size_type size_type; ///< Inherit size_type from our underlying storage.
 
 		/**
 		 * Get the number of parameters supplied.
@@ -71,6 +75,8 @@ public:
 		}
 
 		const std::vector<std::string> parameters; ///< The internal unparsed parameter list.
+		const size_type cursor_parameter; ///< The parameter the cursor is in, or str::npos if it is in an inter-parameter space.
+		const std::string::size_type cursor_char; ///< The character position within the parameter that the cursor is at.
 	protected:
 		/// \overload
 		bool parse_parameters(int start, bool total_parse) const { configASSERT(0); return false; /* We should never get here, but typing requires it. */ };
@@ -94,23 +100,69 @@ public:
 	};
 
 	/**
-	 * A function called when a specific command is run.
-	 *
-	 * @param stdout     The location to print any output to.
-	 * @param parameters The command's parameters.
+	 * A class representing a console command.
 	 */
-	typedef std::function<void(std::function<void(std::string)> print, const CommandParameters &parameters)> handler_t;
+	class Command {
+	public:
+		Command() { };
+		virtual ~Command() { };
 
-	virtual bool parse(std::function<void(std::string)> print, const std::string &commandline);
-	virtual void register_command(const std::string &command, handler_t handler, const std::string &helptext);
-	virtual std::vector<std::string> list_commands();
-	virtual std::string get_helptext(const std::string &command);
+		/**
+		 * Retrieve the helptext for this command.
+		 *
+		 * \note Mandatory
+		 *
+		 * @param command The registered command name.
+		 * @return Help text for the command.
+		 */
+		virtual std::string get_helptext(const std::string &command) const { configASSERT(0); return ""; };
 
-	static std::vector<std::string> tokenize(const std::string &commandline);
+		/**
+		 * Execute the command.
+		 *
+		 * \note Mandatory
+		 *
+		 * @param print A function which will write provided text to stdout.
+		 * @param parameters The parameters for this command execution.
+		 */
+		virtual void execute(std::function<void(std::string)> print, const CommandParameters &parameters) { configASSERT(0); };
+
+		/**
+		 * Provide completion options for the specified parameter (using .cursor_*).
+		 *
+		 * This function must return all valid parameter completions for the
+		 * current cursor parameter at the current cursor position, as full
+		 * parameter values.  It may return other values, and these will be
+		 * filtered by the caller.
+		 *
+		 * \note Optional
+		 *
+		 * @param parameters The current parameters as they stand.
+		 * @return
+		 */
+		virtual std::vector<std::string> complete(const CommandParameters &parameters) const { return std::vector<std::string>(); };
+	};
+
+	virtual bool parse(std::function<void(std::string)> print, const std::string &commandline, std::string::size_type cursor=0);
+	virtual void register_command(const std::string &token, std::shared_ptr<Command> handler);
+	virtual std::vector<std::string> list_commands() const;
+	virtual std::string get_helptext(const std::string &command) const;
+
+	/// The results of a completion.
+	class CompletionResult {
+	public:
+		std::string::size_type cursor; ///< The offset into the completion result the cursor is at.
+		std::string common_prefix; ///< The common prefix of all valid completions.
+		std::vector<std::string> completions; ///< All valid completion options.
+		CompletionResult() : cursor(0) { /* initialized blank */ };
+		CompletionResult(std::string prefix, std::vector<std::string> completions);
+	};
+	CompletionResult complete(const std::string &commandline, std::string::size_type cursor) const;
+
+	static std::vector<std::string> tokenize(const std::string &commandline, std::vector<std::string>::size_type *cursor_parameter=NULL, std::string::size_type *cursor_char=NULL);
 protected:
 	SemaphoreHandle_t mutex; ///< A mutex protecting the commandset info.
-	std::map<std::string, handler_t> commandset; ///< The registered commands.
-	std::map<std::string, std::string> commandhelp; ///< The registered commands' help texts.
+	std::map< std::string, std::shared_ptr<Command> > commandset; ///< The registered commands.
 };
 
 #endif /* SRC_COMMON_UW_IPMC_LIBS_COMMANDPARSER_H_ */
