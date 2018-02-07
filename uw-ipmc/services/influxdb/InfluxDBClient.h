@@ -19,8 +19,19 @@
  */
 class InfluxDBClient {
 public:
+	typedef struct {
+		char host[32];
+		uint16_t port;
+		uint16_t interval; // in seconds
+		bool startOnBoot : 1;
+	} InfluxDBClient_Config;
+
+
 	InfluxDBClient(LogTree &logtree);
 	virtual ~InfluxDBClient();
+
+	void set_configuration(const InfluxDBClient_Config &c);
+	inline const InfluxDBClient_Config* get_configuration() { return this->config; };
 
 	void connect(std::string host, int port);
 	void write(std::string database, std::string message);
@@ -35,26 +46,14 @@ public:
 	void deregister_console_commands(CommandParser &parser, const std::string &prefix="");
 
 
+	// TODO: Move this elsewhere
 	XAdcPs xadc;
-
-	typedef struct {
-		char host[32];
-		uint16_t port;
-		uint16_t interval; // in seconds
-		bool startOnBoot : 1;
-	} InfluxDBClient_Config;
 
 protected:
 	InfluxDBClient_Config *config;
 	int sockfd;
 
 	LogTree &logtree; ///< Log target
-
-public:
-	void set_configuration(const InfluxDBClient_Config &c);
-	inline const InfluxDBClient_Config* read_configuration() {
-		return this->config;
-	}
 };
 
 #endif /* SRC_COMMON_UW_IPMC_SERVICES_INFLUXDBCLIENT_INFLUXDBCLIENT_H_ */
