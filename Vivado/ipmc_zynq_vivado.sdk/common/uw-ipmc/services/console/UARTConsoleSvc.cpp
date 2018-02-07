@@ -116,11 +116,8 @@ bool UARTConsoleSvc::safe_write(std::string data, TickType_t timeout) {
 
 	// And now return to the prompt line.
 	out += "\r\n";
-	out += std::string("\1",1);
 	out += this->linebuf.refresh();
-	out += std::string("\2",1);
 	out += this->linebuf.set_cursor(input_cursor);
-	out += std::string("\3",1);
 	this->uart.write(out.data(), out.size(), abstimeout.get_timeout());
 	xSemaphoreGive(this->linebuf_mutex);
 	return true;
