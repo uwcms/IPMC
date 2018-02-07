@@ -40,7 +40,7 @@ sockfd(-1), logtree(logtree) {
 	configASSERT(this->config); // Despite verifying things, something is WRONG.
 
 	if (psver == 0) {
-		// TODO: Get info from PS
+		// Default configurations
 		memset(this->config->host, '\0', sizeof(this->config->host));
 		this->config->port = 8086;
 		this->config->interval = 30;
@@ -232,7 +232,7 @@ static const std::string consolecmd_read_config_helptext =
 		"Prints current configuration.\n";
 
 static void consolecmd_read_config(InfluxDBClient &influxdb, std::function<void(std::string)> print, const CommandParser::CommandParameters &parameters) {
-	const InfluxDBClient::InfluxDBClient_Config *c = influxdb.read_configuration();
+	const InfluxDBClient::InfluxDBClient_Config *c = influxdb.get_configuration();
 
 	print("Current configuration for InfluxDB Client:");
 	print("Host: " + std::string(c->host) + ":" + std::to_string(c->port));

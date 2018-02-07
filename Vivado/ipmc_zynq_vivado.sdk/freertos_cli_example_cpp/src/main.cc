@@ -1,3 +1,4 @@
+#include <drivers/network/Network.h>
 #include <stdio.h>
 #include "limits.h"
 #include "string.h"
@@ -7,9 +8,6 @@
 #include <IPMC.h>
 #include <drivers/ps_uart/PSUART.h>
 
-#include "ethernet/ethernet.h"
-
-/* Xilinx includes. */
 #include "xparameters.h"
 #include "xscutimer.h"
 #include "xscugic.h"
@@ -185,8 +183,6 @@ void init_task(void *dummy0 __attribute__((unused))) {
 	bannerstr += "********************************************************************************\n";
 	LOG.log(bannerstr, LogTree::LOG_NOTICE); // This is the ONLY place that should EVER log directly to LOG rather than a subtree.
 	bannerstr.clear(); // Save heap memory.
-
-	xTaskCreate(lwip_startup_thread, "lwip_start", UWIPMC_STANDARD_STACK_SIZE, NULL, configLWIP_TASK_PRIORITY, NULL);
 
 	vTaskDelete(NULL); // Clean up after ourselves.
 }

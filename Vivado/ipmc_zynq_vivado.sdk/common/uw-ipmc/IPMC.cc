@@ -15,6 +15,7 @@
 #include <services/ipmi/commands/IPMICmd_Index.h>
 #include <drivers/ps_spi/PSSPI.h>
 #include <drivers/spi_eeprom/SPIEEPROM.h>
+#include <drivers/network/Network.h>
 #include <services/persistentstorage/PersistentStorage.h>
 #include <drivers/tracebuffer/TraceBuffer.h>
 #include <services/console/UARTConsoleSvc.h>
@@ -35,6 +36,7 @@ u8 IPMC_HW_REVISION = 1; // TODO: Detect, Update, etc
 PS_WDT *SWDT;
 PS_UART *uart_ps0;
 IPMBSvc *ipmb0;
+Network *network;
 IPMICommandParser *ipmi_command_parser;
 XGpioPs gpiops;
 LogTree LOG("ipmc");
@@ -49,6 +51,9 @@ u8 mac_address[6];
 CommandParser console_command_parser;
 UARTConsoleSvc *console_service;
 InfluxDBClient *influxdbclient;
+
+// External static variables
+extern uint8_t mac_address[6]; ///< The MAC address of the board, read by persistent storage statically
 
 static void console_log_handler(LogTree &logtree, const std::string &message, enum LogTree::LogLevel level);
 static void tracebuffer_log_handler(LogTree &logtree, const std::string &message, enum LogTree::LogLevel level);
@@ -100,6 +105,8 @@ void driver_init(bool use_pl) {
 	configASSERT(eeprom_mac->read(250, mac_address, 6));
 	LOG["network"].log(stdsprintf("Our MAC address is %02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx",
 			mac_address[0], mac_address[1], mac_address[2], mac_address[3], mac_address[4], mac_address[5]), LogTree::LOG_NOTICE);
+
+	network = new Network(LOG["network"], mac_address);
 
 	influxdbclient = new InfluxDBClient(LOG["influxdb"]);
 	influxdbclient->register_console_commands(console_command_parser, "influxdb.");
