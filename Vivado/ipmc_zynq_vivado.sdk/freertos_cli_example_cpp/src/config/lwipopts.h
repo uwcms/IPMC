@@ -34,6 +34,14 @@
 
 #include <limits.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+void ipmc_lwip_printf(const char *ctrl1, ...);
+#ifdef __cplusplus
+}
+#endif
+
 #define PROCESSOR_LITTLE_ENDIAN
 
 /* Functions used to obtain and release exclusive access to the Tx buffer.  The
