@@ -122,10 +122,7 @@ void Network::thread_networkd() {
 	netif_set_up(&(this->netif));
 
 	// Start packet receive thread, required for lwIP operation
-	xTaskCreate((void (*)(void*)) xemacif_input_thread, "xemacifd", UWIPMC_STANDARD_STACK_SIZE, this, DEFAULT_THREAD_PRIO, NULL);
-	/*sys_thread_new("xemacifd", (void (*)(void*)) xemacif_input_thread, &(this->netif),
-			UWIPMC_STANDARD_STACK_SIZE,
-		DEFAULT_THREAD_PRIO);*/
+	xTaskCreate((void (*)(void*)) xemacif_input_thread, "xemacifd", UWIPMC_STANDARD_STACK_SIZE, &(this->netif), DEFAULT_THREAD_PRIO, NULL);
 
 #if LWIP_DHCP==1
 	// If DHCP is enabled then start it
