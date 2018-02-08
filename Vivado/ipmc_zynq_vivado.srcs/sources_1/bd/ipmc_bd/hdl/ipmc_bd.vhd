@@ -1,7 +1,7 @@
 --Copyright 1986-2017 Xilinx, Inc. All Rights Reserved.
 ----------------------------------------------------------------------------------
 --Tool Version: Vivado v.2017.2 (lin64) Build 1909853 Thu Jun 15 18:39:10 MDT 2017
---Date        : Thu Feb  1 17:06:08 2018
+--Date        : Wed Feb  7 18:38:25 2018
 --Host        : beck.hep.wisc.edu running 64-bit CentOS Linux release 7.4.1708 (Core)
 --Command     : generate_target ipmc_bd.bd
 --Design      : ipmc_bd
@@ -12054,7 +12054,7 @@ entity ipmc_bd is
     TPS2358_4_pwr_pg_n : in STD_LOGIC
   );
   attribute CORE_GENERATION_INFO : string;
-  attribute CORE_GENERATION_INFO of ipmc_bd : entity is "ipmc_bd,IP_Integrator,{x_ipVendor=xilinx.com,x_ipLibrary=BlockDiagram,x_ipName=ipmc_bd,x_ipVersion=1.00.a,x_ipLanguage=VHDL,numBlks=102,numReposBlks=55,numNonXlnxBlks=22,numHierBlks=47,maxHierDepth=2,numSysgenBlks=0,numHlsBlks=0,numHdlrefBlks=11,numPkgbdBlks=0,bdsource=USER,synth_mode=OOC_per_IP}";
+  attribute CORE_GENERATION_INFO of ipmc_bd : entity is "ipmc_bd,IP_Integrator,{x_ipVendor=xilinx.com,x_ipLibrary=BlockDiagram,x_ipName=ipmc_bd,x_ipVersion=1.00.a,x_ipLanguage=VHDL,numBlks=101,numReposBlks=54,numNonXlnxBlks=22,numHierBlks=47,maxHierDepth=2,numSysgenBlks=0,numHlsBlks=0,numHdlrefBlks=11,numPkgbdBlks=0,bdsource=USER,da_axi4_cnt=2,synth_mode=OOC_per_IP}";
   attribute HW_HANDOFF : string;
   attribute HW_HANDOFF of ipmc_bd : entity is "ipmc_bd.hwdef";
 end ipmc_bd;
@@ -12319,22 +12319,15 @@ architecture STRUCTURE of ipmc_bd is
     s_axi_aresetn : in STD_LOGIC
   );
   end component ipmc_bd_led_controller_1_0;
-  component ipmc_bd_ila_0_0 is
+  component ipmc_bd_xlconstant_0_0 is
   port (
-    clk : in STD_LOGIC;
-    probe0 : in STD_LOGIC_VECTOR ( 12 downto 0 )
+    dout : out STD_LOGIC_VECTOR ( 0 to 0 )
   );
-  end component ipmc_bd_ila_0_0;
-  component ipmc_bd_xlslice_0_0 is
+  end component ipmc_bd_xlconstant_0_0;
+  component ipmc_bd_pyld_pwr_ctrl_0_1 is
   port (
-    Din : in STD_LOGIC_VECTOR ( 12 downto 0 );
-    Dout : out STD_LOGIC_VECTOR ( 12 downto 0 )
-  );
-  end component ipmc_bd_xlslice_0_0;
-  component ipmc_bd_pyld_pwr_ctrl_0_0 is
-  port (
-    PE_pin_o : out STD_LOGIC_VECTOR ( 12 downto 0 );
-    PG_pin_i : in STD_LOGIC_VECTOR ( 7 downto 0 );
+    PE_pin_o : out STD_LOGIC_VECTOR ( 15 downto 0 );
+    PG_pin_i : in STD_LOGIC_VECTOR ( 15 downto 0 );
     PD_ext_req_i : in STD_LOGIC;
     s_axi_awaddr : in STD_LOGIC_VECTOR ( 7 downto 0 );
     s_axi_awprot : in STD_LOGIC_VECTOR ( 2 downto 0 );
@@ -12358,7 +12351,7 @@ architecture STRUCTURE of ipmc_bd is
     s_axi_aclk : in STD_LOGIC;
     s_axi_aresetn : in STD_LOGIC
   );
-  end component ipmc_bd_pyld_pwr_ctrl_0_0;
+  end component ipmc_bd_pyld_pwr_ctrl_0_1;
   signal ACLK_1 : STD_LOGIC;
   signal ALARM_A_1 : STD_LOGIC;
   signal ALARM_B_1 : STD_LOGIC;
@@ -12671,10 +12664,10 @@ architecture STRUCTURE of ipmc_bd is
   signal processing_system7_0_DDR_RESET_N : STD_LOGIC;
   signal processing_system7_0_DDR_WE_N : STD_LOGIC;
   signal processing_system7_0_FCLK_RESET0_N : STD_LOGIC;
-  signal pyld_pwr_ctrl_0_PE_pin_o : STD_LOGIC_VECTOR ( 12 downto 0 );
+  signal pyld_pwr_ctrl_0_PE_pin_o : STD_LOGIC_VECTOR ( 15 downto 0 );
   signal xlconcat_0_dout : STD_LOGIC_VECTOR ( 26 downto 0 );
   signal xlconcat_1_dout : STD_LOGIC_VECTOR ( 4 downto 0 );
-  signal xlslice_0_Dout : STD_LOGIC_VECTOR ( 12 downto 0 );
+  signal xlconstant_0_dout : STD_LOGIC_VECTOR ( 0 to 0 );
   signal xvc_0_JTAG_TCK : STD_LOGIC;
   signal xvc_0_JTAG_TDI : STD_LOGIC;
   signal xvc_0_JTAG_TDO : STD_LOGIC;
@@ -13217,11 +13210,6 @@ axi_interconnect_0: entity work.ipmc_bd_axi_interconnect_0_0
       S00_AXI_wstrb(3 downto 0) => S00_AXI_1_WSTRB(3 downto 0),
       S00_AXI_wvalid => S00_AXI_1_WVALID
     );
-ila_0: component ipmc_bd_ila_0_0
-     port map (
-      clk => ACLK_1,
-      probe0(12 downto 0) => pyld_pwr_ctrl_0_PE_pin_o(12 downto 0)
-    );
 led_controller_0: component ipmc_bd_led_controller_0_0
      port map (
       m_led_out(1 downto 0) => led_controller_0_m_led_out(1 downto 0),
@@ -13353,11 +13341,11 @@ processing_system7_0: component ipmc_bd_processing_system7_0_0
       PS_SRSTB => NLW_processing_system7_0_PS_SRSTB_UNCONNECTED,
       WDT_RST_OUT => NLW_processing_system7_0_WDT_RST_OUT_UNCONNECTED
     );
-pyld_pwr_ctrl_0: component ipmc_bd_pyld_pwr_ctrl_0_0
+pyld_pwr_ctrl_0: component ipmc_bd_pyld_pwr_ctrl_0_1
      port map (
-      PD_ext_req_i => '0',
-      PE_pin_o(12 downto 0) => pyld_pwr_ctrl_0_PE_pin_o(12 downto 0),
-      PG_pin_i(7 downto 0) => xlslice_0_Dout(7 downto 0),
+      PD_ext_req_i => xlconstant_0_dout(0),
+      PE_pin_o(15 downto 0) => pyld_pwr_ctrl_0_PE_pin_o(15 downto 0),
+      PG_pin_i(15 downto 0) => pyld_pwr_ctrl_0_PE_pin_o(15 downto 0),
       s_axi_aclk => ACLK_1,
       s_axi_araddr(7 downto 0) => axi_interconnect_0_M09_AXI_ARADDR(7 downto 0),
       s_axi_aresetn => proc_sys_reset_0_peripheral_aresetn(0),
@@ -13388,10 +13376,9 @@ xlconcat_0: component ipmc_bd_xlconcat_0_0
       In3(4 downto 0) => xlconcat_1_dout(4 downto 0),
       dout(26 downto 0) => xlconcat_0_dout(26 downto 0)
     );
-xlslice_0: component ipmc_bd_xlslice_0_0
+xlconstant_0: component ipmc_bd_xlconstant_0_0
      port map (
-      Din(12 downto 0) => pyld_pwr_ctrl_0_PE_pin_o(12 downto 0),
-      Dout(12 downto 0) => xlslice_0_Dout(12 downto 0)
+      dout(0) => xlconstant_0_dout(0)
     );
 xvc_0: component ipmc_bd_xvc_0_0
      port map (
