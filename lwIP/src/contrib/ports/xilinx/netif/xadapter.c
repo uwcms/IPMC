@@ -176,7 +176,7 @@ xemac_add(struct netif *netif,
 #endif
 #endif
 			default:
-				xil_printf("unable to determine type of EMAC with baseaddress 0x%08x\r\n",
+				ipmc_lwip_printf("unable to determine type of EMAC with baseaddress 0x%08x\r\n",
 						mac_baseaddr);
 				return NULL;
 	}
@@ -218,7 +218,7 @@ xemacif_input(struct netif *netif)
 			n_packets = xemacliteif_input(netif);
 			break;
 #else
-			print("incorrect configuration: xps_ethernetlite drivers not present?");
+			ipmc_lwip_printf("%s","incorrect configuration: xps_ethernetlite drivers not present?");
 			while(1);
 			return 0;
 #endif
@@ -227,7 +227,7 @@ xemacif_input(struct netif *netif)
 			n_packets = xaxiemacif_input(netif);
 			break;
 #else
-			print("incorrect configuration: axi_ethernet drivers not present?");
+			ipmc_lwip_printf("%s","incorrect configuration: axi_ethernet drivers not present?");
 			while(1);
 			return 0;
 #endif
@@ -237,13 +237,13 @@ xemacif_input(struct netif *netif)
 			n_packets = xemacpsif_input(netif);
 			break;
 #else
-			xil_printf("incorrect configuration: ps7_ethernet drivers not present?\r\n");
+			ipmc_lwip_printf("incorrect configuration: ps7_ethernet drivers not present?\r\n");
 			while(1);
 			return 0;
 #endif
 #endif
 		default:
-			print("incorrect configuration: unknown temac type");
+			ipmc_lwip_printf("%s","incorrect configuration: unknown temac type");
 			while(1);
 			return 0;
 	}
