@@ -31,6 +31,8 @@
 #include "xil_exception.h"
 #include "xgpiops.h"
 
+#include <services/telnet/Telnet.h>
+
 u8 IPMC_HW_REVISION = 1; // TODO: Detect, Update, etc
 
 PS_WDT *SWDT;
@@ -51,6 +53,8 @@ u8 mac_address[6];
 CommandParser console_command_parser;
 UARTConsoleSvc *console_service;
 InfluxDBClient *influxdbclient;
+
+TelnetServer *telnet;
 
 // External static variables
 extern uint8_t mac_address[6]; ///< The MAC address of the board, read by persistent storage statically
@@ -110,6 +114,8 @@ void driver_init(bool use_pl) {
 
 	influxdbclient = new InfluxDBClient(LOG["influxdb"]);
 	influxdbclient->register_console_commands(console_command_parser, "influxdb.");
+
+	telnet = new TelnetServer();
 
 
 	XGpioPs_Config* gpiops_config = XGpioPs_LookupConfig(XPAR_PS7_GPIO_0_DEVICE_ID);

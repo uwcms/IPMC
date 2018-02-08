@@ -17,7 +17,6 @@
 #include <drivers/network/Network.h>
 #include <FreeRTOS.h>
 #include <task.h>
-#include <semphr.h>
 
 /* lwIP core includes */
 #include "lwip/opt.h"
@@ -47,6 +46,7 @@ std::string Network::ipaddr_to_string(struct ip_addr &ip) {
 Network::Network(LogTree &logtree, uint8_t mac[6]) :
 logtree(logtree) {
 	memcpy(this->mac, mac, sizeof(uint8_t) * 6);
+	memset(&(this->netif), 0, sizeof(struct netif));
 
 	xTaskCreate(_thread_lwip_start, "lwip_start", UWIPMC_STANDARD_STACK_SIZE, this, configLWIP_TASK_PRIORITY, NULL);
 }
@@ -68,7 +68,7 @@ void Network::thread_lwip_start() {
 			s += "Address: " + ipaddr_to_string(netif.ip_addr) + "\n";
 			s += "Netmask: " + ipaddr_to_string(netif.netmask) + "\n";
 			s += "Gateway: " + ipaddr_to_string(netif.gw) + "\n";
-			logtree.log(s, LogTree::LOG_INFO);
+			logtree.log(s, LogTree::LOG_NOTICE);
 			break;
 		}
 		mscnt += DHCP_FINE_TIMER_MSECS;
