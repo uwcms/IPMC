@@ -149,6 +149,7 @@ void UARTConsoleSvc::_run_thread() {
 	ANSICode ansi_code;
 	uint64_t last_ansi_tick = 0;
 	CommandHistory history(50);
+	char prevchar = '\0';
 	bool history_browse = false;
 	while (true) {
 		char readbuf[128];
@@ -227,8 +228,23 @@ void UARTConsoleSvc::_run_thread() {
 
 				CommandParser::CompletionResult completed = this->parser.complete(this->linebuf.buffer, this->linebuf.cursor);
 				std::string compl_append = completed.common_prefix.substr(completed.cursor);
-				if (!compl_append.empty())
+				if (!compl_append.empty()) {
 					echobuf += this->linebuf.set_buffer(this->linebuf.buffer.substr(0, this->linebuf.cursor) + compl_append + this->linebuf.buffer.substr(this->linebuf.cursor), this->linebuf.cursor + compl_append.size());
+				}
+				else if (completed.completions.size() > 1 && prevchar == '\t') {
+					// No extension possible, but we got at least two tabs in a row and there are completions available.
+					auto old_cursor = this->linebuf.cursor;
+					// Print possible completions.
+					echobuf.append(this->linebuf.set_cursor(std::string::npos));
+					echobuf.append("\r\n");
+					for (auto it = completed.completions.begin(), eit = completed.completions.end(); it != eit; ++it) {
+						echobuf.append(*it);
+						if (it+1 != eit)
+							echobuf.append("  ");
+					}
+					echobuf.append("\r\n");
+					echobuf.append(this->linebuf.set_buffer(this->linebuf.buffer, old_cursor));
+				}
 			}
 			else {
 				if (!ansi_code.buffer.empty() && last_ansi_tick + 50 < get_tick64()) {
@@ -246,6 +262,7 @@ void UARTConsoleSvc::_run_thread() {
 				case ANSICode::PARSE_INCOMPLETE:
 					 // Oh good.  Continue without adding it to the buffers yet.
 					last_ansi_tick = get_tick64();
+					prevchar = *it;
 					continue;
 				case ANSICode::PARSE_INVALID:
 					// Guess it wasn't an ANSI code.  Put it back in the buffers.
@@ -253,6 +270,7 @@ void UARTConsoleSvc::_run_thread() {
 						echobuf.append(this->linebuf.update(ansi_code.buffer));
 					ansi_code.buffer.clear();
 					history_browse = false;
+					prevchar = *it;
 					continue;
 				case ANSICode::PARSE_COMPLETE:
 					// Well that IS interesting now, isn't it? Let's handle that.
@@ -310,14 +328,21 @@ void UARTConsoleSvc::_run_thread() {
 						echobuf.append(this->linebuf.resize(ansi_code.parameters[1], ansi_code.parameters[0]));
 				}
 				else {
-					// For now we don't support any, so we'll just pass them as commands.
+					// For now we don't support it, so we'll just pass it as a command.
 					// We won't pass parameters for this type of code.  It'll be things like F1, F2.
+
+					// Flush echo buffer.
+					if (this->echo)
+						this->uart.write(echobuf.data(), echobuf.size(), portMAX_DELAY);
+					echobuf.clear();
+
 					xSemaphoreGive(this->linebuf_mutex);
 					this->parser.parse(console_output, std::string("ANSI_") + ansi_code.name);
 					xSemaphoreTake(this->linebuf_mutex, portMAX_DELAY);
 				}
 				ansi_code.buffer.clear();
 			}
+			prevchar = *it;
 		}
 
 		// Flush echo buffer.

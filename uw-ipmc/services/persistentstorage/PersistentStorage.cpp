@@ -762,7 +762,7 @@ void PersistentStorage::register_console_commands(CommandParser &parser, const s
 	parser.register_command(prefix + "read", std::make_shared<ConsoleCommand_read>(*this));
 	parser.register_command(prefix + "write", std::make_shared<ConsoleCommand_write>(*this));
 	parser.register_command(prefix + "set_section_version", std::make_shared<ConsoleCommand_set_section_version>(*this));
-	parser.register_command(prefix + "dElEtE_sEcTiOn", std::make_shared<ConsoleCommand_delete_section>(*this));
+	parser.register_command(prefix + "delete_section", std::make_shared<ConsoleCommand_delete_section>(*this));
 }
 
 /**
