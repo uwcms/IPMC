@@ -389,7 +389,7 @@ void setup_rx_bds(xemacpsif_s *xemacpsif, XEmacPs_BdRing *rxring)
 			lwip_stats.link.memerr++;
 			lwip_stats.link.drop++;
 #endif
-			printf("unable to alloc pbuf in recv_handler\r\n");
+			ipmc_lwip_printf("unable to alloc pbuf in recv_handler\r\n");
 			return;
 		}
 		status = XEmacPs_BdRingAlloc(rxring, 1, &rxbd);
@@ -601,7 +601,7 @@ XStatus init_dma(struct xemac_s *xemac)
 	LWIP_DEBUGF(NETIF_DEBUG, ("tx_bdspace: %p \r\n", xemacpsif->tx_bdspace));
 
 	if (!xemacpsif->rx_bdspace || !xemacpsif->tx_bdspace) {
-		xil_printf("%s@%d: Error: Unable to allocate memory for TX/RX buffer descriptors",
+		ipmc_lwip_printf("%s@%d: Error: Unable to allocate memory for TX/RX buffer descriptors",
 				__FILE__, __LINE__);
 		return ERR_IF;
 	}
@@ -666,7 +666,7 @@ XStatus init_dma(struct xemac_s *xemac)
 			lwip_stats.link.memerr++;
 			lwip_stats.link.drop++;
 #endif
-			printf("unable to alloc pbuf in init_dma\r\n");
+			ipmc_lwip_printf("unable to alloc pbuf in init_dma\r\n");
 			return ERR_IF;
 		}
 		status = XEmacPs_BdRingAlloc(rxringptr, 1, &rxbd);
