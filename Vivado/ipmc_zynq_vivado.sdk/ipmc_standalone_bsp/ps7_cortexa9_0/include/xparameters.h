@@ -548,6 +548,22 @@
 
 /******************************************************************/
 
+/* Definitions for driver PYLD_PWR_CTRL */
+#define XPAR_PYLD_PWR_CTRL_NUM_INSTANCES 1
+
+/* Definitions for peripheral PYLD_PWR_CTRL_0 */
+#define XPAR_PYLD_PWR_CTRL_0_DEVICE_ID 0
+#define XPAR_PYLD_PWR_CTRL_0_S_AXI_BASEADDR 0x43CA0000
+#define XPAR_PYLD_PWR_CTRL_0_S_AXI_HIGHADDR 0x43CAFFFF
+#define XPAR_PYLD_PWR_CTRL_0_PE_PIN_CNT 13
+#define XPAR_PYLD_PWR_CTRL_0_PG_PIN_CNT 8
+
+
+/******************************************************************/
+
+
+/******************************************************************/
+
 /* Definitions for driver QSPIPS */
 #define XPAR_XQSPIPS_NUM_INSTANCES 1
 

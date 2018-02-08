@@ -88,9 +88,10 @@ all: doxygen pre-build build
 pre-build:
 	@echo
 	-a9-linaro-pre-build-step
+	find common/lwIP/src/contrib/ports/xilinx -type f -exec sed -i -re 's/#include .xil_printf\.h.//;s/xil_printf/ipmc_lwip_printf/g;s/\<printf/ipmc_lwip_printf/g;s/\<print\(/ipmc_lwip_printf("%s",/g' '{}' +
 
 build: bin/$(BUILD_CONFIGURATION)/freertos_cli_example_cpp.elf
-   
+
 bin/$(BUILD_CONFIGURATION)/freertos_cli_example_cpp.elf: $(OBJS) .obj/$(BUILD_CONFIGURATION)/common/uw-ipmc/version.$(GIT_SETTINGS_MD5).o
 	@echo
 	@mkdir -p "$(dir $@)"

@@ -150,6 +150,8 @@ int Pyld_Pwr_Ctrl_CfgInitialize(Pyld_Pwr_Ctrl * InstancePtr,
 *		calls to manipulate the driver through the Pyld_Pwr_Ctrl API must be
 *		made with this pointer.
 *
+* @return Payload Power Controller Core Version
+*
 * @note		None.
 *
 *****************************************************************************/
@@ -167,6 +169,8 @@ u32 Pyld_Pwr_Ctrl_Get_Core_Ver(Pyld_Pwr_Ctrl *InstancePtr) {
 *		calls to manipulate the driver through the Pyld_Pwr_Ctrl API must be
 *		made with this pointer.
 *
+* @return Number of Power Enable pins
+*
 * @note		None.
 *
 *****************************************************************************/
@@ -183,6 +187,8 @@ u32 Pyld_Pwr_Ctrl_Get_PE_Cnt(Pyld_Pwr_Ctrl *InstancePtr) {
 *		pointer references must be pre-allocated by the caller. Further
 *		calls to manipulate the driver through the Pyld_Pwr_Ctrl API must be
 *		made with this pointer.
+*
+* @return Number of Power Good pins
 *
 * @note		None.
 *
@@ -217,7 +223,7 @@ void Pyld_Pwr_Ctrl_Get_Pin_Cfg(Pyld_Pwr_Ctrl *InstancePtr, u32 pin, PE_cfg_t * P
 	master_config = Pyld_Pwr_Ctrl_ReadReg(InstancePtr->BaseAddress, PE_0_MASTER_CFG_REG + PE_2_PE_ADDR_OFFSET * pin);
 	seq_tmr = Pyld_Pwr_Ctrl_ReadReg(InstancePtr->BaseAddress, PE_0_SEQ_TMR_CFG_REG + PE_2_PE_ADDR_OFFSET * pin);
 
-	PE_cfg->seq_tmr = seq_tmr;
+	PE_cfg->seq_tmr = seq_tmr / 50000;
 	PE_cfg->group = (master_config & 0x7);
 	PE_cfg->sw_pd_en = (master_config >> 4) & 0x1;
 	PE_cfg->ext_pd_en = (master_config >> 5) & 0x1;
@@ -244,6 +250,12 @@ void Pyld_Pwr_Ctrl_Set_Pin_Cfg(Pyld_Pwr_Ctrl *InstancePtr, u32 pin, PE_cfg_t PE_
     Xil_AssertVoid(InstancePtr != NULL);
     Xil_AssertVoid(pin < InstancePtr->PECount);
 
+    //Xil_AssertVoid(PE_cfg.seq_tmr < 85000);
+    if (PE_cfg.seq_tmr > 85000)
+    {
+    	PE_cfg.seq_tmr = 85000;
+    }
+
 	u32 master_config = 0;
 	u32 seq_tmr = 0;
 
@@ -251,7 +263,7 @@ void Pyld_Pwr_Ctrl_Set_Pin_Cfg(Pyld_Pwr_Ctrl *InstancePtr, u32 pin, PE_cfg_t PE_
 	master_config = master_config | (PE_cfg.sw_pd_en << 4);
 	master_config = master_config | (PE_cfg.ext_pd_en << 5);
 
-	seq_tmr = PE_cfg.seq_tmr;
+	seq_tmr = PE_cfg.seq_tmr * 50000;
 
 	Pyld_Pwr_Ctrl_WriteReg(InstancePtr->BaseAddress, PE_0_MASTER_CFG_REG + PE_2_PE_ADDR_OFFSET * pin, master_config);
 
@@ -287,7 +299,7 @@ void Pyld_Pwr_Ctrl_PDown_Force(Pyld_Pwr_Ctrl *InstancePtr) {
 *		made with this pointer.
 *
 *
-* @note		None.
+* @note		forced immediate power down needs to be released by this function
 *
 *****************************************************************************/
 void Pyld_Pwr_Ctrl_PDown_Release(Pyld_Pwr_Ctrl *InstancePtr) {
@@ -304,9 +316,9 @@ void Pyld_Pwr_Ctrl_PDown_Release(Pyld_Pwr_Ctrl *InstancePtr) {
 *		calls to manipulate the driver through the Pyld_Pwr_Ctrl API must be
 *		made with this pointer.
 *
-* @group
+* @group (bit mask, defined in .h file)
 *
-* @note		None.
+* @note		Valid PE groups: PE_GROUP_1 - PE_GROUP_7.
 *
 *****************************************************************************/
 void Pyld_Pwr_Ctrl_Init_PDown_Seq(Pyld_Pwr_Ctrl *InstancePtr, u32 group) {
@@ -325,13 +337,53 @@ void Pyld_Pwr_Ctrl_Init_PDown_Seq(Pyld_Pwr_Ctrl *InstancePtr, u32 group) {
 *		calls to manipulate the driver through the Pyld_Pwr_Ctrl API must be
 *		made with this pointer.
 *
-* @group
+* @group (bit mask, defined in .h file)
 *
-* @note		None.
+* @note		Valid PE groups: PE_GROUP_1 - PE_GROUP_7.
 *
 *****************************************************************************/
 void Pyld_Pwr_Ctrl_Init_PUp_Seq(Pyld_Pwr_Ctrl *InstancePtr, u32 group) {
     Xil_AssertVoid(InstancePtr != NULL);
     Xil_AssertVoid(group < 8);
 	Pyld_Pwr_Ctrl_WriteReg(InstancePtr->BaseAddress, PU_INIT_REG, group);
+}
+
+/****************************************************************************/
+/**
+* Get Power Enable Pin Status
+*
+* @param	InstancePtr is a pointer to an Pyld_Pwr_Ctrl instance. The memory the
+*		pointer references must be pre-allocated by the caller. Further
+*		calls to manipulate the driver through the Pyld_Pwr_Ctrl API must be
+*		made with this pointer.
+*
+* @return PE Status
+*
+* @note
+*
+*****************************************************************************/
+u32 Pyld_Pwr_Ctrl_Get_PE_Status(Pyld_Pwr_Ctrl *InstancePtr)
+{
+    Xil_AssertVoid(InstancePtr != NULL);
+	return Pyld_Pwr_Ctrl_ReadReg(InstancePtr->BaseAddress, PE_STATUS_REG);
+}
+
+/****************************************************************************/
+/**
+* Get Power Good Pin Status
+*
+* @param	InstancePtr is a pointer to an Pyld_Pwr_Ctrl instance. The memory the
+*		pointer references must be pre-allocated by the caller. Further
+*		calls to manipulate the driver through the Pyld_Pwr_Ctrl API must be
+*		made with this pointer.
+*
+* @return PG Status
+*
+* @note
+*
+*****************************************************************************/
+u32 Pyld_Pwr_Ctrl_Get_PG_Status(Pyld_Pwr_Ctrl *InstancePtr)
+{
+    Xil_AssertVoid(InstancePtr != NULL);
+	return Pyld_Pwr_Ctrl_ReadReg(InstancePtr->BaseAddress, PG_STATUS_REG);
 }

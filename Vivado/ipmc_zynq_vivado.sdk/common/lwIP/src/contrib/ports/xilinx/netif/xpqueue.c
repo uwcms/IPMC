@@ -33,7 +33,7 @@
 #include <stdlib.h>
 
 #include "netif/xpqueue.h"
-#include "xil_printf.h"
+
 
 #define NUM_QUEUES	2
 
@@ -46,7 +46,7 @@ pq_create_queue()
 	pq_queue_t *q = NULL;
 
 	if (i >= NUM_QUEUES) {
-		xil_printf("ERR: Max Queues allocated\n\r");
+		ipmc_lwip_printf("ERR: Max Queues allocated\n\r");
 		return q;
 	}
 

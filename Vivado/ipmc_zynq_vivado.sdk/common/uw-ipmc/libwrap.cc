@@ -17,6 +17,8 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <cxxabi.h> // for cxa_demangle()
+#include <algorithm>
+#include <ctype.h>
 
 #define WRAP_ATTR __attribute__((externally_visible))
 
@@ -169,7 +171,6 @@ int __wrap_vprintf(const char *format, va_list ap) {
 	va_end(ap2);
 	std::string outstr(str);
 	vPortFree(str);
-	windows_newline(outstr);
 
 	// printf goes through the log facility now.
 	static LogTree *printf_trace = NULL;
@@ -202,6 +203,76 @@ void __wrap_xil_printf( const char8 *ctrl1, ...) {
     va_start(args, ctrl1);
     vprintf(ctrl1, args);
     va_end(args);
+}
+
+extern "C" {
+void ipmc_lwip_printf(const char *ctrl1, ...);
+}
+
+void ipmc_lwip_printf(const char *ctrl1, ...) {
+	/* We have to do this printf ourself, but we'll do it onto the heap.
+	 *
+	 * We're going to do a snprintf with length 0, to get the hypothetical
+	 * output length, then malloc that, then create a std::string with it so
+	 * that we can call windows_newline() on it (I hate you, UART), and free
+	 * the temporary buffer.  Then we'll write out that std::string.
+	 */
+	va_list ap, ap2;
+	va_start(ap, ctrl1);
+	va_copy(ap2, ap);
+	int s = vsnprintf(NULL, 0, ctrl1, ap) + 1;
+	if (s <= 0) {
+		va_end(ap);
+		va_end(ap2);
+		return;
+	}
+	char *str = (char*) pvPortMalloc(s);
+	vsnprintf(str, s, ctrl1, ap2);
+	va_end(ap);
+	va_end(ap2);
+	std::string outstr(str);
+	vPortFree(str);
+	windows_newline(outstr);
+
+	// We need to strip trailing \r\n.  The logger handles that.
+	while (outstr.size() && (outstr.back() == '\r' || outstr.back() == '\n'))
+		outstr.pop_back();
+
+	if (outstr.empty())
+		return;
+
+	/* Alright, now we have the formatted string.  We just need to figure out
+	 * an appropriate loglevel for it.  Since this is for messages from the lwip
+	 * core library, we don't get any kind of proper hints about this, so we're
+	 * going to have to guess.
+	 */
+
+	static const std::map<std::string, enum LogTree::LogLevel> prio_mapping{
+		{"assert",    LogTree::LOG_CRITICAL},
+		{"error",     LogTree::LOG_ERROR},
+		{"err:",      LogTree::LOG_ERROR},
+		{"failed",    LogTree::LOG_ERROR},
+		{"failure",   LogTree::LOG_ERROR},
+		{"incorrect", LogTree::LOG_ERROR},
+		{"unable",    LogTree::LOG_ERROR},
+		{"invalid",   LogTree::LOG_ERROR},
+		{"warn",      LogTree::LOG_WARNING},
+	};
+	std::string outstr_l = outstr;
+	std::transform(outstr_l.begin(), outstr_l.end(), outstr_l.begin(), tolower /* defined in ctype.h */);
+	enum LogTree::LogLevel outlevel = LogTree::LOG_INFO;
+	for (auto it = prio_mapping.begin(), eit = prio_mapping.end(); it != eit; ++it) {
+		if (it->second < outlevel && outstr_l.find(it->first) != std::string::npos)
+			outlevel = it->second;
+	}
+
+	if (outstr == "WARNING: Not a Marvell or TI Ethernet PHY. Please verify the initialization sequence")
+		outlevel = LogTree::LOG_DIAGNOSTIC;
+
+	static LogTree *lwiplog = NULL;
+	if (!lwiplog)
+		lwiplog = &LOG["network"]["lwip"];
+	lwiplog->log(outstr, outlevel);
 }
 
 void __wrap_print( const char8 *ptr) {

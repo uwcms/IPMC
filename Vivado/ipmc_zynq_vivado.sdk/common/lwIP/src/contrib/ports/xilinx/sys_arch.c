@@ -594,7 +594,7 @@ portBASE_TYPE xHigherPriorityTaskWoken = pdFALSE;
 	}
 	else
 	{
-		xil_printf("Queue is full\r\n");
+		ipmc_lwip_printf("Queue is full\r\n");
 		/* The queue was already full. */
 		xReturn = ERR_MEM;
 		SYS_STATS_INC( mbox.err );
@@ -775,7 +775,7 @@ err_t xReturn = ERR_MEM;
 	}
 	else
 	{
-		xil_printf("Sem creation error\r\n");
+		ipmc_lwip_printf("Sem creation error\r\n");
 		SYS_STATS_INC( sem.err );
 	}
 
@@ -882,7 +882,7 @@ err_t xReturn = ERR_MEM;
 	}
 	else
 	{
-		xil_printf("Mutex creation error\r\n");
+		ipmc_lwip_printf("Mutex creation error\r\n");
 		SYS_STATS_INC( mutex.err );
 	}
 

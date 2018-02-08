@@ -152,7 +152,7 @@ static err_t low_level_output(struct netif *netif, struct pbuf *p)
 #if LINK_STATS
 		lwip_stats.link.drop++;
 #endif
-		printf("pack dropped, no space\r\n");
+		ipmc_lwip_printf("pack dropped, no space\r\n");
 		err = ERR_MEM;
 	}
 
@@ -325,7 +325,7 @@ static err_t low_level_init(struct netif *netif)
 	status = XEmacPs_CfgInitialize(&xemacpsif->emacps, mac_config,
 						mac_config->BaseAddress);
 	if (status != XST_SUCCESS) {
-		xil_printf("In %s:EmacPs Configuration Failed....\r\n", __func__);
+		ipmc_lwip_printf("In %s:EmacPs Configuration Failed....\r\n", __func__);
 	}
 
 	/* initialize the mac */
@@ -363,7 +363,7 @@ void HandleEmacPsError(struct xemac_s *xemac)
 	status = XEmacPs_CfgInitialize(&xemacpsif->emacps, mac_config,
 						mac_config->BaseAddress);
 	if (status != XST_SUCCESS) {
-		xil_printf("In %s:EmacPs Configuration Failed....\r\n", __func__);
+		ipmc_lwip_printf("In %s:EmacPs Configuration Failed....\r\n", __func__);
 	}
 	/* initialize the mac */
 	init_emacps_on_error(xemacpsif, NetIf);

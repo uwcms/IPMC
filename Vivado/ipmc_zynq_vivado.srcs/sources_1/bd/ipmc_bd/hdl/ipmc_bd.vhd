@@ -1,7 +1,7 @@
 --Copyright 1986-2017 Xilinx, Inc. All Rights Reserved.
 ----------------------------------------------------------------------------------
 --Tool Version: Vivado v.2017.2 (lin64) Build 1909853 Thu Jun 15 18:39:10 MDT 2017
---Date        : Mon Feb  5 11:34:16 2018
+--Date        : Thu Feb  8 16:17:24 2018
 --Host        : beck.hep.wisc.edu running 64-bit CentOS Linux release 7.4.1708 (Core)
 --Command     : generate_target ipmc_bd.bd
 --Design      : ipmc_bd
@@ -12566,34 +12566,6 @@ architecture STRUCTURE of ipmc_bd is
     Dout : out STD_LOGIC_VECTOR ( 12 downto 0 )
   );
   end component ipmc_bd_xlslice_0_0;
-  component ipmc_bd_pyld_pwr_ctrl_0_0 is
-  port (
-    PE_pin_o : out STD_LOGIC_VECTOR ( 12 downto 0 );
-    PG_pin_i : in STD_LOGIC_VECTOR ( 7 downto 0 );
-    PD_ext_req_i : in STD_LOGIC;
-    s_axi_awaddr : in STD_LOGIC_VECTOR ( 7 downto 0 );
-    s_axi_awprot : in STD_LOGIC_VECTOR ( 2 downto 0 );
-    s_axi_awvalid : in STD_LOGIC;
-    s_axi_awready : out STD_LOGIC;
-    s_axi_wdata : in STD_LOGIC_VECTOR ( 31 downto 0 );
-    s_axi_wstrb : in STD_LOGIC_VECTOR ( 3 downto 0 );
-    s_axi_wvalid : in STD_LOGIC;
-    s_axi_wready : out STD_LOGIC;
-    s_axi_bresp : out STD_LOGIC_VECTOR ( 1 downto 0 );
-    s_axi_bvalid : out STD_LOGIC;
-    s_axi_bready : in STD_LOGIC;
-    s_axi_araddr : in STD_LOGIC_VECTOR ( 7 downto 0 );
-    s_axi_arprot : in STD_LOGIC_VECTOR ( 2 downto 0 );
-    s_axi_arvalid : in STD_LOGIC;
-    s_axi_arready : out STD_LOGIC;
-    s_axi_rdata : out STD_LOGIC_VECTOR ( 31 downto 0 );
-    s_axi_rresp : out STD_LOGIC_VECTOR ( 1 downto 0 );
-    s_axi_rvalid : out STD_LOGIC;
-    s_axi_rready : in STD_LOGIC;
-    s_axi_aclk : in STD_LOGIC;
-    s_axi_aresetn : in STD_LOGIC
-  );
-  end component ipmc_bd_pyld_pwr_ctrl_0_0;
   component ipmc_bd_xadc_wiz_0_0 is
   port (
     s_axi_aclk : in STD_LOGIC;
@@ -12625,6 +12597,34 @@ architecture STRUCTURE of ipmc_bd is
     busy_out : out STD_LOGIC
   );
   end component ipmc_bd_xadc_wiz_0_0;
+  component ipmc_bd_pyld_pwr_ctrl_0_0 is
+  port (
+    PE_pin_o : out STD_LOGIC_VECTOR ( 12 downto 0 );
+    PG_pin_i : in STD_LOGIC_VECTOR ( 7 downto 0 );
+    PD_ext_req_i : in STD_LOGIC;
+    s_axi_awaddr : in STD_LOGIC_VECTOR ( 7 downto 0 );
+    s_axi_awprot : in STD_LOGIC_VECTOR ( 2 downto 0 );
+    s_axi_awvalid : in STD_LOGIC;
+    s_axi_awready : out STD_LOGIC;
+    s_axi_wdata : in STD_LOGIC_VECTOR ( 31 downto 0 );
+    s_axi_wstrb : in STD_LOGIC_VECTOR ( 3 downto 0 );
+    s_axi_wvalid : in STD_LOGIC;
+    s_axi_wready : out STD_LOGIC;
+    s_axi_bresp : out STD_LOGIC_VECTOR ( 1 downto 0 );
+    s_axi_bvalid : out STD_LOGIC;
+    s_axi_bready : in STD_LOGIC;
+    s_axi_araddr : in STD_LOGIC_VECTOR ( 7 downto 0 );
+    s_axi_arprot : in STD_LOGIC_VECTOR ( 2 downto 0 );
+    s_axi_arvalid : in STD_LOGIC;
+    s_axi_arready : out STD_LOGIC;
+    s_axi_rdata : out STD_LOGIC_VECTOR ( 31 downto 0 );
+    s_axi_rresp : out STD_LOGIC_VECTOR ( 1 downto 0 );
+    s_axi_rvalid : out STD_LOGIC;
+    s_axi_rready : in STD_LOGIC;
+    s_axi_aclk : in STD_LOGIC;
+    s_axi_aresetn : in STD_LOGIC
+  );
+  end component ipmc_bd_pyld_pwr_ctrl_0_0;
   signal ACLK_1 : STD_LOGIC;
   signal ALARM_A_1 : STD_LOGIC;
   signal ALARM_B_1 : STD_LOGIC;
