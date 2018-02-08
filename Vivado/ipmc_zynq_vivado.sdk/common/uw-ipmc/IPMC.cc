@@ -50,9 +50,7 @@ UARTConsoleSvc *console_service;
 
 static void console_log_handler(LogTree &logtree, const std::string &message, enum LogTree::LogLevel level);
 static void tracebuffer_log_handler(LogTree &logtree, const std::string &message, enum LogTree::LogLevel level);
-static void uptime_command(std::function<void(std::string)> print, const CommandParser::CommandParameters &parameters);
-static void version_command(std::function<void(std::string)> print, const CommandParser::CommandParameters &parameters);
-static void ps_command(std::function<void(std::string)> print, const CommandParser::CommandParameters &parameters);
+static void register_core_console_commands(CommandParser &parser);
 
 /** Stage 1 driver initialization.
  *
@@ -86,9 +84,7 @@ void driver_init(bool use_pl) {
 	console_log_filter = new LogTree::Filter(LOG, console_log_handler, LogTree::LOG_NOTICE);
 	console_log_filter->register_console_commands(console_command_parser);
 	LOG["console_log_command"].register_console_commands(console_command_parser);
-	console_command_parser.register_command("uptime", uptime_command, "uptime");
-	console_command_parser.register_command("version", version_command, "version");
-	console_command_parser.register_command("ps", ps_command, "ps\n\nPrint task information.");
+	register_core_console_commands(console_command_parser);
 
 	PS_SPI *ps_spi0 = new PS_SPI(XPAR_PS7_SPI_0_DEVICE_ID, XPAR_PS7_SPI_0_INTR);
 	eeprom_data = new SPI_EEPROM(*ps_spi0, 0, 0x8000, 64);
@@ -176,82 +172,129 @@ static void tracebuffer_log_handler(LogTree &logtree, const std::string &message
 	TRACE.log(logtree.path.data(), logtree.path.size(), level, message.data(), message.size());
 }
 
-static void uptime_command(std::function<void(std::string)> print, const CommandParser::CommandParameters &parameters) {
-	uint64_t now64 = get_tick64();
-	//u16 ms = now64 % 1000;
-	u16 s  = (now64 / 1000) % 60;
-	u16 m  = (now64 / (60*1000)) % 60;
-	u16 h  = (now64 / (60*60*1000)) % 24;
-	u32 d  = (now64 / (24*60*60*1000));
-	std::string out = "Up for ";
-	if (d)
-		out += stdsprintf("%lud", d);
-	if (d||h)
-		out += stdsprintf("%huh", h);
-	if (d||h||m)
-		out += stdsprintf("%hum", m);
-	out += stdsprintf("%hus", s);
-	print(out + "\n");
-};
-
-static void version_command(std::function<void(std::string)> print, const CommandParser::CommandParameters &parameters) {
-	std::string bannerstr;
-	bannerstr += "********************************************************************************\n";
-	bannerstr += "\n";
-	bannerstr += std::string("University of Wisconsin IPMC ") + GIT_DESCRIBE + "\n";
-	if (GIT_STATUS[0] != '\0')
-		bannerstr += std::string("\n") + GIT_STATUS; // contains a trailing \n
-	bannerstr += "\n";
-	bannerstr += "********************************************************************************\n";
-	print(bannerstr);
-};
-
-static void ps_command(std::function<void(std::string)> print, const CommandParser::CommandParameters &parameters) {
-	std::string out;
-	UBaseType_t task_count = uxTaskGetNumberOfTasks();
-	TaskStatus_t taskinfo[task_count+2];
-	UBaseType_t total_runtime;
-	if (!uxTaskGetSystemState(taskinfo, task_count+2, &total_runtime)) {
-		print("Failed to generate process listing.\n");
-		return;
+namespace {
+/// A "uptime" console command.
+class ConsoleCommand_uptime : public CommandParser::Command {
+public:
+	virtual std::string get_helptext(const std::string &command) const {
+		return stdsprintf(
+				"%s\n"
+				"\n"
+				"Print the current system uptime.\n", command.c_str());
 	}
 
-	// Runtime stats are accurate only if they havent rolled over.  It seems to be a tad under 666 per tick.
-	bool runstats = get_tick64() < portMAX_DELAY/666;
+	virtual void execute(std::function<void(std::string)> print, const CommandParser::CommandParameters &parameters) {
+		uint64_t now64 = get_tick64();
+		//u16 ms = now64 % 1000;
+		u16 s  = (now64 / 1000) % 60;
+		u16 m  = (now64 / (60*1000)) % 60;
+		u16 h  = (now64 / (60*60*1000)) % 24;
+		u32 d  = (now64 / (24*60*60*1000));
+		std::string out = "Up for ";
+		if (d)
+			out += stdsprintf("%lud", d);
+		if (d||h)
+			out += stdsprintf("%huh", h);
+		if (d||h||m)
+			out += stdsprintf("%hum", m);
+		out += stdsprintf("%hus", s);
+		print(out + "\n");
+	}
 
-	std::vector<TaskStatus_t> tasks;
-	tasks.reserve(task_count);
-	for (UBaseType_t i = 0; i < task_count; ++i)
-		tasks.push_back(taskinfo[i]);
-	if (runstats)
-		std::sort(tasks.begin(), tasks.end(), [](const TaskStatus_t &a, const TaskStatus_t &b) -> bool { return a.ulRunTimeCounter > b.ulRunTimeCounter; });
-	else
-		std::sort(tasks.begin(), tasks.end(), [](const TaskStatus_t &a, const TaskStatus_t &b) -> bool { return (a.uxCurrentPriority > b.uxCurrentPriority) || (a.uxCurrentPriority == b.uxCurrentPriority && a.xTaskNumber < b.xTaskNumber); });
+	//virtual std::vector<std::string> complete(const CommandParser::CommandParameters &parameters) const { };
+};
 
-	out += "PID Name             BasePrio CurPrio StackHW";
-	if (runstats)
-		out += " CPU% CPU";
-	out += "\n";
-	for (auto it = tasks.begin(), eit = tasks.end(); it != eit; ++it) {
-		out += stdsprintf("%3lu %-16s %8lu %7lu %7hu",
-				it->xTaskNumber,
-				it->pcTaskName,
-				it->uxBasePriority,
-				it->uxCurrentPriority,
-				it->usStackHighWaterMark);
-		if (runstats) {
-			UBaseType_t cpu_percent = it->ulRunTimeCounter / (total_runtime/100);
-			if (it->ulRunTimeCounter && cpu_percent < 1)
-				out += stdsprintf("  <1%% %lu", it->ulRunTimeCounter);
-			else
-				out += stdsprintf("  %2lu%% %lu", cpu_percent, it->ulRunTimeCounter);
+/// A "version" console command.
+class ConsoleCommand_version : public CommandParser::Command {
+public:
+	virtual std::string get_helptext(const std::string &command) const {
+		return stdsprintf(
+				"%s\n"
+				"\n"
+				"Print the current system version information.\n", command.c_str());
+	}
+
+	virtual void execute(std::function<void(std::string)> print, const CommandParser::CommandParameters &parameters) {
+		std::string bannerstr;
+		bannerstr += "********************************************************************************\n";
+		bannerstr += "\n";
+		bannerstr += std::string("University of Wisconsin IPMC ") + GIT_DESCRIBE + "\n";
+		if (GIT_STATUS[0] != '\0')
+			bannerstr += std::string("\n") + GIT_STATUS; // contains a trailing \n
+		bannerstr += "\n";
+		bannerstr += "********************************************************************************\n";
+		print(bannerstr);
+	}
+
+	//virtual std::vector<std::string> complete(const CommandParser::CommandParameters &parameters) const { };
+};
+
+/// A "ps" console command.
+class ConsoleCommand_ps : public CommandParser::Command {
+public:
+	virtual std::string get_helptext(const std::string &command) const {
+		return stdsprintf(
+				"%s\n"
+				"\n"
+				"Print the system process listing & statistics.\n", command.c_str());
+	}
+
+	virtual void execute(std::function<void(std::string)> print, const CommandParser::CommandParameters &parameters) {
+		std::string out;
+		UBaseType_t task_count = uxTaskGetNumberOfTasks();
+		TaskStatus_t taskinfo[task_count+2];
+		UBaseType_t total_runtime;
+		if (!uxTaskGetSystemState(taskinfo, task_count+2, &total_runtime)) {
+			print("Failed to generate process listing.\n");
+			return;
 		}
+
+		// Runtime stats are accurate only if they havent rolled over.  It seems to be a tad under 666 per tick.
+		bool runstats = get_tick64() < portMAX_DELAY/666;
+
+		std::vector<TaskStatus_t> tasks;
+		tasks.reserve(task_count);
+		for (UBaseType_t i = 0; i < task_count; ++i)
+			tasks.push_back(taskinfo[i]);
+		if (runstats)
+			std::sort(tasks.begin(), tasks.end(), [](const TaskStatus_t &a, const TaskStatus_t &b) -> bool { return a.ulRunTimeCounter > b.ulRunTimeCounter; });
+		else
+			std::sort(tasks.begin(), tasks.end(), [](const TaskStatus_t &a, const TaskStatus_t &b) -> bool { return (a.uxCurrentPriority > b.uxCurrentPriority) || (a.uxCurrentPriority == b.uxCurrentPriority && a.xTaskNumber < b.xTaskNumber); });
+
+		out += "PID Name             BasePrio CurPrio StackHW";
+		if (runstats)
+			out += " CPU% CPU";
 		out += "\n";
+		for (auto it = tasks.begin(), eit = tasks.end(); it != eit; ++it) {
+			out += stdsprintf("%3lu %-16s %8lu %7lu %7hu",
+					it->xTaskNumber,
+					it->pcTaskName,
+					it->uxBasePriority,
+					it->uxCurrentPriority,
+					it->usStackHighWaterMark);
+			if (runstats) {
+				UBaseType_t cpu_percent = it->ulRunTimeCounter / (total_runtime/100);
+				if (it->ulRunTimeCounter && cpu_percent < 1)
+					out += stdsprintf("  <1%% %lu", it->ulRunTimeCounter);
+				else
+					out += stdsprintf("  %2lu%% %lu", cpu_percent, it->ulRunTimeCounter);
+			}
+			out += "\n";
+		}
+		if (!runstats)
+			out += "\nNote: Runtime stats were not displayed, as we are likely past the point\nof counter wrapping and they are no longer accurate.\n";
+		print(out);
 	}
-	if (!runstats)
-		out += "\nNote: Runtime stats were not displayed, as we are likely past the point\nof counter wrapping and they are no longer accurate.\n";
-	print(out);
+
+	//virtual std::vector<std::string> complete(const CommandParser::CommandParameters &parameters) const { };
 };
+} // anonymous namespace
+
+static void register_core_console_commands(CommandParser &parser) {
+	console_command_parser.register_command("uptime", std::make_shared<ConsoleCommand_uptime>());
+	console_command_parser.register_command("version", std::make_shared<ConsoleCommand_version>());
+	console_command_parser.register_command("ps", std::make_shared<ConsoleCommand_ps>());
+}
 
 /**
  * Modify a std::string in place to contain \r\n where it currently contains \n.

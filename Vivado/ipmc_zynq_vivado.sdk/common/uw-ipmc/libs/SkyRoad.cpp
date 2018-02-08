@@ -2,7 +2,7 @@
 
 // Static storage locations for SkyRoad static variables.
 volatile SemaphoreHandle_t SkyRoad::mutex;
-volatile uint32_t SkyRoad::anonymizer_inc;
+volatile uint32_t SkyRoad::anonymizer_inc = 0;
 std::map<std::string, SkyRoad::Hermes*> * volatile SkyRoad::phonebook = NULL;;
 StatCounter SkyRoad::Hermes::global_deliveries("skyroad.global.deliveries");
 StatCounter SkyRoad::Hermes::global_blocking_deliveries("skyroad.global.blocking_deliveries");
