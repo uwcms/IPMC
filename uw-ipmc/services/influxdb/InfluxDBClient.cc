@@ -200,72 +200,115 @@ void InfluxDBClient::startd() {
 	}
 }
 
-static const std::string consolecmd_config_helptext =
-		"%config $host $port $interval\n"
-		"\n"
-		"Configures the InfluxDB client.\n";
+namespace {
+	/// A "config" console command.
+	class InfluxDBCommand_config : public CommandParser::Command {
+	public:
+		InfluxDBClient &influxdb;
 
-static void consolecmd_config(InfluxDBClient &influxdb, std::function<void(std::string)> print, const CommandParser::CommandParameters &parameters) {
-	InfluxDBClient::InfluxDBClient_Config c;
-	c.startOnBoot = false;
+		/// Instantiate
+		InfluxDBCommand_config(InfluxDBClient &influxdb) : influxdb(influxdb) { };
 
-	std::string url;
+		virtual std::string get_helptext(const std::string &command) const {
+			return stdsprintf(
+					"%s $host $port $interval\n"
+					"\n"
+					"Configures the InfluxDB client.\n", command.c_str());
+		}
 
-	if (!parameters.parse_parameters(1, true, &url, &(c.port), &(c.interval))) {
-		print("Invalid parameters.  See help.\n");
-		return;
-	}
+		virtual void execute(std::function<void(std::string)> print, const CommandParser::CommandParameters &parameters) {
+			InfluxDBClient::InfluxDBClient_Config c;
+			c.startOnBoot = false;
 
-	if (url.length() >= 32) {
-		print("Host URL is too long, aborting.\n");
-		return;
-	}
+			std::string url;
 
-	strcpy(c.host, url.c_str());
+			if (!parameters.parse_parameters(1, true, &url, &(c.port), &(c.interval))) {
+				print("Invalid parameters.  See help.\n");
+				return;
+			}
 
-	influxdb.set_configuration(c);
-}
+			if (url.length() >= 32) {
+				print("Host URL is too long, aborting.\n");
+				return;
+			}
 
-static const std::string consolecmd_read_config_helptext =
-		"%read_config\n"
-		"\n"
-		"Prints current configuration.\n";
+			strcpy(c.host, url.c_str());
 
-static void consolecmd_read_config(InfluxDBClient &influxdb, std::function<void(std::string)> print, const CommandParser::CommandParameters &parameters) {
-	const InfluxDBClient::InfluxDBClient_Config *c = influxdb.get_configuration();
+			influxdb.set_configuration(c);
+		}
 
-	print("Current configuration for InfluxDB Client:");
-	print("Host: " + std::string(c->host) + ":" + std::to_string(c->port));
-}
+		//virtual std::vector<std::string> complete(const CommandParser::CommandParameters &parameters) const { };
+	};
 
-static const std::string consolecmd_post_helptext =
-		"%post\n"
-		"\n"
-		"Post a single data point to the InfluxDB database.\n";
+	/// A "read_config" console command.
+	class InfluxDBCommand_read_config : public CommandParser::Command {
+	public:
+		InfluxDBClient &influxdb;
 
-static void consolecmd_post(InfluxDBClient &influxdb, std::function<void(std::string)> print, const CommandParser::CommandParameters &parameters) {
-	std::string database, message;
+		/// Instantiate
+		InfluxDBCommand_read_config(InfluxDBClient &influxdb) : influxdb(influxdb) { };
 
-	influxdb.write("ipmc", influxdb.measurement());
-}
+		virtual std::string get_helptext(const std::string &command) const {
+			return stdsprintf(
+					"%s\n"
+					"\n"
+					"Prints current configuration.\n", command.c_str());
+		}
 
-static const std::string consolecmd_measurements_helptext =
-		"%measurements\n"
-		"\n"
-		"Get the current measurements.\n";
+		virtual void execute(std::function<void(std::string)> print, const CommandParser::CommandParameters &parameters) {
+			const InfluxDBClient::InfluxDBClient_Config *c = influxdb.get_configuration();
 
-static void consolecmd_measurements(InfluxDBClient &influxdb, std::function<void(std::string)> print, const CommandParser::CommandParameters &parameters) {
-	print(influxdb.measurement());
-}
+			print("Current configuration for InfluxDB Client:");
+			print("Host: " + std::string(c->host) + ":" + std::to_string(c->port));
+		}
 
-static const std::string consolecmd_startd_helptext =
-		"%startd\n"
-		"\n"
-		"Start the deamon.\n";
+		//virtual std::vector<std::string> complete(const CommandParser::CommandParameters &parameters) const { };
+	};
 
-static void consolecmd_startd(InfluxDBClient &influxdb, std::function<void(std::string)> print, const CommandParser::CommandParameters &parameters) {
-	influxdb.startd();
-}
+	/// A "measurement(" console command.
+	class InfluxDBCommand_measurement : public CommandParser::Command {
+	public:
+		InfluxDBClient &influxdb;
+
+		/// Instantiate
+		InfluxDBCommand_measurement(InfluxDBClient &influxdb) : influxdb(influxdb) { };
+
+		virtual std::string get_helptext(const std::string &command) const {
+			return stdsprintf(
+					"%s\n"
+					"\n"
+					"Get the current measurements.\n", command.c_str());
+		}
+
+		virtual void execute(std::function<void(std::string)> print, const CommandParser::CommandParameters &parameters) {
+			print(influxdb.measurement());
+		}
+
+		//virtual std::vector<std::string> complete(const CommandParser::CommandParameters &parameters) const { };
+	};
+
+	/// A "startd(" console command.
+	class InfluxDBCommand_startd : public CommandParser::Command {
+	public:
+		InfluxDBClient &influxdb;
+
+		/// Instantiate
+		InfluxDBCommand_startd(InfluxDBClient &influxdb) : influxdb(influxdb) { };
+
+		virtual std::string get_helptext(const std::string &command) const {
+			return stdsprintf(
+					"%s\n"
+					"\n"
+					"tart the deamon.\n", command.c_str());
+		}
+
+		virtual void execute(std::function<void(std::string)> print, const CommandParser::CommandParameters &parameters) {
+			influxdb.startd();
+		}
+
+		//virtual std::vector<std::string> complete(const CommandParser::CommandParameters &parameters) const { };
+	};
+};
 
 /**
  * Register console commands related to this storage.
@@ -273,10 +316,10 @@ static void consolecmd_startd(InfluxDBClient &influxdb, std::function<void(std::
  * @param prefix A prefix for the registered commands.
  */
 void InfluxDBClient::register_console_commands(CommandParser &parser, const std::string &prefix) {
-	parser.register_command(prefix + "config", std::bind(consolecmd_config, std::ref(*this), std::placeholders::_1, std::placeholders::_2), stdsprintf(consolecmd_config_helptext.c_str(), prefix.c_str()));
-	parser.register_command(prefix + "read_config", std::bind(consolecmd_read_config, std::ref(*this), std::placeholders::_1, std::placeholders::_2), stdsprintf(consolecmd_read_config_helptext.c_str(), prefix.c_str()));
-	parser.register_command(prefix + "measurements", std::bind(consolecmd_measurements, std::ref(*this), std::placeholders::_1, std::placeholders::_2), stdsprintf(consolecmd_measurements_helptext.c_str(), prefix.c_str()));
-	parser.register_command(prefix + "startd", std::bind(consolecmd_startd, std::ref(*this), std::placeholders::_1, std::placeholders::_2), stdsprintf(consolecmd_startd_helptext.c_str(), prefix.c_str()));
+	parser.register_command(prefix + "config", std::make_shared<InfluxDBCommand_config>(*this));
+	parser.register_command(prefix + "read_config", std::make_shared<InfluxDBCommand_read_config>(*this));
+	parser.register_command(prefix + "measurement", std::make_shared<InfluxDBCommand_measurement>(*this));
+	parser.register_command(prefix + "startd", std::make_shared<InfluxDBCommand_startd>(*this));
 }
 
 /**
@@ -285,5 +328,9 @@ void InfluxDBClient::register_console_commands(CommandParser &parser, const std:
  * @param prefix A prefix for the registered commands.
  */
 void InfluxDBClient::deregister_console_commands(CommandParser &parser, const std::string &prefix) {
+	parser.register_command(prefix + "config", NULL);
+	parser.register_command(prefix + "read_config", NULL);
+	parser.register_command(prefix + "measurement", NULL);
+	parser.register_command(prefix + "startd", NULL);
 }
 

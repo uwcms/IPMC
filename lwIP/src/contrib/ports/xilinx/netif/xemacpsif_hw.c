@@ -77,7 +77,7 @@ void init_emacps(xemacpsif_s *xemacps, struct netif *netif)
 	/* set mac address */
 	status = XEmacPs_SetMacAddress(xemacpsp, (void*)(netif->hwaddr), 1);
 	if (status != XST_SUCCESS) {
-		xil_printf("In %s:Emac Mac Address set failed...\r\n",__func__);
+		ipmc_lwip_printf("In %s:Emac Mac Address set failed...\r\n",__func__);
 	}
 
 	XEmacPs_SetMdioDivisor(xemacpsp, MDC_DIV_224);
@@ -124,7 +124,7 @@ void init_emacps(xemacpsif_s *xemacps, struct netif *netif)
 #endif
 
 	if (link_speed == XST_FAILURE) {
-		xil_printf("Assert due to phy setup failure %s\n\r",__func__);
+		ipmc_lwip_printf("Assert due to phy setup failure %s\n\r",__func__);
 	}
 
 	XEmacPs_SetOperatingSpeed(xemacpsp, link_speed);
@@ -145,7 +145,7 @@ void init_emacps_on_error (xemacpsif_s *xemacps, struct netif *netif)
 	/* set mac address */
 	status = XEmacPs_SetMacAddress(xemacpsp, (void*)(netif->hwaddr), 1);
 	if (status != XST_SUCCESS) {
-		xil_printf("In %s:Emac Mac Address set failed...\r\n",__func__);
+		ipmc_lwip_printf("In %s:Emac Mac Address set failed...\r\n",__func__);
 	}
 
 	XEmacPs_SetOperatingSpeed(xemacpsp, link_speed);

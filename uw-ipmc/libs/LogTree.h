@@ -99,6 +99,7 @@ public:
 	/// Inherit the underlying container's size_type.
 	typedef std::map<const std::string, LogTree*>::size_type size_type;
 	LogTree& operator[](const std::string &label);
+	size_type child_count();
 	size_type count(const std::string &label);
 	std::vector<std::string> list_children();
 
