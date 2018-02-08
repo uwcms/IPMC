@@ -22,7 +22,7 @@ public:
 	ConsoleCommand_help(CommandParser &parser) : parser(parser) { };
 
 	/// Execute
-	virtual void execute(CommandParser &parser, std::function<void(std::string)> print, const CommandParser::CommandParameters &parameters) {
+	virtual void execute(std::function<void(std::string)> print, const CommandParser::CommandParameters &parameters) {
 		std::string out;
 		std::string command;
 
@@ -273,7 +273,7 @@ CommandParser::CompletionResult CommandParser::complete(const std::string &comma
 	std::string::size_type cursor_char = cursor;
 	std::vector<std::string> command = CommandParser::tokenize(commandline, &cursor_param, &cursor_char);
 	if (command.size() < 1)
-		return CompletionResult(); // Blank line?
+		return CompletionResult("", this->list_commands());
 
 	if (cursor_char == std::string::npos)
 		return CompletionResult(); // Not on a completable location.

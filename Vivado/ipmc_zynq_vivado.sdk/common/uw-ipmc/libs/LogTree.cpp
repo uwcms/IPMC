@@ -150,6 +150,17 @@ LogTree& LogTree::operator[](const std::string &label) {
 }
 
 /**
+ * Return the number of children this facility has.
+ * @return The number of child facilities.
+ */
+LogTree::size_type LogTree::child_count() {
+	xSemaphoreTakeRecursive(this->mutex, portMAX_DELAY);
+	size_type count = this->children.size();
+	xSemaphoreGiveRecursive(this->mutex);
+	return count;
+}
+
+/**
  * Return the number of children (i.e. 0 or 1) with a given label.
  * @param label The label
  * @return 0 if no children, else 1.
@@ -472,20 +483,6 @@ public:
 		this->filter.reconfigure(*facility, level);
 	}
 
-	/**
-	 * Prefix a vector with a string, as a helper.
-	 *
-	 * @param prefix The prefix
-	 * @param vec The vector
-	 * @return The vector with all items prefixed by the prefix.
-	 */
-	static std::vector<std::string> prefix_vector(const std::string &prefix, const std::vector<std::string> &vec) {
-		std::vector<std::string> ret;
-		for (auto it = vec.begin(), eit = vec.end(); it != eit; ++it)
-			ret.push_back(prefix + *it);
-		return std::move(ret);
-	}
-
 	virtual std::vector<std::string> complete(const CommandParser::CommandParameters &parameters) const {
 		if (parameters.cursor_parameter != 1)
 			return std::vector<std::string>(); // Can't help you.
@@ -493,7 +490,7 @@ public:
 		std::string facilitystr = parameters.parameters[1].substr(0, parameters.cursor_char);
 		LogTree *facility = &this->root;
 		if (facilitystr.size() <= facility->path.size() || facilitystr.substr(0, facility->path.size()+1) != facility->path+".")
-			return std::vector<std::string>{facility->path}; // The only valid value would be the root facility name.
+			return std::vector<std::string>{facility->path+"."}; // The only valid value would be the root facility name.
 
 		facilitystr.erase(0, facility->path.size()+1); // Remove the root facility.
 
@@ -510,14 +507,27 @@ public:
 		}
 
 		// And in case we have a fully typed out facility...
-		if (facility->count(facilitystr))
+		if (facility->count(facilitystr)) {
+			// We have an exact facility name, not followed by a dot.
 			facility = &((*facility)[facilitystr]);
 
-		/* Ok we should now be at the deepest facility that we know of.
-		 *
-		 * We'll return its children and let the completion filter sort out the rest.
-		 */
-		return ConsoleCommand_loglevel::prefix_vector(facility->path+".", facility->list_children());
+			// We're only going to add a dot to indicate it has children, until they tab again.
+			return std::vector<std::string>{facility->path+"."};
+		}
+		else {
+			// We have an incomplete facility name remaining.
+			// Send all children of the last known facility and let the filter sort it out.
+
+			std::vector<std::string> children = facility->list_children();
+			std::vector<std::string> ret;
+			for (auto it = children.begin(), eit = children.end(); it != eit; ++it) {
+				if ((*facility)[*it].child_count())
+					ret.push_back(facility->path + "." + *it + ".");
+				else
+					ret.push_back(facility->path + "." + *it);
+			}
+			return std::move(ret);
+		}
 	};
 };
 } // anonymous namespace
