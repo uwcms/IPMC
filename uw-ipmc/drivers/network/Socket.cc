@@ -29,13 +29,15 @@ Socket::~Socket() {
 }
 
 void Socket::set_blocking() {
-	int opts = fcntl(socketfd, F_GETFL);
+	int opts = lwip_fcntl(socketfd, F_GETFL, 0);
 	opts = opts & (~O_NONBLOCK);
-	fcntl(socketfd, F_SETFL, opts);
+	lwip_fcntl(socketfd, F_SETFL, opts);
 }
 
 void Socket::set_unblocking() {
-	fcntl(socketfd, F_SETFL, O_NONBLOCK);
+	int opts = lwip_fcntl(socketfd, F_GETFL, 0);
+	opts |= O_NONBLOCK;
+	lwip_fcntl(socketfd, F_SETFL, opts);
 }
 
 /*int Socket::read(std::string& msg) {
