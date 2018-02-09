@@ -56,7 +56,7 @@ void Network::thread_lwip_start() {
 	lwip_init();
 
 	// Start the network daemon thread
-	xTaskCreate(_thread_networkd, "networkd", UWIPMC_STANDARD_STACK_SIZE, this, DEFAULT_THREAD_PRIO, NULL);
+	xTaskCreate(_thread_networkd, "networkd", UWIPMC_STANDARD_STACK_SIZE, this, TASK_PRIORITY_SERVICE, NULL);
 
 #if LWIP_DHCP==1
 	unsigned int mscnt = 0;
@@ -122,7 +122,7 @@ void Network::thread_networkd() {
 	netif_set_up(&(this->netif));
 
 	// Start packet receive thread, required for lwIP operation
-	xTaskCreate((void (*)(void*)) xemacif_input_thread, "xemacifd", UWIPMC_STANDARD_STACK_SIZE, &(this->netif), DEFAULT_THREAD_PRIO, NULL);
+	xTaskCreate((void (*)(void*)) xemacif_input_thread, "xemacifd", UWIPMC_STANDARD_STACK_SIZE, &(this->netif), TASK_PRIORITY_DRIVER, NULL);
 
 #if LWIP_DHCP==1
 	// If DHCP is enabled then start it

@@ -190,7 +190,7 @@ void InfluxDBClient::startd() {
 					"influxdbd",          /* Text name for the task. */
 					UWIPMC_STANDARD_STACK_SIZE,      /* Stack size in words, not bytes. */
 					(void*)this,    /* Parameter passed into the task. */
-					tskIDLE_PRIORITY,/* Priority at which the task is created. */
+					TASK_PRIORITY_BACKGROUND,/* Priority at which the task is created. */
 					&xHandle );      /* Used to pass out the created task's handle. */
 
 	if( xReturned == pdFAIL )
