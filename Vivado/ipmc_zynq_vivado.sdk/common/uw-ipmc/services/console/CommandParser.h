@@ -26,7 +26,7 @@ class ConsoleSvc;
  */
 class CommandParser {
 public:
-	CommandParser();
+	CommandParser(CommandParser *chain=NULL);
 	virtual ~CommandParser();
 
 	/**

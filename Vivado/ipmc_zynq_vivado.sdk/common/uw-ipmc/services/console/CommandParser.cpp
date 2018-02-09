@@ -59,7 +59,8 @@ public:
 
 } // anonymous namespace
 
-CommandParser::CommandParser() {
+CommandParser::CommandParser(CommandParser *chain)
+	: chain(chain) {
 	this->mutex = xSemaphoreCreateMutex();
 	configASSERT(this->mutex);
 	// Register a help command by default.
