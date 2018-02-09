@@ -106,14 +106,6 @@ void driver_init(bool use_pl) {
 	LOG["network"].log(stdsprintf("Our MAC address is %02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx",
 			mac_address[0], mac_address[1], mac_address[2], mac_address[3], mac_address[4], mac_address[5]), LogTree::LOG_NOTICE);
 
-	network = new Network(LOG["network"], mac_address);
-
-	influxdbclient = new InfluxDBClient(LOG["influxdb"]);
-	influxdbclient->register_console_commands(console_command_parser, "influxdb.");
-
-	telnet = new TelnetServer();
-
-
 	XGpioPs_Config* gpiops_config = XGpioPs_LookupConfig(XPAR_PS7_GPIO_0_DEVICE_ID);
 	configASSERT(XST_SUCCESS == XGpioPs_CfgInitialize(&gpiops, gpiops_config, gpiops_config->BaseAddr));
 
@@ -139,6 +131,11 @@ void driver_init(bool use_pl) {
  */
 void ipmc_service_init() {
 	console_service = new UARTConsoleSvc(*uart_ps0, console_command_parser, "console", LOG["console"]["uart"], true);
+
+	network = new Network(LOG["network"], mac_address);
+	influxdbclient = new InfluxDBClient(LOG["influxdb"]);
+	influxdbclient->register_console_commands(console_command_parser, "influxdb.");
+	telnet = new TelnetServer();
 }
 
 
