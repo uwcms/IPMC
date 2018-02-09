@@ -177,7 +177,7 @@ static void console_log_handler(LogTree &logtree, const std::string &message,
 	else {
 		// We have to use a short timeout here, rather than none, due to the mutex involved.
 		// TODO: Maybe there's a better way?
-		console_service->safe_write(logmsg, 1);
+		console_service->write(logmsg, 1);
 	}
 }
 
@@ -199,7 +199,7 @@ public:
 				"Print the current system uptime.\n", command.c_str());
 	}
 
-	virtual void execute(std::function<void(std::string)> print, const CommandParser::CommandParameters &parameters) {
+	virtual void execute(ConsoleSvc &console, const CommandParser::CommandParameters &parameters) {
 		uint64_t now64 = get_tick64();
 		//u16 ms = now64 % 1000;
 		u16 s  = (now64 / 1000) % 60;
@@ -214,7 +214,7 @@ public:
 		if (d||h||m)
 			out += stdsprintf("%hum", m);
 		out += stdsprintf("%hus", s);
-		print(out + "\n");
+		console.write(out + "\n");
 	}
 
 	//virtual std::vector<std::string> complete(const CommandParser::CommandParameters &parameters) const { };
@@ -230,7 +230,7 @@ public:
 				"Print the current system version information.\n", command.c_str());
 	}
 
-	virtual void execute(std::function<void(std::string)> print, const CommandParser::CommandParameters &parameters) {
+	virtual void execute(ConsoleSvc &console, const CommandParser::CommandParameters &parameters) {
 		std::string bannerstr;
 		bannerstr += "********************************************************************************\n";
 		bannerstr += "\n";
@@ -239,7 +239,7 @@ public:
 			bannerstr += std::string("\n") + GIT_STATUS; // contains a trailing \n
 		bannerstr += "\n";
 		bannerstr += "********************************************************************************\n";
-		print(bannerstr);
+		console.write(bannerstr);
 	}
 
 	//virtual std::vector<std::string> complete(const CommandParser::CommandParameters &parameters) const { };
@@ -255,7 +255,7 @@ public:
 				"Print the system process listing & statistics.\n", command.c_str());
 	}
 
-	virtual void execute(std::function<void(std::string)> print, const CommandParser::CommandParameters &parameters) {
+	virtual void execute(ConsoleSvc &console, const CommandParser::CommandParameters &parameters) {
 		std::string out;
 		UBaseType_t task_count = uxTaskGetNumberOfTasks();
 		TaskStatus_t taskinfo[task_count+2];
@@ -299,7 +299,7 @@ public:
 		}
 		if (!runstats)
 			out += "\nNote: Runtime stats were not displayed, as we are likely past the point\nof counter wrapping and they are no longer accurate.\n";
-		print(out);
+		console.write(out);
 	}
 
 	//virtual std::vector<std::string> complete(const CommandParser::CommandParameters &parameters) const { };
