@@ -53,7 +53,7 @@ void _thread_telnetc(void *p) {
 
 TelnetClient::TelnetClient(Socket *s) :
 socket(s) {
-	xTaskCreate(_thread_telnetc, "telnetc", UWIPMC_STANDARD_STACK_SIZE, this, TASK_PRIORITY_SERVICE, NULL);
+	xTaskCreate(_thread_telnetc, "telnetc", UWIPMC_STANDARD_STACK_SIZE, this, TASK_PRIORITY_INTERACTIVE, NULL);
 }
 
 void TelnetClient::thread_telnetc() {
