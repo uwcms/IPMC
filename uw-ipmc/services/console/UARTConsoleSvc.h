@@ -35,10 +35,10 @@ public:
 
 protected:
 	/// Pass read through to the UART.
-	virtual ssize_t read(char *buf, size_t len, TickType_t timeout) { return this->uart.read(buf, len, timeout, this->read_data_timeout); };
+	virtual ssize_t raw_read(char *buf, size_t len, TickType_t timeout) { return this->uart.read(buf, len, timeout, this->read_data_timeout); };
 
 	/// Pass write through to the UART.
-	virtual ssize_t write(const char *buf, size_t len, TickType_t timeout) { return this->uart.write(buf, len, timeout); };
+	virtual ssize_t raw_write(const char *buf, size_t len, TickType_t timeout) { return this->uart.write(buf, len, timeout); };
 };
 
 #endif /* SRC_COMMON_UW_IPMC_SERVICES_CONSOLE_UARTCONSOLESVC_H_ */

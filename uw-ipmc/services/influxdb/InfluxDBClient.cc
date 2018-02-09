@@ -16,7 +16,8 @@
 #include <semphr.h>
 #include <task.h>
 #include <event_groups.h>
-#include <libs/CommandParser.h>
+#include <services/console/CommandParser.h>
+#include <services/console/ConsoleSvc.h>
 #include <IPMC.h>
 #include <string.h>
 #include <lwip/sockets.h>
@@ -216,7 +217,7 @@ namespace {
 					"Configures the InfluxDB client.\n", command.c_str());
 		}
 
-		virtual void execute(std::function<void(std::string)> print, const CommandParser::CommandParameters &parameters) {
+		virtual void execute(ConsoleSvc &console, const CommandParser::CommandParameters &parameters) {
 			InfluxDBClient::InfluxDBClient_Config c;
 			c.startOnBoot = false;
 
@@ -255,11 +256,11 @@ namespace {
 					"Prints current configuration.\n", command.c_str());
 		}
 
-		virtual void execute(std::function<void(std::string)> print, const CommandParser::CommandParameters &parameters) {
+		virtual void execute(ConsoleSvc &console, const CommandParser::CommandParameters &parameters) {
 			const InfluxDBClient::InfluxDBClient_Config *c = influxdb.get_configuration();
 
-			print("Current configuration for InfluxDB Client:");
-			print("Host: " + std::string(c->host) + ":" + std::to_string(c->port));
+			console.write("Current configuration for InfluxDB Client:");
+			console.write("Host: " + std::string(c->host) + ":" + std::to_string(c->port));
 		}
 
 		//virtual std::vector<std::string> complete(const CommandParser::CommandParameters &parameters) const { };
@@ -280,8 +281,8 @@ namespace {
 					"Get the current measurements.\n", command.c_str());
 		}
 
-		virtual void execute(std::function<void(std::string)> print, const CommandParser::CommandParameters &parameters) {
-			print(influxdb.measurement());
+		virtual void execute(ConsoleSvc &console, const CommandParser::CommandParameters &parameters) {
+			console.write(influxdb.measurement());
 		}
 
 		//virtual std::vector<std::string> complete(const CommandParser::CommandParameters &parameters) const { };
@@ -302,7 +303,7 @@ namespace {
 					"tart the deamon.\n", command.c_str());
 		}
 
-		virtual void execute(std::function<void(std::string)> print, const CommandParser::CommandParameters &parameters) {
+		virtual void execute(ConsoleSvc &console, const CommandParser::CommandParameters &parameters) {
 			influxdb.startd();
 		}
 

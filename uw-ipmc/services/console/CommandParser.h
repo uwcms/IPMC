@@ -18,6 +18,8 @@
 #include <map>
 #include <memory>
 
+class ConsoleSvc;
+
 /**
  * A commandline parser class, which handles registration of commands and
  * parsing and dispatch of command lines supplied as strings.
@@ -122,10 +124,10 @@ public:
 		 *
 		 * \note Mandatory
 		 *
-		 * @param print A function which will write provided text to stdout.
+		 * @param console The calling console.  Use its safe_write() for stdout.
 		 * @param parameters The parameters for this command execution.
 		 */
-		virtual void execute(std::function<void(std::string)> print, const CommandParameters &parameters) { configASSERT(0); };
+		virtual void execute(ConsoleSvc &console, const CommandParameters &parameters) { configASSERT(0); };
 
 		/**
 		 * Provide completion options for the specified parameter (using .cursor_*).
@@ -143,9 +145,9 @@ public:
 		virtual std::vector<std::string> complete(const CommandParameters &parameters) const { return std::vector<std::string>(); };
 	};
 
-	virtual bool parse(std::function<void(std::string)> print, const std::string &commandline, std::string::size_type cursor=0);
+	virtual bool parse(ConsoleSvc &console, const std::string &commandline, std::string::size_type cursor=0);
 	virtual void register_command(const std::string &token, std::shared_ptr<Command> handler);
-	virtual std::vector<std::string> list_commands() const;
+	virtual std::vector<std::string> list_commands(bool native_only=false) const;
 	virtual std::string get_helptext(const std::string &command) const;
 
 	/// The results of a completion.
@@ -163,6 +165,9 @@ public:
 protected:
 	SemaphoreHandle_t mutex; ///< A mutex protecting the commandset info.
 	std::map< std::string, std::shared_ptr<Command> > commandset; ///< The registered commands.
+	std::shared_ptr<Command> get_command(std::string command) const;
+public:
+	CommandParser *chain; ///< A chained command parser used for unknown commands if not NULL.
 };
 
 #endif /* SRC_COMMON_UW_IPMC_LIBS_COMMANDPARSER_H_ */

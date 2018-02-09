@@ -47,7 +47,7 @@ public:
 	 * @param the starting position
 	 * @param the length
 	 */
-	int send(const char*, int, int);
+	int send(const char* buf, int len, int flags=0);
 
 	/**
 	 * Sets the socket in blocking mode

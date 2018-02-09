@@ -8,12 +8,13 @@
 #ifndef SRC_COMMON_UW_IPMC_SERVICES_CONSOLE_CONSOLESVC_H_
 #define SRC_COMMON_UW_IPMC_SERVICES_CONSOLE_CONSOLESVC_H_
 
-#include <libs/CommandParser.h>
+#include <services/console/CommandParser.h>
 #include <libs/LogTree.h>
 #include <libs/ANSICode.h>
 #include <libs/ThreadingPrimitives.h>
 #include "FreeRTOS.h"
 #include "semphr.h"
+#include "event_groups.h"
 #include <deque>
 #include <string>
 #include <vector>
@@ -30,10 +31,9 @@ public:
 	const std::string name; ///< The name for this ConsoleSvc's thread, logging, etc.
 	LogTree &logtree; ///< A log sink for this service.
 	LogTree &log_input; ///< A log sink for input.
-	LogTree &log_output; ///< A log sink for output
 	bool echo; ///< Enable or disable echo.
 
-	virtual bool safe_write(std::string data, TickType_t timeout=portMAX_DELAY);
+	virtual bool write(std::string data, TickType_t timeout=portMAX_DELAY);
 
 protected:
 	std::string::size_type safe_write_line_cursor; ///< The safe_write output cursor.
@@ -111,15 +111,15 @@ protected:
 
 	SemaphoreHandle_t linebuf_mutex; ///< A mutex protecting the linebuf and direct output.
 	InputBuffer linebuf; ///< The current line buffer.
-	volatile bool shutdown; ///< If true, the service will shut down.  read() and write() must return immediately, for this to succeed.
-	WaitList shutdown_complete; ///< Released immediately before thread self-deletion.  Object cleanup is your responsibility.
+	volatile int shutdown; ///< If nonzero, the service will shut down.  read() and write() must return immediately, for this to succeed.  If |=2, this object will delete itself.
+	EventGroupHandle_t shutdown_complete; ///< Set to 1 immediately before thread self-deletion.  Object cleanup is your responsibility unless (shutdown&2)==1.  Do not rely on the value of the return bitmask.
 
 protected:
 	/// A virtual method handling input, to be overridden by implementations.
-	virtual ssize_t read(char *buf, size_t len, TickType_t timeout) { configASSERT(0); return 0; };
+	virtual ssize_t raw_read(char *buf, size_t len, TickType_t timeout) { configASSERT(0); return 0; };
 
 	/// A virtual method handling output, to be overridden by implementations.
-	virtual ssize_t write(const char *buf, size_t len, TickType_t timeout) { configASSERT(0); return 0; };
+	virtual ssize_t raw_write(const char *buf, size_t len, TickType_t timeout) { configASSERT(0); return 0; };
 
 public:
 	virtual void _run_thread(); ///< \protected Internal

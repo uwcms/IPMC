@@ -5,7 +5,8 @@
  *      Author: jtikalsky
  */
 
-#include <libs/CommandParser.h>
+#include "CommandParser.h"
+#include "ConsoleSvc.h"
 #include "FreeRTOS.h"
 #include "task.h"
 #include <IPMC.h>
@@ -22,7 +23,7 @@ public:
 	ConsoleCommand_help(CommandParser &parser) : parser(parser) { };
 
 	/// Execute
-	virtual void execute(std::function<void(std::string)> print, const CommandParser::CommandParameters &parameters) {
+	virtual void execute(ConsoleSvc &console, const CommandParser::CommandParameters &parameters) {
 		std::string out;
 		std::string command;
 
@@ -41,7 +42,7 @@ public:
 					out += *it + "\n";
 				}
 		}
-		print(out);
+		console.write(out);
 	}
 
 	virtual std::string get_helptext(const std::string &command) const {
@@ -150,31 +151,43 @@ std::vector<std::string> CommandParser::tokenize(const std::string &commandline,
 }
 
 /**
- * Parse a given commandline and execute the associated command.
+ * Parse a given command line and execute the associated command.
  *
  * \note Whitespace-only lines are automatically ignored as successful parses.
  *
- * @param print A function for the command to use to return output to the user.
+ * @param console The calling console.  Use its safe_write() for stdout.
  * @param commandline The command line to be parsed.
  * @param cursor The current input cursor position.
  * @return false if unknown command, else true.
  */
-bool CommandParser::parse(std::function<void(std::string)> print, const std::string &commandline, std::string::size_type cursor) {
+bool CommandParser::parse(ConsoleSvc &console, const std::string &commandline, std::string::size_type cursor) {
 	std::vector<std::string>::size_type cursor_param = 0;
 	std::string::size_type cursor_char = cursor;
 	std::vector<std::string> command = CommandParser::tokenize(commandline, &cursor_param, &cursor_char);
 	if (command.size() < 1)
 		return true; // We didn't fail, there was just nothing to do.
 
-	std::shared_ptr<Command> handler = NULL;
-	xSemaphoreTake(this->mutex, portMAX_DELAY);
-	if (this->commandset.count(command[0]))
-		handler = this->commandset.at(command[0]);
-	xSemaphoreGive(this->mutex);
+	std::shared_ptr<Command> handler = this->get_command(command[0]);
 	if (!handler)
 		return false; // Unknown command.
-	handler->execute(print, CommandParameters(command, cursor_param, cursor_char));
+	handler->execute(console, CommandParameters(command, cursor_param, cursor_char));
 	return true;
+}
+
+/**
+ * Retrieve a command specified by the given string.
+ * @param command The command to return.
+ * @return The matching command object or a 'null' pointer.
+ */
+std::shared_ptr<CommandParser::Command> CommandParser::get_command(std::string command) const {
+	std::shared_ptr<Command> handler = NULL;
+	xSemaphoreTake(this->mutex, portMAX_DELAY);
+	if (this->commandset.count(command))
+		handler = this->commandset.at(command);
+	if (!handler && this->chain)
+		handler = this->chain->get_command(command);
+	xSemaphoreGive(this->mutex);
+	return handler;
 }
 
 /**
@@ -198,12 +211,16 @@ void CommandParser::register_command(const std::string &token, std::shared_ptr<C
  *
  * @return All installed commands.
  */
-std::vector<std::string> CommandParser::list_commands() const {
+std::vector<std::string> CommandParser::list_commands(bool native_only) const {
 	xSemaphoreTake(this->mutex, portMAX_DELAY);
 	std::vector<std::string> commands;
 	commands.reserve(this->commandset.size());
 	for (auto it = this->commandset.begin(), eit = this->commandset.end(); it != eit; ++it)
 		commands.push_back(it->first);
+	if (!native_only && this->chain) {
+		std::vector<std::string> chained_commands = this->chain->list_commands(false);
+		commands.insert(commands.end(),chained_commands.begin(),chained_commands.end());
+	}
 	xSemaphoreGive(this->mutex);
 	return std::move(commands);
 }
@@ -216,11 +233,12 @@ std::vector<std::string> CommandParser::list_commands() const {
  */
 std::string CommandParser::get_helptext(const std::string &command) const {
 	xSemaphoreTake(this->mutex, portMAX_DELAY);
-	std::string result;
-	if (this->commandset.count(command))
-		result = this->commandset.at(command)->get_helptext(command);
+	std::shared_ptr<Command> handler = this->get_command(command);
 	xSemaphoreGive(this->mutex);
-	return result;
+	if (handler)
+		return handler->get_helptext(command);
+	else
+		return "";
 }
 
 static inline std::string::size_type first_character_difference(const std::string &a, const std::string &b) {
@@ -278,11 +296,7 @@ CommandParser::CompletionResult CommandParser::complete(const std::string &comma
 	if (cursor_char == std::string::npos)
 		return CompletionResult(); // Not on a completable location.
 
-	std::shared_ptr<Command> handler = NULL;
-	xSemaphoreTake(this->mutex, portMAX_DELAY);
-	if (this->commandset.count(command[0]))
-		handler = this->commandset.at(command[0]);
-	xSemaphoreGive(this->mutex);
+	std::shared_ptr<Command> handler = this->get_command(command[0]);
 	if (cursor_param == 0) {
 		return CompletionResult(command[cursor_param].substr(0, cursor_char), this->list_commands());
 	}
