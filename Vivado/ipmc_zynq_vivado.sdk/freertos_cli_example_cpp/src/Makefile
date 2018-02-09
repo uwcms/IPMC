@@ -58,7 +58,6 @@ OPTIMIZE_OPTIONS := -Os -g0
 endif
 
 export CFLAGS = \
-	-Wall \
 	$(OPTIMIZE_OPTIONS) \
 	-fmessage-length=0 \
 	-mcpu=cortex-a9 \
@@ -77,53 +76,71 @@ export LDFLAGS := \
 	-Wl,-T -Wl,lscript.ld \
 	$(FUNCTION_WRAPPERS) \
 
+export WARNING_FLAGS = -Wall
+
 OBJS := \
+	$(patsubst ./%.c,.obj/$(BUILD_CONFIGURATION)/%.o,$(shell find -L . -type f -name '*.c')) \
 	$(patsubst ./%.c,.obj/$(BUILD_CONFIGURATION)/%.o,$(shell find -L . -type f -name '*.c')) \
 	$(patsubst ./%.cc,.obj/$(BUILD_CONFIGURATION)/%.o,$(shell find -L . -type f -name '*.cc' ! -path './common/uw-ipmc/version.cc')) \
 	$(patsubst ./%.cpp,.obj/$(BUILD_CONFIGURATION)/%.o,$(shell find -L . -type f -name '*.cpp')) \
 	$(patsubst ./%.S,.obj/$(BUILD_CONFIGURATION)/%.o,$(shell find -L . -type f -name '*.S')) \
 
-all: doxygen pre-build build
+all: doxygen build
 
-pre-build:
-	@echo
+pre-build: .dep/.lwip-patch
 	-a9-linaro-pre-build-step
+
+.dep/.lwip-patch:
+	@mkdir -p .dep/
+	touch "$@"
 	find common/lwIP/src/contrib/ports/xilinx -type f -exec sed -i -re 's/#include .xil_printf\.h.//;s/xil_printf/ipmc_lwip_printf/g;s/\<printf/ipmc_lwip_printf/g;s/\<print\(/ipmc_lwip_printf("%s",/g' '{}' +
+	sed -i -r -e '/^#undef /d;s/(#define\s+)(E\w+)(\s)/#undef \2\n\1\2\3/' common/lwIP/src/lwip-1.4.1/src/include/lwip/arch.h
+	find common/lwIP/src -type f -name '*.h' -exec sed -i -e 's!"U16_F!" U16_F!g;s!U16_F"!U16_F "!g' '{}' +
 
-build: bin/$(BUILD_CONFIGURATION)/freertos_cli_example_cpp.elf
+build: pre-build bin/$(BUILD_CONFIGURATION)/freertos_cli_example_cpp.elf
 
-bin/$(BUILD_CONFIGURATION)/freertos_cli_example_cpp.elf: $(OBJS) .obj/$(BUILD_CONFIGURATION)/common/uw-ipmc/version.$(GIT_SETTINGS_MD5).o
-	@echo
+bin/$(BUILD_CONFIGURATION)/freertos_cli_example_cpp.elf: $(OBJS) .obj/$(BUILD_CONFIGURATION)/common/uw-ipmc/version.$(GIT_SETTINGS_MD5).o | pre-build
 	@mkdir -p "$(dir $@)"
 	$(CXX) $(CFLAGS) $(LDFLAGS) $(INCLUDE_PATHS) $(LIBRARY_PATHS) -o "$@" $^ $(LIBS)
 	arm-none-eabi-size "$@" | tee "$@.size"
 
-.obj/$(BUILD_CONFIGURATION)/%.o: %.c
-	@echo
+.obj/$(BUILD_CONFIGURATION)/%.o: %.c | pre-build
 	@mkdir -p "$(dir $@)" "$(dir $(patsubst .obj/$(BUILD_CONFIGURATION)/%,.dep/$(BUILD_CONFIGURATION)/%,$@))"
+ifeq "common/lwIP/src/" "$(patsubst $@,common/lwIP/src/%,common/lwIP/src/)"
 	$(CC) -c $(CFLAGS) $(LDFLAGS) $(INCLUDE_PATHS) $(LIBRARY_PATHS) -o "$@" "$<" $(LIBS)
+else
+	$(CC) -c $(CFLAGS) $(WARNING_FLAGS) $(LDFLAGS) $(INCLUDE_PATHS) $(LIBRARY_PATHS) -o "$@" "$<" $(LIBS)
+endif
 
-.obj/$(BUILD_CONFIGURATION)/%.o: %.cc
-	@echo
+.obj/$(BUILD_CONFIGURATION)/%.o: %.cc | pre-build
 	@mkdir -p "$(dir $@)" "$(dir $(patsubst .obj/$(BUILD_CONFIGURATION)/%,.dep/$(BUILD_CONFIGURATION)/%,$@))"
+ifeq "common/lwIP/src/" "$(patsubst $@,common/lwIP/src/%,common/lwIP/src/)"
 	$(CXX) -c $(CFLAGS) $(CXXFLAGS) $(LDFLAGS) $(INCLUDE_PATHS) $(LIBRARY_PATHS) -o "$@" "$<" $(LIBS)
+else
+	$(CXX) -c $(CFLAGS) $(WARNING_FLAGS) $(CXXFLAGS) $(LDFLAGS) $(INCLUDE_PATHS) $(LIBRARY_PATHS) -o "$@" "$<" $(LIBS)
+endif
 
-.obj/$(BUILD_CONFIGURATION)/common/uw-ipmc/version.$(GIT_SETTINGS_MD5).o: common/uw-ipmc/version.cc
-	@echo
+.obj/$(BUILD_CONFIGURATION)/common/uw-ipmc/version.$(GIT_SETTINGS_MD5).o: common/uw-ipmc/version.cc | pre-build
 	@mkdir -p "$(dir $@)" "$(dir $(patsubst .obj/$(BUILD_CONFIGURATION)/%,.dep/$(BUILD_CONFIGURATION)/%,$@))"
 	rm -f .obj/$(BUILD_CONFIGURATION)/common/uw-ipmc/version.*.o
-	$(CXX) -c $(CFLAGS) $(CXXFLAGS) $(LDFLAGS) $(INCLUDE_PATHS) $(LIBRARY_PATHS) \
+	$(CXX) -c $(CFLAGS) $(WARNING_FLAGS) $(CXXFLAGS) $(LDFLAGS) $(INCLUDE_PATHS) $(LIBRARY_PATHS) \
 		-DD_GIT_SHORT_INT="0x$(shell git rev-parse --short HEAD)" -DD_GIT_SHORT="\"$(shell git rev-parse --short HEAD)\"" -DD_GIT_LONG="\"$(shell git rev-parse HEAD)\"" -DD_GIT_DESCRIBE="\"$$GIT_DESCRIBE\"" -DD_GIT_BRANCH="\"$$GIT_BRANCH\"" -DD_GIT_STATUS="$$GIT_STATUS" -o "$@" "$<" $(LIBS)
 
-.obj/$(BUILD_CONFIGURATION)/%.o: %.cpp
-	@echo
+.obj/$(BUILD_CONFIGURATION)/%.o: %.cpp | pre-build
 	@mkdir -p "$(dir $@)" "$(dir $(patsubst .obj/$(BUILD_CONFIGURATION)/%,.dep/$(BUILD_CONFIGURATION)/%,$@))"
+ifeq "common/lwIP/src/" "$(patsubst $@,common/lwIP/src/%,common/lwIP/src/)"
 	$(CXX) -c $(CFLAGS) $(CXXFLAGS) $(LDFLAGS) $(INCLUDE_PATHS) $(LIBRARY_PATHS) -o "$@" "$<" $(LIBS)
+else
+	$(CXX) -c $(CFLAGS) $(WARNING_FLAGS) $(CXXFLAGS) $(LDFLAGS) $(INCLUDE_PATHS) $(LIBRARY_PATHS) -o "$@" "$<" $(LIBS)
+endif
 
-.obj/$(BUILD_CONFIGURATION)/%.o: %.S
-	@echo
+.obj/$(BUILD_CONFIGURATION)/%.o: %.S | pre-build
 	@mkdir -p "$(dir $@)" "$(dir $(patsubst .obj/$(BUILD_CONFIGURATION)/%,.dep/$(BUILD_CONFIGURATION)/%,$@))"
+ifeq "common/lwIP/src/" "$(patsubst $@,common/lwIP/src/%,common/lwIP/src/)"
 	$(CXX) -c $(CFLAGS) $(CXXFLAGS) $(LDFLAGS) $(INCLUDE_PATHS) $(LIBRARY_PATHS) -o "$@" "$<" $(LIBS)
+else
+	$(CXX) -c $(CFLAGS) $(WARNING_FLAGS) $(CXXFLAGS) $(LDFLAGS) $(INCLUDE_PATHS) $(LIBRARY_PATHS) -o "$@" "$<" $(LIBS)
+endif
 
 ifeq (x$(GIT_DIRTY),x)
 export DOXYGEN_GIT_DIRTY :=
