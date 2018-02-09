@@ -25,6 +25,7 @@ static void ipmb0_run_thread(void *ipmb_void) {
  * \param command_parser The command parser for incoming commands.
  * \param logtree        The logtree for messages from the IPMBSvc.
  * \param name           Used for StatCounter, Messenger and thread name.
+ * \param wdt            The watchdog instance to register & service.
  */
 IPMBSvc::IPMBSvc(IPMB *ipmbA, IPMB *ipmbB, uint8_t ipmb_address, IPMICommandParser *command_parser, LogTree &logtree, const std::string name, PS_WDT *wdt) :
 		name(name),
