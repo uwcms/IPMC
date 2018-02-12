@@ -19,27 +19,26 @@
  * TODO
  */
 class Socket {
-public:
 protected:
 	int socketfd;
 	SocketAddress* sockaddr;
 
 public:
 	Socket(int socket, struct sockaddr_in addr);
-	~Socket();
+	virtual ~Socket();
 
 	/**
 	 * Reads a specified amount of data into a character pointer
 	 * @param the character buffer
 	 * @param the length of the character buffer
 	 */
-	int read(char*, int);
+	virtual int read(char*, int);
 
 	/**
 	 * Sends a string to the client
 	 * @param the string to send
 	 */
-	int send(std::string);
+	virtual int send(std::string);
 
 	/**
 	 * Sends an array of charactes to the client, with a specified start and end index
@@ -47,22 +46,22 @@ public:
 	 * @param the starting position
 	 * @param the length
 	 */
-	int send(const char* buf, int len, int flags=0);
+	virtual int send(const char* buf, int len, int flags=0);
 
 	/**
 	 * Sets the socket in blocking mode
 	 */
-	void set_blocking();
+	virtual void set_blocking();
 
 	/**
 	 * Sets the socket in non-blocking mode
 	 */
-	void set_unblocking();
+	virtual void set_unblocking();
 
 	/**
 	 * Closes the socket connection
 	 */
-	void close() {
+	virtual void close() {
 		if (socketfd == -1) {
 			return;
 		}
@@ -74,7 +73,7 @@ public:
 	 * Checks whether the socket is valid
 	 * @return true of the socket is valid, false otherwise
 	 */
-	bool valid() {
+	virtual bool valid() {
 		return socketfd != -1;
 	}
 
@@ -82,7 +81,7 @@ public:
 	 * Gets the socket file descriptor
 	 * @return the socket file descriptor
 	 */
-	int get_socket() {
+	virtual int get_socket() {
 		return socketfd;
 	}
 
@@ -91,7 +90,7 @@ public:
 	 * information about the socket's address and port
 	 * @return the socketaddress instance
 	 */
-	SocketAddress* get_socketaddress() {
+	virtual SocketAddress* get_socketaddress() {
 		return sockaddr;
 	}
 };
