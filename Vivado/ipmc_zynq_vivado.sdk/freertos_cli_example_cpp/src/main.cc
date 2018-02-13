@@ -173,7 +173,6 @@ void init_task(void *dummy0 __attribute__((unused))) {
 	driver_init(true);
 	ipmc_service_init();
 	LOG.log(generate_banner(), LogTree::LOG_NOTICE); // This is the ONLY place that should EVER log directly to LOG rather than a subtree.
-	bannerstr.clear(); // Save heap memory.
 
 	vTaskDelete(NULL); // Clean up after ourselves.
 }
