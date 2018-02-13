@@ -172,17 +172,7 @@ static void prvSetupHardware(void) {
 void init_task(void *dummy0 __attribute__((unused))) {
 	driver_init(true);
 	ipmc_service_init();
-
-	std::string bannerstr("\n");
-	bannerstr += "********************************************************************************\n";
-	bannerstr += "\n";
-	bannerstr += std::string("University of Wisconsin IPMC ") + GIT_DESCRIBE + "\n";
-	if (GIT_STATUS[0] != '\0')
-		bannerstr += std::string("\n") + GIT_STATUS; // contains a trailing \n
-	bannerstr += "\n";
-	bannerstr += "********************************************************************************\n";
-	LOG.log(bannerstr, LogTree::LOG_NOTICE); // This is the ONLY place that should EVER log directly to LOG rather than a subtree.
-	bannerstr.clear(); // Save heap memory.
+	LOG.log(generate_banner(), LogTree::LOG_NOTICE); // This is the ONLY place that should EVER log directly to LOG rather than a subtree.
 
 	vTaskDelete(NULL); // Clean up after ourselves.
 }
