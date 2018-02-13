@@ -41,6 +41,7 @@ export FUNCTION_WRAPPERS = \
 	-Wl,-wrap=vsnprintf \
 	-Wl,-wrap=xil_printf \
 	-Wl,-wrap=print \
+	-Wl,-wrap=sleep \
 
 export LIBRARY_PATHS = \
 	-L"$(WORKSPACE)/ipmc_standalone_bsp/ps7_cortexa9_0/lib" \
