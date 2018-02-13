@@ -77,6 +77,7 @@ parser.add_argument('-t','--target', help='The debug target to connect to when u
 parser.add_argument('-a','--address', help='The start address of the buffer (int/hex) or ELF filename when using the JTAG access method', default=None)
 parser.add_argument('-f','--file', help='A binary memory dump of the trace buffer', default=None)
 parser.add_argument('--dump-script', help='Instead of reading a trace buffer, specify the size of the trace buffer to print an xsdb script to create a file dump.', type=lambda x: int(x,0), default=0)
+parser.add_argument('-T','--text-as-binary', help='Convert text to binary before rendering', action='store_true')
 parser.add_argument('-B','--binary-as-text', help='Output binary entries as escaped strings', action='store_true')
 ARGS = parser.parse_args()
 del parser
@@ -186,14 +187,19 @@ loglevels = dict(zip(range(0,len(loglevels)),map(lambda x: x[0:4], loglevels)))
 fmt = '{{rec.timestamp:{max_timestamp_len}d}} | {{rec.label:<{max_label_len}s}} | {{loglevel:<4s}} | {{data}}'.format(max_label_len=max_label_len, max_timestamp_len=max_timestamp_len)
 
 for rec in RECORDS:
-	if isinstance(rec.data, str):
-		msg = rec.data.rstrip('\r\n')
-	elif isinstance(rec.data, bytearray):
+	msg = rec.data
+	if isinstance(msg, str) and ARGS.text_as_binary:
+		msg = msg.encode('utf8')
+	if isinstance(msg, bytearray):
+		msg = bytes(msg)
+	if isinstance(msg, str):
+		msg = msg.rstrip('\r\n')
+	elif isinstance(msg, bytes):
 		if ARGS.binary_as_text:
-			msg = 'BIN: ' + repr(bytes(rec.data))[1:]
+			msg = 'BIN: ' + repr(msg)[1:]
 		else:
-			msg = 'BIN: ' + ' '.join(map(lambda x: '{:02x}'.format(x), rec.data))
+			msg = 'BIN: ' + ' '.join(map(lambda x: '{:02x}'.format(x), msg))
 	else:
-		print(type(rec.data))
+		print(type(msg))
 		assert False, 'Unexpected record data type'
 	print(fmt.format(rec=rec, data=msg, loglevel=loglevels.get(rec.loglevel,str(rec.loglevel))))
