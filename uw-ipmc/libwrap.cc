@@ -42,6 +42,7 @@ int __wrap_vsprintf(char *str, const char *format, va_list ap) WRAP_ATTR;
 int __wrap_vsnprintf(char *str, size_t size, const char *format, va_list ap) WRAP_ATTR;
 void __wrap_xil_printf( const char8 *ctrl1, ...) WRAP_ATTR;
 void __wrap_print( const char8 *ptr) WRAP_ATTR;
+unsigned __wrap_sleep(unsigned int seconds) WRAP_ATTR;
 } // extern "C"
 
 volatile SemaphoreHandle_t stdlib_mutex = NULL;
@@ -277,6 +278,11 @@ void ipmc_lwip_printf(const char *ctrl1, ...) {
 
 void __wrap_print( const char8 *ptr) {
 	printf("%s", ptr);
+}
+
+unsigned __wrap_sleep(unsigned int seconds) {
+	vTaskDelay(seconds * configTICK_RATE_HZ);
+	return 0;
 }
 
 /**
