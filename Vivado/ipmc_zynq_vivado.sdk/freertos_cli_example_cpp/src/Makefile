@@ -42,11 +42,12 @@ export FUNCTION_WRAPPERS = \
 	-Wl,-wrap=xil_printf \
 	-Wl,-wrap=print \
 	-Wl,-wrap=sleep \
+	-Wl,-wrap=sha_256 \
 
 export LIBRARY_PATHS = \
 	-L"$(WORKSPACE)/ipmc_standalone_bsp/ps7_cortexa9_0/lib" \
 
-export LIBS := -Wl,--start-group,-lxil,-lgcc,-lc,-lstdc++,--end-group
+export LIBS := -lrsa -Wl,--start-group,-lxil,-lgcc,-lc,-lstdc++,--end-group
 
 ifeq ($(BUILD_CONFIGURATION),Debug)
 # "-Og Optimize debugging experience.  -Og enables optimizations that do not interfere with debugging." from man g++
