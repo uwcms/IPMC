@@ -311,7 +311,11 @@ XStatus emacps_sgsend(xemacpsif_s *xemacpsif, struct pbuf *p)
 		/* Send the data from the pbuf to the interface, one pbuf at a
 		   time. The size of the data in each pbuf is kept in the ->len
 		   variable. */
-		Xil_DCacheFlushRange((UINTPTR)q->payload, (UINTPTR)q->len);
+		// TODO: For when Vivado gets update to 2017.4
+		//if (xemacpsif->emacps.Config.IsCacheCoherent == 0) {
+			Xil_DCacheFlushRange((UINTPTR)q->payload, (UINTPTR)q->len);
+		//}
+
 		XEmacPs_BdSetAddressTx(txbd, (UINTPTR)q->payload);
 
 #ifdef ZYNQMP_USE_JUMBO
@@ -413,9 +417,14 @@ void setup_rx_bds(xemacpsif_s *xemacpsif, XEmacPs_BdRing *rxring)
 			return;
 		}
 #ifdef ZYNQMP_USE_JUMBO
-		Xil_DCacheInvalidateRange((UINTPTR)p->payload, (UINTPTR)MAX_FRAME_SIZE_JUMBO);
+		if (xemacpsif->emacps.Config.IsCacheCoherent == 0) {
+			Xil_DCacheInvalidateRange((UINTPTR)p->payload, (UINTPTR)MAX_FRAME_SIZE_JUMBO);
+		}
 #else
-		Xil_DCacheInvalidateRange((UINTPTR)p->payload, (UINTPTR)XEMACPS_MAX_FRAME_SIZE);
+		// TODO: For when Vivado gets update to 2017.4
+		//if (xemacpsif->emacps.Config.IsCacheCoherent == 0) {
+			Xil_DCacheInvalidateRange((UINTPTR)p->payload, (UINTPTR)XEMACPS_MAX_FRAME_SIZE);
+		//}
 #endif
 		bdindex = XEMACPS_BD_TO_INDEX(rxring, rxbd);
 		temp = (u32 *)rxbd;
@@ -550,6 +559,24 @@ XStatus init_dma(struct xemac_s *xemac)
 	XEmacPs_Bd *bdtxterminate;
 	XEmacPs_Bd *bdrxterminate;
 	u32 *temp;
+
+	/*
+	 * Disable L1 prefetch if the processor type is Cortex A53. It is
+	 * observed that the L1 prefetching for ARMv8 can cause issues while
+     * dealing with cache memory on Rx path. On Rx path, the lwIP adapter
+	 * does a clean and invalidation of buffers (pbuf payload) before
+     * allocating them to Rx BDs. However, there are chances that the
+	 * the same cache line may get prefetched by the time Rx data is
+     * DMAed to the same buffer. In such cases, CPU fetches stale data from
+     * cache memory instead of getting them from memory. To avoid such
+     * scenarios L1 prefetch is being disabled for ARMv8. That can cause
+	 * a performance degaradation in the range of 3-5%. In tests, it is
+	 * generally observed that this performance degaradation is quite
+	 * insignificant to be really visible.
+	 */
+#if defined __aarch64__
+	Xil_ConfigureL1Prefetch(0);
+#endif
 
 	xemacpsif_s *xemacpsif = (xemacpsif_s *)(xemac->state);
 	struct xtopology_t *xtopologyp = &xtopology[xemac->topology_index];
@@ -694,9 +721,14 @@ XStatus init_dma(struct xemac_s *xemac)
 		*temp = 0;
 		dsb();
 #ifdef ZYNQMP_USE_JUMBO
-		Xil_DCacheInvalidateRange((UINTPTR)p->payload, (UINTPTR)MAX_FRAME_SIZE_JUMBO);
+		if (xemacpsif->emacps.Config.IsCacheCoherent == 0) {
+			Xil_DCacheInvalidateRange((UINTPTR)p->payload, (UINTPTR)MAX_FRAME_SIZE_JUMBO);
+		}
 #else
-		Xil_DCacheInvalidateRange((UINTPTR)p->payload, (UINTPTR)XEMACPS_MAX_FRAME_SIZE);
+		// TODO: For when Vivado gets update to 2017.4
+		//if (xemacpsif->emacps.Config.IsCacheCoherent == 0) {
+			Xil_DCacheInvalidateRange((UINTPTR)p->payload, (UINTPTR)XEMACPS_MAX_FRAME_SIZE);
+		//}
 #endif
 		XEmacPs_BdSetAddressRx(rxbd, (UINTPTR)p->payload);
 
@@ -724,10 +756,10 @@ XStatus init_dma(struct xemac_s *xemac)
 		XEmacPs_Out32((xemacpsif->emacps.Config.BaseAddress + XEMACPS_RXQ1BASE_OFFSET),
 				   (UINTPTR)bdrxterminate);
 		XEmacPs_BdClear(bdtxterminate);
-		XEmacPs_BdSetStatus(bdrxterminate, (XEMACPS_TXBUF_USED_MASK |
+		XEmacPs_BdSetStatus(bdtxterminate, (XEMACPS_TXBUF_USED_MASK |
 						XEMACPS_TXBUF_WRAP_MASK));
 		XEmacPs_Out32((xemacpsif->emacps.Config.BaseAddress + XEMACPS_TXQBASE_OFFSET),
-				   (UINTPTR)bdrxterminate);
+				   (UINTPTR)bdtxterminate);
 	}
 
 
