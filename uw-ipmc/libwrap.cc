@@ -29,6 +29,7 @@ int __real_snprintf(char *str, size_t size, const char *format, ...);
 int __real_vprintf(const char *format, va_list ap);
 int __real_vsprintf(char *str, const char *format, va_list ap);
 int __real_vsnprintf(char *str, size_t size, const char *format, va_list ap);
+void __real_sha_256(const unsigned char *in, const unsigned int size, unsigned char *out);
 
 void *__wrap_malloc(size_t size) WRAP_ATTR __attribute__((malloc, alloc_size(1)));
 void __wrap_free(void *ptr) WRAP_ATTR;
@@ -43,6 +44,7 @@ int __wrap_vsnprintf(char *str, size_t size, const char *format, va_list ap) WRA
 void __wrap_xil_printf( const char8 *ctrl1, ...) WRAP_ATTR;
 void __wrap_print( const char8 *ptr) WRAP_ATTR;
 unsigned __wrap_sleep(unsigned int seconds) WRAP_ATTR;
+void __wrap_sha_256(const unsigned char *in, const unsigned int size, unsigned char *out) WRAP_ATTR;
 } // extern "C"
 
 volatile SemaphoreHandle_t stdlib_mutex = NULL;
@@ -283,6 +285,24 @@ void __wrap_print( const char8 *ptr) {
 unsigned __wrap_sleep(unsigned int seconds) {
 	vTaskDelay(seconds * configTICK_RATE_HZ);
 	return 0;
+}
+
+static volatile SemaphoreHandle_t librsa_mutex = NULL;
+
+void __wrap_sha_256(const unsigned char *in, const unsigned int size, unsigned char *out) {
+	if (!librsa_mutex) {
+		SemaphoreHandle_t sem = xSemaphoreCreateMutex();
+		configASSERT(sem);
+		taskENTER_CRITICAL();
+		if (!librsa_mutex) {
+			librsa_mutex = sem;
+			sem = NULL;
+		}
+		taskEXIT_CRITICAL();
+		if (sem)
+			vSemaphoreDelete(sem);
+	}
+	__real_sha_256(in, size, out);
 }
 
 /**
