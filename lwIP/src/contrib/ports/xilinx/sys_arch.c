@@ -6,7 +6,7 @@
 
 /******************************************************************************
 *
-* Copyright (C) 2007 - 2014 Xilinx, Inc.  All rights reserved.
+* Copyright (C) 2007 - 2017 Xilinx, Inc.  All rights reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -476,7 +476,7 @@ void sys_sem_set_invalid(sys_sem_t *sem)
 /* Very crude mechanism used to determine if the critical section handling
 functions are being called from an interrupt context or not.  This relies on
 the interrupt handler setting this variable manually. */
-extern long xInsideISR;
+extern u32 xInsideISR;
 
 /*---------------------------------------------------------------------------*
  * Routine:  sys_mbox_new
@@ -764,6 +764,7 @@ portBASE_TYPE xHigherPriorityTaskWoken = pdFALSE;
  *---------------------------------------------------------------------------*/
 err_t sys_sem_new( sys_sem_t *pxSemaphore, u8_t ucCount )
 {
+	(void) ucCount;
 err_t xReturn = ERR_MEM;
 
 	*pxSemaphore = xSemaphoreCreateBinary();
@@ -1006,7 +1007,7 @@ xTaskHandle xCreatedTask;
 portBASE_TYPE xResult;
 sys_thread_t xReturn;
 
-	xResult = xTaskCreate( pxThread, ( char * ) pcName, iStackSize, pvArg, iPriority, &xCreatedTask );
+	xResult = xTaskCreate( pxThread, ( const char * const) pcName, iStackSize, pvArg, iPriority, &xCreatedTask );
 
 	if( xResult == pdPASS )
 	{
