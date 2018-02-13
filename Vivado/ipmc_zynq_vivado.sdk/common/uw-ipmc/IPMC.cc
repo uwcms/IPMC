@@ -146,6 +146,18 @@ void operator delete(void* p) throw() {
 	vPortFree(p);
 }
 
+std::string generate_banner() {
+	std::string bannerstr;
+	bannerstr += "********************************************************************************\n";
+	bannerstr += "\n";
+	bannerstr += std::string("University of Wisconsin IPMC ") + GIT_DESCRIBE + "\n";
+	if (GIT_STATUS[0] != '\0')
+		bannerstr += std::string("\n") + GIT_STATUS; // contains a trailing \n
+	bannerstr += "\n";
+	bannerstr += "********************************************************************************\n";
+	return bannerstr;
+}
+
 /**
  * This handler copies log messages to the UART.
  */
@@ -231,15 +243,7 @@ public:
 	}
 
 	virtual void execute(ConsoleSvc &console, const CommandParser::CommandParameters &parameters) {
-		std::string bannerstr;
-		bannerstr += "********************************************************************************\n";
-		bannerstr += "\n";
-		bannerstr += std::string("University of Wisconsin IPMC ") + GIT_DESCRIBE + "\n";
-		if (GIT_STATUS[0] != '\0')
-			bannerstr += std::string("\n") + GIT_STATUS; // contains a trailing \n
-		bannerstr += "\n";
-		bannerstr += "********************************************************************************\n";
-		console.write(bannerstr);
+		console.write(generate_banner());
 	}
 
 	//virtual std::vector<std::string> complete(const CommandParser::CommandParameters &parameters) const { };
