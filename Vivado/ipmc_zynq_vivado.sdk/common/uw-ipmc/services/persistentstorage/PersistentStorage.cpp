@@ -237,6 +237,7 @@ std::vector<struct PersistentStorage::PersistentStorageIndexRecord> PersistentSt
  * @param completion_cb A callback to call upon completion.  (Triggers priority inheritance if not NULL.)
  */
 void PersistentStorage::flush(std::function<void(void)> completion_cb) {
+	this->logtree.log("Requesting full storage flush", LogTree::LOG_DIAGNOSTIC);
 	this->flush(0, this->eeprom.size, completion_cb);
 }
 
@@ -251,10 +252,11 @@ void PersistentStorage::flush(void *start, size_t len, std::function<void(void)>
 	configASSERT(start >= this->data && start <= this->data + this->eeprom.size - len);
 	u32 start_addr = reinterpret_cast<u8*>(start) - this->data;
 	u32 end_addr = start_addr + len;
+	this->logtree.log(stdsprintf("Requesting flush of range [%u, %u)", start_addr, end_addr), LogTree::LOG_DIAGNOSTIC);
 	xSemaphoreTake(this->flushq_mutex, portMAX_DELAY);
 	FlushRequest req(start_addr, end_addr, completion_cb);
-	if (!this->flushq.empty() && this->flushq.top().index_flush) {
-		// The current top task is an index flush.  Make sure it has inherited our priority if relevant.
+	if (!this->flushq.empty() && this->flushq.top().index_flush && !!req.complete) {
+		// The current top task is an index flush, and we're blocking on a callback.  Make sure it has inherited our priority.
 		FlushRequest index_req = this->flushq.top();
 		this->flushq.pop();
 		if (index_req.process_priority < req.process_priority)
@@ -286,6 +288,8 @@ void PersistentStorage::flush_index() {
 	++i; // We want i to be the length of index, but we bailed from the loop on, not after, the terminator.
 	u32 index_length = sizeof(PersistentStorageHeader) + i*sizeof(PersistentStorageIndexRecord);
 	xSemaphoreGive(this->index_mutex);
+
+	this->logtree.log(stdsprintf("Requesting flush of index (length %u)", index_length), LogTree::LOG_DIAGNOSTIC);
 
 	xSemaphoreTake(this->flushq_mutex, portMAX_DELAY);
 	if (!this->flushq.empty() && this->flushq.top().index_flush) {
@@ -396,13 +400,14 @@ void PersistentStorage::run_flush_thread() {
 			xSemaphoreTake(this->flushq_mutex, portMAX_DELAY);
 			FlushRequest request = this->flushq.top();
 			this->flushq.pop();
-			if (!!request.complete)
+			if (!!request.complete || request.index_flush) // Index flushes inherit priority but don't have completion callbacks.
 				vTaskPrioritySet(NULL, request.process_priority); // Someone's blocking, therefore inherit.
 			else
 				vTaskPrioritySet(NULL, TASK_PRIORITY_BACKGROUND); // Noone's blocking, therefore disinherit.
 			xSemaphoreGive(this->flushq_mutex);
 
-			changed = changed || this->do_flush_range(request.start, request.end);
+			if (this->do_flush_range(request.start, request.end))
+				changed = true;
 			if (!!request.complete)
 				request.complete(); // Notify
 
@@ -426,6 +431,7 @@ void PersistentStorage::run_flush_thread() {
  * @return true if changes were flushed, else false
  */
 bool PersistentStorage::do_flush_range(u32 start, u32 end) {
+	this->logtree.log(stdsprintf("Flushing range [%u, %u)", start, end), LogTree::LOG_DIAGNOSTIC);
 	start -= start % this->eeprom.page_size; // Round start down to page boundary.
 	if (end % this->eeprom.page_size)
 		end += this->eeprom.page_size - (end % this->eeprom.page_size);
@@ -433,7 +439,7 @@ bool PersistentStorage::do_flush_range(u32 start, u32 end) {
 	bool changed = false;
 	for (u32 pgaddr = start; pgaddr < end; pgaddr += this->eeprom.page_size) {
 		bool differ = false;
-		for (u32 i = start; i < start+this->eeprom.page_size; ++i) {
+		for (u32 i = pgaddr; i < pgaddr+this->eeprom.page_size; ++i) {
 			if (this->data[i] != this->cache[i]) {
 				differ = true;
 				break;
