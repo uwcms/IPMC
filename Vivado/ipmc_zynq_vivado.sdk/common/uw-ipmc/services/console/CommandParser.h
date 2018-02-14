@@ -165,7 +165,9 @@ public:
 protected:
 	SemaphoreHandle_t mutex; ///< A mutex protecting the commandset info.
 	std::map< std::string, std::shared_ptr<Command> > commandset; ///< The registered commands.
-	std::shared_ptr<Command> get_command(std::string command) const;
+	std::shared_ptr<Command> get_command(const std::string &command) const;
+	CommandParser(CommandParser const &) = delete;   ///< Class is not assignable.
+	void operator=(CommandParser const &x) = delete; ///< Class is not copyable.
 public:
 	CommandParser *chain; ///< A chained command parser used for unknown commands if not NULL.
 };

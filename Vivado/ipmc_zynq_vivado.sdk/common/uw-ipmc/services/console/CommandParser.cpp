@@ -59,6 +59,11 @@ public:
 
 } // anonymous namespace
 
+/**
+ * Initialize a CommandParser
+ *
+ * @param chain The next chained command parser, if applicable.
+ */
 CommandParser::CommandParser(CommandParser *chain)
 	: chain(chain) {
 	this->mutex = xSemaphoreCreateMutex();
@@ -180,7 +185,7 @@ bool CommandParser::parse(ConsoleSvc &console, const std::string &commandline, s
  * @param command The command to return.
  * @return The matching command object or a 'null' pointer.
  */
-std::shared_ptr<CommandParser::Command> CommandParser::get_command(std::string command) const {
+std::shared_ptr<CommandParser::Command> CommandParser::get_command(const std::string &command) const {
 	std::shared_ptr<Command> handler = NULL;
 	xSemaphoreTake(this->mutex, portMAX_DELAY);
 	if (this->commandset.count(command))
