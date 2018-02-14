@@ -48,13 +48,15 @@ LogTree::LogTree(const std::string subtree_label, LogTree &parent)
 
 LogTree::~LogTree() {
 	xSemaphoreTakeRecursive(this->mutex, portMAX_DELAY);
-	configASSERT(this->children.empty());
-	configASSERT(this->filters.empty());
 	if (this->parent) {
+		// Detach from our parent.
 		xSemaphoreTakeRecursive(this->parent->mutex, portMAX_DELAY);
 		this->parent->children.erase(this->label);
 		xSemaphoreGiveRecursive(this->parent->mutex);
 	}
+	// Clean up our children.
+	while (!this->children.empty())
+		delete this->children.begin()->second;
 	vSemaphoreDelete(this->mutex);
 }
 

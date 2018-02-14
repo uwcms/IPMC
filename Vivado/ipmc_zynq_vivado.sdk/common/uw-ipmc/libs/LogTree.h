@@ -107,8 +107,8 @@ public:
 	void register_console_commands(CommandParser &parser, const std::string &prefix="");
 	void deregister_console_commands(CommandParser &parser, const std::string &prefix="");
 
+	LogTree* const parent;                          ///< The parent of this LogTree node.
 protected:
-	LogTree * const parent;                         ///< The parent of this LogTree node.
 	std::map<const std::string, LogTree*> children; ///< All children of this LogTree node.
 
 	void filter_subscribe(Filter *filter, enum LogLevel level, bool inheritance_update);
