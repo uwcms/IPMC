@@ -10,6 +10,7 @@
 #include <libs/ThreadingPrimitives.h>
 #include "FreeRTOS.h"
 #include "task.h"
+#include <string.h>
 
 static void run_PS_WDT_thread(void *cb_ps) {
 	reinterpret_cast<PS_WDT*>(cb_ps)->_run_thread();
@@ -41,6 +42,7 @@ PS_WDT::PS_WDT(u32 DeviceId, u8 num_slots, LogTree &log)
 		slot.enabled = 0;
 		slot.config_cksum = ((~((static_cast<uint64_t>(slot.enabled)<<32)|static_cast<uint64_t>(slot.lifetime))) ^ (slotkey_lshifted1>>1));
 		slot.timeout_cksum = ((~slot.timeout) ^ (slotkey_lshifted1>>1));
+		slot.last_serviced_by[0] = '\0'; // null string.
 	}
 
 	configASSERT(xTaskCreate(run_PS_WDT_thread, "PS_WDT", UWIPMC_STANDARD_STACK_SIZE, this, TASK_PRIORITY_WATCHDOG, NULL));
@@ -83,13 +85,15 @@ void PS_WDT::_run_thread() {
 			if (slot.config_cksum != ((~((static_cast<uint64_t>(slot.enabled)<<32)|static_cast<uint64_t>(slot.lifetime))) ^ (slotkey_lshifted1>>1))) {
 				if (this->global_canary) {
 					this->global_canary = 0; // Break.
-					this->log.log(stdsprintf("WATCHDOG MEMORY CORRUPTED: Slot %hhu config_cksum mismatch.  WATCHDOG SERVICE DISABLED.", i), LogTree::LOG_CRITICAL);
+					slot.last_serviced_by[configMAX_TASK_NAME_LEN-1] = '\0'; // Terminate, just in case.
+					this->log.log(stdsprintf("WATCHDOG MEMORY CORRUPTED: Slot %hhu (%s) config_cksum mismatch.  WATCHDOG SERVICE DISABLED.", i, slot.last_serviced_by), LogTree::LOG_CRITICAL);
 				}
 			}
 			if (slot.timeout_cksum != ((~slot.timeout) ^ (slotkey_lshifted1>>1))) {
 				if (this->global_canary) {
 					this->global_canary = 0; // Break.
-					this->log.log(stdsprintf("WATCHDOG MEMORY CORRUPTED: Slot %hhu timeout_cksum mismatch.  WATCHDOG SERVICE DISABLED.", i), LogTree::LOG_CRITICAL);
+					slot.last_serviced_by[configMAX_TASK_NAME_LEN-1] = '\0'; // Terminate, just in case.
+					this->log.log(stdsprintf("WATCHDOG MEMORY CORRUPTED: Slot %hhu (%s) timeout_cksum mismatch.  WATCHDOG SERVICE DISABLED.", i, slot.last_serviced_by), LogTree::LOG_CRITICAL);
 				}
 			}
 			if (slot.enabled == 0)
@@ -97,13 +101,15 @@ void PS_WDT::_run_thread() {
 			if (slot.enabled != UINT32_MAX) {
 				if (this->global_canary) {
 					this->global_canary = 0; // Break.
-					this->log.log(stdsprintf("WATCHDOG MEMORY CORRUPTED: Slot %hhu enable value invalid.  WATCHDOG SERVICE DISABLED.", i), LogTree::LOG_CRITICAL);
+					slot.last_serviced_by[configMAX_TASK_NAME_LEN-1] = '\0'; // Terminate, just in case.
+					this->log.log(stdsprintf("WATCHDOG MEMORY CORRUPTED: Slot %hhu (%s) enable value invalid.  WATCHDOG SERVICE DISABLED.", i, slot.last_serviced_by), LogTree::LOG_CRITICAL);
 				}
 			}
 			if (slot.timeout < now64) {
 				if (this->global_canary) {
 					this->global_canary = 0; // Break.
-					this->log.log(stdsprintf("WATCHDOG TIMEOUT EXPIRED: Slot %hhu watchdog has expired.  WATCHDOG SERVICE DISABLED.", i), LogTree::LOG_CRITICAL);
+					slot.last_serviced_by[configMAX_TASK_NAME_LEN-1] = '\0'; // Terminate, just in case.
+					this->log.log(stdsprintf("WATCHDOG TIMEOUT EXPIRED: Slot %hhu (%s) watchdog has expired.  WATCHDOG SERVICE DISABLED.", i, slot.last_serviced_by), LogTree::LOG_CRITICAL);
 				}
 			}
 		}
@@ -145,15 +151,18 @@ void PS_WDT::activate_slot(slot_handle_t slot_handle) {
 	if (slot.config_cksum != ((~((static_cast<uint64_t>(slot.enabled)<<32)|static_cast<uint64_t>(slot.lifetime))) ^ (slotkey_lshifted1>>1))) {
 		if (this->global_canary) {
 			this->global_canary = 0; // Break.
-			this->log.log(stdsprintf("WATCHDOG MEMORY CORRUPTED: Slot %hhu config_cksum mismatch.  WATCHDOG SERVICE DISABLED.", slotid), LogTree::LOG_CRITICAL);
+			slot.last_serviced_by[configMAX_TASK_NAME_LEN-1] = '\0'; // Terminate, just in case.
+			this->log.log(stdsprintf("WATCHDOG MEMORY CORRUPTED: Slot %hhu (%s) config_cksum mismatch.  WATCHDOG SERVICE DISABLED.", slotid, slot.last_serviced_by), LogTree::LOG_CRITICAL);
 		}
 	}
 	slot.enabled = UINT32_MAX;
 	slot.config_cksum = ((~((static_cast<uint64_t>(slot.enabled)<<32)|static_cast<uint64_t>(slot.lifetime))) ^ (slotkey_lshifted1>>1));
 	slot.timeout = get_tick64() + slot.lifetime;
 	slot.timeout_cksum = ((~slot.timeout) ^ (slotkey_lshifted1>>1));
+	strncpy(const_cast<char*>(slot.last_serviced_by), pcTaskGetName(NULL), configMAX_TASK_NAME_LEN);
+	slot.last_serviced_by[configMAX_TASK_NAME_LEN-1] = '\0'; // Terminate, just in case.
 	portEXIT_CRITICAL();
-	this->log.log(stdsprintf("Watchdog slot %hhu activated by %s.", slotid, pcTaskGetName(NULL)), LogTree::LOG_INFO);
+	this->log.log(stdsprintf("Watchdog slot %hhu activated by %s.", slotid, slot.last_serviced_by), LogTree::LOG_INFO);
 }
 
 /**
@@ -166,19 +175,23 @@ void PS_WDT::deactivate_slot(slot_handle_t slot_handle, uint32_t deactivate_code
 	u8 slotid = slot_handle & 0xff;
 	configASSERT(slot_handle == (0x80000000|(slotid<<24)|((~slotid)<<16)|slotid)); // Valid?
 	portENTER_CRITICAL();
+	struct wdtslot &slot = this->slots[slotid];
 	if (deactivate_code != (deactivate_code_lshifted1>>1)) {
 		this->global_canary = 0; // Break.
-		this->log.log(stdsprintf("WATCHDOG ILLEGAL DISABLE: Slot %hhu deactivate_code invalid.  WATCHDOG SERVICE DISABLED.", slotid), LogTree::LOG_CRITICAL);
+		slot.last_serviced_by[configMAX_TASK_NAME_LEN-1] = '\0'; // Terminate, just in case.
+		this->log.log(stdsprintf("WATCHDOG ILLEGAL DISABLE: Slot %hhu (%s) deactivate_code invalid.  WATCHDOG SERVICE DISABLED.", slotid, slot.last_serviced_by), LogTree::LOG_CRITICAL);
 	}
-	struct wdtslot &slot = this->slots[slotid];
 	if (slot.config_cksum != ((~((static_cast<uint64_t>(slot.enabled)<<32)|static_cast<uint64_t>(slot.lifetime))) ^ (slotkey_lshifted1>>1))) {
 		if (this->global_canary) {
 			this->global_canary = 0; // Break.
-			this->log.log(stdsprintf("WATCHDOG MEMORY CORRUPTED: Slot %hhu config_cksum mismatch.  WATCHDOG SERVICE DISABLED.", slotid), LogTree::LOG_CRITICAL);
+			slot.last_serviced_by[configMAX_TASK_NAME_LEN-1] = '\0'; // Terminate, just in case.
+			this->log.log(stdsprintf("WATCHDOG MEMORY CORRUPTED: Slot %hhu (%s) config_cksum mismatch.  WATCHDOG SERVICE DISABLED.", slotid, slot.last_serviced_by), LogTree::LOG_CRITICAL);
 		}
 	}
 	slot.enabled = 0;
 	slot.config_cksum = ((~((static_cast<uint64_t>(slot.enabled)<<32)|static_cast<uint64_t>(slot.lifetime))) ^ (slotkey_lshifted1>>1));
+	strncpy(const_cast<char*>(slot.last_serviced_by), pcTaskGetName(NULL), configMAX_TASK_NAME_LEN);
+	slot.last_serviced_by[configMAX_TASK_NAME_LEN-1] = '\0'; // Terminate, just in case.
 	portEXIT_CRITICAL();
 	this->log.log(stdsprintf("Watchdog slot %hhu deactivated by %s.", slotid, pcTaskGetName(NULL)), LogTree::LOG_INFO);
 }
@@ -196,17 +209,21 @@ void PS_WDT::service_slot(slot_handle_t slot_handle) {
 	if (slot.config_cksum != ((~((static_cast<uint64_t>(slot.enabled)<<32)|static_cast<uint64_t>(slot.lifetime))) ^ (slotkey_lshifted1>>1))) {
 		if (this->global_canary) {
 			this->global_canary = 0; // Break.
-			this->log.log(stdsprintf("WATCHDOG MEMORY CORRUPTED: Slot %hhu config_cksum mismatch.  WATCHDOG SERVICE DISABLED.", slotid), LogTree::LOG_CRITICAL);
+			slot.last_serviced_by[configMAX_TASK_NAME_LEN-1] = '\0'; // Terminate, just in case.
+			this->log.log(stdsprintf("WATCHDOG MEMORY CORRUPTED: Slot %hhu (%s) config_cksum mismatch.  WATCHDOG SERVICE DISABLED.", slotid, slot.last_serviced_by), LogTree::LOG_CRITICAL);
 		}
 	}
 	if (slot.timeout_cksum != ((~slot.timeout) ^ (slotkey_lshifted1>>1))) {
 		if (this->global_canary) {
 			this->global_canary = 0; // Break.
-			this->log.log(stdsprintf("WATCHDOG MEMORY CORRUPTED: Slot %hhu timeout_cksum mismatch.  WATCHDOG SERVICE DISABLED.", slotid), LogTree::LOG_CRITICAL);
+			slot.last_serviced_by[configMAX_TASK_NAME_LEN-1] = '\0'; // Terminate, just in case.
+			this->log.log(stdsprintf("WATCHDOG MEMORY CORRUPTED: Slot %hhu (%s) timeout_cksum mismatch.  WATCHDOG SERVICE DISABLED.", slotid, slot.last_serviced_by), LogTree::LOG_CRITICAL);
 		}
 	}
 	slot.timeout = get_tick64() + slot.lifetime;
 	slot.timeout_cksum = ((~slot.timeout) ^ (slotkey_lshifted1>>1));
+	strncpy(const_cast<char*>(slot.last_serviced_by), pcTaskGetName(NULL), configMAX_TASK_NAME_LEN);
+	slot.last_serviced_by[configMAX_TASK_NAME_LEN-1] = '\0'; // Terminate, just in case.
 	portEXIT_CRITICAL();
 	this->log.log(stdsprintf("Watchdog slot %hhu serviced by %s.", slotid, pcTaskGetName(NULL)), LogTree::LOG_DIAGNOSTIC);
 }

@@ -38,6 +38,7 @@ protected:
 		volatile uint64_t config_cksum; ///< (~((enabled<<32)|lifetime)) ^ slot_cksum_key
 		volatile uint64_t timeout; ///< The current timeout of this watchdog as a tick64 (last update + lifetime)
 		volatile uint64_t timeout_cksum; ///< (~timeout) ^ slot_cksum_key
+		volatile char last_serviced_by[configMAX_TASK_NAME_LEN]; ///< The last task servicing this slot.
 	};
 
 	u8 num_slots; ///< The number of slots supported by this PS_WDT.
