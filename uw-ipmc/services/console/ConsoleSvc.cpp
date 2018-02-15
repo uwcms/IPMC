@@ -125,10 +125,9 @@ bool ConsoleSvc::write(std::string data, TickType_t timeout) {
 void ConsoleSvc::_run_thread() {
 	this->logtree.log("Starting Console Service \"" + this->name + "\"", LogTree::LOG_INFO);
 	const std::string ctrlc_erased_facility = this->logtree.path + ".ctrlc_erased";
+#ifdef ANSICODE_TIMEOUT
 	const std::string timed_out_ansi_facility = this->logtree.path + ".timed_out_ansi";
-	std::function<void(std::string)> console_output = [this](std::string data) -> void {
-		this->write(data, portMAX_DELAY);
-	};
+#endif
 
 	// We will hold this semaphore as the rule, not the exception, releasing it only for other transactions.
 	xSemaphoreTake(this->linebuf_mutex, portMAX_DELAY);
@@ -202,7 +201,7 @@ void ConsoleSvc::_run_thread() {
 					history.record_entry(cmdbuf);
 					xSemaphoreGive(this->linebuf_mutex);
 					if (!this->parser.parse(*this, cmdbuf))
-						console_output("Unknown command!\n");
+						this->write("Unknown command!\n", portMAX_DELAY);
 					xSemaphoreTake(this->linebuf_mutex, portMAX_DELAY);
 				}
 			}
@@ -253,11 +252,13 @@ void ConsoleSvc::_run_thread() {
 				}
 			}
 			else {
-				if (!ansi_code.buffer.empty() && last_ansi_tick + 50 < get_tick64()) {
+#ifdef ANSICODE_TIMEOUT
+				if (!ansi_code.buffer.empty() && last_ansi_tick + ANSICODE_TIMEOUT < get_tick64()) {
 					// This control code took too long to come through.  Invalidating it.
 					TRACE.log(timed_out_ansi_facility.c_str(), timed_out_ansi_facility.size(), LogTree::LOG_TRACE, ansi_code.buffer.data(), ansi_code.buffer.size(), true);
 					ansi_code.buffer.clear();
 				}
+#endif
 				if (*it == '\x1b')
 					ansi_code.buffer.clear(); // Whatever code we were building got interrupted.  Toss it.
 				enum ANSICode::ParseState ansi_state = ansi_code.parse(*it);
@@ -267,7 +268,9 @@ void ConsoleSvc::_run_thread() {
 					continue;
 				case ANSICode::PARSE_INCOMPLETE:
 					 // Oh good.  Continue without adding it to the buffers yet.
+#ifdef ANSICODE_TIMEOUT
 					last_ansi_tick = get_tick64();
+#endif
 					prevchar = *it;
 					continue;
 				case ANSICode::PARSE_INVALID:
