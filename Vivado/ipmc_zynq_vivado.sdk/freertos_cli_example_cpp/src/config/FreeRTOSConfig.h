@@ -136,6 +136,7 @@
 #define configUSE_QUEUE_SETS					1
 #define configSUPPORT_STATIC_ALLOCATION			1
 #define configTIMER_SERVICE_TASK_NAME			"tmrd"
+#define configUSE_NEWLIB_REENTRANT              1
 
 /* Include the query-heap CLI command to query the free heap space. */
 #define configINCLUDE_QUERY_HEAP_COMMAND		1
