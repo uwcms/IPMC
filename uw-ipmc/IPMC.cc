@@ -23,6 +23,7 @@
 #include <libs/LogTree.h>
 
 #include <algorithm>
+#include <functional>
 
 /* Xilinx includes. */
 #include "xparameters.h"
@@ -59,9 +60,9 @@ TelnetServer *telnet;
 // External static variables
 extern uint8_t mac_address[6]; ///< The MAC address of the board, read by persistent storage statically
 
-static void console_log_handler(LogTree &logtree, const std::string &message, enum LogTree::LogLevel level);
 static void tracebuffer_log_handler(LogTree &logtree, const std::string &message, enum LogTree::LogLevel level);
 static void register_core_console_commands(CommandParser &parser);
+static void console_log_handler(LogTree &logtree, const std::string &message, enum LogTree::LogLevel level);
 
 /** Stage 1 driver initialization.
  *
@@ -156,41 +157,6 @@ std::string generate_banner() {
 	bannerstr += "\n";
 	bannerstr += "********************************************************************************\n";
 	return bannerstr;
-}
-
-/**
- * This handler copies log messages to the UART.
- */
-static void console_log_handler(LogTree &logtree, const std::string &message,
-		enum LogTree::LogLevel level) {
-	static const std::vector<std::string> colormap = {
-			ANSICode::color(),                                          // LOG_SILENT:     "null" (reset) (placeholder)
-			ANSICode::color(ANSICode::WHITE, ANSICode::RED, true),      // LOG_CRITICAL:   bold white on red
-			ANSICode::color(ANSICode::RED, ANSICode::NOCOLOR, true),    // LOG_ERROR:      bold red
-			ANSICode::color(ANSICode::YELLOW, ANSICode::NOCOLOR, true), // LOG_WARNING:    bold yellow
-			ANSICode::color(ANSICode::TUROQUOISE),                      // LOG_NOTICE:     turquoise
-			ANSICode::color(ANSICode::GREEN),                           // LOG_INFO:       green
-			ANSICode::color(ANSICode::LIGHTGREY),                       // LOG_DIAGNOSTIC: lightgrey
-			ANSICode::color(ANSICode::DARKGREY),                        // LOG_TRACE:      darkgrey
-	};
-	std::string color = ANSICode::color(ANSICode::BLUE);
-	if (level < colormap.size())
-		color = colormap.at(level);
-
-	std::string logmsg = color + stdsprintf("[%4.4s] ", LogTree::LogLevel_strings[level]) + message + ANSICode::color() + "\n";
-	/* We write with 0 timeout, because we'd rather lose lines than hang on UART
-	 * output.  That's what the tracebuffer is for anyway.
-	 */
-	if (!console_service || IN_INTERRUPT() || IN_CRITICAL()) {
-		// Still early startup.
-		windows_newline(logmsg);
-		uart_ps0->write(logmsg.data(), logmsg.size(), 0);
-	}
-	else {
-		// We have to use a short timeout here, rather than none, due to the mutex involved.
-		// TODO: Maybe there's a better way?
-		console_service->write(logmsg, 1);
-	}
 }
 
 /**
@@ -314,6 +280,24 @@ static void register_core_console_commands(CommandParser &parser) {
 	console_command_parser.register_command("uptime", std::make_shared<ConsoleCommand_uptime>());
 	console_command_parser.register_command("version", std::make_shared<ConsoleCommand_version>());
 	console_command_parser.register_command("ps", std::make_shared<ConsoleCommand_ps>());
+}
+
+static void console_log_handler(LogTree &logtree, const std::string &message, enum LogTree::LogLevel level) {
+	std::string logmsg = ConsoleSvc_log_format(message, level);
+
+	/* We write with 0 timeout, because we'd rather lose lines than hang on UART
+	* output.  That's what the tracebuffer is for anyway.
+	*/
+	if (!console_service || IN_INTERRUPT() || IN_CRITICAL()) {
+		// Still early startup.
+		windows_newline(logmsg);
+		uart_ps0->write(logmsg.data(), logmsg.size(), 0);
+	}
+	else {
+		// We have to use a short timeout here, rather than none, due to the mutex involved.
+		// TODO: Maybe there's a better way?
+		console_service->write(logmsg, 1);
+	}
 }
 
 /**
