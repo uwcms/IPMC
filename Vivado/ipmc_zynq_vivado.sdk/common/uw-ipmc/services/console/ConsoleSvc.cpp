@@ -26,14 +26,14 @@ static void run_ConsoleSvc_thread(void *cb_ucs) {
  * @param name The name of the service for the process and such things.
  * @param logtree The log tree root for this service.
  * @param echo If true, enable echo and interactive management.
+ * @param read_data_timeout The timeout for reads when data is available.
  */
-ConsoleSvc::ConsoleSvc(CommandParser &parser, const std::string &name, LogTree &logtree, bool echo)
+ConsoleSvc::ConsoleSvc(CommandParser &parser, const std::string &name, LogTree &logtree, bool echo, TickType_t read_data_timeout)
 	: parser(parser), name(name), logtree(logtree), log_input(logtree["input"]),
-	  echo(echo), linebuf("> ", 2048), shutdown(false) {
+	  echo(echo), read_data_timeout(read_data_timeout), linebuf("> ", 2048),
+	  shutdown(false), task(NULL) {
 	this->linebuf_mutex = xSemaphoreCreateMutex();
 	configASSERT(this->linebuf_mutex);
-	this->shutdown_complete = xEventGroupCreate();
-	configASSERT(this->shutdown_complete);
 
 #if 0 // Debugging only.
 	CommandParser::handler_t colormecmd = [](std::function<void(std::string)> print, const CommandParser::CommandParameters &parameters) -> void {
@@ -59,14 +59,19 @@ ConsoleSvc::ConsoleSvc(CommandParser &parser, const std::string &name, LogTree &
 	for (auto it = ANSICode::codenames.begin(), eit = ANSICode::codenames.end(); it != eit; ++it)
 		parser.register_command("ANSI_" + it->second, ansicmd, "");
 #endif
-	configASSERT(xTaskCreate(run_ConsoleSvc_thread, name.c_str(), UWIPMC_STANDARD_STACK_SIZE, this, TASK_PRIORITY_INTERACTIVE, NULL));
 }
 
 ConsoleSvc::~ConsoleSvc() {
-	vEventGroupDelete(this->shutdown_complete);
 	vSemaphoreDelete(this->linebuf_mutex);
 }
 
+/**
+ * Start the console service.  Call exactly once.
+ */
+void ConsoleSvc::start() {
+	configASSERT(!this->task);
+	configASSERT(xTaskCreate(run_ConsoleSvc_thread, name.c_str(), UWIPMC_STANDARD_STACK_SIZE, this, TASK_PRIORITY_INTERACTIVE, &this->task));
+}
 /**
  * Write to the console without disrupting the prompt.
  *
@@ -153,7 +158,7 @@ void ConsoleSvc::_run_thread() {
 		if (this->shutdown)
 			break;
 		xSemaphoreGive(this->linebuf_mutex);
-		ssize_t bytes_read = this->raw_read(readbuf, 128, portMAX_DELAY);
+		ssize_t bytes_read = this->raw_read(readbuf, 128, portMAX_DELAY, this->read_data_timeout);
 		xSemaphoreTake(this->linebuf_mutex, portMAX_DELAY);
 		if (this->shutdown)
 			break;
@@ -360,7 +365,7 @@ void ConsoleSvc::_run_thread() {
 		echobuf.clear();
 	}
 	xSemaphoreGive(this->linebuf_mutex);
-	xEventGroupSetBits(this->shutdown_complete, 1);
+	this->shutdown_complete();
 	if (this->shutdown & 2)
 		delete this;
 	vTaskDelete(NULL);
@@ -731,4 +736,29 @@ std::string ConsoleSvc::InputBuffer::set_cursor(size_type cursor) {
 		this->cursor = cursor;
 	}
 	return out;
+}
+
+/**
+ * Format a log message for console output.
+ *
+ * @param message The log message
+ * @param level The loglevel of the message
+ * @return The message formatted for console output
+ */
+std::string ConsoleSvc_log_format(const std::string &message, enum LogTree::LogLevel level) {
+	static const std::vector<std::string> colormap = {
+			ANSICode::color(),                                          // LOG_SILENT:     "null" (reset) (placeholder)
+			ANSICode::color(ANSICode::WHITE, ANSICode::RED, true),      // LOG_CRITICAL:   bold white on red
+			ANSICode::color(ANSICode::RED, ANSICode::NOCOLOR, true),    // LOG_ERROR:      bold red
+			ANSICode::color(ANSICode::YELLOW, ANSICode::NOCOLOR, true), // LOG_WARNING:    bold yellow
+			ANSICode::color(ANSICode::TUROQUOISE),                      // LOG_NOTICE:     turquoise
+			ANSICode::color(ANSICode::GREEN),                           // LOG_INFO:       green
+			ANSICode::color(ANSICode::LIGHTGREY),                       // LOG_DIAGNOSTIC: lightgrey
+			ANSICode::color(ANSICode::DARKGREY),                        // LOG_TRACE:      darkgrey
+	};
+	std::string color = ANSICode::color(ANSICode::BLUE);
+	if (level < colormap.size())
+		color = colormap.at(level);
+
+	return color + stdsprintf("[%4.4s] ", LogTree::LogLevel_strings[level]) + message + ANSICode::color() + "\n";
 }

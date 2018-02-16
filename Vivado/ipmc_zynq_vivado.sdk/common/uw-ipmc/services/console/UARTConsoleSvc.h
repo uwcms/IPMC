@@ -27,15 +27,14 @@ public:
 	 * @param read_data_timeout The timeout for reads when data is available.
 	 */
 	UARTConsoleSvc(UART &uart, CommandParser &parser, const std::string &name, LogTree &logtree, bool echo, TickType_t read_data_timeout=10)
-		: ConsoleSvc(parser, name, logtree, echo), uart(uart), read_data_timeout(read_data_timeout) { };
+		: ConsoleSvc(parser, name, logtree, echo, read_data_timeout), uart(uart) { this->start(); };
 	virtual ~UARTConsoleSvc() { };
 
 	UART &uart; ///< The UART this console is driven by.
-	TickType_t read_data_timeout; ///< The read data timeout for the UART, which influences responsiveness.
 
 protected:
 	/// Pass read through to the UART.
-	virtual ssize_t raw_read(char *buf, size_t len, TickType_t timeout) { return this->uart.read(buf, len, timeout, this->read_data_timeout); };
+	virtual ssize_t raw_read(char *buf, size_t len, TickType_t timeout, TickType_t read_data_timeout) { return this->uart.read(buf, len, timeout, read_data_timeout); };
 
 	/// Pass write through to the UART.
 	virtual ssize_t raw_write(const char *buf, size_t len, TickType_t timeout) { return this->uart.write(buf, len, timeout); };

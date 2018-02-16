@@ -24,14 +24,17 @@
  */
 class ConsoleSvc {
 public:
-	ConsoleSvc(CommandParser &parser, const std::string &name, LogTree &logtree, bool echo);
+	ConsoleSvc(CommandParser &parser, const std::string &name, LogTree &logtree, bool echo, TickType_t read_data_timeout=10);
 	virtual ~ConsoleSvc();
+	virtual void start();
 
 	CommandParser &parser; ///< The command parser for this console.
 	const std::string name; ///< The name for this ConsoleSvc's thread, logging, etc.
 	LogTree &logtree; ///< A log sink for this service.
 	LogTree &log_input; ///< A log sink for input.
 	bool echo; ///< Enable or disable echo.
+	TickType_t read_data_timeout; ///< The read data timeout for the UART, which influences responsiveness.
+	TaskHandle_t task; ///< A random handle to our task, mainly just for double-start checks.
 
 	virtual bool write(std::string data, TickType_t timeout=portMAX_DELAY);
 
@@ -112,17 +115,28 @@ protected:
 	SemaphoreHandle_t linebuf_mutex; ///< A mutex protecting the linebuf and direct output.
 	InputBuffer linebuf; ///< The current line buffer.
 	volatile int shutdown; ///< If nonzero, the service will shut down.  read() and write() must return immediately, for this to succeed.  If |=2, this object will delete itself.
-	EventGroupHandle_t shutdown_complete; ///< Set to 1 immediately before thread self-deletion.  Object cleanup is your responsibility unless (shutdown&2)==1.  Do not rely on the value of the return bitmask.
 
-protected:
+	/**
+	 * A virtual method allowing "shutdown complete" notification/handling.
+	 *
+	 * This is called immediately before object deletion (if relevant) and
+	 * thread death.
+	 */
+	virtual void shutdown_complete() { };
+
 	/// A virtual method handling input, to be overridden by implementations.
-	virtual ssize_t raw_read(char *buf, size_t len, TickType_t timeout) { configASSERT(0); return 0; };
+	virtual ssize_t raw_read(char *buf, size_t len, TickType_t timeout, TickType_t read_data_timeout) { configASSERT(0); return 0; };
 
 	/// A virtual method handling output, to be overridden by implementations.
 	virtual ssize_t raw_write(const char *buf, size_t len, TickType_t timeout) { configASSERT(0); return 0; };
 
+    ConsoleSvc(ConsoleSvc const &) = delete;      ///< Class is not assignable.
+    void operator=(ConsoleSvc const &x) = delete; ///< Class is not copyable.
+
 public:
 	virtual void _run_thread(); ///< \protected Internal
 };
+
+std::string ConsoleSvc_log_format(const std::string &message, enum LogTree::LogLevel level);
 
 #endif /* SRC_COMMON_UW_IPMC_SERVICES_CONSOLE_CONSOLESVC_H_ */
