@@ -20,6 +20,7 @@
 #include <drivers/tracebuffer/TraceBuffer.h>
 #include <services/console/UARTConsoleSvc.h>
 #include <services/influxdb/InfluxDBClient.h>
+#include <services/telnet/Telnet.h>
 #include <libs/LogTree.h>
 
 #include <algorithm>
@@ -32,8 +33,8 @@
 #include "xil_exception.h"
 #include "xgpiops.h"
 
-#include <services/telnet/Telnet.h>
 #include <alloca.h>
+
 
 u8 IPMC_HW_REVISION = 1; // TODO: Detect, Update, etc
 
@@ -137,7 +138,7 @@ void ipmc_service_init() {
 	network = new Network(LOG["network"], mac_address);
 	influxdbclient = new InfluxDBClient(LOG["influxdb"]);
 	influxdbclient->register_console_commands(console_command_parser, "influxdb.");
-	telnet = new TelnetServer();
+	telnet = new TelnetServer(LOG["network"]["telnetd"]);
 }
 
 

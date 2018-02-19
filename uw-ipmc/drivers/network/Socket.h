@@ -10,6 +10,7 @@
 
 #include <lwip/sockets.h>
 #include <string>
+#include "FreeRTOS.h"
 
 #include "SocketAddress.h"
 
@@ -21,7 +22,7 @@
 class Socket {
 protected:
 	int socketfd;
-	SocketAddress* sockaddr;
+	SocketAddress sockaddr;
 
 public:
 	Socket(int socket, struct sockaddr_in addr);
@@ -29,24 +30,25 @@ public:
 
 	/**
 	 * Reads a specified amount of data into a character pointer
-	 * @param the character buffer
-	 * @param the length of the character buffer
+	 * @param buf the character buffer
+	 * @param len the length of the character buffer
+	 * @param timeout A timeout for this read operation.
+	 * @return The amount of data sent.
 	 */
-	virtual int read(char*, int);
-
-	/**
-	 * Sends a string to the client
-	 * @param the string to send
-	 */
-	virtual int send(std::string);
+	virtual int read(char* buf, int len, TickType_t timeout=portMAX_DELAY);
 
 	/**
 	 * Sends an array of charactes to the client, with a specified start and end index
-	 * @param the character buffer
-	 * @param the starting position
-	 * @param the length
+	 * @param buf the character buffer
+	 * @param len the length
+	 * @param timeout A timeout for this read operation.
+	 * @return The amount of data sent.
 	 */
-	virtual int send(const char* buf, int len, int flags=0);
+	virtual int send(const char* buf, int len, TickType_t timeout=portMAX_DELAY);
+	/// \overload
+	virtual int send(std::string data, TickType_t timeout=portMAX_DELAY) {
+		return this->send(data.c_str(), data.length(), 0);
+	};
 
 	/**
 	 * Sets the socket in blocking mode
@@ -90,8 +92,20 @@ public:
 	 * information about the socket's address and port
 	 * @return the socketaddress instance
 	 */
-	virtual SocketAddress* get_socketaddress() {
+	virtual const SocketAddress& get_socketaddress() {
 		return sockaddr;
+	}
+
+	/**
+	 * Get the socket-specific errno.
+	 *
+	 * @return The errno for this socket.
+	 */
+	virtual int get_errno() {
+		int error;
+		u32_t optlen = sizeof(error);
+		lwip_getsockopt(this->socketfd, SOL_SOCKET, SO_ERROR, &error, &optlen);
+		return error;
 	}
 };
 
