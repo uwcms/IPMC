@@ -46,7 +46,7 @@ public:
 	 * Returns a sockaddr_in structure based on the information of the socketaddress instance
 	 * @return sockaddr_in structure
 	 */
-	struct sockaddr_in get_struct() {
+	struct sockaddr_in get_struct() const {
 		struct sockaddr_in addr;
 		memset(&addr, 0, sizeof(struct sockaddr_in));
 
@@ -62,7 +62,7 @@ public:
 	 * Gets the port of the socket
 	 * @return the port number
 	 */
-	int get_port() {
+	int get_port() const {
 		return port;
 	}
 
@@ -70,8 +70,17 @@ public:
 	 * Gets the address of the socket
 	 * @return the address
 	 */
-	std::string get_address() {
+	std::string get_address() const {
 		return address;
+	}
+
+	/**
+	 * Gets the address of the socket
+	 * @return the address
+	 */
+	uint32_t get_address_binary() const {
+		struct sockaddr_in addr = this->get_struct();
+		return addr.sin_addr.s_addr;
 	}
 };
 
