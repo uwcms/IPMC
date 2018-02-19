@@ -33,6 +33,7 @@
 #include "xgpiops.h"
 
 #include <services/telnet/Telnet.h>
+#include <alloca.h>
 
 u8 IPMC_HW_REVISION = 1; // TODO: Detect, Update, etc
 
@@ -320,9 +321,16 @@ std::string stdsprintf(const char *fmt, ...) {
     va_start(va, fmt);
     va_copy(va2, va);
     size_t s = vsnprintf(NULL, 0, fmt, va) + 1;
-    char str[s];
+    char *str;
+    if (s <= 128)
+    	str = (char*)alloca(s);
+    else
+    	str = (char*)malloc(s);
     vsnprintf(str, s, fmt, va2);
     va_end(va);
     va_end(va2);
-    return std::string(str);
+    std::string ret(str);
+    if (s > 128)
+    	free(str);
+    return ret;
 }
