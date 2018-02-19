@@ -39,7 +39,7 @@ void vAssertCalled(const char * pcFile, unsigned long ulLine) {
 			 *
 			 * No sense asserting and not realizing it.
 			 *
-			 * Step over this instruction to continue.
+			 * Add 4 to the PC to step over this instruction and continue.
 			 */
 			__asm__ volatile ("bkpt");
 
