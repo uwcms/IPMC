@@ -238,9 +238,7 @@ std::vector<std::string> CommandParser::list_commands(bool native_only) const {
  * @return The help text or an empty string if empty or none present.
  */
 std::string CommandParser::get_helptext(const std::string &command) const {
-	xSemaphoreTake(this->mutex, portMAX_DELAY);
 	std::shared_ptr<Command> handler = this->get_command(command);
-	xSemaphoreGive(this->mutex);
 	if (handler)
 		return handler->get_helptext(command);
 	else
