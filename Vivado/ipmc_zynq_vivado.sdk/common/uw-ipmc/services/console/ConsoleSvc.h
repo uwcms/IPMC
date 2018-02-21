@@ -138,7 +138,7 @@ protected:
 
 	SemaphoreHandle_t linebuf_mutex; ///< A mutex protecting the linebuf and direct output.
 	InputBuffer linebuf; ///< The current line buffer.
-	volatile int shutdown; ///< If nonzero, the service will shut down.  read() and write() must return immediately, for this to succeed.  If |=2, this object will delete itself.
+	volatile bool shutdown; ///< If true, the service will shut down.  read() and write() must return immediately, for this to succeed.
 
 	/**
 	 * A virtual method allowing "shutdown complete" notification/handling.
