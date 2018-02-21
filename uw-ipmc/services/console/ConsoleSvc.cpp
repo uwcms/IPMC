@@ -82,6 +82,8 @@ void ConsoleSvc::start() {
  * @return
  */
 bool ConsoleSvc::write(std::string data, TickType_t timeout) {
+	if (this->shutdown)
+		return true; // Discard.
 	AbsoluteTimeout abstimeout(timeout);
 	if (!xSemaphoreTake(this->linebuf_mutex, abstimeout.get_timeout()))
 		return false;
@@ -366,8 +368,6 @@ void ConsoleSvc::_run_thread() {
 	}
 	xSemaphoreGive(this->linebuf_mutex);
 	this->shutdown_complete();
-	if (this->shutdown & 2)
-		delete this;
 	vTaskDelete(NULL);
 }
 
