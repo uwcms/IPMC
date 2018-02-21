@@ -37,7 +37,20 @@ protected:
  */
 class TelnetConsoleSvc : public ConsoleSvc {
 public:
+	/**
+	 * Factory function.  All parameters match the constructor.
+	 *
+	 * \note Since the parameters are specific, this function cannot be virtual.
+	 */
+	static std::shared_ptr<TelnetConsoleSvc> create(Socket &socket, std::shared_ptr<InputProtocolParser> proto, CommandParser &parser, const std::string &name, LogTree &logtree, bool echo, TickType_t read_data_timeout=4, std::function<void(TelnetConsoleSvc&)> shutdown_complete_cb=NULL) {
+		configASSERT(0); // ConsoleSvc is intended as an abstract class only.
+		std::shared_ptr<TelnetConsoleSvc> ret(new TelnetConsoleSvc(socket, proto, parser, name, logtree, echo, read_data_timeout, shutdown_complete_cb));
+		ret->weakself = ret;
+		return ret;
+	}
+protected:
 	TelnetConsoleSvc(Socket &socket, std::shared_ptr<InputProtocolParser> proto, CommandParser &parser, const std::string &name, LogTree &logtree, bool echo, TickType_t read_data_timeout=4, std::function<void(TelnetConsoleSvc&)> shutdown_complete_cb=NULL);
+public:
 	virtual ~TelnetConsoleSvc();
 
 	Socket *socket; ///< The socket this console is driven by.
