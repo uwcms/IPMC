@@ -23,7 +23,7 @@ public:
 	ConsoleCommand_help(CommandParser &parser) : parser(parser) { };
 
 	/// Execute
-	virtual void execute(ConsoleSvc &console, const CommandParser::CommandParameters &parameters) {
+	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
 		std::string out;
 		std::string command;
 
@@ -42,7 +42,7 @@ public:
 					out += *it + "\n";
 				}
 		}
-		console.write(out);
+		console->write(out);
 	}
 
 	virtual std::string get_helptext(const std::string &command) const {
@@ -166,7 +166,7 @@ std::vector<std::string> CommandParser::tokenize(const std::string &commandline,
  * @param cursor The current input cursor position.
  * @return false if unknown command, else true.
  */
-bool CommandParser::parse(ConsoleSvc &console, const std::string &commandline, std::string::size_type cursor) {
+bool CommandParser::parse(std::shared_ptr<ConsoleSvc> console, const std::string &commandline, std::string::size_type cursor) {
 	std::vector<std::string>::size_type cursor_param = 0;
 	std::string::size_type cursor_char = cursor;
 	std::vector<std::string> command = CommandParser::tokenize(commandline, &cursor_param, &cursor_char);

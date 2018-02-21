@@ -154,7 +154,7 @@ public:
 		 * @param console The calling console.  Use its safe_write() for stdout.
 		 * @param parameters The parameters for this command execution.
 		 */
-		virtual void execute(ConsoleSvc &console, const CommandParameters &parameters) { configASSERT(0); };
+		virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParameters &parameters) = 0;//{ configASSERT(0); };
 
 		/**
 		 * Provide completion options for the specified parameter (using .cursor_*).
@@ -172,7 +172,7 @@ public:
 		virtual std::vector<std::string> complete(const CommandParameters &parameters) const { return std::vector<std::string>(); };
 	};
 
-	virtual bool parse(ConsoleSvc &console, const std::string &commandline, std::string::size_type cursor=0);
+	virtual bool parse(std::shared_ptr<ConsoleSvc> console, const std::string &commandline, std::string::size_type cursor=0);
 	virtual void register_command(const std::string &token, std::shared_ptr<Command> handler);
 	virtual std::vector<std::string> list_commands(bool native_only=false) const;
 	virtual std::string get_helptext(const std::string &command) const;

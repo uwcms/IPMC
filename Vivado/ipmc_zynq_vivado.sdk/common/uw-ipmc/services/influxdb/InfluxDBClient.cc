@@ -217,7 +217,7 @@ namespace {
 					"Configures the InfluxDB client.\n", command.c_str());
 		}
 
-		virtual void execute(ConsoleSvc &console, const CommandParser::CommandParameters &parameters) {
+		virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
 			InfluxDBClient::InfluxDBClient_Config c;
 			c.startOnBoot = false;
 
@@ -256,11 +256,11 @@ namespace {
 					"Prints current configuration.\n", command.c_str());
 		}
 
-		virtual void execute(ConsoleSvc &console, const CommandParser::CommandParameters &parameters) {
+		virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
 			const InfluxDBClient::InfluxDBClient_Config *c = influxdb.get_configuration();
 
-			console.write("Current configuration for InfluxDB Client:");
-			console.write("Host: " + std::string(c->host) + ":" + std::to_string(c->port));
+			console->write("Current configuration for InfluxDB Client:");
+			console->write("Host: " + std::string(c->host) + ":" + std::to_string(c->port));
 		}
 
 		//virtual std::vector<std::string> complete(const CommandParser::CommandParameters &parameters) const { };
@@ -281,8 +281,8 @@ namespace {
 					"Get the current measurements.\n", command.c_str());
 		}
 
-		virtual void execute(ConsoleSvc &console, const CommandParser::CommandParameters &parameters) {
-			console.write(influxdb.measurement());
+		virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
+			console->write(influxdb.measurement());
 		}
 
 		//virtual std::vector<std::string> complete(const CommandParser::CommandParameters &parameters) const { };
@@ -303,7 +303,7 @@ namespace {
 					"tart the deamon.\n", command.c_str());
 		}
 
-		virtual void execute(ConsoleSvc &console, const CommandParser::CommandParameters &parameters) {
+		virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
 			influxdb.startd();
 		}
 

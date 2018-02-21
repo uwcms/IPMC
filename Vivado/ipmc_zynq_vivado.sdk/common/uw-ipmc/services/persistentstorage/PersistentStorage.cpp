@@ -478,7 +478,7 @@ public:
 				"Lists all persistent storage sections.\n", command.c_str());
 	}
 
-	virtual void execute(ConsoleSvc &console, const CommandParser::CommandParameters &parameters) {
+	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
 		std::string out;
 		std::vector<struct PersistentStorage::PersistentStorageIndexRecord> sections = this->storage.list_sections();
 		for (auto it = sections.begin(), eit = sections.end(); it != eit; ++it) {
@@ -487,7 +487,7 @@ public:
 				name = PersistentStorageAllocations::id_to_name->at(it->id);
 			out += stdsprintf("Section 0x%04hx (ver %hu), at pages 0x%04hx-0x%04hx: %s\n", it->id, it->version, it->pgoff, it->pgoff + it->pgcount - 1, name.c_str());
 		}
-		console.write(out);
+		console->write(out);
 	}
 
 	//virtual std::vector<std::string> complete(const CommandParser::CommandParameters &parameters) const { };
@@ -508,7 +508,7 @@ public:
 				"Read from a given section.\n", command.c_str());
 	}
 
-	virtual void execute(ConsoleSvc &console, const CommandParser::CommandParameters &parameters) {
+	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
 		u16 sect_id = 0;
 		std::string sect_name;
 		u32 start;
@@ -540,7 +540,7 @@ public:
 				std::string out;
 				for (u32 i = start; i < start+length && i < (it->pgcount*this->storage.eeprom.page_size); ++i)
 					out += stdsprintf(" %2hhx", buf[i]);
-				console.write(stdsprintf("0x%04hx[0x%04lx:0x%04lx]:", sect_id, start, start+length) + out + "\n");
+				console->write(stdsprintf("0x%04hx[0x%04lx:0x%04lx]:", sect_id, start, start+length) + out + "\n");
 				return;
 			}
 		}
@@ -573,7 +573,7 @@ public:
 				"Write to a given section.\n", command.c_str());
 	}
 
-	virtual void execute(ConsoleSvc &console, const CommandParser::CommandParameters &parameters) {
+	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
 		u16 sect_id = 0;
 		std::string sect_name;
 		u32 start;
@@ -617,7 +617,7 @@ public:
 				}
 				for (u32 i = 0; i < writebytecount; ++i)
 					buf[start+i] = writebytes[i];
-				console.write(stdsprintf("0x%04hx[0x%04lx:0x%04lx] written.\n", sect_id, start, start+writebytecount));
+				console->write(stdsprintf("0x%04hx[0x%04lx:0x%04lx] written.\n", sect_id, start, start+writebytecount));
 				this->storage.flush(buf+start, writebytecount);
 				return;
 			}
@@ -651,7 +651,7 @@ public:
 				"Sets the version number of a given section, automatically creating it if a size is specified.\n", command.c_str());
 	}
 
-	virtual void execute(ConsoleSvc &console, const CommandParser::CommandParameters &parameters) {
+	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
 		u16 sect_id = 0;
 		std::string sect_name;
 		u16 version;
@@ -729,7 +729,7 @@ public:
 				"*************************************************\n", command.c_str());
 	}
 
-	virtual void execute(ConsoleSvc &console, const CommandParser::CommandParameters &parameters) {
+	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
 		u16 sect_id = 0;
 		std::string sect_name;
 

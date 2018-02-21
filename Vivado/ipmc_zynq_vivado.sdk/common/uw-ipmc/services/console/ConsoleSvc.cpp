@@ -205,7 +205,7 @@ void ConsoleSvc::_run_thread() {
 					log_input.log(cmdbuf, LogTree::LOG_INFO);
 					history.record_entry(cmdbuf);
 					xSemaphoreGive(this->linebuf_mutex);
-					if (!this->parser.parse(*this, cmdbuf))
+					if (!this->parser.parse(this->weakself.lock(), cmdbuf))
 						this->write("Unknown command!\n", portMAX_DELAY);
 					xSemaphoreTake(this->linebuf_mutex, portMAX_DELAY);
 				}
@@ -351,7 +351,7 @@ void ConsoleSvc::_run_thread() {
 					echobuf.clear();
 
 					xSemaphoreGive(this->linebuf_mutex);
-					this->parser.parse(*this, std::string("ANSI_") + ansi_code.name);
+					this->parser.parse(this->weakself.lock(), std::string("ANSI_") + ansi_code.name);
 					xSemaphoreTake(this->linebuf_mutex, portMAX_DELAY);
 				}
 				ansi_code.buffer.clear();

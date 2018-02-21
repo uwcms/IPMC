@@ -232,7 +232,7 @@ public:
 				"  TRACE\n", command.c_str());
 	}
 
-	virtual void execute(ConsoleSvc &console, const CommandParser::CommandParameters &parameters) {
+	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
 		std::string out;
 		std::string levelstr;
 		if (!parameters.parse_parameters(1, false, &levelstr)) {
@@ -386,7 +386,7 @@ public:
 				"  PARENT (restore inheritance)\n", command.c_str());
 	}
 
-	virtual void execute(ConsoleSvc &console, const CommandParser::CommandParameters &parameters) {
+	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
 		std::string out;
 		std::string facilitystr;
 		std::string levelstr;
@@ -413,7 +413,7 @@ public:
 			for (auto it = facilities.begin(), eit = facilities.end(); it != eit; ++it) {
 				LogTree::LogLevel curlevel = this->filter.get_configuration(*it->second);
 				configASSERT(curlevel <= LogTree::LOG_INHERIT);
-				console.write(stdsprintf("%-10s %s\n", LogTree::LogLevel_strings[curlevel], it->second->path.c_str()));
+				console->write(stdsprintf("%-10s %s\n", LogTree::LogLevel_strings[curlevel], it->second->path.c_str()));
 			}
 			return;
 		}
@@ -434,7 +434,7 @@ public:
 					for (auto it = children.begin(), eit = children.end(); it != eit; ++it) {
 						LogTree::LogLevel curlevel = this->filter.get_configuration((*facility)[*it]);
 						configASSERT(curlevel <= LogTree::LOG_INHERIT);
-						console.write(stdsprintf("%-10s %s\n", LogTree::LogLevel_strings[curlevel], (*facility)[*it].path.c_str()));
+						console->write(stdsprintf("%-10s %s\n", LogTree::LogLevel_strings[curlevel], (*facility)[*it].path.c_str()));
 					}
 					return;
 				}
@@ -453,7 +453,7 @@ public:
 		if (levelstr.empty()) {
 			LogTree::LogLevel curlevel = this->filter.get_configuration(*facility);
 			configASSERT(curlevel <= LogTree::LOG_INHERIT);
-			console.write(std::string(LogTree::LogLevel_strings[curlevel]) + "\n");
+			console->write(std::string(LogTree::LogLevel_strings[curlevel]) + "\n");
 			return;
 		}
 
