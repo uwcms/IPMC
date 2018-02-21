@@ -314,6 +314,34 @@ CommandParser::CompletionResult CommandParser::complete(const std::string &comma
 	}
 }
 
+bool CommandParser::CommandParameters::parse_one(const std::string &arg, xint32_t *x32val) {
+	char *endptr = NULL;
+	init_stdlib_mutex();
+	xSemaphoreTake(stdlib_mutex, portMAX_DELAY);
+	errno = 0;
+    *x32val = strtoul(arg.c_str(), &endptr, 16);
+	if (errno)
+		endptr = NULL;
+	xSemaphoreGive(stdlib_mutex);
+    return (endptr && *endptr == '\0');
+}
+
+bool CommandParser::CommandParameters::parse_one(const std::string &arg, xint16_t *x16val) {
+	xint32_t x32val;
+	if (!CommandParameters::parse_one(arg, &x32val))
+		return false;
+	*x16val = x32val;
+	return (x32val <= UINT16_MAX);
+}
+
+bool CommandParser::CommandParameters::parse_one(const std::string &arg, xint8_t *x8val) {
+	xint32_t x32val;
+	if (!CommandParameters::parse_one(arg, &x32val))
+		return false;
+	*x8val = x32val;
+	return (x32val <= UINT8_MAX);
+}
+
 bool CommandParser::CommandParameters::parse_one(const std::string &arg, uint32_t *u32val) {
 	char *endptr = NULL;
 	init_stdlib_mutex();

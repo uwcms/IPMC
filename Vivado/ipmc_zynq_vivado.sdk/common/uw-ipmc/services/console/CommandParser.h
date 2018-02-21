@@ -79,11 +79,38 @@ public:
 		const std::vector<std::string> parameters; ///< The internal unparsed parameter list.
 		const size_type cursor_parameter; ///< The parameter the cursor is in, or str::npos if it is in an inter-parameter space.
 		const std::string::size_type cursor_char; ///< The character position within the parameter that the cursor is at.
+
+		/**
+		 * A proxy class for a specified integer type, allowing it to be handled
+		 * with the base 16 specifier.  You can perform bidirectional assignment
+		 * and implicit conversion between T and HexInt<T>
+		 */
+		template <typename T> class HexInt {
+		public:
+			T value; ///< The value of this HexInt
+			/// Zero-Initialization
+			HexInt() : value(0) { };
+			/// Implicit conversion to T
+			operator T() { return this->value; };
+			/// Implicit conversion from T
+			HexInt(T value) : value(value) { };
+			/// Assignment to/from T
+			T operator=(const T &value) { this->value = value; return *this; };
+		};
+		typedef HexInt<uint32_t> xint32_t; ///< Base16 converted uint32_t
+		typedef HexInt<uint16_t> xint16_t; ///< Base16 converted uint16_t
+		typedef HexInt<uint8_t>  xint8_t;  ///< Base16 converted uint8_t
 	protected:
 		/// \overload
 		bool parse_parameters(int start, bool total_parse) const { configASSERT(0); return false; /* We should never get here, but typing requires it. */ };
 
 		/// Parse one argument.
+		static bool parse_one(const std::string &arg, xint32_t *x32val);
+		/// overload
+		static bool parse_one(const std::string &arg, xint16_t *x16val);
+		/// overload
+		static bool parse_one(const std::string &arg, xint8_t *x8val);
+		/// overload
 		static bool parse_one(const std::string &arg, uint32_t *u32val);
 		/// overload
 		static bool parse_one(const std::string &arg, uint16_t *u16val);
