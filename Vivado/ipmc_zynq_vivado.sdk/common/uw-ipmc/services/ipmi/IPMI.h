@@ -1,3 +1,6 @@
+#ifndef SRC_COMMON_UW_IPMC_SERVICES_IPMI_IPMI_H_
+#define SRC_COMMON_UW_IPMC_SERVICES_IPMI_IPMI_H_
+
 #include <xil_types.h>
 #include <map>
 #include <string>
@@ -361,3 +364,5 @@ namespace IPMI {
 	using namespace Transport;
 	using namespace PICMG;
 }
+
+#endif /* SRC_COMMON_UW_IPMC_SERVICES_IPMI_IPMI_H_ */
