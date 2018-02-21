@@ -23,7 +23,7 @@ public:
 	ConsoleCommand_help(CommandParser &parser) : parser(parser) { };
 
 	/// Execute
-	virtual void execute(ConsoleSvc &console, const CommandParser::CommandParameters &parameters) {
+	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
 		std::string out;
 		std::string command;
 
@@ -42,7 +42,7 @@ public:
 					out += *it + "\n";
 				}
 		}
-		console.write(out);
+		console->write(out);
 	}
 
 	virtual std::string get_helptext(const std::string &command) const {
@@ -166,7 +166,7 @@ std::vector<std::string> CommandParser::tokenize(const std::string &commandline,
  * @param cursor The current input cursor position.
  * @return false if unknown command, else true.
  */
-bool CommandParser::parse(ConsoleSvc &console, const std::string &commandline, std::string::size_type cursor) {
+bool CommandParser::parse(std::shared_ptr<ConsoleSvc> console, const std::string &commandline, std::string::size_type cursor) {
 	std::vector<std::string>::size_type cursor_param = 0;
 	std::string::size_type cursor_char = cursor;
 	std::vector<std::string> command = CommandParser::tokenize(commandline, &cursor_param, &cursor_char);
@@ -238,9 +238,7 @@ std::vector<std::string> CommandParser::list_commands(bool native_only) const {
  * @return The help text or an empty string if empty or none present.
  */
 std::string CommandParser::get_helptext(const std::string &command) const {
-	xSemaphoreTake(this->mutex, portMAX_DELAY);
 	std::shared_ptr<Command> handler = this->get_command(command);
-	xSemaphoreGive(this->mutex);
 	if (handler)
 		return handler->get_helptext(command);
 	else
@@ -314,6 +312,34 @@ CommandParser::CompletionResult CommandParser::complete(const std::string &comma
 	else {
 		return CompletionResult(); // Completing a parameter for an unknown command.
 	}
+}
+
+bool CommandParser::CommandParameters::parse_one(const std::string &arg, xint32_t *x32val) {
+	char *endptr = NULL;
+	init_stdlib_mutex();
+	xSemaphoreTake(stdlib_mutex, portMAX_DELAY);
+	errno = 0;
+    *x32val = strtoul(arg.c_str(), &endptr, 16);
+	if (errno)
+		endptr = NULL;
+	xSemaphoreGive(stdlib_mutex);
+    return (endptr && *endptr == '\0');
+}
+
+bool CommandParser::CommandParameters::parse_one(const std::string &arg, xint16_t *x16val) {
+	xint32_t x32val;
+	if (!CommandParameters::parse_one(arg, &x32val))
+		return false;
+	*x16val = x32val;
+	return (x32val <= UINT16_MAX);
+}
+
+bool CommandParser::CommandParameters::parse_one(const std::string &arg, xint8_t *x8val) {
+	xint32_t x32val;
+	if (!CommandParameters::parse_one(arg, &x32val))
+		return false;
+	*x8val = x32val;
+	return (x32val <= UINT8_MAX);
 }
 
 bool CommandParser::CommandParameters::parse_one(const std::string &arg, uint32_t *u32val) {

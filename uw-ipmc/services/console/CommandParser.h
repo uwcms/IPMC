@@ -79,11 +79,38 @@ public:
 		const std::vector<std::string> parameters; ///< The internal unparsed parameter list.
 		const size_type cursor_parameter; ///< The parameter the cursor is in, or str::npos if it is in an inter-parameter space.
 		const std::string::size_type cursor_char; ///< The character position within the parameter that the cursor is at.
+
+		/**
+		 * A proxy class for a specified integer type, allowing it to be handled
+		 * with the base 16 specifier.  You can perform bidirectional assignment
+		 * and implicit conversion between T and HexInt<T>
+		 */
+		template <typename T> class HexInt {
+		public:
+			T value; ///< The value of this HexInt
+			/// Zero-Initialization
+			HexInt() : value(0) { };
+			/// Implicit conversion to T
+			operator T() { return this->value; };
+			/// Implicit conversion from T
+			HexInt(T value) : value(value) { };
+			/// Assignment to/from T
+			T operator=(const T &value) { this->value = value; return *this; };
+		};
+		typedef HexInt<uint32_t> xint32_t; ///< Base16 converted uint32_t
+		typedef HexInt<uint16_t> xint16_t; ///< Base16 converted uint16_t
+		typedef HexInt<uint8_t>  xint8_t;  ///< Base16 converted uint8_t
 	protected:
 		/// \overload
 		bool parse_parameters(int start, bool total_parse) const { configASSERT(0); return false; /* We should never get here, but typing requires it. */ };
 
 		/// Parse one argument.
+		static bool parse_one(const std::string &arg, xint32_t *x32val);
+		/// overload
+		static bool parse_one(const std::string &arg, xint16_t *x16val);
+		/// overload
+		static bool parse_one(const std::string &arg, xint8_t *x8val);
+		/// overload
 		static bool parse_one(const std::string &arg, uint32_t *u32val);
 		/// overload
 		static bool parse_one(const std::string &arg, uint16_t *u16val);
@@ -127,7 +154,7 @@ public:
 		 * @param console The calling console.  Use its safe_write() for stdout.
 		 * @param parameters The parameters for this command execution.
 		 */
-		virtual void execute(ConsoleSvc &console, const CommandParameters &parameters) { configASSERT(0); };
+		virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParameters &parameters) = 0;//{ configASSERT(0); };
 
 		/**
 		 * Provide completion options for the specified parameter (using .cursor_*).
@@ -145,7 +172,7 @@ public:
 		virtual std::vector<std::string> complete(const CommandParameters &parameters) const { return std::vector<std::string>(); };
 	};
 
-	virtual bool parse(ConsoleSvc &console, const std::string &commandline, std::string::size_type cursor=0);
+	virtual bool parse(std::shared_ptr<ConsoleSvc> console, const std::string &commandline, std::string::size_type cursor=0);
 	virtual void register_command(const std::string &token, std::shared_ptr<Command> handler);
 	virtual std::vector<std::string> list_commands(bool native_only=false) const;
 	virtual std::string get_helptext(const std::string &command) const;

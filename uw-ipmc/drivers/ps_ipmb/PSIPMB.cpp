@@ -103,6 +103,12 @@ void PS_IPMB::setup_master() {
 	XScuGic_Enable(&xInterruptController, this->IntrId);
 }
 
+/**
+ * This function will send a message out on the IPMB in a blocking manner.
+ *
+ * \param msg  The IPMI_MSG to deliver.
+ * \return     true if message was delivered else false
+ */
 bool PS_IPMB::send_message(IPMI_MSG &msg) {
 	uint8_t msgbuf[this->i2c_bufsize];
 	int msglen = msg.unparse_message(msgbuf, this->i2c_bufsize);

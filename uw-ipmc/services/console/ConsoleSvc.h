@@ -24,7 +24,31 @@
  */
 class ConsoleSvc {
 public:
+	/**
+	 * Factory function.  All parameters match the constructor.
+	 *
+	 * \note Since the parameters are specific, this function cannot be virtual.
+	 */
+	static std::shared_ptr<ConsoleSvc> create(CommandParser &parser, const std::string &name, LogTree &logtree, bool echo, TickType_t read_data_timeout=10) {
+		configASSERT(0); // ConsoleSvc is intended as an abstract class only.
+		std::shared_ptr<ConsoleSvc> ret(new ConsoleSvc(parser, name, logtree, echo, read_data_timeout));
+		ret->weakself = ret;
+		return ret;
+	}
+protected:
+	/**
+	 * A weak pointer to self, allowing us to be passed to Command::execute()
+	 * in such a way that deferred callbacks can still call our .write().
+	 */
+	std::weak_ptr<ConsoleSvc> weakself;
+
+	/* Protected.  This class must have a std::weak_ptr of itself, and therefore
+	 * can only be created through a factory method.  Example create() above.
+	 *
+	 * Since the parameters of this are specific, this factory cannot be virtual.
+	 */
 	ConsoleSvc(CommandParser &parser, const std::string &name, LogTree &logtree, bool echo, TickType_t read_data_timeout=10);
+public:
 	virtual ~ConsoleSvc();
 	virtual void start();
 

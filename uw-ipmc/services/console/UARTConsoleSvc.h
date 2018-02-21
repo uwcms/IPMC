@@ -17,6 +17,18 @@
 class UARTConsoleSvc : public ConsoleSvc {
 public:
 	/**
+	 * Factory function.  All parameters match the constructor.
+	 *
+	 * \note Since the parameters are specific, this function cannot be virtual.
+	 */
+	static std::shared_ptr<UARTConsoleSvc> create(UART &uart, CommandParser &parser, const std::string &name, LogTree &logtree, bool echo, TickType_t read_data_timeout=10) {
+		configASSERT(0); // ConsoleSvc is intended as an abstract class only.
+		std::shared_ptr<UARTConsoleSvc> ret(new UARTConsoleSvc(uart, parser, name, logtree, echo, read_data_timeout));
+		ret->weakself = ret;
+		return ret;
+	}
+protected:
+	/**
 	 * Instantiate a UART console service.
 	 *
 	 * @param uart The UART
@@ -28,11 +40,12 @@ public:
 	 */
 	UARTConsoleSvc(UART &uart, CommandParser &parser, const std::string &name, LogTree &logtree, bool echo, TickType_t read_data_timeout=10)
 		: ConsoleSvc(parser, name, logtree, echo, read_data_timeout), uart(uart) { this->start(); };
+public:
 	virtual ~UARTConsoleSvc() { };
 
+protected:
 	UART &uart; ///< The UART this console is driven by.
 
-protected:
 	/// Pass read through to the UART.
 	virtual ssize_t raw_read(char *buf, size_t len, TickType_t timeout, TickType_t read_data_timeout) { return this->uart.read(buf, len, timeout, read_data_timeout); };
 
