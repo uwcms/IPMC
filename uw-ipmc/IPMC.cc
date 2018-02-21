@@ -53,7 +53,7 @@ SPI_EEPROM *eeprom_data;
 PersistentStorage *persistent_storage;
 u8 mac_address[6];
 CommandParser console_command_parser;
-UARTConsoleSvc *console_service;
+std::shared_ptr<UARTConsoleSvc> console_service;
 InfluxDBClient *influxdbclient;
 
 TelnetServer *telnet;
@@ -132,7 +132,7 @@ void driver_init(bool use_pl) {
  * \note This function is called before the FreeRTOS scheduler has been started.
  */
 void ipmc_service_init() {
-	console_service = new UARTConsoleSvc(*uart_ps0, console_command_parser, "console", LOG["console"]["uart"], true);
+	console_service = UARTConsoleSvc::create(*uart_ps0, console_command_parser, "console", LOG["console"]["uart"], true);
 
 	network = new Network(LOG["network"], mac_address);
 	influxdbclient = new InfluxDBClient(LOG["influxdb"]);
@@ -178,7 +178,7 @@ public:
 				"Print the current system uptime.\n", command.c_str());
 	}
 
-	virtual void execute(ConsoleSvc &console, const CommandParser::CommandParameters &parameters) {
+	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
 		uint64_t now64 = get_tick64();
 		//u16 ms = now64 % 1000;
 		u16 s  = (now64 / 1000) % 60;
@@ -193,7 +193,7 @@ public:
 		if (d||h||m)
 			out += stdsprintf("%hum", m);
 		out += stdsprintf("%hus", s);
-		console.write(out + "\n");
+		console->write(out + "\n");
 	}
 
 	//virtual std::vector<std::string> complete(const CommandParser::CommandParameters &parameters) const { };
@@ -209,8 +209,8 @@ public:
 				"Print the current system version information.\n", command.c_str());
 	}
 
-	virtual void execute(ConsoleSvc &console, const CommandParser::CommandParameters &parameters) {
-		console.write(generate_banner());
+	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
+		console->write(generate_banner());
 	}
 
 	//virtual std::vector<std::string> complete(const CommandParser::CommandParameters &parameters) const { };
@@ -226,7 +226,7 @@ public:
 				"Print the system process listing & statistics.\n", command.c_str());
 	}
 
-	virtual void execute(ConsoleSvc &console, const CommandParser::CommandParameters &parameters) {
+	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
 		std::string out;
 		UBaseType_t task_count = uxTaskGetNumberOfTasks();
 		TaskStatus_t taskinfo[task_count+2];
@@ -270,7 +270,7 @@ public:
 		}
 		if (!runstats)
 			out += "\nNote: Runtime stats were not displayed, as we are likely past the point\nof counter wrapping and they are no longer accurate.\n";
-		console.write(out);
+		console->write(out);
 	}
 
 	//virtual std::vector<std::string> complete(const CommandParser::CommandParameters &parameters) const { };
