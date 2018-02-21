@@ -81,10 +81,10 @@ namespace {
 /// A "logout" console command.
 class ConsoleCommand_logout : public CommandParser::Command {
 public:
-	Telnet::TelnetConsoleSvc &console; ///< The associated telnet console for this command.
+	std::shared_ptr<Telnet::TelnetConsoleSvc> console; ///< The associated telnet console for this command.
 
 	/// Instantiate
-	ConsoleCommand_logout(Telnet::TelnetConsoleSvc &console) : console(console) { };
+	ConsoleCommand_logout(std::shared_ptr<Telnet::TelnetConsoleSvc> console) : console(console) { };
 
 	virtual std::string get_helptext(const std::string &command) const {
 		return stdsprintf(
@@ -93,12 +93,12 @@ public:
 				"Disconnect from your telnet session.\n", command.c_str());
 	}
 
-	virtual void execute(ConsoleSvc &console, const CommandParser::CommandParameters &parameters) {
+	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
 		/* We will be courteous and give telnet time to absorb window size query
 		 * replies from the previous prompt before asking it to terminate.
 		 */
 		vTaskDelay(configTICK_RATE_HZ / 4);
-		this->console.close();
+		this->console->close();
 	}
 
 	// Nothing to complete.
@@ -144,12 +144,12 @@ void TelnetClient::inc_badpass_timeout() {
 	taskEXIT_CRITICAL();
 }
 
-static void telnet_log_handler(ConsoleSvc &console, LogTree &logtree, const std::string &message, enum LogTree::LogLevel level) {
+static void telnet_log_handler(std::shared_ptr<ConsoleSvc> console, LogTree &logtree, const std::string &message, enum LogTree::LogLevel level) {
 	std::string logmsg = ConsoleSvc_log_format(message, level);
 
 	// We have to use a short timeout here, rather than none, due to the mutex involved.
 	// TODO: Maybe there's a better way?
-	console.write(logmsg, 1);
+	console->write(logmsg, 1);
 }
 
 void TelnetClient::thread_telnetc() {
@@ -236,7 +236,7 @@ void TelnetClient::thread_telnetc() {
 				CommandParser *telnet_command_parser = new CommandParser(&console_command_parser);
 				LogTree::Filter *log_filter = new LogTree::Filter(LOG, NULL, LogTree::LOG_NOTICE);
 				log_filter->register_console_commands(*telnet_command_parser);
-				Telnet::TelnetConsoleSvc *console = new Telnet::TelnetConsoleSvc(
+				std::shared_ptr<Telnet::TelnetConsoleSvc> console = Telnet::TelnetConsoleSvc::create(
 						*this->socket,
 						proto,
 						*telnet_command_parser,
@@ -247,9 +247,9 @@ void TelnetClient::thread_telnetc() {
 						std::bind(telnet_shutdown_cleanup, std::placeholders::_1, telnet_command_parser, log_filter, this->connection_pool_limiter, this->socket->get_socketaddress())
 				);
 				taskENTER_CRITICAL();
-				log_filter->handler = std::bind(telnet_log_handler, std::ref(*console), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+				log_filter->handler = std::bind(telnet_log_handler, console, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
 				taskEXIT_CRITICAL();
-				std::shared_ptr<ConsoleCommand_logout> logoutcmd = std::make_shared<ConsoleCommand_logout>(*console);
+				std::shared_ptr<ConsoleCommand_logout> logoutcmd = std::make_shared<ConsoleCommand_logout>(console);
 				telnet_command_parser->register_command("logout", logoutcmd);
 				telnet_command_parser->register_command("exit", logoutcmd);
 				console->start();
@@ -299,14 +299,14 @@ public:
 				"Use `read PW; echo -n \"$PW\" | sha256sum` to generate a hash.\n", command.c_str());
 	}
 
-	virtual void execute(ConsoleSvc &console, const CommandParser::CommandParameters &parameters) {
+	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
 		std::string hash;
 		if (!parameters.parse_parameters(1, true, &hash)) {
-			console.write("Invalid parameters, see help.\n");
+			console->write("Invalid parameters, see help.\n");
 			return;
 		}
 		if (hash.size() != 64) {
-			console.write("Invalid password hash supplied, see help.\n");
+			console->write("Invalid password hash supplied, see help.\n");
 			return;
 		}
 
@@ -321,7 +321,7 @@ public:
 			else if ('a' <= hash[i] && hash[i] <= 'f')
 				nibble = hash[i] - 'a' + 10;
 			else {
-				console.write("Invalid password hash supplied, see help.\n");
+				console->write("Invalid password hash supplied, see help.\n");
 				return;
 			}
 			binhash[i / 2] |= (i%2) ? (nibble & 0x0f) : (nibble << 4);
@@ -332,7 +332,7 @@ public:
 		unsigned char *nvhash = (unsigned char*)persistent_storage->get_section(PersistentStorageAllocations::WISC_NETWORK_CONSOLE_AUTH, 1, 256/8);
 		memcpy(nvhash, binhash, 32);
 		persistent_storage->flush(nvhash, 32);
-		console.write("Password updated.\n");
+		console->write("Password updated.\n");
 	}
 
 	// Nothing to complete.
