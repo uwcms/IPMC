@@ -30,6 +30,7 @@
  */
 class IPMBSvc {
 public:
+	const u8 ipmb_address;  ///< The IPMB address of this node.
 	const std::string name; ///< The name used for this IPMB in StatCounter or Task names, as well as log messages.
 	IPMICommandParser *command_parser; ///< The command parser used for incoming messages.
 
@@ -69,7 +70,6 @@ protected:
 	};
 
 	IPMB *ipmb[2]; ///< The subordinate IPMBs.
-	u8 ipmb_address;  ///< The IPMB address of this node.
 	const size_t recvq_size = 16; ///< The length of the receive queue.
 	QueueHandle_t recvq; ///< A queue for received messages from both interfaces.
 	SemaphoreHandle_t sendq_mutex; ///< A mutex protecting the sendq.
