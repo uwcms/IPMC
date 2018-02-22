@@ -22,7 +22,6 @@ public:
 	 * \note Since the parameters are specific, this function cannot be virtual.
 	 */
 	static std::shared_ptr<UARTConsoleSvc> create(UART &uart, CommandParser &parser, const std::string &name, LogTree &logtree, bool echo, TickType_t read_data_timeout=10) {
-		configASSERT(0); // ConsoleSvc is intended as an abstract class only.
 		std::shared_ptr<UARTConsoleSvc> ret(new UARTConsoleSvc(uart, parser, name, logtree, echo, read_data_timeout));
 		ret->weakself = ret;
 		return ret;
