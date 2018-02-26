@@ -215,8 +215,8 @@ void IPMBSvc::run_thread() {
 					this->log_messages_in.log(std::string("Request received on ") + this->name + ":  " + inmsg.format() + "  (duplicate)", LogTree::LOG_NOTICE);
 				else
 					this->log_messages_in.log(std::string("Request received on ") + this->name + ":  " + inmsg.format(), LogTree::LOG_INFO);
+				this->command_parser->dispatch(*this, inmsg);
 			}
-			this->command_parser->dispatch(*this, inmsg);
 
 			/* We will attempt to drain our receive queue in preference to
 			 * flushing our send queue, as the latter is unbounded and a few
