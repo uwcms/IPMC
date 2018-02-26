@@ -13,12 +13,13 @@
  *
  * \param msg      The request message to parse.
  * \param len      The length of the message to parse.
+ * \param LocalIPMBAddress The address of the recipient node on the IPMB.
  * \return         true if parse successful and checksums valid, else false
  *
  * \note This function will not correctly parse a response message.  It will
  *       reverse the sender/receiver identities in this case.
  */
-bool IPMI_MSG::parse_message(uint8_t *msg, uint8_t len) {
+bool IPMI_MSG::parse_message(uint8_t *msg, uint8_t len, uint8_t LocalIPMBAddress) {
 	this->broadcast = false;
 	if (len && msg[0] == 0) {
 		// Broadcast Message!  ... Remove the leading 0x00.
@@ -27,24 +28,25 @@ bool IPMI_MSG::parse_message(uint8_t *msg, uint8_t len) {
 		++msg;
 		--len;
 	}
-	if (len < 7)
+	if (len < 6)
 		return false; // Invalid.
 
-	this->rsSA = msg[0];
-	this->netFn = msg[1] >> 2;
-	this->rsLUN = msg[1] & 0x03;
-	// hdr_sum == msg[2]
-	this->rqSA = msg[3];
-	this->rqSeq = msg[4] >> 2;
-	this->rqLUN = msg[4] & 0x03;
-	this->cmd = msg[5];
-	this->data_len = len-7;
+	this->rsSA = LocalIPMBAddress;
+	this->netFn = msg[0] >> 2;
+	this->rsLUN = msg[0] & 0x03;
+	// hdr_sum == msg[1]
+	this->rqSA = msg[2];
+	this->rqSeq = msg[3] >> 2;
+	this->rqLUN = msg[3] & 0x03;
+	this->cmd = msg[4];
+	this->data_len = len-6;
 	for (int i = 0; i < this->data_len; ++i)
-		this->data[i] = msg[6+i];
+		this->data[i] = msg[5+i];
 
-	if (ipmi_checksum(msg, 3))
+	uint8_t hdrsumbuf[3] = { LocalIPMBAddress, msg[0], msg[1] };
+	if (ipmi_checksum(hdrsumbuf, 3))
 		return false;
-	if (ipmi_checksum(msg, len))
+	if (ipmi_checksum(msg+2, len-2))
 		return false;
 	return true;
 }
@@ -60,16 +62,16 @@ int IPMI_MSG::unparse_message(uint8_t *msg, uint8_t maxlen) const {
 	if (maxlen < this->data_len+7)
 		return -1;
 
-	msg[0] = this->rsSA;
-	msg[1] = (this->netFn << 2) || (this->rsLUN & 0x03);
-	msg[2] = ipmi_checksum(msg, 2);
-	msg[3] = this->rqSA;
-	msg[4] = (this->rqSeq << 2) || (this->rqLUN & 0x03);
-	msg[5] = this->cmd;
+	msg[0] = (this->netFn << 2) | (this->rsLUN & 0x03);
+	msg[1] = this->rsSA; // We need to include the I2C address + R/W bit in the checksum (i.e. IPMB Addr).  This checksum algorithm is order-agnostic.
+	msg[1] = ipmi_checksum(msg, 2);
+	msg[2] = this->rqSA;
+	msg[3] = (this->rqSeq << 2) | (this->rqLUN & 0x03);
+	msg[4] = this->cmd;
 	for (int i = 0; i < this->data_len; ++i)
-		msg[6+i] = this->data[i];
-	msg[6+this->data_len] = ipmi_checksum(msg, 6+this->data_len);
-	return this->data_len + 7;
+		msg[5+i] = this->data[i];
+	msg[5+this->data_len] = ipmi_checksum(msg+2, 3+this->data_len);
+	return this->data_len + 6;
 }
 
 /**
@@ -91,7 +93,7 @@ void IPMI_MSG::prepare_reply(IPMI_MSG &reply) const {
 	reply.rqSA = rqSA;
 	reply.rsLUN = rsLUN;
 	reply.rqLUN = rqLUN;
-	reply.netFn |= 1; // Mark as response.
+	reply.netFn = this->netFn | 1; // Mark as response.
 	reply.cmd = this->cmd;
 	reply.rqSeq = this->rqSeq;
 	reply.broadcast = false;
@@ -117,19 +119,19 @@ bool IPMI_MSG::match(const IPMI_MSG &other) const {
 }
 
 /**
- * Match two IPMB messages as request/response.
+ * Check if the supplied IPMB_MSG is a response to this one.
  *
- * @param other The IPMB message to compare.
+ * @param response The response IPMB message to compare.
  * @return true if matching else false
  */
-bool IPMI_MSG::match_reply(const IPMI_MSG &other) const {
-	return (this->rqSA  == other.rsSA &&
-			this->rsSA  == other.rqSA &&
-			this->rqLUN == other.rsLUN &&
-			this->rsLUN == other.rqLUN &&
-			this->rqSeq == other.rqSeq &&
-			this->netFn == other.netFn &&
-			this->cmd   == other.cmd);
+bool IPMI_MSG::match_reply(const IPMI_MSG &response) const {
+	return (this->rqSA  == response.rsSA &&
+			this->rsSA  == response.rqSA &&
+			this->rqLUN == response.rsLUN &&
+			this->rsLUN == response.rqLUN &&
+			this->rqSeq == response.rqSeq &&
+			this->netFn == (response.netFn & 0xfe) &&
+			this->cmd   == response.cmd);
 }
 
 /**

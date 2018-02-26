@@ -6,6 +6,7 @@
  */
 
 #include <services/ipmi/ipmbsvc/IPMBSvc.h>
+#include <services/console/ConsoleSvc.h>
 #include <IPMC.h>
 #include "xgpiops.h"
 #include <FreeRTOS.h>
@@ -108,7 +109,7 @@ uint8_t IPMBSvc::lookup_ipmb_address(const int gpios[8]) {
 	 * error report, and at least mention something on the console.
 	 */
 	configASSERT(parity);
-	return address & 0x7f; // The high HA bit on the Zone 1 connector is parity.
+	return (address & 0x7f)<<1; // The high HA bit on the Zone 1 connector is parity.  IPMB addr is HWaddr<<1
 }
 
 /**
@@ -271,10 +272,16 @@ void IPMBSvc::run_thread() {
 					continue;
 				}
 				else {
+					std::string reqrsp = "Request";
+					if (it->msg->netFn & 1)
+						reqrsp = "Response";
+					std::string result = "";
+					if (!success)
+						result = " but I2C failed.";
 					if (it->retry_count == 0)
-						this->log_messages_out.log(std::string("Request sent on ") + this->name + ":      " + it->msg->format(), LogTree::LOG_INFO);
+						this->log_messages_out.log(reqrsp + " sent on " + this->name + ":      " + it->msg->format() + result, LogTree::LOG_INFO);
 					else
-						this->log_messages_out.log(stdsprintf("Request resent on %s:    %s  (retry %hhu)", this->name.c_str(), it->msg->format().c_str(), it->retry_count), LogTree::LOG_NOTICE);
+						this->log_messages_out.log(stdsprintf("%s resent on %s:    %s  (retry %hhu)%s", reqrsp.c_str(), this->name.c_str(), it->msg->format().c_str(), it->retry_count, result.c_str()), LogTree::LOG_NOTICE);
 				}
 
 				/* Now, success or not, we can't discard this yet.
@@ -362,4 +369,112 @@ bool IPMBSvc::check_duplicate(const IPMI_MSG &msg) {
 	bool duplicate = this->incoming_sequence_numbers.count(key);
 	this->incoming_sequence_numbers[key] = now64;
 	return duplicate;
+}
+
+
+namespace {
+/// A "sendmsg" console command.
+class ConsoleCommand_sendmsg : public CommandParser::Command {
+public:
+	IPMBSvc &ipmb; ///< The associated IPMB for this command.
+
+	/// Instantiate
+	ConsoleCommand_sendmsg(IPMBSvc &ipmb) : ipmb(ipmb) { };
+
+	virtual std::string get_helptext(const std::string &command) const {
+		return stdsprintf(
+				"%s $targetaddr $netfn $cmd_hex [$data ...]\n"
+				"%s $targetaddr $cmd_name [$data ...]\n"
+				"\n"
+				"Send an IPMI command on this IPMB.\n"
+				"\n"
+				"All bytes will be interpreted as hex even without the leading 0x.\n", command.c_str(), command.c_str());
+	}
+
+	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
+		CommandParser::CommandParameters::xint8_t addr;
+		CommandParser::CommandParameters::xint8_t netfn;
+		CommandParser::CommandParameters::xint8_t cmd;
+		std::vector<std::string>::size_type data_offset = 4;
+		if (parameters.nargs() < 3 || !parameters.parse_parameters(1, false, &addr)) {
+			print("Invalid parameters.  See help.\n");
+			return;
+		}
+		if (IPMI::cmd_to_id.count(parameters.parameters[2])) {
+			// We have a valid string parameter name.  Parse as such.
+			--data_offset; // cmd and netfn are not separate parameters here.
+			uint16_t ipmicmd = IPMI::cmd_to_id.at(parameters.parameters[2]);
+			netfn = ipmicmd >> 8;
+			cmd = ipmicmd & 0xff;
+		}
+		else if (parameters.parse_parameters(2, false, &netfn, &cmd)) {
+			// Good.
+		}
+		else {
+			print("Invalid parameters.  See help.\n");
+			return;
+		}
+
+		std::shared_ptr<IPMI_MSG> msg  = std::make_shared<IPMI_MSG>();
+		msg->rqSA     = this->ipmb.ipmb_address;
+		msg->rqLUN    = 0;
+		msg->rsSA     = addr;
+		msg->rsLUN    = 0;
+		msg->netFn    = netfn;
+		msg->cmd      = cmd;
+		msg->data_len = 0;
+		for (auto i = data_offset; i < parameters.nargs(); ++i) {
+			CommandParser::CommandParameters::xint8_t databyte;
+			if (!parameters.parse_parameters(i, false, &databyte)) {
+				print("Invalid IPMI command data.  See help.\n");
+				return;
+			}
+			if (++msg->data_len > msg->max_data_len) {
+				print("Too much IPMI command data.\n");
+				return;
+			}
+			msg->data[i - data_offset] = databyte;
+		}
+		this->ipmb.send(msg, [console](std::shared_ptr<IPMI_MSG> original, std::shared_ptr<IPMI_MSG> response) -> void {
+			if (response)
+				console->write(stdsprintf(
+						"Console IPMI command: %s\n"
+						"Received response:    %s\n",
+						original->format().c_str(), response->format().c_str()));
+			else
+				console->write(stdsprintf(
+						"Console IPMI command: %s\n"
+						"Delivery failed.\n",
+						original->format().c_str()));
+		});
+	}
+
+	virtual std::vector<std::string> complete(const CommandParser::CommandParameters &parameters) const {
+		if (parameters.cursor_parameter != 2)
+			return std::vector<std::string>(); // Sorry, can't help.
+
+		std::vector<std::string> ret;
+		for (auto it = IPMI::cmd_to_id.begin(), eit = IPMI::cmd_to_id.end(); it != eit; ++it)
+			ret.push_back(it->first);
+		return ret;
+	};
+};
+} // anonymous namespace
+
+/**
+ * Register console commands related to this IPMB.
+ * @param parser The command parser to register to.
+ * @param prefix A prefix for the registered commands.
+ */
+void IPMBSvc::register_console_commands(CommandParser &parser, const std::string &prefix) {
+	parser.register_command(prefix + "sendmsg", std::make_shared<ConsoleCommand_sendmsg>(*this));
+}
+
+/**
+ * Unregister console commands related to this IPMB.
+ * @param parser The command parser to unregister from.
+ * @param prefix A prefix for the registered commands.
+ */
+void IPMBSvc::deregister_console_commands(CommandParser &parser, const std::string &prefix) {
+	parser.register_command(prefix + "sendmsg", NULL);
 }

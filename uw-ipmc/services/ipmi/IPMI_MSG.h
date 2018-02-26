@@ -35,11 +35,11 @@ public:
 	bool broadcast;             ///< Is this a broadcast message?  Nothing really has any reason to use this.
 	bool duplicate;             ///< true if duplicate, else false.  Only applies to incoming requests.
 
-	bool parse_message(uint8_t *msg, uint8_t len);
+	bool parse_message(uint8_t *msg, uint8_t len, uint8_t LocalIPMBAddress);
 	int unparse_message(uint8_t *msg, uint8_t maxlen) const;
 	void prepare_reply(IPMI_MSG &reply) const;
 	bool match(const IPMI_MSG &other) const;
-	bool match_reply(const IPMI_MSG &other) const;
+	bool match_reply(const IPMI_MSG &response) const;
 	std::string format() const;
 };
 

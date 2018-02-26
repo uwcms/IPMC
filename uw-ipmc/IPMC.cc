@@ -112,14 +112,15 @@ void driver_init(bool use_pl) {
 	configASSERT(XST_SUCCESS == XGpioPs_CfgInitialize(&gpiops, gpiops_config, gpiops_config->BaseAddr));
 
 	const int hwaddr_gpios[] = {39,40,41,45,47,48,49,50};
-	uint8_t hwaddr = IPMBSvc::lookup_ipmb_address(hwaddr_gpios);
+	uint8_t ipmbaddr = IPMBSvc::lookup_ipmb_address(hwaddr_gpios);
 	LogTree &log_ipmb0 = LOG["ipmi"]["ipmb"]["ipmb0"];
-	log_ipmb0.log(stdsprintf("Our IPMB0 hardware address is %02Xh", hwaddr), LogTree::LOG_NOTICE);
+	log_ipmb0.log(stdsprintf("Our IPMB0 address is %02Xh", ipmbaddr), LogTree::LOG_NOTICE);
 	PS_IPMB *ps_ipmb[2];
-	ps_ipmb[0] = new PS_IPMB(XPAR_PS7_I2C_0_DEVICE_ID, XPAR_PS7_I2C_0_INTR, hwaddr);
-	ps_ipmb[1] = new PS_IPMB(XPAR_PS7_I2C_1_DEVICE_ID, XPAR_PS7_I2C_1_INTR, hwaddr);
+	ps_ipmb[0] = new PS_IPMB(XPAR_PS7_I2C_0_DEVICE_ID, XPAR_PS7_I2C_0_INTR, ipmbaddr);
+	ps_ipmb[1] = new PS_IPMB(XPAR_PS7_I2C_1_DEVICE_ID, XPAR_PS7_I2C_1_INTR, ipmbaddr);
 	ipmi_command_parser = new IPMICommandParser(ipmicmd_default, *ipmicmd_index);
-	ipmb0 = new IPMBSvc(ps_ipmb[0], ps_ipmb[1], hwaddr, ipmi_command_parser, log_ipmb0, "ipmb0", SWDT);
+	ipmb0 = new IPMBSvc(ps_ipmb[0], ps_ipmb[1], ipmbaddr, ipmi_command_parser, log_ipmb0, "ipmb0", SWDT);
+	ipmb0->register_console_commands(console_command_parser, "ipmb0.");
 }
 
 /** IPMC service initialization.

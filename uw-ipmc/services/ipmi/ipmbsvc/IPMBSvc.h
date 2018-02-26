@@ -24,6 +24,8 @@
 #include <drivers/watchdog/PSWDT.h>
 #include <services/ipmi/IPMI_MSG.h>
 #include <services/ipmi/ipmbsvc/IPMICommandParser.h>
+#include <services/console/CommandParser.h>
+#include <services/ipmi/IPMI.h>
 
 /**
  * An IPMBSvc driver.
@@ -54,6 +56,9 @@ public:
 	void send(std::shared_ptr<IPMI_MSG> msg, response_cb_t response_cb = NULL);
 
 	LogTree &logroot; ///< The root logtree for this object.
+
+	virtual void register_console_commands(CommandParser &parser, const std::string &prefix="");
+	virtual void deregister_console_commands(CommandParser &parser, const std::string &prefix="");
 
 protected:
 	/**
