@@ -108,7 +108,7 @@ uint8_t IPMBSvc::lookup_ipmb_address(const int gpios[8]) {
 	 * error report, and at least mention something on the console.
 	 */
 	configASSERT(parity);
-	return address & 0xfe; // I'm just going to assume this is how it works, given how the IPMB works. TODO: Validate
+	return address & 0x7f; // The high HA bit on the Zone 1 connector is parity.
 }
 
 /**
