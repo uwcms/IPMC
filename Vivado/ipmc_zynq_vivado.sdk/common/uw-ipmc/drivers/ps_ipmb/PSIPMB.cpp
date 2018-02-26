@@ -31,12 +31,12 @@ static void PS_IPMB_InterruptPassthrough(PS_IPMB *ps_ipmb, u32 StatusEvent) {
  * \param IntrId               The interrupt ID, for configuring the GIC.
  * \param SlaveAddr            The IPMB slave address to listen on.
  */
-PS_IPMB::PS_IPMB(u16 DeviceId, u32 IntrId, u8 SlaveAddr) :
+PS_IPMB::PS_IPMB(u16 DeviceId, u32 IntrId, u8 IPMBAddr) :
 		messages_received(stdsprintf("ipmb0.ps_ipmb.%hu.messages_received", DeviceId)),
 		invalid_messages_received(stdsprintf("ipmb0.ps_ipmb.%hu.invalid_messages_received", DeviceId)),
 		incoming_messages_missed(stdsprintf("ipmb0.ps_ipmb.%hu.incoming_messages_missed", DeviceId)),
 		unexpected_send_result_interrupts(stdsprintf("ipmb0.ps_ipmb.%hu.unexpected_send_result_interrupts", DeviceId)),
-		SlaveAddr(SlaveAddr), IntrId(IntrId) {
+		IPMBAddr(IPMBAddr), IntrId(IntrId) {
 
 	this->mutex = xSemaphoreCreateMutex();
 	configASSERT(this->mutex);
@@ -76,7 +76,7 @@ void PS_IPMB::setup_slave() {
 	this->master = false;
 	XScuGic_Connect(&xInterruptController, this->IntrId, reinterpret_cast<Xil_InterruptHandler>(XIicPs_VariableLengthSlaveInterruptHandler), (void*)&this->IicInst);
 	XScuGic_Enable(&xInterruptController, this->IntrId);
-	XIicPs_SetupSlave(&this->IicInst, this->SlaveAddr);
+	XIicPs_SetupSlave(&this->IicInst, this->IPMBAddr >> 1);
 
 	// Start Receiving
 	XIicPs_SlaveRecv(&this->IicInst, this->i2c_inbuf, this->i2c_bufsize);
@@ -115,7 +115,7 @@ bool PS_IPMB::send_message(IPMI_MSG &msg) {
 
 	xSemaphoreTake(this->mutex, portMAX_DELAY);
 	this->setup_master();
-	XIicPs_MasterSend(&this->IicInst, msgbuf, msglen, msg.rqSA);
+	XIicPs_MasterSend(&this->IicInst, msgbuf, msglen, msg.rsSA>>1);
 
 	u32 isr_result;
 	xQueueReceive(this->sendresult_q, &isr_result, portMAX_DELAY);
@@ -144,9 +144,8 @@ void PS_IPMB::_HandleInterrupt(u32 StatusEvent) {
 	StatusEvent &= 0x03ffffff;
 
 	if (StatusEvent == XIICPS_EVENT_COMPLETE_RECV) {
-		(void)0;
 		IPMI_MSG msg;
-		if (msg.parse_message(this->i2c_inbuf, this->i2c_bufsize - LeftOverBytes)) {
+		if (msg.parse_message(this->i2c_inbuf, this->i2c_bufsize - LeftOverBytes, this->IPMBAddr)) {
 			BaseType_t ret = pdFALSE;
 			if (this->incoming_message_queue)
 				ret = xQueueSendFromISR(this->incoming_message_queue, &msg, &isrwake);

@@ -26,9 +26,9 @@
  */
 class PS_IPMB : public IPMB {
 public:
-	const u8 SlaveAddr; ///< The local IPMB slave address.
+	const u8 IPMBAddr; ///< The local IPMB slave address.
 
-	PS_IPMB(u16 DeviceId, u32 IntrId, u8 SlaveAddr);
+	PS_IPMB(u16 DeviceId, u32 IntrId, u8 IPMBAddr);
 	virtual ~PS_IPMB();
 	virtual void _HandleInterrupt(u32 StatusEvent); ///< \protected Internal.
 
