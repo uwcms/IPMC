@@ -6,36 +6,36 @@
 // IPM Device “Global” Commands
 
 static void ipmicmd_Get_Device_ID(IPMBSvc &ipmb, const IPMI_MSG &message) {
-	IPMI_MSG reply;
-	message.prepare_reply(reply);
-	reply.data[0] = IPMI::Completion::Success;
-	reply.data[1] = 0; // Device ID (00 = Unspecified) TODO
-	reply.data[2] |= 1<<7; // Device provides Device SDRs
-	reply.data[2] |= IPMC_HW_REVISION & 0x0f; // Device revision, binary encoded.
-	reply.data[3] = IPMC_FW_REVISION[0] & 0x7f;
-	// TODO: if (SDR_REPOSITORY_LOADED) reply.data[3] |= 0x80;
-	reply.data[4] = ( (IPMC_FW_REVISION[1]/10) << 4 ) | (IPMC_FW_REVISION[1]%10); // BCD FW Minor Rev
-	reply.data[5] = 0x02; // IPMI Version, BCD, Reverse Nibbles.
-	reply.data[6] |= 1<<0; // Sensor Device
-	reply.data[6] |= 1<<1; // SDR Repository Device
-	reply.data[6] |= 0<<2; // SEL Device
-	// TODO: reply.data[6] |= 1<<3; // FRU Inventory Device
-	reply.data[6] |= 1<<4; // IPMB Event Receiver
-	reply.data[6] |= 1<<5; // IPMB Event Generator
-	reply.data[6] |= 0<<6; // Bridge
-	reply.data[6] |= 0<<7; // Chassis Device
-	reply.data[7] = 0; // Manufacturer ID (LSB):   Unspecified[0]
-	reply.data[8] = 0; // Manufacturer ID (MidSB): Unspecified[1]
-	reply.data[9] = 0; // Manufacturer ID (MSB):   Unspecified[2]
-	reply.data[10] = 0; // Product ID (LSB): Unspecified[0]
-	reply.data[11] = 0; // Product ID (MSB): Unspecified[1]
+	std::shared_ptr<IPMI_MSG> reply = std::make_shared<IPMI_MSG>();
+	message.prepare_reply(*reply);
+	reply->data[0] = IPMI::Completion::Success;
+	reply->data[1] = 0; // Device ID (00 = Unspecified) TODO
+	reply->data[2] |= 1<<7; // Device provides Device SDRs
+	reply->data[2] |= IPMC_HW_REVISION & 0x0f; // Device revision, binary encoded.
+	reply->data[3] = IPMC_FW_REVISION[0] & 0x7f;
+	// TODO: if (SDR_REPOSITORY_LOADED) reply->data[3] |= 0x80;
+	reply->data[4] = ( (IPMC_FW_REVISION[1]/10) << 4 ) | (IPMC_FW_REVISION[1]%10); // BCD FW Minor Rev
+	reply->data[5] = 0x02; // IPMI Version, BCD, Reverse Nibbles.
+	reply->data[6] |= 1<<0; // Sensor Device
+	reply->data[6] |= 1<<1; // SDR Repository Device
+	reply->data[6] |= 0<<2; // SEL Device
+	// TODO: reply->data[6] |= 1<<3; // FRU Inventory Device
+	reply->data[6] |= 1<<4; // IPMB Event Receiver
+	reply->data[6] |= 1<<5; // IPMB Event Generator
+	reply->data[6] |= 0<<6; // Bridge
+	reply->data[6] |= 0<<7; // Chassis Device
+	reply->data[7] = 0; // Manufacturer ID (LSB):   Unspecified[0]
+	reply->data[8] = 0; // Manufacturer ID (MidSB): Unspecified[1]
+	reply->data[9] = 0; // Manufacturer ID (MSB):   Unspecified[2]
+	reply->data[10] = 0; // Product ID (LSB): Unspecified[0]
+	reply->data[11] = 0; // Product ID (MSB): Unspecified[1]
 	const long int git = (GIT_SHORT_INT << 4) | (GIT_STATUS[0] ? 1 : 0);
-	reply.data[12] = (git >> 24) & 0xff; // Aux Firmware Revision
-	reply.data[13] = (git >> 16) & 0xff; // Aux Firmware Revision
-	reply.data[14] = (git >>  8) & 0xff; // Aux Firmware Revision
-	reply.data[15] = (git >>  0) & 0xff; // Aux Firmware Revision
-	reply.data_len = 16;
-	ipmb.send(std::make_shared<IPMI_MSG>(reply));
+	reply->data[12] = (git >> 24) & 0xff; // Aux Firmware Revision
+	reply->data[13] = (git >> 16) & 0xff; // Aux Firmware Revision
+	reply->data[14] = (git >>  8) & 0xff; // Aux Firmware Revision
+	reply->data[15] = (git >>  0) & 0xff; // Aux Firmware Revision
+	reply->data_len = 16;
+	ipmb.send(reply);
 }
 IPMICMD_INDEX_REGISTER(Get_Device_ID);
 
