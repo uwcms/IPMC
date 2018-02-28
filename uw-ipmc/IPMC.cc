@@ -18,6 +18,7 @@
 #include <drivers/network/Network.h>
 #include <services/persistentstorage/PersistentStorage.h>
 #include <drivers/tracebuffer/TraceBuffer.h>
+#include <drivers/pim400/PIM400.h>
 #include <services/console/UARTConsoleSvc.h>
 #include <services/influxdb/InfluxDBClient.h>
 #include <libs/LogTree.h>
@@ -121,6 +122,11 @@ void driver_init(bool use_pl) {
 	ipmi_command_parser = new IPMICommandParser(ipmicmd_default, *ipmicmd_index);
 	ipmb0 = new IPMBSvc(ps_ipmb[0], ps_ipmb[1], ipmbaddr, ipmi_command_parser, log_ipmb0, "ipmb0", SWDT);
 	ipmb0->register_console_commands(console_command_parser, "ipmb0.");
+
+	// TODO: Remove this at some point, only needed to add the pim400.status to the console
+	PL_I2C *i2c = new PL_I2C(XPAR_AXI_IIC_0_DEVICE_ID, XPAR_FABRIC_AXI_IIC_0_IIC2INTC_IRPT_INTR);
+	(new PIM400(*i2c, 0x5E))->register_console_commands(console_command_parser, "pim400");
+
 }
 
 /** IPMC service initialization.
