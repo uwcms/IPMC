@@ -115,38 +115,38 @@
 
 
 /* Definitions for peripheral AMCS_AMC0_TPS2358_0 */
-#define XPAR_AMCS_AMC0_TPS2358_0_S00_AXI_BASEADDR 0x43C20000
-#define XPAR_AMCS_AMC0_TPS2358_0_S00_AXI_HIGHADDR 0x43C2FFFF
+#define XPAR_AMCS_AMC0_TPS2358_0_S00_AXI_BASEADDR 0x43C10000
+#define XPAR_AMCS_AMC0_TPS2358_0_S00_AXI_HIGHADDR 0x43C1FFFF
 
 
 /* Definitions for peripheral AMCS_AMC1_TPS2358_0 */
-#define XPAR_AMCS_AMC1_TPS2358_0_S00_AXI_BASEADDR 0x43C30000
-#define XPAR_AMCS_AMC1_TPS2358_0_S00_AXI_HIGHADDR 0x43C3FFFF
+#define XPAR_AMCS_AMC1_TPS2358_0_S00_AXI_BASEADDR 0x43C20000
+#define XPAR_AMCS_AMC1_TPS2358_0_S00_AXI_HIGHADDR 0x43C2FFFF
 
 
 /* Definitions for peripheral AMCS_AMC2_TPS2358_0 */
-#define XPAR_AMCS_AMC2_TPS2358_0_S00_AXI_BASEADDR 0x43C40000
-#define XPAR_AMCS_AMC2_TPS2358_0_S00_AXI_HIGHADDR 0x43C4FFFF
+#define XPAR_AMCS_AMC2_TPS2358_0_S00_AXI_BASEADDR 0x43C30000
+#define XPAR_AMCS_AMC2_TPS2358_0_S00_AXI_HIGHADDR 0x43C3FFFF
 
 
 /* Definitions for peripheral AMCS_AMC3_TPS2358_0 */
-#define XPAR_AMCS_AMC3_TPS2358_0_S00_AXI_BASEADDR 0x43C50000
-#define XPAR_AMCS_AMC3_TPS2358_0_S00_AXI_HIGHADDR 0x43C5FFFF
+#define XPAR_AMCS_AMC3_TPS2358_0_S00_AXI_BASEADDR 0x43C40000
+#define XPAR_AMCS_AMC3_TPS2358_0_S00_AXI_HIGHADDR 0x43C4FFFF
 
 
 /* Definitions for peripheral AMCS_AMC4_TPS2358_0 */
-#define XPAR_AMCS_AMC4_TPS2358_0_S00_AXI_BASEADDR 0x43C60000
-#define XPAR_AMCS_AMC4_TPS2358_0_S00_AXI_HIGHADDR 0x43C6FFFF
+#define XPAR_AMCS_AMC4_TPS2358_0_S00_AXI_BASEADDR 0x43C50000
+#define XPAR_AMCS_AMC4_TPS2358_0_S00_AXI_HIGHADDR 0x43C5FFFF
 
 
 /* Definitions for peripheral AD7689_0 */
-#define XPAR_AD7689_0_S_AXI_BASEADDR 0x43C00000
-#define XPAR_AD7689_0_S_AXI_HIGHADDR 0x43C0FFFF
+#define XPAR_AD7689_0_S_AXI_BASEADDR 0x43C60000
+#define XPAR_AD7689_0_S_AXI_HIGHADDR 0x43C6FFFF
 
 
 /* Definitions for peripheral AD7689_1 */
-#define XPAR_AD7689_1_S_AXI_BASEADDR 0x43C10000
-#define XPAR_AD7689_1_S_AXI_HIGHADDR 0x43C1FFFF
+#define XPAR_AD7689_1_S_AXI_BASEADDR 0x43C70000
+#define XPAR_AD7689_1_S_AXI_HIGHADDR 0x43C7FFFF
 
 
 /* Definitions for peripheral PS7_AFI_0 */
@@ -242,51 +242,36 @@
 
 
 /* Definitions for peripheral XVC_0 */
-#define XPAR_XVC_0_S_AXI_BASEADDR 0x43C70000
-#define XPAR_XVC_0_S_AXI_HIGHADDR 0x43C7FFFF
+#define XPAR_XVC_0_S_AXI_BASEADDR 0x43CB0000
+#define XPAR_XVC_0_S_AXI_HIGHADDR 0x43CBFFFF
 
 
 /* Definitions for peripheral XADC_WIZ_0 */
-#define XPAR_XADC_WIZ_0_BASEADDR 0x43CB0000
-#define XPAR_XADC_WIZ_0_HIGHADDR 0x43CBFFFF
+#define XPAR_XADC_WIZ_0_BASEADDR 0x43C00000
+#define XPAR_XADC_WIZ_0_HIGHADDR 0x43C0FFFF
 
 
 /******************************************************************/
 
 /* Definitions for driver GPIO */
-#define XPAR_XGPIO_NUM_INSTANCES 2
-
-/* Definitions for peripheral GPIO_AXI_GPIO_0 */
-#define XPAR_GPIO_AXI_GPIO_0_BASEADDR 0x41200000
-#define XPAR_GPIO_AXI_GPIO_0_HIGHADDR 0x4120FFFF
-#define XPAR_GPIO_AXI_GPIO_0_DEVICE_ID 0
-#define XPAR_GPIO_AXI_GPIO_0_INTERRUPT_PRESENT 0
-#define XPAR_GPIO_AXI_GPIO_0_IS_DUAL 1
-
+#define XPAR_XGPIO_NUM_INSTANCES 1
 
 /* Definitions for peripheral MANAGEMENT_AXI_GPIO_0 */
-#define XPAR_MANAGEMENT_AXI_GPIO_0_BASEADDR 0x41210000
-#define XPAR_MANAGEMENT_AXI_GPIO_0_HIGHADDR 0x4121FFFF
-#define XPAR_MANAGEMENT_AXI_GPIO_0_DEVICE_ID 1
+#define XPAR_MANAGEMENT_AXI_GPIO_0_BASEADDR 0x41200000
+#define XPAR_MANAGEMENT_AXI_GPIO_0_HIGHADDR 0x4120FFFF
+#define XPAR_MANAGEMENT_AXI_GPIO_0_DEVICE_ID 0
 #define XPAR_MANAGEMENT_AXI_GPIO_0_INTERRUPT_PRESENT 0
 #define XPAR_MANAGEMENT_AXI_GPIO_0_IS_DUAL 1
 
 
 /******************************************************************/
 
-/* Canonical definitions for peripheral GPIO_AXI_GPIO_0 */
+/* Canonical definitions for peripheral MANAGEMENT_AXI_GPIO_0 */
 #define XPAR_GPIO_0_BASEADDR 0x41200000
 #define XPAR_GPIO_0_HIGHADDR 0x4120FFFF
-#define XPAR_GPIO_0_DEVICE_ID XPAR_GPIO_AXI_GPIO_0_DEVICE_ID
+#define XPAR_GPIO_0_DEVICE_ID XPAR_MANAGEMENT_AXI_GPIO_0_DEVICE_ID
 #define XPAR_GPIO_0_INTERRUPT_PRESENT 0
 #define XPAR_GPIO_0_IS_DUAL 1
-
-/* Canonical definitions for peripheral MANAGEMENT_AXI_GPIO_0 */
-#define XPAR_GPIO_1_BASEADDR 0x41210000
-#define XPAR_GPIO_1_HIGHADDR 0x4121FFFF
-#define XPAR_GPIO_1_DEVICE_ID XPAR_MANAGEMENT_AXI_GPIO_0_DEVICE_ID
-#define XPAR_GPIO_1_INTERRUPT_PRESENT 0
-#define XPAR_GPIO_1_IS_DUAL 1
 
 
 /******************************************************************/
@@ -311,7 +296,7 @@
 /******************************************************************/
 
 /* Definitions for driver IIC */
-#define XPAR_XIIC_NUM_INSTANCES 5
+#define XPAR_XIIC_NUM_INSTANCES 6
 
 /* Definitions for peripheral AMCS_AMC0_AXI_IIC_0 */
 #define XPAR_AMCS_AMC0_AXI_IIC_0_DEVICE_ID 0
@@ -353,6 +338,14 @@
 #define XPAR_AMCS_AMC4_AXI_IIC_0_GPO_WIDTH 1
 
 
+/* Definitions for peripheral AXI_IIC_0 */
+#define XPAR_AXI_IIC_0_DEVICE_ID 5
+#define XPAR_AXI_IIC_0_BASEADDR 0x41650000
+#define XPAR_AXI_IIC_0_HIGHADDR 0x4165FFFF
+#define XPAR_AXI_IIC_0_TEN_BIT_ADR 0
+#define XPAR_AXI_IIC_0_GPO_WIDTH 1
+
+
 /******************************************************************/
 
 /* Canonical definitions for peripheral AMCS_AMC0_AXI_IIC_0 */
@@ -389,6 +382,13 @@
 #define XPAR_IIC_4_HIGHADDR 0x4164FFFF
 #define XPAR_IIC_4_TEN_BIT_ADR 0
 #define XPAR_IIC_4_GPO_WIDTH 1
+
+/* Canonical definitions for peripheral AXI_IIC_0 */
+#define XPAR_IIC_5_DEVICE_ID XPAR_AXI_IIC_0_DEVICE_ID
+#define XPAR_IIC_5_BASEADDR 0x41650000
+#define XPAR_IIC_5_HIGHADDR 0x4165FFFF
+#define XPAR_IIC_5_TEN_BIT_ADR 0
+#define XPAR_IIC_5_GPO_WIDTH 1
 
 
 /******************************************************************/
@@ -588,7 +588,8 @@
 /******************************************************************/
 
 /* Definitions for Fabric interrupts connected to ps7_scugic_0 */
-#define XPAR_FABRIC_AXI_INTC_0_IRQ_INTR 61U
+#define XPAR_FABRIC_AXI_IIC_0_IIC2INTC_IRPT_INTR 61U
+#define XPAR_FABRIC_AXI_INTC_0_IRQ_INTR 62U
 
 /******************************************************************/
 

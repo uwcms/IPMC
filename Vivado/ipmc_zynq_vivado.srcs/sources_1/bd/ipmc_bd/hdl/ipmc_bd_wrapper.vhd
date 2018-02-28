@@ -1,7 +1,7 @@
 --Copyright 1986-2017 Xilinx, Inc. All Rights Reserved.
 ----------------------------------------------------------------------------------
 --Tool Version: Vivado v.2017.2 (lin64) Build 1909853 Thu Jun 15 18:39:10 MDT 2017
---Date        : Thu Feb  8 16:17:25 2018
+--Date        : Wed Feb 28 12:34:57 2018
 --Host        : beck.hep.wisc.edu running 64-bit CentOS Linux release 7.4.1708 (Core)
 --Command     : generate_target ipmc_bd_wrapper.bd
 --Design      : ipmc_bd_wrapper
@@ -39,7 +39,6 @@ entity ipmc_bd_wrapper is
     DDR_ras_n : inout STD_LOGIC;
     DDR_reset_n : inout STD_LOGIC;
     DDR_we_n : inout STD_LOGIC;
-    GPIO : inout STD_LOGIC_VECTOR ( 48 downto 0 );
     HNDL_SW : in STD_LOGIC;
     I2C_0_scl : out STD_LOGIC;
     I2C_0_sda : inout STD_LOGIC;
@@ -99,7 +98,9 @@ entity ipmc_bd_wrapper is
     TPS2358_4_mp_pg_n : in STD_LOGIC;
     TPS2358_4_pwr_ena_n : out STD_LOGIC;
     TPS2358_4_pwr_flt_n : in STD_LOGIC;
-    TPS2358_4_pwr_pg_n : in STD_LOGIC
+    TPS2358_4_pwr_pg_n : in STD_LOGIC;
+    pim400_i2c_scl_io : inout STD_LOGIC;
+    pim400_i2c_sda_io : inout STD_LOGIC
   );
 end ipmc_bd_wrapper;
 
@@ -138,7 +139,6 @@ architecture STRUCTURE of ipmc_bd_wrapper is
     ALARM_B : in STD_LOGIC;
     HNDL_SW : in STD_LOGIC;
     PYLD12V_EN : out STD_LOGIC_VECTOR ( 0 to 0 );
-    GPIO : inout STD_LOGIC_VECTOR ( 48 downto 0 );
     PG_A : in STD_LOGIC;
     PG_B : in STD_LOGIC;
     PL_LEDS : out STD_LOGIC_VECTOR ( 1 downto 0 );
@@ -192,9 +192,29 @@ architecture STRUCTURE of ipmc_bd_wrapper is
     TPS2358_1_mp_flt_n : in STD_LOGIC;
     TPS2358_1_pwr_ena_n : out STD_LOGIC;
     MC_1_ps1_n : in STD_LOGIC;
-    MC_1_enable_n : out STD_LOGIC
+    MC_1_enable_n : out STD_LOGIC;
+    PIM400_I2C_scl_i : in STD_LOGIC;
+    PIM400_I2C_scl_o : out STD_LOGIC;
+    PIM400_I2C_scl_t : out STD_LOGIC;
+    PIM400_I2C_sda_i : in STD_LOGIC;
+    PIM400_I2C_sda_o : out STD_LOGIC;
+    PIM400_I2C_sda_t : out STD_LOGIC
   );
   end component ipmc_bd;
+  component IOBUF is
+  port (
+    I : in STD_LOGIC;
+    O : out STD_LOGIC;
+    T : in STD_LOGIC;
+    IO : inout STD_LOGIC
+  );
+  end component IOBUF;
+  signal pim400_i2c_scl_i : STD_LOGIC;
+  signal pim400_i2c_scl_o : STD_LOGIC;
+  signal pim400_i2c_scl_t : STD_LOGIC;
+  signal pim400_i2c_sda_i : STD_LOGIC;
+  signal pim400_i2c_sda_o : STD_LOGIC;
+  signal pim400_i2c_sda_t : STD_LOGIC;
 begin
 ipmc_bd_i: component ipmc_bd
      port map (
@@ -224,7 +244,6 @@ ipmc_bd_i: component ipmc_bd
       DDR_ras_n => DDR_ras_n,
       DDR_reset_n => DDR_reset_n,
       DDR_we_n => DDR_we_n,
-      GPIO(48 downto 0) => GPIO(48 downto 0),
       HNDL_SW => HNDL_SW,
       I2C_0_scl => I2C_0_scl,
       I2C_0_sda => I2C_0_sda,
@@ -253,6 +272,12 @@ ipmc_bd_i: component ipmc_bd
       MC_4_ps1_n => MC_4_ps1_n,
       PG_A => PG_A,
       PG_B => PG_B,
+      PIM400_I2C_scl_i => pim400_i2c_scl_i,
+      PIM400_I2C_scl_o => pim400_i2c_scl_o,
+      PIM400_I2C_scl_t => pim400_i2c_scl_t,
+      PIM400_I2C_sda_i => pim400_i2c_sda_i,
+      PIM400_I2C_sda_o => pim400_i2c_sda_o,
+      PIM400_I2C_sda_t => pim400_i2c_sda_t,
       PL_LEDS(1 downto 0) => PL_LEDS(1 downto 0),
       PYLD12V_EN(0) => PYLD12V_EN(0),
       TPS2358_0_mp_ena_n => TPS2358_0_mp_ena_n,
@@ -285,5 +310,19 @@ ipmc_bd_i: component ipmc_bd
       TPS2358_4_pwr_ena_n => TPS2358_4_pwr_ena_n,
       TPS2358_4_pwr_flt_n => TPS2358_4_pwr_flt_n,
       TPS2358_4_pwr_pg_n => TPS2358_4_pwr_pg_n
+    );
+pim400_i2c_scl_iobuf: component IOBUF
+     port map (
+      I => pim400_i2c_scl_o,
+      IO => pim400_i2c_scl_io,
+      O => pim400_i2c_scl_i,
+      T => pim400_i2c_scl_t
+    );
+pim400_i2c_sda_iobuf: component IOBUF
+     port map (
+      I => pim400_i2c_sda_o,
+      IO => pim400_i2c_sda_io,
+      O => pim400_i2c_sda_i,
+      T => pim400_i2c_sda_t
     );
 end STRUCTURE;
