@@ -1,0 +1,206 @@
+Code,Command,Mandatory,Section
+0000,Get Chassis Capabilities,O,Chassis Device Commands
+0001,Get Chassis Status,O,Chassis Device Commands
+0002,Chassis Control,O,Chassis Device Commands
+0003,Chassis Reset,O,Chassis Device Commands
+0004,Chassis Identify,O,Chassis Device Commands
+0005,Set Chassis Capabilities,O,Chassis Device Commands
+0006,Set Power Restore Policy,O,Chassis Device Commands
+0007,Get System Restart Cause,O*,Chassis Device Commands
+0008,Set System Boot Options,O*,Chassis Device Commands
+0009,Get System Boot Options,O*,Chassis Device Commands
+000F,Get POH Counter,O,Chassis Device Commands
+0200,Get Bridge State,O,Bridge Management Commands (ICMB)
+0201,Set Bridge State,O,Bridge Management Commands (ICMB)
+0202,Get ICMB Address,O,Bridge Management Commands (ICMB)
+0203,Set ICMB Address,O,Bridge Management Commands (ICMB)
+0204,Set Bridge Proxy Address,O,Bridge Management Commands (ICMB)
+0205,Get Bridge Statistics,O,Bridge Management Commands (ICMB)
+0206,Get ICMB Capabilities,O,Bridge Management Commands (ICMB)
+0208,Clear Bridge Statistics,O,Bridge Management Commands (ICMB)
+0209,Get Bridge Proxy Address,O,Bridge Management Commands (ICMB)
+020A,Get ICMB Connector Info,O,Bridge Management Commands (ICMB)
+020B,Get ICMB Connection ID,O,Bridge Management Commands (ICMB)
+020C,Send ICMB Connection ID,O,Bridge Management Commands (ICMB)
+0210,Prepare For Discovery,O,Discovery Commands (ICMB)
+0211,Get Addresses Bridge,O,Discovery Commands (ICMB)
+0212,Set Discovered,O,Discovery Commands (ICMB)
+0213,Get Chassis Device ID,O,Discovery Commands (ICMB)
+0214,Set Chassis Device ID,O,Discovery Commands (ICMB)
+0220,Bridge Request,O,Bridging Commands (ICMB)
+0221,Bridge Message,O,Bridging Commands (ICMB)
+0230,Get Event Count,O,Event Commands (ICMB)
+0231,Set Event Destination,O,Event Commands (ICMB)
+0232,Set Event Reception State,O,Event Commands (ICMB)
+0233,Send ICMB Event Message,O,Event Commands (ICMB)
+0234,Get Event Destination,O,Event Commands (ICMB)
+0235,Get Event Reception State,O,Event Commands (ICMB)
+02FF,Error Report,O,Other Bridge Commands
+0400,Set Event Receiver,M,Event Commands
+0401,Get Event Receiver,M,Event Commands
+0402,Platform Event,M,Event Commands
+0410,Get PEF Capabilities,M*,PEF and Alerting Commands
+0411,Arm PEF Postpone Timer,M*,PEF and Alerting Commands
+0412,Set PEF Configuration Parameters,M*,PEF and Alerting Commands
+0413,Get PEF Configuration Parameters,M*,PEF and Alerting Commands
+0414,Set Last Processed Event ID,M*,PEF and Alerting Commands
+0415,Get Last Processed Event ID,M*,PEF and Alerting Commands
+0416,Alert Immediate,O*,PEF and Alerting Commands
+0417,PET Acknowledge,O*,PEF and Alerting Commands
+0420,Get Device SDR Info,M,Sensor Device Commands
+0421,Get Device SDR,M*,Sensor Device Commands
+0422,Reserve Device SDR Repository,M*,Sensor Device Commands
+0423,Get Sensor Reading Factors,O*,Sensor Device Commands
+0424,Set Sensor Hysteresis,O,Sensor Device Commands
+0425,Get Sensor Hysteresis,O,Sensor Device Commands
+0426,Set Sensor Threshold,O,Sensor Device Commands
+0427,Get Sensor Threshold,O*,Sensor Device Commands
+0428,Set Sensor Event Enable,O,Sensor Device Commands
+0429,Get Sensor Event Enable,O*,Sensor Device Commands
+042A,Rearm Sensor Events,O*,Sensor Device Commands
+042B,Get Sensor Event Status,O,Sensor Device Commands
+042D,Get Sensor Reading,M,Sensor Device Commands
+042E,Set Sensor Type,O,Sensor Device Commands
+042F,Get Sensor Type,O*,Sensor Device Commands
+0601,Get Device ID,M,IPM Device “Global” Commands
+0602,Cold Reset,O*,IPM Device “Global” Commands
+0603,Warm Reset,O,IPM Device “Global” Commands
+0604,Get Self Test Results,M,IPM Device “Global” Commands
+0605,Manufacturing Test On,O,IPM Device “Global” Commands
+0606,Set ACPI Power State,O,IPM Device “Global” Commands
+0607,Get ACPI Power State,O*,IPM Device “Global” Commands
+0608,Get Device GUID,O,IPM Device “Global” Commands
+0622,Reset Watchdog Timer,M,BMC Watchdog Timer Commands
+0624,Set Watchdog Timer,M,BMC Watchdog Timer Commands
+0625,Get Watchdog Timer,M,BMC Watchdog Timer Commands
+062E,Set BMC Global Enables,O/M,BMC Device and Messaging Commands
+062F,Get BMC Global Enables,O/M,BMC Device and Messaging Commands
+0630,Clear Message Flags,O/M,BMC Device and Messaging Commands
+0631,Get Message Flags,O/M,BMC Device and Messaging Commands
+0632,Enable Message Channel Receive,O,BMC Device and Messaging Commands
+0633,Get Message,O/M,BMC Device and Messaging Commands
+0634,Send Message,O/M,BMC Device and Messaging Commands
+0635,Read Event Message Buffer,O,BMC Device and Messaging Commands
+0636,Get BT Interface Capabilities,O/M,BMC Device and Messaging Commands
+0637,Get System GUID,O*,BMC Device and Messaging Commands
+0638,Get Channel Authentication Capabilities,O*,BMC Device and Messaging Commands
+0639,Get Session Challenge,O*,BMC Device and Messaging Commands
+063A,Activate Session,O*,BMC Device and Messaging Commands
+063B,Set Session Privilege Level,O*,BMC Device and Messaging Commands
+063C,Close Session,O*,BMC Device and Messaging Commands
+063D,Get Session Info,O*,BMC Device and Messaging Commands
+063F,Get AuthCode,O,BMC Device and Messaging Commands
+0640,Set Channel Access,O*,BMC Device and Messaging Commands
+0641,Get Channel Access,O*,BMC Device and Messaging Commands
+0642,Get Channel Info,O*,BMC Device and Messaging Commands
+0643,Set User Access,O*,BMC Device and Messaging Commands
+0644,Get User Access,O*,BMC Device and Messaging Commands
+0645,Set User Name,O*,BMC Device and Messaging Commands
+0646,Get User Name,O*,BMC Device and Messaging Commands
+0647,Set User Password,O*,BMC Device and Messaging Commands
+0648,Activate Payload for the IPMI Trace Payload,O*,AdvancedTCA
+0652,Master WriteRead,O/M,BMC Device and Messaging Commands
+0A10,Get FRU Inventory Area Info,M,FRU Device Commands
+0A11,Read FRU Data,M,FRU Device Commands
+0A12,Write FRU Data,M,FRU Device Commands
+0A20,Get SDR Repository Info,O/M,SDR Device Commands
+0A21,Get SDR Repository Allocation Info,O,SDR Device Commands
+0A22,Reserve SDR Repository Storage,O/M,SDR Device Commands
+0A23,Get SDR,O/M*,SDR Device Commands
+0A24,Add SDR,O/M*,SDR Device Commands
+0A25,Partial Add SDR,O/M*,SDR Device Commands
+0A26,Delete SDR,O*,SDR Device Commands
+0A27,Clear SDR Repository,O/M*,SDR Device Commands
+0A28,Get SDR Repository Time,O/M*,SDR Device Commands
+0A29,Set SDR Repository Time,O/M*,SDR Device Commands
+0A2A,Enter SDR Repository Update Mode,O*,SDR Device Commands
+0A2B,Exit SDR Repository Update Mode,O/M*,SDR Device Commands
+0A2C,Run Initialization Agent,O*,SDR Device Commands
+0A40,Get SEL Info,M,SEL Device Commands
+0A41,Get SEL Allocation Info,O,SEL Device Commands
+0A42,Reserve SEL,O*,SEL Device Commands
+0A43,Get SEL Entry,M,SEL Device Commands
+0A44,Add SEL Entry,M*,SEL Device Commands
+0A45,Partial Add SEL Entry,M*,SEL Device Commands
+0A46,Delete SEL Entry,O,SEL Device Commands
+0A47,Clear SEL,M,SEL Device Commands
+0A48,Get SEL Time,M,SEL Device Commands
+0A49,Set SEL Time,M,SEL Device Commands
+0A5A,Get Auxiliary Log Status,O,SEL Device Commands
+0A5B,Set Auxiliary Log Status,O*,SEL Device Commands
+0C01,Set LAN Configuration Parameters,O/M*,LAN Device Commands
+0C02,Get LAN Configuration Parameters,O/M*,LAN Device Commands
+0C03,Suspend BMC ARPs,O/M*,LAN Device Commands
+0C04,Get IP UDP RMCP Statistics,O,LAN Device Commands
+0C10,Set Serial Modem Configuration,O/M*,Serial/Modem Device Commands
+0C11,Get Serial Modem Configuration,O/M*,Serial/Modem Device Commands
+0C12,Set Serial Modem Mux,O*,Serial/Modem Device Commands
+0C13,Get TAP Response Codes,O*,Serial/Modem Device Commands
+0C14,Set PPP UDP Proxy Transmit Data,O*,Serial/Modem Device Commands
+0C15,Get PPP UDP Proxy Transmit Data,O*,Serial/Modem Device Commands
+0C16,Send PPP UDP Proxy Packet Transport,O*,Serial/Modem Device Commands
+0C17,Get PPP UDP Proxy Receive Data,O*,Serial/Modem Device Commands
+0C18,Serial Modem Connection Active,O/M*,Serial/Modem Device Commands
+0C19,Callback,O,Serial/Modem Device Commands
+0C1A,Set User Callback Options,O*,Serial/Modem Device Commands
+0C1B,Get User Callback Options,O*,Serial/Modem Device Commands
+2C00,Get PICMG Properties,M,AdvancedTCA
+2C01,Get Address Info,M*,AdvancedTCA
+2C02,Get Shelf Address Info,O,AdvancedTCA
+2C03,Set Shelf Address Info,O,AdvancedTCA
+2C04,FRU Control,M,AdvancedTCA
+2C05,Get FRU LED Properties,M,AdvancedTCA
+2C06,Get LED Color Capabilities,M,AdvancedTCA
+2C07,Set FRU LED State,M,AdvancedTCA
+2C08,Get FRU LED State,M,AdvancedTCA
+2C09,Set IPMB State,M,AdvancedTCA
+2C0A,Set FRU Activation Policy,M,AdvancedTCA
+2C0B,Get FRU Activation Policy,M,AdvancedTCA
+2C0C,Set FRU Activation,M,AdvancedTCA
+2C0D,Get Device Locator Record ID,M,AdvancedTCA
+2C0E,Set Port State,O/M*,AdvancedTCA
+2C0F,Get Port State,O/M*,AdvancedTCA
+2C10,Compute Power Properties,M,AdvancedTCA
+2C11,Set Power Level,M,AdvancedTCA
+2C12,Get Power Level,M,AdvancedTCA
+2C13,Renegotiate Power,O,AdvancedTCA
+2C14,Get Fan Speed Properties,M*,AdvancedTCA
+2C15,Set Fan Level,O/M*,AdvancedTCA
+2C16,Get Fan Level,O/M*,AdvancedTCA
+2C17,Bused Resource,O/M*,AdvancedTCA
+2C18,Get IPMB Link Info,O/M*,AdvancedTCA
+2C1B,Get Shelf Manager IPMB Address,NA*,AdvancedTCA
+2C1C,Set Fan Policy,NA*,AdvancedTCA
+2C1D,Get Fan Policy,NA*,AdvancedTCA
+2C1E,FRU Control Capabilities,M,AdvancedTCA
+2C1F,FRU Inventory Device Lock Control,O,AdvancedTCA
+2C20,FRU Inventory Device Write,O,AdvancedTCA
+2C21,Get Shelf Manager IP Addresses,O,AdvancedTCA
+2C22,Get Shelf Power Allocation,NA*,AdvancedTCA
+2C29,Get Telco Alarm Capability,O/M*,AdvancedTCA
+2C2A,Set Telco Alarm State,O/M*,AdvancedTCA
+2C2B,Get Telco Alarm State,O/M*,AdvancedTCA
+2C2E,Get Target Upgrade Capabilities,M,AdvancedTCA
+2C2F,Get Component Properties,M,AdvancedTCA
+2C30,Abort Firmware Upgrade,O,AdvancedTCA
+2C31,Initiate Upgrade Action,M,AdvancedTCA
+2C32,Upload Firmware Block,M,AdvancedTCA
+2C33,Finish Firmware Upload,M,AdvancedTCA
+2C34,Get Upgrade Status,O/M*,AdvancedTCA
+2C35,Activate Firmware,M,AdvancedTCA
+2C36,Query Self-Test Results,O/M*,AdvancedTCA
+2C37,Query Rollback Status,O/M*,AdvancedTCA
+2C38,Initiate Manual Rollback,O/M*,AdvancedTCA
+2C39,Get Telco Alarm Location,O,AdvancedTCA
+2C3A,Set FRU Extracted,O,AdvancedTCA
+2C3E,Get HPM.x Capabilities,M,AdvancedTCA
+2C3F,Get Dynamic Credentials,O*,AdvancedTCA
+2C40,Get Session Handle for Explicit LAN Bridging,O*,AdvancedTCA
+2C41,Get ATCA Extended Management Resources,O*,AdvancedTCA
+2C42,Get AMC Extended Management Resources,O*,AdvancedTCA
+2C43,Set ATCA Extended Management State,O*,AdvancedTCA
+2C44,Get ATCA Extended Management State,O*,AdvancedTCA
+2C45,Set AMC Power State,O*,AdvancedTCA
+2C46,Get AMC Power State,O*,AdvancedTCA
+2C47,Assign SOL Payload Instance,O*,AdvancedTCA
+2C48,Get IP Address Source,N/A,AdvancedTCA

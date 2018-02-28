@@ -276,6 +276,83 @@ IPMICMD_INDEX_REGISTER(Get_Telco_Alarm_State);
 #endif
 
 #if 0 // Unimplemented.
+static void ipmicmd_Get_Target_Upgrade_Capabilities(IPMBSvc &ipmb, const IPMI_MSG &message) {
+    ASSERT_PICMG_IDENTIFIER(ipmb, message);
+}
+IPMICMD_INDEX_REGISTER(Get_Target_Upgrade_Capabilities);
+#endif
+
+#if 0 // Unimplemented.
+static void ipmicmd_Get_Component_Properties(IPMBSvc &ipmb, const IPMI_MSG &message) {
+    ASSERT_PICMG_IDENTIFIER(ipmb, message);
+}
+IPMICMD_INDEX_REGISTER(Get_Component_Properties);
+#endif
+
+#if 0 // Unimplemented.
+static void ipmicmd_Abort_Firmware_Upgrade(IPMBSvc &ipmb, const IPMI_MSG &message) {
+    ASSERT_PICMG_IDENTIFIER(ipmb, message);
+}
+IPMICMD_INDEX_REGISTER(Abort_Firmware_Upgrade);
+#endif
+
+#if 0 // Unimplemented.
+static void ipmicmd_Initiate_Upgrade_Action(IPMBSvc &ipmb, const IPMI_MSG &message) {
+    ASSERT_PICMG_IDENTIFIER(ipmb, message);
+}
+IPMICMD_INDEX_REGISTER(Initiate_Upgrade_Action);
+#endif
+
+#if 0 // Unimplemented.
+static void ipmicmd_Upload_Firmware_Block(IPMBSvc &ipmb, const IPMI_MSG &message) {
+    ASSERT_PICMG_IDENTIFIER(ipmb, message);
+}
+IPMICMD_INDEX_REGISTER(Upload_Firmware_Block);
+#endif
+
+#if 0 // Unimplemented.
+static void ipmicmd_Finish_Firmware_Upload(IPMBSvc &ipmb, const IPMI_MSG &message) {
+    ASSERT_PICMG_IDENTIFIER(ipmb, message);
+}
+IPMICMD_INDEX_REGISTER(Finish_Firmware_Upload);
+#endif
+
+#if 0 // Unimplemented.
+static void ipmicmd_Get_Upgrade_Status(IPMBSvc &ipmb, const IPMI_MSG &message) {
+    ASSERT_PICMG_IDENTIFIER(ipmb, message);
+}
+IPMICMD_INDEX_REGISTER(Get_Upgrade_Status);
+#endif
+
+#if 0 // Unimplemented.
+static void ipmicmd_Activate_Firmware(IPMBSvc &ipmb, const IPMI_MSG &message) {
+    ASSERT_PICMG_IDENTIFIER(ipmb, message);
+}
+IPMICMD_INDEX_REGISTER(Activate_Firmware);
+#endif
+
+#if 0 // Unimplemented.
+static void ipmicmd_Query_Self_Test_Results(IPMBSvc &ipmb, const IPMI_MSG &message) {
+    ASSERT_PICMG_IDENTIFIER(ipmb, message);
+}
+IPMICMD_INDEX_REGISTER(Query_Self_Test_Results);
+#endif
+
+#if 0 // Unimplemented.
+static void ipmicmd_Query_Rollback_Status(IPMBSvc &ipmb, const IPMI_MSG &message) {
+    ASSERT_PICMG_IDENTIFIER(ipmb, message);
+}
+IPMICMD_INDEX_REGISTER(Query_Rollback_Status);
+#endif
+
+#if 0 // Unimplemented.
+static void ipmicmd_Initiate_Manual_Rollback(IPMBSvc &ipmb, const IPMI_MSG &message) {
+    ASSERT_PICMG_IDENTIFIER(ipmb, message);
+}
+IPMICMD_INDEX_REGISTER(Initiate_Manual_Rollback);
+#endif
+
+#if 0 // Unimplemented.
 static void ipmicmd_Get_Telco_Alarm_Location(IPMBSvc &ipmb, const IPMI_MSG &message) {
 	ASSERT_PICMG_IDENTIFIER(ipmb, message);
 }
@@ -289,3 +366,79 @@ static void ipmicmd_Set_FRU_Extracted(IPMBSvc &ipmb, const IPMI_MSG &message) {
 IPMICMD_INDEX_REGISTER(Set_FRU_Extracted);
 #endif
 
+#if 0 // Unimplemented.
+static void ipmicmd_Get_HPM_x_Capabilities(IPMBSvc &ipmb, const IPMI_MSG &message) {
+    ASSERT_PICMG_IDENTIFIER(ipmb, message);
+}
+IPMICMD_INDEX_REGISTER(Get_HPM_x_Capabilities);
+#endif
+
+#if 0 // Unimplemented.
+static void ipmicmd_Get_Dynamic_Credentials(IPMBSvc &ipmb, const IPMI_MSG &message) {
+    ASSERT_PICMG_IDENTIFIER(ipmb, message);
+}
+IPMICMD_INDEX_REGISTER(Get_Dynamic_Credentials);
+#endif
+
+#if 0 // Unimplemented.
+static void ipmicmd_Get_Session_Handle_for_Explicit_LAN_Bridging(IPMBSvc &ipmb, const IPMI_MSG &message) {
+    ASSERT_PICMG_IDENTIFIER(ipmb, message);
+}
+IPMICMD_INDEX_REGISTER(Get_Session_Handle_for_Explicit_LAN_Bridging);
+#endif
+
+#if 0 // Unimplemented.
+static void ipmicmd_Get_ATCA_Extended_Management_Resources(IPMBSvc &ipmb, const IPMI_MSG &message) {
+    ASSERT_PICMG_IDENTIFIER(ipmb, message);
+}
+IPMICMD_INDEX_REGISTER(Get_ATCA_Extended_Management_Resources);
+#endif
+
+#if 0 // Unimplemented.
+static void ipmicmd_Get_AMC_Extended_Management_Resources(IPMBSvc &ipmb, const IPMI_MSG &message) {
+    ASSERT_PICMG_IDENTIFIER(ipmb, message);
+}
+IPMICMD_INDEX_REGISTER(Get_AMC_Extended_Management_Resources);
+#endif
+
+#if 0 // Unimplemented.
+static void ipmicmd_Set_ATCA_Extended_Management_State(IPMBSvc &ipmb, const IPMI_MSG &message) {
+    ASSERT_PICMG_IDENTIFIER(ipmb, message);
+}
+IPMICMD_INDEX_REGISTER(Set_ATCA_Extended_Management_State);
+#endif
+
+#if 0 // Unimplemented.
+static void ipmicmd_Get_ATCA_Extended_Management_State(IPMBSvc &ipmb, const IPMI_MSG &message) {
+    ASSERT_PICMG_IDENTIFIER(ipmb, message);
+}
+IPMICMD_INDEX_REGISTER(Get_ATCA_Extended_Management_State);
+#endif
+
+#if 0 // Unimplemented.
+static void ipmicmd_Set_AMC_Power_State(IPMBSvc &ipmb, const IPMI_MSG &message) {
+    ASSERT_PICMG_IDENTIFIER(ipmb, message);
+}
+IPMICMD_INDEX_REGISTER(Set_AMC_Power_State);
+#endif
+
+#if 0 // Unimplemented.
+static void ipmicmd_Get_AMC_Power_State(IPMBSvc &ipmb, const IPMI_MSG &message) {
+    ASSERT_PICMG_IDENTIFIER(ipmb, message);
+}
+IPMICMD_INDEX_REGISTER(Get_AMC_Power_State);
+#endif
+
+#if 0 // Unimplemented.
+static void ipmicmd_Assign_SOL_Payload_Instance(IPMBSvc &ipmb, const IPMI_MSG &message) {
+    ASSERT_PICMG_IDENTIFIER(ipmb, message);
+}
+IPMICMD_INDEX_REGISTER(Assign_SOL_Payload_Instance);
+#endif
+
+#if 0 // Unimplemented.
+static void ipmicmd_Get_IP_Address_Source(IPMBSvc &ipmb, const IPMI_MSG &message) {
+    ASSERT_PICMG_IDENTIFIER(ipmb, message);
+}
+IPMICMD_INDEX_REGISTER(Get_IP_Address_Source);
+#endif

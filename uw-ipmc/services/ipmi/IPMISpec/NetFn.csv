@@ -1,0 +1,10 @@
+NetFn,Name
+00,"Chassis"
+02,"Bridge"
+04,"Sensor/Event"
+06,"App"
+08,"Firmware"
+0A,"Storage"
+0C,"Transport"
+2C,"PICMG"
+3C,"CMS"
