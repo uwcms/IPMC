@@ -291,6 +291,13 @@ IPMICMD_INDEX_REGISTER(Set_User_Password);
 #endif
 
 #if 0 // Unimplemented.
+static void ipmicmd_Activate_Payload_for_the_IPMI_Trace_Payload(IPMBSvc &ipmb, const IPMI_MSG &message) {
+
+}
+IPMICMD_INDEX_REGISTER(Activate_Payload_for_the_IPMI_Trace_Payload);
+#endif
+
+#if 0 // Unimplemented.
 static void ipmicmd_Master_WriteRead(IPMBSvc &ipmb, const IPMI_MSG &message) {
 
 }
