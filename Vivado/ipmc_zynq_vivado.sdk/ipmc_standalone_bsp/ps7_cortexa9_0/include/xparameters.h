@@ -548,6 +548,23 @@
 
 /******************************************************************/
 
+/* Definitions for driver MGMT_ZONE_CTRL */
+#define XPAR_MGMT_ZONE_CTRL_NUM_INSTANCES 1
+
+/* Definitions for peripheral MGMT_ZONE_CTRL_0 */
+#define XPAR_MGMT_ZONE_CTRL_0_DEVICE_ID 0
+#define XPAR_MGMT_ZONE_CTRL_0_S_AXI_BASEADDR 0x43CC0000
+#define XPAR_MGMT_ZONE_CTRL_0_S_AXI_HIGHADDR 0x43CCFFFF
+#define XPAR_MGMT_ZONE_CTRL_0_MZ_CNT 8
+#define XPAR_MGMT_ZONE_CTRL_0_HF_CNT 64
+#define XPAR_MGMT_ZONE_CTRL_0_PWREN_CNT 12
+
+
+/******************************************************************/
+
+
+/******************************************************************/
+
 /* Definitions for driver PYLD_PWR_CTRL */
 #define XPAR_PYLD_PWR_CTRL_NUM_INSTANCES 1
 

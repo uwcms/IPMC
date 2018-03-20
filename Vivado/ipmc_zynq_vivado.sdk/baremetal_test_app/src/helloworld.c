@@ -53,6 +53,7 @@
 
 #include "led_controller.h"
 #include "pyld_pwr_ctrl.h"
+#include "mgmt_zone_ctrl.h"
 
 #define TEST_MIN_PE_CNT 12
 
@@ -101,6 +102,25 @@ int LED_Controller_demo(int demo) {
 	default:
 		break;
 	}
+
+	return XST_SUCCESS;
+}
+
+int mgmt_zone_ctrl_demo(void) {
+	int Status;
+
+	Mgmt_Zone_Ctrl Mgmt_Zone_Ctrl_inst;
+
+	/* Initialize the Payload Power Controller driver */
+	Status = Mgmt_Zone_Ctrl_Initialize(&Mgmt_Zone_Ctrl_inst, 0);
+	if (Status != XST_SUCCESS) {
+		xil_printf("Mgmt_Zone_Ctrl_inst Initialization Failed\n\r");
+		return XST_FAILURE;
+	}
+
+
+	xil_printf("\n\rMgmt_Zone_Ctrl test completed successfully.\n\r");
+
 
 	return XST_SUCCESS;
 }
@@ -348,6 +368,8 @@ int main() {
 	xil_printf("ZYNQ-IPMC low-level driver testbench\n\r");
 
 	pyld_pwr_ctrl_demo();
+
+	mgmt_zone_ctrl_demo();
 
 	// LED demo
 	while (1) {
