@@ -157,12 +157,12 @@ void *PersistentStorage::get_section(u16 section_id, u16 section_version, u16 se
 	// We start allocations from the end of EEPROM.
 	u16 allocpg = (this->eeprom.size/this->eeprom.page_size)-section_pgcount;
 	bool potential_overlap = true;
-	while (allocpg < minimum_page && potential_overlap) {
+	while (allocpg >= minimum_page && potential_overlap) {
 		// Ok, find an overlap with this allocation.
 		potential_overlap = false; // Unless we find something below, we know there is no overlap.
 		for (int x = 0; index[x].id != PersistentStorageAllocations::RESERVED_END_OF_INDEX; ++x) {
 			if (( allocpg >= index[x].pgoff && !(allocpg >= index[x].pgoff + index[x].pgcount) ) /* our start is in this range */ ||
-				( allocpg+section_pgcount >= index[x].pgoff && !(allocpg+section_pgcount >= index[x].pgoff + index[x].pgcount) ) /* our end is in this range */ ) {
+				( allocpg+section_pgcount > index[x].pgoff && !(allocpg+section_pgcount > index[x].pgoff + index[x].pgcount) ) /* our end is in this range */ ) {
 				// We overlap.  Move us to before the start of this section.
 				potential_overlap = true;
 				if (index[x].pgoff < section_pgcount)
