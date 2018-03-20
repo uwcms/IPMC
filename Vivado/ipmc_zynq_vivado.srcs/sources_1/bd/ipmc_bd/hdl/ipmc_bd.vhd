@@ -1,7 +1,7 @@
 --Copyright 1986-2017 Xilinx, Inc. All Rights Reserved.
 ----------------------------------------------------------------------------------
 --Tool Version: Vivado v.2017.2 (lin64) Build 1909853 Thu Jun 15 18:39:10 MDT 2017
---Date        : Tue Mar 20 17:29:25 2018
+--Date        : Tue Mar 20 19:59:46 2018
 --Host        : moonraker.cern.ch running 64-bit Scientific Linux CERN SLC release 6.9 (Carbon)
 --Command     : generate_target ipmc_bd.bd
 --Design      : ipmc_bd
@@ -13,7 +13,7 @@ library UNISIM;
 use UNISIM.VCOMPONENTS.ALL;
 entity GPIO_imp_1V8HBDC is
   port (
-    IO : inout STD_LOGIC_VECTOR ( 48 downto 0 );
+    IO : inout STD_LOGIC_VECTOR ( 31 downto 0 );
     S_AXI_araddr : in STD_LOGIC_VECTOR ( 31 downto 0 );
     S_AXI_arready : out STD_LOGIC_VECTOR ( 0 to 0 );
     S_AXI_arvalid : in STD_LOGIC_VECTOR ( 0 to 0 );
@@ -60,44 +60,15 @@ architecture STRUCTURE of GPIO_imp_1V8HBDC is
     s_axi_rready : in STD_LOGIC;
     gpio_io_i : in STD_LOGIC_VECTOR ( 31 downto 0 );
     gpio_io_o : out STD_LOGIC_VECTOR ( 31 downto 0 );
-    gpio_io_t : out STD_LOGIC_VECTOR ( 31 downto 0 );
-    gpio2_io_i : in STD_LOGIC_VECTOR ( 16 downto 0 );
-    gpio2_io_o : out STD_LOGIC_VECTOR ( 16 downto 0 );
-    gpio2_io_t : out STD_LOGIC_VECTOR ( 16 downto 0 )
+    gpio_io_t : out STD_LOGIC_VECTOR ( 31 downto 0 )
   );
   end component ipmc_bd_axi_gpio_0_1;
-  component ipmc_bd_xlconcat_1_1 is
-  port (
-    In0 : in STD_LOGIC_VECTOR ( 31 downto 0 );
-    In1 : in STD_LOGIC_VECTOR ( 16 downto 0 );
-    dout : out STD_LOGIC_VECTOR ( 48 downto 0 )
-  );
-  end component ipmc_bd_xlconcat_1_1;
-  component ipmc_bd_xlconcat_2_0 is
-  port (
-    In0 : in STD_LOGIC_VECTOR ( 31 downto 0 );
-    In1 : in STD_LOGIC_VECTOR ( 16 downto 0 );
-    dout : out STD_LOGIC_VECTOR ( 48 downto 0 )
-  );
-  end component ipmc_bd_xlconcat_2_0;
-  component ipmc_bd_xlslice_0_1 is
-  port (
-    Din : in STD_LOGIC_VECTOR ( 48 downto 0 );
-    Dout : out STD_LOGIC_VECTOR ( 31 downto 0 )
-  );
-  end component ipmc_bd_xlslice_0_1;
-  component ipmc_bd_xlslice_1_0 is
-  port (
-    Din : in STD_LOGIC_VECTOR ( 48 downto 0 );
-    Dout : out STD_LOGIC_VECTOR ( 16 downto 0 )
-  );
-  end component ipmc_bd_xlslice_1_0;
   component ipmc_bd_tri_state_buffer_0_0 is
   port (
-    I : in STD_LOGIC_VECTOR ( 48 downto 0 );
-    O : out STD_LOGIC_VECTOR ( 48 downto 0 );
-    T : in STD_LOGIC_VECTOR ( 48 downto 0 );
-    IO : inout STD_LOGIC_VECTOR ( 48 downto 0 )
+    I : in STD_LOGIC_VECTOR ( 31 downto 0 );
+    O : out STD_LOGIC_VECTOR ( 31 downto 0 );
+    T : in STD_LOGIC_VECTOR ( 31 downto 0 );
+    IO : inout STD_LOGIC_VECTOR ( 31 downto 0 )
   );
   end component ipmc_bd_tri_state_buffer_0_0;
   signal Conn1_ARADDR : STD_LOGIC_VECTOR ( 31 downto 0 );
@@ -117,18 +88,12 @@ architecture STRUCTURE of GPIO_imp_1V8HBDC is
   signal Conn1_WREADY : STD_LOGIC;
   signal Conn1_WSTRB : STD_LOGIC_VECTOR ( 3 downto 0 );
   signal Conn1_WVALID : STD_LOGIC_VECTOR ( 0 to 0 );
-  signal Net : STD_LOGIC_VECTOR ( 48 downto 0 );
-  signal axi_gpio_0_gpio2_io_o : STD_LOGIC_VECTOR ( 16 downto 0 );
-  signal axi_gpio_0_gpio2_io_t : STD_LOGIC_VECTOR ( 16 downto 0 );
+  signal Net : STD_LOGIC_VECTOR ( 31 downto 0 );
   signal axi_gpio_0_gpio_io_o : STD_LOGIC_VECTOR ( 31 downto 0 );
   signal axi_gpio_0_gpio_io_t : STD_LOGIC_VECTOR ( 31 downto 0 );
   signal s_axi_aclk_1 : STD_LOGIC;
   signal s_axi_aresetn_1 : STD_LOGIC;
-  signal tri_state_buffer_0_O : STD_LOGIC_VECTOR ( 48 downto 0 );
-  signal xlconcat_1_dout : STD_LOGIC_VECTOR ( 48 downto 0 );
-  signal xlconcat_2_dout : STD_LOGIC_VECTOR ( 48 downto 0 );
-  signal xlslice_0_Dout : STD_LOGIC_VECTOR ( 31 downto 0 );
-  signal xlslice_1_Dout : STD_LOGIC_VECTOR ( 16 downto 0 );
+  signal tri_state_buffer_0_O : STD_LOGIC_VECTOR ( 31 downto 0 );
 begin
   Conn1_ARADDR(31 downto 0) <= S_AXI_araddr(31 downto 0);
   Conn1_ARVALID(0) <= S_AXI_arvalid(0);
@@ -151,10 +116,7 @@ begin
   s_axi_aresetn_1 <= s_axi_aresetn;
 axi_gpio_0: component ipmc_bd_axi_gpio_0_1
      port map (
-      gpio2_io_i(16 downto 0) => xlslice_1_Dout(16 downto 0),
-      gpio2_io_o(16 downto 0) => axi_gpio_0_gpio2_io_o(16 downto 0),
-      gpio2_io_t(16 downto 0) => axi_gpio_0_gpio2_io_t(16 downto 0),
-      gpio_io_i(31 downto 0) => xlslice_0_Dout(31 downto 0),
+      gpio_io_i(31 downto 0) => tri_state_buffer_0_O(31 downto 0),
       gpio_io_o(31 downto 0) => axi_gpio_0_gpio_io_o(31 downto 0),
       gpio_io_t(31 downto 0) => axi_gpio_0_gpio_io_t(31 downto 0),
       s_axi_aclk => s_axi_aclk_1,
@@ -179,32 +141,10 @@ axi_gpio_0: component ipmc_bd_axi_gpio_0_1
     );
 tri_state_buffer_0: component ipmc_bd_tri_state_buffer_0_0
      port map (
-      I(48 downto 0) => xlconcat_1_dout(48 downto 0),
-      IO(48 downto 0) => IO(48 downto 0),
-      O(48 downto 0) => tri_state_buffer_0_O(48 downto 0),
-      T(48 downto 0) => xlconcat_2_dout(48 downto 0)
-    );
-xlconcat_1: component ipmc_bd_xlconcat_1_1
-     port map (
-      In0(31 downto 0) => axi_gpio_0_gpio_io_o(31 downto 0),
-      In1(16 downto 0) => axi_gpio_0_gpio2_io_o(16 downto 0),
-      dout(48 downto 0) => xlconcat_1_dout(48 downto 0)
-    );
-xlconcat_2: component ipmc_bd_xlconcat_2_0
-     port map (
-      In0(31 downto 0) => axi_gpio_0_gpio_io_t(31 downto 0),
-      In1(16 downto 0) => axi_gpio_0_gpio2_io_t(16 downto 0),
-      dout(48 downto 0) => xlconcat_2_dout(48 downto 0)
-    );
-xlslice_0: component ipmc_bd_xlslice_0_1
-     port map (
-      Din(48 downto 0) => tri_state_buffer_0_O(48 downto 0),
-      Dout(31 downto 0) => xlslice_0_Dout(31 downto 0)
-    );
-xlslice_1: component ipmc_bd_xlslice_1_0
-     port map (
-      Din(48 downto 0) => tri_state_buffer_0_O(48 downto 0),
-      Dout(16 downto 0) => xlslice_1_Dout(16 downto 0)
+      I(31 downto 0) => axi_gpio_0_gpio_io_o(31 downto 0),
+      IO(31 downto 0) => IO(31 downto 0),
+      O(31 downto 0) => tri_state_buffer_0_O(31 downto 0),
+      T(31 downto 0) => axi_gpio_0_gpio_io_t(31 downto 0)
     );
 end STRUCTURE;
 library IEEE;
@@ -236,7 +176,6 @@ entity Management_imp_QBPX0Q is
     S_AXI_wstrb : in STD_LOGIC_VECTOR ( 3 downto 0 );
     S_AXI_wvalid : in STD_LOGIC_VECTOR ( 0 to 0 );
     dout : out STD_LOGIC_VECTOR ( 4 downto 0 );
-    gpio2_io_o : out STD_LOGIC_VECTOR ( 0 to 0 );
     s_axi_aclk : in STD_LOGIC;
     s_axi_aresetn : in STD_LOGIC
   );
@@ -264,8 +203,7 @@ architecture STRUCTURE of Management_imp_QBPX0Q is
     s_axi_rresp : out STD_LOGIC_VECTOR ( 1 downto 0 );
     s_axi_rvalid : out STD_LOGIC;
     s_axi_rready : in STD_LOGIC;
-    gpio_io_i : in STD_LOGIC_VECTOR ( 4 downto 0 );
-    gpio2_io_o : out STD_LOGIC_VECTOR ( 0 to 0 )
+    gpio_io_i : in STD_LOGIC_VECTOR ( 4 downto 0 )
   );
   end component ipmc_bd_axi_gpio_0_0;
   component ipmc_bd_xlconcat_1_0 is
@@ -335,7 +273,6 @@ architecture STRUCTURE of Management_imp_QBPX0Q is
   signal SIG_IN3_1 : STD_LOGIC;
   signal SIG_IN4_1 : STD_LOGIC;
   signal SIG_IN_1 : STD_LOGIC;
-  signal axi_gpio_0_gpio2_io_o : STD_LOGIC_VECTOR ( 0 to 0 );
   signal debouncer_0_SIG_OUT : STD_LOGIC;
   signal debouncer_1_SIG_OUT : STD_LOGIC;
   signal debouncer_2_SIG_OUT : STD_LOGIC;
@@ -368,12 +305,10 @@ begin
   S_AXI_rvalid(0) <= Conn1_RVALID;
   S_AXI_wready(0) <= Conn1_WREADY;
   dout(4 downto 0) <= xlconcat_1_dout(4 downto 0);
-  gpio2_io_o(0) <= axi_gpio_0_gpio2_io_o(0);
   s_axi_aclk_1 <= s_axi_aclk;
   s_axi_aresetn_1 <= s_axi_aresetn;
 axi_gpio_0: component ipmc_bd_axi_gpio_0_0
      port map (
-      gpio2_io_o(0) => axi_gpio_0_gpio2_io_o(0),
       gpio_io_i(4 downto 0) => xlconcat_1_dout(4 downto 0),
       s_axi_aclk => s_axi_aclk_1,
       s_axi_araddr(8 downto 0) => Conn1_ARADDR(8 downto 0),
@@ -12483,7 +12418,7 @@ entity ipmc_bd is
     DDR_ras_n : inout STD_LOGIC;
     DDR_reset_n : inout STD_LOGIC;
     DDR_we_n : inout STD_LOGIC;
-    GPIO : inout STD_LOGIC_VECTOR ( 48 downto 0 );
+    GPIO : inout STD_LOGIC_VECTOR ( 31 downto 0 );
     HNDL_SW : in STD_LOGIC;
     I2C_0_scl : out STD_LOGIC;
     I2C_0_sda : inout STD_LOGIC;
@@ -12513,7 +12448,6 @@ entity ipmc_bd is
     PG_A : in STD_LOGIC;
     PG_B : in STD_LOGIC;
     PL_LEDS : out STD_LOGIC_VECTOR ( 1 downto 0 );
-    PYLD12V_EN : out STD_LOGIC_VECTOR ( 0 to 0 );
     TPS2358_0_mp_ena_n : out STD_LOGIC;
     TPS2358_0_mp_flt_n : in STD_LOGIC;
     TPS2358_0_mp_pg_n : in STD_LOGIC;
@@ -12543,10 +12477,11 @@ entity ipmc_bd is
     TPS2358_4_mp_pg_n : in STD_LOGIC;
     TPS2358_4_pwr_ena_n : out STD_LOGIC;
     TPS2358_4_pwr_flt_n : in STD_LOGIC;
-    TPS2358_4_pwr_pg_n : in STD_LOGIC
+    TPS2358_4_pwr_pg_n : in STD_LOGIC;
+    pwr_en : out STD_LOGIC_VECTOR ( 6 downto 0 )
   );
   attribute CORE_GENERATION_INFO : string;
-  attribute CORE_GENERATION_INFO of ipmc_bd : entity is "ipmc_bd,IP_Integrator,{x_ipVendor=xilinx.com,x_ipLibrary=BlockDiagram,x_ipName=ipmc_bd,x_ipVersion=1.00.a,x_ipLanguage=VHDL,numBlks=106,numReposBlks=57,numNonXlnxBlks=23,numHierBlks=49,maxHierDepth=2,numSysgenBlks=0,numHlsBlks=0,numHdlrefBlks=11,numPkgbdBlks=0,bdsource=USER,da_axi4_cnt=1,synth_mode=OOC_per_IP}";
+  attribute CORE_GENERATION_INFO of ipmc_bd : entity is "ipmc_bd,IP_Integrator,{x_ipVendor=xilinx.com,x_ipLibrary=BlockDiagram,x_ipName=ipmc_bd,x_ipVersion=1.00.a,x_ipLanguage=VHDL,numBlks=101,numReposBlks=52,numNonXlnxBlks=23,numHierBlks=49,maxHierDepth=2,numSysgenBlks=0,numHlsBlks=0,numHdlrefBlks=11,numPkgbdBlks=0,bdsource=USER,da_axi4_cnt=1,synth_mode=OOC_per_IP}";
   attribute HW_HANDOFF : string;
   attribute HW_HANDOFF of ipmc_bd : entity is "ipmc_bd.hwdef";
 end ipmc_bd;
@@ -12811,18 +12746,6 @@ architecture STRUCTURE of ipmc_bd is
     s_axi_aresetn : in STD_LOGIC
   );
   end component ipmc_bd_led_controller_1_0;
-  component ipmc_bd_ila_0_0 is
-  port (
-    clk : in STD_LOGIC;
-    probe0 : in STD_LOGIC_VECTOR ( 12 downto 0 )
-  );
-  end component ipmc_bd_ila_0_0;
-  component ipmc_bd_xlslice_0_0 is
-  port (
-    Din : in STD_LOGIC_VECTOR ( 12 downto 0 );
-    Dout : out STD_LOGIC_VECTOR ( 12 downto 0 )
-  );
-  end component ipmc_bd_xlslice_0_0;
   component ipmc_bd_xadc_wiz_0_0 is
   port (
     s_axi_aclk : in STD_LOGIC;
@@ -12885,8 +12808,8 @@ architecture STRUCTURE of ipmc_bd is
   component ipmc_bd_mgmt_zone_ctrl_0_0 is
   port (
     hard_fault : in STD_LOGIC_VECTOR ( 63 downto 0 );
-    pwr_en : out STD_LOGIC_VECTOR ( 11 downto 0 );
-    mz_sneak_path : out STD_LOGIC_VECTOR ( 7 downto 0 );
+    pwr_en : out STD_LOGIC_VECTOR ( 6 downto 0 );
+    mz_sneak_path : out STD_LOGIC_VECTOR ( 1 downto 0 );
     irq : out STD_LOGIC;
     s_axi_awaddr : in STD_LOGIC_VECTOR ( 6 downto 0 );
     s_axi_awprot : in STD_LOGIC_VECTOR ( 2 downto 0 );
@@ -12911,6 +12834,12 @@ architecture STRUCTURE of ipmc_bd is
     s_axi_aresetn : in STD_LOGIC
   );
   end component ipmc_bd_mgmt_zone_ctrl_0_0;
+  component ipmc_bd_vio_0_0 is
+  port (
+    clk : in STD_LOGIC;
+    probe_out0 : out STD_LOGIC_VECTOR ( 63 downto 0 )
+  );
+  end component ipmc_bd_vio_0_0;
   signal ACLK_1 : STD_LOGIC;
   signal ALARM_A_1 : STD_LOGIC;
   signal ALARM_B_1 : STD_LOGIC;
@@ -12967,8 +12896,7 @@ architecture STRUCTURE of ipmc_bd is
   signal AMCs_dout : STD_LOGIC_VECTOR ( 19 downto 0 );
   signal ARESETN_1 : STD_LOGIC_VECTOR ( 0 to 0 );
   signal HNDL_SW_1 : STD_LOGIC;
-  signal Management_gpio2_io_o : STD_LOGIC_VECTOR ( 0 to 0 );
-  signal Net : STD_LOGIC_VECTOR ( 48 downto 0 );
+  signal Net : STD_LOGIC_VECTOR ( 31 downto 0 );
   signal PG_A_1 : STD_LOGIC;
   signal PG_B_1 : STD_LOGIC;
   signal S00_AXI_1_ARADDR : STD_LOGIC_VECTOR ( 31 downto 0 );
@@ -13242,6 +13170,7 @@ architecture STRUCTURE of ipmc_bd is
   signal axi_interconnect_0_M11_AXI_WVALID : STD_LOGIC;
   signal led_controller_0_m_led_out : STD_LOGIC_VECTOR ( 1 downto 0 );
   signal led_controller_1_m_led_out : STD_LOGIC_VECTOR ( 3 downto 0 );
+  signal mgmt_zone_ctrl_0_pwr_en : STD_LOGIC_VECTOR ( 6 downto 0 );
   signal proc_sys_reset_0_peripheral_aresetn : STD_LOGIC_VECTOR ( 0 to 0 );
   signal processing_system7_0_DDR_ADDR : STD_LOGIC_VECTOR ( 14 downto 0 );
   signal processing_system7_0_DDR_BA : STD_LOGIC_VECTOR ( 2 downto 0 );
@@ -13259,18 +13188,16 @@ architecture STRUCTURE of ipmc_bd is
   signal processing_system7_0_DDR_RESET_N : STD_LOGIC;
   signal processing_system7_0_DDR_WE_N : STD_LOGIC;
   signal processing_system7_0_FCLK_RESET0_N : STD_LOGIC;
-  signal pyld_pwr_ctrl_0_PE_pin_o : STD_LOGIC_VECTOR ( 12 downto 0 );
+  signal vio_0_probe_out0 : STD_LOGIC_VECTOR ( 63 downto 0 );
   signal xlconcat_0_dout : STD_LOGIC_VECTOR ( 26 downto 0 );
   signal xlconcat_1_dout : STD_LOGIC_VECTOR ( 4 downto 0 );
-  signal xlslice_0_Dout : STD_LOGIC_VECTOR ( 12 downto 0 );
   signal xvc_0_JTAG_TCK : STD_LOGIC;
   signal xvc_0_JTAG_TDI : STD_LOGIC;
   signal xvc_0_JTAG_TDO : STD_LOGIC;
   signal xvc_0_JTAG_TMS : STD_LOGIC;
   signal xvc_0_JTAG_TRST : STD_LOGIC;
   signal NLW_mgmt_zone_ctrl_0_irq_UNCONNECTED : STD_LOGIC;
-  signal NLW_mgmt_zone_ctrl_0_mz_sneak_path_UNCONNECTED : STD_LOGIC_VECTOR ( 7 downto 0 );
-  signal NLW_mgmt_zone_ctrl_0_pwr_en_UNCONNECTED : STD_LOGIC_VECTOR ( 11 downto 0 );
+  signal NLW_mgmt_zone_ctrl_0_mz_sneak_path_UNCONNECTED : STD_LOGIC_VECTOR ( 1 downto 0 );
   signal NLW_proc_sys_reset_0_mb_reset_UNCONNECTED : STD_LOGIC;
   signal NLW_proc_sys_reset_0_bus_struct_reset_UNCONNECTED : STD_LOGIC_VECTOR ( 0 to 0 );
   signal NLW_proc_sys_reset_0_peripheral_reset_UNCONNECTED : STD_LOGIC_VECTOR ( 0 to 0 );
@@ -13282,6 +13209,7 @@ architecture STRUCTURE of ipmc_bd is
   signal NLW_processing_system7_0_PS_SRSTB_UNCONNECTED : STD_LOGIC;
   signal NLW_processing_system7_0_WDT_RST_OUT_UNCONNECTED : STD_LOGIC;
   signal NLW_processing_system7_0_MIO_UNCONNECTED : STD_LOGIC_VECTOR ( 53 downto 0 );
+  signal NLW_pyld_pwr_ctrl_0_PE_pin_o_UNCONNECTED : STD_LOGIC_VECTOR ( 12 downto 0 );
   signal NLW_xadc_wiz_0_alarm_out_UNCONNECTED : STD_LOGIC;
   signal NLW_xadc_wiz_0_busy_out_UNCONNECTED : STD_LOGIC;
   signal NLW_xadc_wiz_0_eoc_out_UNCONNECTED : STD_LOGIC;
@@ -13341,7 +13269,6 @@ begin
   PG_A_1 <= PG_A;
   PG_B_1 <= PG_B;
   PL_LEDS(1 downto 0) <= led_controller_0_m_led_out(1 downto 0);
-  PYLD12V_EN(0) <= Management_gpio2_io_o(0);
   TPS2358_0_mp_ena_n <= AMCs_TPS2360_MP_ENA_N;
   TPS2358_0_pwr_ena_n <= AMCs_TPS2360_PWR_ENA_N;
   TPS2358_1_mp_ena_n <= AMCs_TPS2358_MP_ENA_N;
@@ -13354,6 +13281,7 @@ begin
   TPS2358_4_pwr_ena_n <= AMCs_TPS2361_PWR_ENA_N;
   ad7689_0_spi_miso <= ADC_A_miso;
   ad7689_1_spi_miso <= ADC_B_miso;
+  pwr_en(6 downto 0) <= mgmt_zone_ctrl_0_pwr_en(6 downto 0);
   xvc_0_JTAG_TDO <= JTAG_tdo;
 AMCs: entity work.AMCs_imp_13Y6X5Z
      port map (
@@ -13433,7 +13361,7 @@ AMCs: entity work.AMCs_imp_13Y6X5Z
     );
 gpio_RnM: entity work.GPIO_imp_1V8HBDC
      port map (
-      IO(48 downto 0) => GPIO(48 downto 0),
+      IO(31 downto 0) => GPIO(31 downto 0),
       S_AXI_araddr(31 downto 0) => axi_interconnect_0_M07_AXI_ARADDR(31 downto 0),
       S_AXI_arready(0) => axi_interconnect_0_M07_AXI_ARREADY(0),
       S_AXI_arvalid(0) => axi_interconnect_0_M07_AXI_ARVALID(0),
@@ -13479,7 +13407,6 @@ Management: entity work.Management_imp_QBPX0Q
       S_AXI_wstrb(3 downto 0) => axi_interconnect_0_M08_AXI_WSTRB(3 downto 0),
       S_AXI_wvalid(0) => axi_interconnect_0_M08_AXI_WVALID(0),
       dout(4 downto 0) => xlconcat_1_dout(4 downto 0),
-      gpio2_io_o(0) => Management_gpio2_io_o(0),
       s_axi_aclk => ACLK_1,
       s_axi_aresetn => proc_sys_reset_0_peripheral_aresetn(0)
     );
@@ -13854,11 +13781,6 @@ axi_interconnect_0: entity work.ipmc_bd_axi_interconnect_0_0
       S00_AXI_wstrb(3 downto 0) => S00_AXI_1_WSTRB(3 downto 0),
       S00_AXI_wvalid => S00_AXI_1_WVALID
     );
-ila_0: component ipmc_bd_ila_0_0
-     port map (
-      clk => ACLK_1,
-      probe0(12 downto 0) => pyld_pwr_ctrl_0_PE_pin_o(12 downto 0)
-    );
 led_controller_0: component ipmc_bd_led_controller_0_0
      port map (
       m_led_out(1 downto 0) => led_controller_0_m_led_out(1 downto 0),
@@ -13911,10 +13833,10 @@ led_controller_1: component ipmc_bd_led_controller_1_0
     );
 mgmt_zone_ctrl_0: component ipmc_bd_mgmt_zone_ctrl_0_0
      port map (
-      hard_fault(63 downto 0) => B"0000000000000000000000000000000000000000000000000000000000000000",
+      hard_fault(63 downto 0) => vio_0_probe_out0(63 downto 0),
       irq => NLW_mgmt_zone_ctrl_0_irq_UNCONNECTED,
-      mz_sneak_path(7 downto 0) => NLW_mgmt_zone_ctrl_0_mz_sneak_path_UNCONNECTED(7 downto 0),
-      pwr_en(11 downto 0) => NLW_mgmt_zone_ctrl_0_pwr_en_UNCONNECTED(11 downto 0),
+      mz_sneak_path(1 downto 0) => NLW_mgmt_zone_ctrl_0_mz_sneak_path_UNCONNECTED(1 downto 0),
+      pwr_en(6 downto 0) => mgmt_zone_ctrl_0_pwr_en(6 downto 0),
       s_axi_aclk => ACLK_1,
       s_axi_araddr(6 downto 0) => axi_interconnect_0_M11_AXI_ARADDR(6 downto 0),
       s_axi_aresetn => proc_sys_reset_0_peripheral_aresetn(0),
@@ -14021,8 +13943,8 @@ processing_system7_0: component ipmc_bd_processing_system7_0_0
 pyld_pwr_ctrl_0: component ipmc_bd_pyld_pwr_ctrl_0_0
      port map (
       PD_ext_req_i => '0',
-      PE_pin_o(12 downto 0) => pyld_pwr_ctrl_0_PE_pin_o(12 downto 0),
-      PG_pin_i(7 downto 0) => xlslice_0_Dout(7 downto 0),
+      PE_pin_o(12 downto 0) => NLW_pyld_pwr_ctrl_0_PE_pin_o_UNCONNECTED(12 downto 0),
+      PG_pin_i(7 downto 0) => B"00000000",
       s_axi_aclk => ACLK_1,
       s_axi_araddr(7 downto 0) => axi_interconnect_0_M09_AXI_ARADDR(7 downto 0),
       s_axi_aresetn => proc_sys_reset_0_peripheral_aresetn(0),
@@ -14044,6 +13966,11 @@ pyld_pwr_ctrl_0: component ipmc_bd_pyld_pwr_ctrl_0_0
       s_axi_wready => axi_interconnect_0_M09_AXI_WREADY,
       s_axi_wstrb(3 downto 0) => axi_interconnect_0_M09_AXI_WSTRB(3 downto 0),
       s_axi_wvalid => axi_interconnect_0_M09_AXI_WVALID
+    );
+vio_hard_fault: component ipmc_bd_vio_0_0
+     port map (
+      clk => ACLK_1,
+      probe_out0(63 downto 0) => vio_0_probe_out0(63 downto 0)
     );
 xadc_wiz_0: component ipmc_bd_xadc_wiz_0_0
      port map (
@@ -14082,11 +14009,6 @@ xlconcat_0: component ipmc_bd_xlconcat_0_0
       In2(19 downto 0) => AMCs_dout(19 downto 0),
       In3(4 downto 0) => xlconcat_1_dout(4 downto 0),
       dout(26 downto 0) => xlconcat_0_dout(26 downto 0)
-    );
-xlslice_0: component ipmc_bd_xlslice_0_0
-     port map (
-      Din(12 downto 0) => pyld_pwr_ctrl_0_PE_pin_o(12 downto 0),
-      Dout(12 downto 0) => xlslice_0_Dout(12 downto 0)
     );
 xvc_0: component ipmc_bd_xvc_0_0
      port map (
