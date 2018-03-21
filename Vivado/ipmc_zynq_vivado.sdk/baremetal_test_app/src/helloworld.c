@@ -52,7 +52,6 @@
 #include "xparameters.h"
 
 #include "led_controller.h"
-#include "pyld_pwr_ctrl.h"
 #include "mgmt_zone_ctrl.h"
 
 #define TEST_MIN_PE_CNT 12
@@ -118,245 +117,61 @@ int mgmt_zone_ctrl_demo(void) {
 		return XST_FAILURE;
 	}
 
+	MZ_config cfg;
+
+	cfg.fault_holdoff = 10;
+	cfg.hardfault_mask = 0x0000000000000000;
+
+	for (int i = 0; i<32; i++)
+	{
+		cfg.pwren_cfg[i] = 0;
+	}
+
+/*
+ * /**
+ *  from mgmt_zone_ctrl.h
+ *
+ * Power_Enable Config
+ *
+ * Bit [15:0] up/down timer cfg (in miliseconds)
+ * Bit   [16] active_level; set to 0 for active low outputs, set to 1 for active high outputs
+ * Bit   [17] drive_enable; set to 0 to tri-state the output, set to 1 to enable the outputs
+ * typedef u32 PWREN_cfg_t;
+ *
+ */
+
+	cfg.pwren_cfg[0] = (1 << 17) | (1 << 16) | 1000;
+	cfg.pwren_cfg[1] = (1 << 17) | (1 << 16) | 2000;
+	cfg.pwren_cfg[2] = (1 << 17) | (1 << 16) | 3000;
+	cfg.pwren_cfg[3] = (1 << 17) | (1 << 16) | 4000;
+	cfg.pwren_cfg[4] = (1 << 17) | (1 << 16) | 5000;
+	cfg.pwren_cfg[5] = (1 << 17) | (1 << 16) | 6000;
+	cfg.pwren_cfg[6] = (1 << 17) | (1 << 16) | 7000;
+
+
+	u32 MZ = 0;
+
+	// Configure MZ
+	Mgmt_Zone_Ctrl_Set_MZ_Cfg(&Mgmt_Zone_Ctrl_inst,  MZ,  cfg);
+
+
+	// Initiate power ON sequence
+	Mgmt_Zone_Ctrl_Pwr_ON_Seq(&Mgmt_Zone_Ctrl_inst, MZ);
+	sleep(10); // with the configuration above, it takes 7 seconds for the last pwr en pin to activate
+
+	// Initiate power OFF sequence
+	Mgmt_Zone_Ctrl_Pwr_OFF_Seq(&Mgmt_Zone_Ctrl_inst, MZ);
+	sleep(10); // with the configuration above, it takes 7 seconds for the last pwr en pin to deactivate
+
+
+	//Renable power enable outputs
+	Mgmt_Zone_Ctrl_Pwr_ON_Seq(&Mgmt_Zone_Ctrl_inst, MZ);
+	sleep(10); // with the configuration above, it takes 7 seconds for the last pwr en pin to activate
+
+	// Power off instantly all pwr en pins managed by this MZ
+	Mgmt_Zone_Ctrl_Dispatch_Soft_Fault(&Mgmt_Zone_Ctrl_inst, MZ);
 
 	xil_printf("\n\rMgmt_Zone_Ctrl test completed successfully.\n\r");
-
-
-	return XST_SUCCESS;
-}
-
-int pyld_pwr_ctrl_demo(void) {
-	int Status, idx;
-
-	Pyld_Pwr_Ctrl Pyld_Pwr_Ctrl_inst;
-
-	/* Initialize the Payload Power Controller driver */
-	Status = Pyld_Pwr_Ctrl_Initialize(&Pyld_Pwr_Ctrl_inst, 0);
-	if (Status != XST_SUCCESS) {
-		xil_printf("Pyld_Pwr_Ctrl_inst Initialization Failed\n\r");
-		return XST_FAILURE;
-	}
-
-	int core_ver = Pyld_Pwr_Ctrl_Get_Core_Ver(&Pyld_Pwr_Ctrl_inst);
-	xil_printf("Pyld_Pwr_Ctrl_inst  core version: 0x%08x\n\r", core_ver);
-
-	int PE_cnt = Pyld_Pwr_Ctrl_Get_PE_Cnt(&Pyld_Pwr_Ctrl_inst);
-	xil_printf("Pyld_Pwr_Ctrl_inst Power Enable Count Config: %d\n\r", PE_cnt);
-
-	int PG_cnt = Pyld_Pwr_Ctrl_Get_PG_Cnt(&Pyld_Pwr_Ctrl_inst);
-	xil_printf("Pyld_Pwr_Ctrl_inst Power Good Count Config: %d\n\r", PG_cnt);
-
-	if (PE_cnt < TEST_MIN_PE_CNT)
-		return XST_INVALID_VERSION;
-
-	PE_cfg_t PE_cfg[PE_cnt];
-
-	memset(PE_cfg, 0, sizeof(PE_cfg));
-
-	// PE Group 1 config (0,1,2,3,7)
-	PE_cfg[0].ext_pd_en = 0;
-	PE_cfg[0].group = 1;
-	PE_cfg[0].seq_tmr = 100;
-	PE_cfg[0].sw_pd_en = 1;
-
-	PE_cfg[1].ext_pd_en = 0;
-	PE_cfg[1].group = 1;
-	PE_cfg[1].seq_tmr = 200;
-	PE_cfg[1].sw_pd_en = 1;
-
-	PE_cfg[2].ext_pd_en = 0;
-	PE_cfg[2].group = 1;
-	PE_cfg[2].seq_tmr = 10;
-	PE_cfg[2].sw_pd_en = 1;
-
-	PE_cfg[3].ext_pd_en = 0;
-	PE_cfg[3].group = 1;
-	PE_cfg[3].seq_tmr = 300;
-	PE_cfg[3].sw_pd_en = 1;
-
-	PE_cfg[7].ext_pd_en = 0;
-	PE_cfg[7].group = 1;
-	PE_cfg[7].seq_tmr = 300;
-	PE_cfg[7].sw_pd_en = 1;
-
-	// PE Group 2 config (10,11,12)
-	PE_cfg[10].ext_pd_en = 0;
-	PE_cfg[10].group = 2;
-	PE_cfg[10].seq_tmr = 500;
-	PE_cfg[10].sw_pd_en = 1;
-
-	PE_cfg[11].ext_pd_en = 0;
-	PE_cfg[11].group = 2;
-	PE_cfg[11].seq_tmr = 60;
-	PE_cfg[11].sw_pd_en = 1;
-
-	PE_cfg[12].ext_pd_en = 0;
-	PE_cfg[12].group = 2;
-	PE_cfg[12].seq_tmr = 10;
-	PE_cfg[12].sw_pd_en = 1;
-
-	// PE Group 3 config (8)
-	PE_cfg[8].ext_pd_en = 0;
-	PE_cfg[8].group = 3;
-	PE_cfg[8].seq_tmr = 3000;
-	PE_cfg[8].sw_pd_en = 1;
-
-
-
-	for (idx = 0; idx < PE_cnt; idx++)
-		Pyld_Pwr_Ctrl_Set_Pin_Cfg(&Pyld_Pwr_Ctrl_inst, idx, PE_cfg[idx]);
-
-	int volatile PE_status = Pyld_Pwr_Ctrl_Get_PE_Status(&Pyld_Pwr_Ctrl_inst);
-	int volatile PG_status = Pyld_Pwr_Ctrl_Get_PE_Status(&Pyld_Pwr_Ctrl_inst);
-
-	xil_printf(" Power Enable Status: 0x%04x\n\r", PE_status);
-	xil_printf(" Power Good Status: 0x%04x\n\r", PG_status);
-
-/////////////
-
-	xil_printf("\n\r *** Pyld Pwr Ctrl Test 1 ***\n\r");
-
-	xil_printf(" PE Group 1 Power Up Sequence starting... \n\r");
-	Pyld_Pwr_Ctrl_Init_PUp_Seq(&Pyld_Pwr_Ctrl_inst, PE_GROUP_1);
-
-	sleep(1);
-
-	PE_status = Pyld_Pwr_Ctrl_Get_PE_Status(&Pyld_Pwr_Ctrl_inst);
-
-	xil_printf(" Power Enable Status: 0x%04x\n\r", PE_status);
-
-	if (PE_status != 0x8F)
-	{
-		xil_printf("\n\rPyld_Pwr_Ctrl test FAILED.\n\r");
-		return XST_FAILURE;
-	}
-
-	xil_printf(" PE Group 1 Power Down Sequence starting... \n\r");
-	Pyld_Pwr_Ctrl_Init_PDown_Seq(&Pyld_Pwr_Ctrl_inst, PE_GROUP_1);
-
-	sleep(1);
-
-	PE_status = Pyld_Pwr_Ctrl_Get_PE_Status(&Pyld_Pwr_Ctrl_inst);
-
-	xil_printf(" Power Enable Status: 0x%04x\n\r", PE_status);
-
-	if (PE_status != 0)
-	{
-		xil_printf("\n\rPyld_Pwr_Ctrl test FAILED.\n\r");
-		return XST_FAILURE;
-	}
-
-/////////////
-	xil_printf("\n\r *** Pyld Pwr Ctrl Test 2 ***\n\r");
-
-	xil_printf(" PE Group 2 Power Up Sequence starting... \n\r");
-	Pyld_Pwr_Ctrl_Init_PUp_Seq(&Pyld_Pwr_Ctrl_inst, PE_GROUP_2);
-
-	sleep(1);
-
-	PE_status = Pyld_Pwr_Ctrl_Get_PE_Status(&Pyld_Pwr_Ctrl_inst);
-
-	xil_printf(" Power Enable Status: 0x%04x\n\r", PE_status);
-	if (PE_status != 0x1C00)
-	{
-		xil_printf("\n\rPyld_Pwr_Ctrl test FAILED.\n\r");
-		return XST_FAILURE;
-	}
-
-	xil_printf(" PE Group 2 Power Down Sequence starting... \n\r");
-	Pyld_Pwr_Ctrl_Init_PDown_Seq(&Pyld_Pwr_Ctrl_inst, PE_GROUP_2);
-
-	sleep(1);
-
-	PE_status = Pyld_Pwr_Ctrl_Get_PE_Status(&Pyld_Pwr_Ctrl_inst);
-
-	xil_printf(" Power Enable Status: 0x%04x\n\r", PE_status);
-	if (PE_status != 0)
-	{
-		xil_printf("\n\rPyld_Pwr_Ctrl test FAILED.\n\r");
-		return XST_FAILURE;
-	}
-
-/////////////
-		xil_printf("\n\r *** Pyld Pwr Ctrl Test 3 ***\n\r");
-
-		xil_printf(" PE Group 3 Power Up Sequence starting... \n\r");
-		Pyld_Pwr_Ctrl_Init_PUp_Seq(&Pyld_Pwr_Ctrl_inst, PE_GROUP_3);
-
-		PE_status = Pyld_Pwr_Ctrl_Get_PE_Status(&Pyld_Pwr_Ctrl_inst);
-
-		xil_printf(" Power Enable Status: 0x%04x\n\r", PE_status);
-		// Group 3 (PE pin 8) was configured with 3000ms count up period before turning on
-		// It should not be up at this point yet
-		if (PE_status != 0)
-		{
-			xil_printf("\n\rPyld_Pwr_Ctrl test FAILED.\n\r");
-			return XST_FAILURE;
-		}
-
-		xil_printf("Waiting 3000ms...\n\r");
-		sleep(3);
-		PE_status = Pyld_Pwr_Ctrl_Get_PE_Status(&Pyld_Pwr_Ctrl_inst);
-
-		xil_printf(" Power Enable Status: 0x%04x\n\r", PE_status);
-		// Group 3 (PE pin 8) was configured with 3000ms count up period before turning on
-		// Now it should be up
-		if (PE_status != 0x0100)
-		{
-			xil_printf("\n\rPyld_Pwr_Ctrl test FAILED.\n\r");
-			return XST_FAILURE;
-		}
-
-		xil_printf(" PE Group 3 Power Down Sequence starting... \n\r");
-		Pyld_Pwr_Ctrl_Init_PDown_Seq(&Pyld_Pwr_Ctrl_inst, PE_GROUP_3);
-
-		sleep(3); // wait for at least 3000ms before checking
-
-		PE_status = Pyld_Pwr_Ctrl_Get_PE_Status(&Pyld_Pwr_Ctrl_inst);
-
-		xil_printf(" Power Enable Status: 0x%04x\n\r", PE_status);
-		if (PE_status != 0)
-		{
-			xil_printf("\n\rPyld_Pwr_Ctrl test FAILED.\n\r");
-			return XST_FAILURE;
-		}
-	/////////////
-
-
-/////////////
-
-	xil_printf("\n\r *** Pyld Pwr Ctrl Test 4 ***\n\r");
-
-	xil_printf(" PE Group 1 and 2 Power Up Sequence starting... \n\r");
-	Pyld_Pwr_Ctrl_Init_PUp_Seq(&Pyld_Pwr_Ctrl_inst, PE_GROUP_1 | PE_GROUP_2);
-
-
-	sleep(1);
-	PE_status = Pyld_Pwr_Ctrl_Get_PE_Status(&Pyld_Pwr_Ctrl_inst);
-
-	xil_printf(" Power Enable Status: 0x%04x\n\r", PE_status);
-	if (PE_status != 0x1C8F)
-	{
-		xil_printf("\n\rPyld_Pwr_Ctrl test FAILED.\n\r");
-		return XST_FAILURE;
-	}
-
-	xil_printf(" Force PE Power Down... \n\r");
-	Pyld_Pwr_Ctrl_PDown_Force(&Pyld_Pwr_Ctrl_inst);
-
-	PE_status = Pyld_Pwr_Ctrl_Get_PE_Status(&Pyld_Pwr_Ctrl_inst);
-
-	xil_printf(" Power Enable Status: 0x%04x\n\r", PE_status);
-	if (PE_status != 0)
-	{
-		xil_printf("\n\rPyld_Pwr_Ctrl test FAILED.\n\r");
-		return XST_FAILURE;
-	}
-
-
-	Pyld_Pwr_Ctrl_PDown_Release(&Pyld_Pwr_Ctrl_inst);
-
-	xil_printf("\n\rPyld_Pwr_Ctrl test completed successfully.\n\r");
 
 
 	return XST_SUCCESS;
@@ -366,8 +181,6 @@ int main() {
 	init_platform();
 
 	xil_printf("ZYNQ-IPMC low-level driver testbench\n\r");
-
-	pyld_pwr_ctrl_demo();
 
 	mgmt_zone_ctrl_demo();
 
