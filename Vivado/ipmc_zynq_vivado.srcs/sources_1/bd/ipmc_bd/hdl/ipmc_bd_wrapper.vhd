@@ -1,7 +1,7 @@
 --Copyright 1986-2017 Xilinx, Inc. All Rights Reserved.
 ----------------------------------------------------------------------------------
 --Tool Version: Vivado v.2017.2 (lin64) Build 1909853 Thu Jun 15 18:39:10 MDT 2017
---Date        : Tue Mar 20 19:59:46 2018
+--Date        : Wed Mar 21 17:49:58 2018
 --Host        : moonraker.cern.ch running 64-bit Scientific Linux CERN SLC release 6.9 (Carbon)
 --Command     : generate_target ipmc_bd_wrapper.bd
 --Design      : ipmc_bd_wrapper
@@ -39,7 +39,7 @@ entity ipmc_bd_wrapper is
     DDR_ras_n : inout STD_LOGIC;
     DDR_reset_n : inout STD_LOGIC;
     DDR_we_n : inout STD_LOGIC;
-    GPIO_ext : inout STD_LOGIC_VECTOR ( 31 downto 0 );
+    GPIO : inout STD_LOGIC_VECTOR ( 31 downto 0 );
     HNDL_SW : in STD_LOGIC;
     I2C_0_scl : out STD_LOGIC;
     I2C_0_sda : inout STD_LOGIC;
@@ -141,6 +141,8 @@ architecture STRUCTURE of ipmc_bd_wrapper is
     PG_B : in STD_LOGIC;
     PL_LEDS : out STD_LOGIC_VECTOR ( 1 downto 0 );
     ATCA_LEDS : out STD_LOGIC_VECTOR ( 3 downto 0 );
+    pwr_en : out STD_LOGIC_VECTOR ( 6 downto 0 );
+    GPIO : inout STD_LOGIC_VECTOR ( 31 downto 0 );
     I2C_3_scl : out STD_LOGIC;
     I2C_3_sda : inout STD_LOGIC;
     TPS2358_3_mp_ena_n : out STD_LOGIC;
@@ -190,9 +192,7 @@ architecture STRUCTURE of ipmc_bd_wrapper is
     TPS2358_1_mp_flt_n : in STD_LOGIC;
     TPS2358_1_pwr_ena_n : out STD_LOGIC;
     MC_1_ps1_n : in STD_LOGIC;
-    MC_1_enable_n : out STD_LOGIC;
-    pwr_en : out STD_LOGIC_VECTOR ( 6 downto 0 );
-    GPIO : inout STD_LOGIC_VECTOR ( 31 downto 0 )
+    MC_1_enable_n : out STD_LOGIC
   );
   end component ipmc_bd;
 begin
@@ -224,7 +224,7 @@ ipmc_bd_i: component ipmc_bd
       DDR_ras_n => DDR_ras_n,
       DDR_reset_n => DDR_reset_n,
       DDR_we_n => DDR_we_n,
-      GPIO(31 downto 0) => GPIO_ext(31 downto 0),
+      GPIO(31 downto 0) => GPIO(31 downto 0),
       HNDL_SW => HNDL_SW,
       I2C_0_scl => I2C_0_scl,
       I2C_0_sda => I2C_0_sda,

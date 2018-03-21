@@ -1,7 +1,7 @@
 --Copyright 1986-2017 Xilinx, Inc. All Rights Reserved.
 ----------------------------------------------------------------------------------
 --Tool Version: Vivado v.2017.2 (lin64) Build 1909853 Thu Jun 15 18:39:10 MDT 2017
---Date        : Tue Mar 20 19:59:46 2018
+--Date        : Wed Mar 21 17:49:58 2018
 --Host        : moonraker.cern.ch running 64-bit Scientific Linux CERN SLC release 6.9 (Carbon)
 --Command     : generate_target ipmc_bd.bd
 --Design      : ipmc_bd
@@ -12805,13 +12805,19 @@ architecture STRUCTURE of ipmc_bd is
     s_axi_aresetn : in STD_LOGIC
   );
   end component ipmc_bd_pyld_pwr_ctrl_0_0;
+  component ipmc_bd_vio_0_0 is
+  port (
+    clk : in STD_LOGIC;
+    probe_out0 : out STD_LOGIC_VECTOR ( 63 downto 0 )
+  );
+  end component ipmc_bd_vio_0_0;
   component ipmc_bd_mgmt_zone_ctrl_0_0 is
   port (
     hard_fault : in STD_LOGIC_VECTOR ( 63 downto 0 );
     pwr_en : out STD_LOGIC_VECTOR ( 6 downto 0 );
     mz_sneak_path : out STD_LOGIC_VECTOR ( 1 downto 0 );
     irq : out STD_LOGIC;
-    s_axi_awaddr : in STD_LOGIC_VECTOR ( 6 downto 0 );
+    s_axi_awaddr : in STD_LOGIC_VECTOR ( 12 downto 0 );
     s_axi_awprot : in STD_LOGIC_VECTOR ( 2 downto 0 );
     s_axi_awvalid : in STD_LOGIC;
     s_axi_awready : out STD_LOGIC;
@@ -12822,7 +12828,7 @@ architecture STRUCTURE of ipmc_bd is
     s_axi_bresp : out STD_LOGIC_VECTOR ( 1 downto 0 );
     s_axi_bvalid : out STD_LOGIC;
     s_axi_bready : in STD_LOGIC;
-    s_axi_araddr : in STD_LOGIC_VECTOR ( 6 downto 0 );
+    s_axi_araddr : in STD_LOGIC_VECTOR ( 12 downto 0 );
     s_axi_arprot : in STD_LOGIC_VECTOR ( 2 downto 0 );
     s_axi_arvalid : in STD_LOGIC;
     s_axi_arready : out STD_LOGIC;
@@ -12834,12 +12840,6 @@ architecture STRUCTURE of ipmc_bd is
     s_axi_aresetn : in STD_LOGIC
   );
   end component ipmc_bd_mgmt_zone_ctrl_0_0;
-  component ipmc_bd_vio_0_0 is
-  port (
-    clk : in STD_LOGIC;
-    probe_out0 : out STD_LOGIC_VECTOR ( 63 downto 0 )
-  );
-  end component ipmc_bd_vio_0_0;
   signal ACLK_1 : STD_LOGIC;
   signal ALARM_A_1 : STD_LOGIC;
   signal ALARM_B_1 : STD_LOGIC;
@@ -13838,12 +13838,12 @@ mgmt_zone_ctrl_0: component ipmc_bd_mgmt_zone_ctrl_0_0
       mz_sneak_path(1 downto 0) => NLW_mgmt_zone_ctrl_0_mz_sneak_path_UNCONNECTED(1 downto 0),
       pwr_en(6 downto 0) => mgmt_zone_ctrl_0_pwr_en(6 downto 0),
       s_axi_aclk => ACLK_1,
-      s_axi_araddr(6 downto 0) => axi_interconnect_0_M11_AXI_ARADDR(6 downto 0),
+      s_axi_araddr(12 downto 0) => axi_interconnect_0_M11_AXI_ARADDR(12 downto 0),
       s_axi_aresetn => proc_sys_reset_0_peripheral_aresetn(0),
       s_axi_arprot(2 downto 0) => axi_interconnect_0_M11_AXI_ARPROT(2 downto 0),
       s_axi_arready => axi_interconnect_0_M11_AXI_ARREADY,
       s_axi_arvalid => axi_interconnect_0_M11_AXI_ARVALID,
-      s_axi_awaddr(6 downto 0) => axi_interconnect_0_M11_AXI_AWADDR(6 downto 0),
+      s_axi_awaddr(12 downto 0) => axi_interconnect_0_M11_AXI_AWADDR(12 downto 0),
       s_axi_awprot(2 downto 0) => axi_interconnect_0_M11_AXI_AWPROT(2 downto 0),
       s_axi_awready => axi_interconnect_0_M11_AXI_AWREADY,
       s_axi_awvalid => axi_interconnect_0_M11_AXI_AWVALID,

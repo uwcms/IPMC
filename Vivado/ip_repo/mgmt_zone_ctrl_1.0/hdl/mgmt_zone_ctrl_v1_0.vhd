@@ -7,13 +7,14 @@ use work.mgmt_zone_ctrl_pkg.all;
 
 entity mgmt_zone_ctrl_v1_0 is
 	generic (  
-        C_MZ_CNT     : integer := 8;
+        C_MZ_CNT     : integer := 2;
         C_HF_CNT     : integer := 64;
-        C_PWREN_CNT  : integer := 16;
+        C_PWREN_CNT  : integer := 7;
+        C_VIO_INCLUDE : boolean := true;
 
 		-- Parameters of Axi Slave Bus Interface S_AXI
 		C_S_AXI_DATA_WIDTH	: integer	:= 32;
-		C_S_AXI_ADDR_WIDTH	: integer	:= 7
+		C_S_AXI_ADDR_WIDTH	: integer	:= 13
 	);
 	port (
 
@@ -49,6 +50,19 @@ end mgmt_zone_ctrl_v1_0;
 
 architecture arch_imp of mgmt_zone_ctrl_v1_0 is
 
+    COMPONENT vio_pwr_en
+      PORT (
+        clk : IN STD_LOGIC;
+        probe_in0 : IN STD_LOGIC_VECTOR(15 DOWNTO 0);
+        probe_in1 : IN STD_LOGIC_VECTOR(15 DOWNTO 0);
+        probe_in2 : IN STD_LOGIC_VECTOR(15 DOWNTO 0);
+        probe_in3 : IN STD_LOGIC_VECTOR(63 DOWNTO 0);
+        probe_in4 : IN STD_LOGIC_VECTOR(15 DOWNTO 0);
+        probe_in5 : IN STD_LOGIC_VECTOR(15 DOWNTO 0);
+        probe_in6 : IN STD_LOGIC_VECTOR(15 DOWNTO 0)        
+      );
+    END COMPONENT;
+
     signal s_pwr_en :  std_logic_vector(C_PWREN_CNT - 1 downto 0);
     signal s_pwr_lvl :  std_logic_vector(C_PWREN_CNT - 1 downto 0);
     signal s_pwr_out :  std_logic_vector(C_PWREN_CNT - 1 downto 0);
@@ -71,6 +85,43 @@ architecture arch_imp of mgmt_zone_ctrl_v1_0 is
 
     signal s_MZ_holdoff          :  STD_LOGIC_VECTOR(C_MZ_CNT-1 downto 0);
     
+        
+    signal s_pwr_en_logic_lvl_vio : std_logic_vector(15 downto 0) := (others => '0');
+    signal s_pwr_en_output_lvl_vio : std_logic_vector(15 downto 0):= (others => '0');
+    signal s_pwr_en_output_drive_vio : std_logic_vector(15 downto 0) := (others => '0');
+    signal s_hard_fault_vio : std_logic_vector(63 downto 0) := (others => '0');
+    signal s_MZ_pwr_off_seq_init_vio   :  STD_LOGIC_VECTOR(15 downto 0):= (others => '0');
+    signal s_MZ_pwr_on_seq_init_vio    :  STD_LOGIC_VECTOR(15 downto 0):= (others => '0');
+    signal s_MZ_hard_fault_vio : std_logic_vector(15 downto 0) := (others => '0');
+        
+    attribute KEEP : string;
+    attribute DONT_TOUCH : string;
+    attribute MARK_DEBUG : string;
+
+    attribute KEEP of s_hard_fault_vio: signal is "TRUE";
+    attribute KEEP of s_pwr_en_logic_lvl_vio: signal is "TRUE";
+    attribute KEEP of s_pwr_en_output_lvl_vio: signal is "TRUE";
+    attribute KEEP of s_pwr_en_output_drive_vio: signal is "TRUE";
+    attribute KEEP of s_MZ_hard_fault_vio: signal is "TRUE";
+    attribute KEEP of s_MZ_pwr_off_seq_init_vio: signal is "TRUE";
+    attribute KEEP of s_MZ_pwr_on_seq_init_vio: signal is "TRUE";
+
+    attribute DONT_TOUCH of s_hard_fault_vio: signal is "TRUE";
+    attribute DONT_TOUCH of s_pwr_en_logic_lvl_vio: signal is "TRUE";
+    attribute DONT_TOUCH of s_pwr_en_output_lvl_vio: signal is "TRUE";
+    attribute DONT_TOUCH of s_pwr_en_output_drive_vio: signal is "TRUE";
+    attribute DONT_TOUCH of s_MZ_hard_fault_vio: signal is "TRUE";
+    attribute DONT_TOUCH of s_MZ_pwr_off_seq_init_vio: signal is "TRUE";
+    attribute DONT_TOUCH of s_MZ_pwr_on_seq_init_vio: signal is "TRUE";
+
+    attribute MARK_DEBUG of s_hard_fault_vio: signal is "TRUE";
+    attribute MARK_DEBUG of s_pwr_en_logic_lvl_vio: signal is "TRUE";
+    attribute MARK_DEBUG of s_pwr_en_output_lvl_vio: signal is "TRUE";
+    attribute MARK_DEBUG of s_pwr_en_output_drive_vio: signal is "TRUE";
+    attribute MARK_DEBUG of s_MZ_hard_fault_vio: signal is "TRUE";
+    attribute MARK_DEBUG of s_MZ_pwr_off_seq_init_vio: signal is "TRUE";
+    attribute MARK_DEBUG of s_MZ_pwr_on_seq_init_vio: signal is "TRUE";
+            
 begin
 
 -- Instantiation of Axi Bus Interface S_AXI
@@ -87,6 +138,7 @@ mgmt_zone_ctrl_v1_0_S_AXI_inst : entity work.mgmt_zone_ctrl_v1_0_S_AXI
         MZ_pwr_off_seq_init_o         	=> s_MZ_pwr_off_seq_init,
         MZ_pwr_on_seq_init_o        	=> s_MZ_pwr_on_seq_init,
         MZ_hard_fault_holdoff_o         => s_MZ_hard_fault_holdoff,
+        MZ_hard_fault_mask_o            => s_hard_fault_mask_en,
     
         pwr_en_MZ_cfg_o             	=> s_pwr_en_MZ_cfg,
         pwr_en_tmr_cfg_o            	=> s_pwr_en_tmr_cfg,
@@ -160,7 +212,32 @@ mgmt_zone_ctrl_v1_0_S_AXI_inst : entity work.mgmt_zone_ctrl_v1_0_S_AXI
                    
              s_pwr_lvl(idx) <= s_pwr_en(idx) xnor s_pwr_en_active_lvl(idx);
              s_pwr_out(idx) <= s_pwr_lvl(idx) when s_pwr_en_drive(idx) = '1' else 'Z';
+             
+             s_pwr_en_logic_lvl_vio(idx) <= s_pwr_en(idx);
+             s_pwr_en_output_lvl_vio(idx) <= s_pwr_lvl(idx);
+             s_pwr_en_output_drive_vio(idx) <= s_pwr_en_drive(idx);
+
+    end generate;
+
+    s_hard_fault_vio(C_HF_CNT -1 downto 0) <= hard_fault;
+    s_MZ_pwr_off_seq_init_vio(C_MZ_CNT -1 downto 0) <= s_MZ_pwr_off_seq_init;
+    s_MZ_pwr_on_seq_init_vio(C_MZ_CNT -1 downto 0) <= s_MZ_pwr_on_seq_init;
+    s_MZ_hard_fault_vio(C_MZ_CNT -1 downto 0) <= s_MZ_hard_fault;
+
+
+    gen_vio: if C_VIO_INCLUDE = true generate
     
+    i_vio_pwr_en : vio_pwr_en
+          PORT MAP (
+            clk => s_axi_aclk,
+            probe_in0 => s_pwr_en_logic_lvl_vio,
+            probe_in1 => s_pwr_en_output_lvl_vio,
+            probe_in2 => s_pwr_en_output_drive_vio,
+            probe_in3 => s_hard_fault_vio,
+            probe_in4 => s_MZ_pwr_off_seq_init_vio,
+            probe_in5 => s_MZ_pwr_on_seq_init_vio,
+            probe_in6 => s_MZ_hard_fault_vio
+          );    
     end generate;
     
     pwr_en <= s_pwr_out;

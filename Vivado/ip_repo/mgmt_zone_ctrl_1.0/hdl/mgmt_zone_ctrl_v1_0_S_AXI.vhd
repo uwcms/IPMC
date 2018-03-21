@@ -21,6 +21,7 @@ entity mgmt_zone_ctrl_v1_0_S_AXI is
         MZ_pwr_off_seq_init_o   : out STD_LOGIC_VECTOR(C_MZ_CNT-1 downto 0);
         MZ_pwr_on_seq_init_o    : out STD_LOGIC_VECTOR(C_MZ_CNT-1 downto 0);
         MZ_hard_fault_holdoff_o : out  t_slv_arr_32(C_MZ_CNT-1 downto 0);
+        MZ_hard_fault_mask_o : out  t_slv_arr_64(C_MZ_CNT-1 downto 0);
 
         pwr_en_MZ_cfg_o         : out t_slv_arr_16(C_PWREN_CNT-1 downto 0);
         
@@ -113,7 +114,7 @@ architecture arch_imp of mgmt_zone_ctrl_v1_0_S_AXI is
     constant PWR_EN_0_CFG_1_REG             : integer := 36;
     constant PWR_EN_0_INDIV_STATUS_REG      : integer := 40;
 
-    constant MZ_0_ADDR_OFFSET               : integer := (PWR_EN_0_CFG_0_REG + PEN_2_PEN_ADDR_OFFSET*32);
+    constant MZ_0_ADDR_OFFSET               : integer := 1024;
             
     constant MZ_0_PWR_STATUS_REG            : integer := (MZ_0_ADDR_OFFSET +  0);
     constant MZ_0_HARD_FAULT_MASK_0_REG     : integer := (MZ_0_ADDR_OFFSET +  4);
@@ -477,9 +478,10 @@ begin
       MZ_pwr_off_seq_init_o   <= s_mz_pwr_off_init_reg;
       MZ_pwr_on_seq_init_o    <= s_mz_pwr_on_init_reg;
       MZ_hard_fault_holdoff_o <= s_MZ_hard_fault_holdoff_reg; 
-        
+
       gen_MZ_signals : for idx in 0 to C_MZ_CNT-1 generate
-           
+        MZ_hard_fault_mask_o(idx)(31 downto 0) <= s_mz_hard_fault_mask_0_reg(idx); 
+        MZ_hard_fault_mask_o(idx)(63 downto 32) <= s_mz_hard_fault_mask_1_reg(idx); 
       end generate;
        
       gen_pwr_en_signals : for idx in 0 to C_PWREN_CNT-1 generate
