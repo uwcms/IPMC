@@ -11,6 +11,7 @@ proc init_gui { IPINST } {
   ipgui::add_param $IPINST -name "C_MZ_CNT"
   ipgui::add_param $IPINST -name "C_HF_CNT"
   ipgui::add_param $IPINST -name "C_PWREN_CNT"
+  ipgui::add_param $IPINST -name "C_VIO_INCLUDE"
 
 }
 
@@ -38,6 +39,15 @@ proc update_PARAM_VALUE.C_PWREN_CNT { PARAM_VALUE.C_PWREN_CNT } {
 
 proc validate_PARAM_VALUE.C_PWREN_CNT { PARAM_VALUE.C_PWREN_CNT } {
 	# Procedure called to validate C_PWREN_CNT
+	return true
+}
+
+proc update_PARAM_VALUE.C_VIO_INCLUDE { PARAM_VALUE.C_VIO_INCLUDE } {
+	# Procedure called to update C_VIO_INCLUDE when any of the dependent parameters in the arguments change
+}
+
+proc validate_PARAM_VALUE.C_VIO_INCLUDE { PARAM_VALUE.C_VIO_INCLUDE } {
+	# Procedure called to validate C_VIO_INCLUDE
 	return true
 }
 
@@ -101,5 +111,10 @@ proc update_MODELPARAM_VALUE.C_HF_CNT { MODELPARAM_VALUE.C_HF_CNT PARAM_VALUE.C_
 proc update_MODELPARAM_VALUE.C_PWREN_CNT { MODELPARAM_VALUE.C_PWREN_CNT PARAM_VALUE.C_PWREN_CNT } {
 	# Procedure called to set VHDL generic/Verilog parameter value(s) based on TCL parameter value
 	set_property value [get_property value ${PARAM_VALUE.C_PWREN_CNT}] ${MODELPARAM_VALUE.C_PWREN_CNT}
+}
+
+proc update_MODELPARAM_VALUE.C_VIO_INCLUDE { MODELPARAM_VALUE.C_VIO_INCLUDE PARAM_VALUE.C_VIO_INCLUDE } {
+	# Procedure called to set VHDL generic/Verilog parameter value(s) based on TCL parameter value
+	set_property value [get_property value ${PARAM_VALUE.C_VIO_INCLUDE}] ${MODELPARAM_VALUE.C_VIO_INCLUDE}
 }
 
