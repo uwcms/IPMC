@@ -4,7 +4,7 @@
 #include "xparameters.h"
 #include "xil_io.h"
 
-#define MZ_COUNT_MAX 			(32)
+#define MZ_COUNT_MAX 		(16)
 #define MZ_POWER_EN_COUNT 	(32)
 #define MZ_HARDFAULT_COUNT  (64)
 
@@ -19,8 +19,17 @@
 #define IRQ_EN_REG 			(12)
 #define IRQ_ACK_REG 		(16)
 
+#define PWR_EN_AGGR_STATUS 	(20)
+
+#define PEN_2_PEN_ADDR_OFFSET (16)
+
+#define PEN_EN_0_CFG_0_REG (32)
+#define PEN_EN_0_CFG_1_REG (36)
+#define PEN_EN_0_INDIV_STATUS_REG (40)
+
+
 /* Individual MZ registers*/
-#define MZ_0_ADDR_OFFSET    (32)
+#define MZ_0_ADDR_OFFSET    (1024)
 
 #define MZ_0_PWR_STATUS_REG     		(MZ_0_ADDR_OFFSET + 0)
 #define MZ_0_HARD_FAULT_MASK_0_REG     	(MZ_0_ADDR_OFFSET + 4)
@@ -29,35 +38,8 @@
 #define MZ_0_SOFT_FAULT_REG      		(MZ_0_ADDR_OFFSET + 16)
 #define MZ_0_PWR_ON_INIT_REG     		(MZ_0_ADDR_OFFSET + 20)
 #define MZ_0_PWR_OFF_INIT_REG     		(MZ_0_ADDR_OFFSET + 24)
-#define MZ_0_PWR_EN_0_CFG_REG           (MZ_0_ADDR_OFFSET + 28)
-#define MZ_0_PWR_EN_0_STAT_REG          (MZ_0_PWR_EN_0_CFG_REG + MZ_POWER_EN_COUNT * 4)
 
-#define MZ_2_MZ_ADDR_OFFSET      (512)
-
-#if 0
-
-
-    constant PWR_EN_AGGR_STATUS             : integer := 20;
-
-    constant PEN_2_PEN_ADDR_OFFSET          : integer := 16;
-
-    constant PWR_EN_0_CFG_0_REG             : integer := 32;
-    constant PWR_EN_0_CFG_1_REG             : integer := 36;
-    constant PWR_EN_0_INDIV_STATUS_REG      : integer := 40;
-
-    constant MZ_0_ADDR_OFFSET               : integer := (PWR_EN_0_CFG_0_REG + PEN_2_PEN_ADDR_OFFSET*32);
-
-    constant MZ_0_PWR_STATUS_REG            : integer := (MZ_0_ADDR_OFFSET +  0);
-    constant MZ_0_HARD_FAULT_MASK_0_REG     : integer := (MZ_0_ADDR_OFFSET +  4);
-    constant MZ_0_HARD_FAULT_MASK_1_REG     : integer := (MZ_0_ADDR_OFFSET +  8);
-    constant MZ_0_HARD_FAULT_HOLDOFF_REG    : integer := (MZ_0_ADDR_OFFSET + 12);
-    constant MZ_0_SOFT_FAULT_REG            : integer := (MZ_0_ADDR_OFFSET + 16);
-    constant MZ_0_PWR_ON_INIT_REG           : integer := (MZ_0_ADDR_OFFSET + 20);
-    constant MZ_0_PWR_OFF_INIT_REG          : integer := (MZ_0_ADDR_OFFSET + 24);
-
-    constant MZ_2_MZ_ADDR_OFFSET            : integer := 32;
-#endif
-
+#define MZ_2_MZ_ADDR_OFFSET      (32)
 
 
 extern Mgmt_Zone_Ctrl_Config Mgmt_Zone_Ctrl_ConfigTable[];
@@ -212,14 +194,35 @@ u64 Mgmt_Zone_Ctrl_Get_Hard_Fault_Status(Mgmt_Zone_Ctrl *InstancePtr)
 
 void Mgmt_Zone_Ctrl_Set_MZ_Cfg(Mgmt_Zone_Ctrl *InstancePtr, u32 MZ, MZ_config cfg)
 {
+	 int hw_mz_holdoff;
+	 int hw_pwr_en_lvl_and_drive;
+	 int hw_pwr_en_tmr;
+	 int hw_pwr_en_cfg1;
+
+
 	 Mgmt_Zone_Ctrl_WriteReg(InstancePtr->BaseAddress, MZ * MZ_2_MZ_ADDR_OFFSET + MZ_0_HARD_FAULT_MASK_0_REG, (u32)(cfg.hardfault_mask & 0xFFFFFFFF));
 	 Mgmt_Zone_Ctrl_WriteReg(InstancePtr->BaseAddress, MZ * MZ_2_MZ_ADDR_OFFSET + MZ_0_HARD_FAULT_MASK_1_REG, (u32)((cfg.hardfault_mask >> 32)));
 
-	 Mgmt_Zone_Ctrl_WriteReg(InstancePtr->BaseAddress, MZ * MZ_2_MZ_ADDR_OFFSET + MZ_0_HARD_FAULT_HOLDOFF_REG, cfg.fault_holdoff);
+	 hw_mz_holdoff = cfg.fault_holdoff * 50000;
+
+	 Mgmt_Zone_Ctrl_WriteReg(InstancePtr->BaseAddress, MZ * MZ_2_MZ_ADDR_OFFSET + MZ_0_HARD_FAULT_HOLDOFF_REG, hw_mz_holdoff);
 
 	 for (int idx = 0; idx < 32; idx++)
-		 Mgmt_Zone_Ctrl_WriteReg(InstancePtr->BaseAddress, MZ * MZ_2_MZ_ADDR_OFFSET + MZ_0_PWR_EN_0_CFG_REG + idx*4, cfg.pwren_cfg[idx]);
+	 {
+		 if (cfg.pwren_cfg[idx] != 0)
+		 {
+			 hw_pwr_en_tmr = (cfg.pwren_cfg[idx] & 0xFFFF) * 50000;
+			 hw_pwr_en_lvl_and_drive = (cfg.pwren_cfg[idx] >> 16 ) & 3;
+
+			 hw_pwr_en_cfg1 = (hw_pwr_en_lvl_and_drive << 16 ) | (1 << MZ);
+
+			 Mgmt_Zone_Ctrl_WriteReg(InstancePtr->BaseAddress, PEN_EN_0_CFG_0_REG + idx*PEN_2_PEN_ADDR_OFFSET, hw_pwr_en_tmr);
+			 Mgmt_Zone_Ctrl_WriteReg(InstancePtr->BaseAddress, PEN_EN_0_CFG_1_REG + idx*PEN_2_PEN_ADDR_OFFSET, hw_pwr_en_cfg1);
+
+		 }
+	 }
 }
+
 
 void Mgmt_Zone_Ctrl_Get_MZ_Cfg(Mgmt_Zone_Ctrl *InstancePtr, u32 MZ, MZ_config * cfg)
 {
@@ -227,7 +230,8 @@ void Mgmt_Zone_Ctrl_Get_MZ_Cfg(Mgmt_Zone_Ctrl *InstancePtr, u32 MZ, MZ_config * 
 
 	//TODO: hardfault readback
 	for (int idx = 0; idx < 32; idx++)
-		cfg->pwren_cfg[idx] = Mgmt_Zone_Ctrl_ReadReg(InstancePtr->BaseAddress, MZ * MZ_2_MZ_ADDR_OFFSET + MZ_0_PWR_EN_0_CFG_REG + idx*4);
+		;
+	//	cfg->pwren_cfg[idx] = Mgmt_Zone_Ctrl_ReadReg(InstancePtr->BaseAddress, MZ * MZ_2_MZ_ADDR_OFFSET + MZ_0_PWR_EN_0_CFG_REG + idx*4);
 }
 
  MZ_pwr Mgmt_Zone_Ctrl_Get_MZ_Status(Mgmt_Zone_Ctrl *InstancePtr, u32 MZ)

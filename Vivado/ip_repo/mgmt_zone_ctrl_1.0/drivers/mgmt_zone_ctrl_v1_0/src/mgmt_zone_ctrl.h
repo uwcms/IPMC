@@ -1,3 +1,7 @@
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifndef MGMT_ZONE_CTRL_H
 #define MGMT_ZONE_CTRL_H
 
@@ -47,7 +51,7 @@ typedef struct {
 
 	u64 hardfault_mask; // hard fault enable mask
 
-	u32 fault_holdoff; // amount of time (in ms) to ignore fault conditions
+	u16 fault_holdoff; // amount of time (in ms) to ignore fault conditions
 			  // immediately after initiating power up sequence
 
 	PWREN_cfg_t pwren_cfg[32];
@@ -300,5 +304,10 @@ void Mgmt_Zone_Ctrl_Ack_IRQ(Mgmt_Zone_Ctrl *InstancePtr, u32 irq_acks);
 *
 *****************************************************************************/
 u32 Mgmt_Zone_Ctrl_Get_IRQ_Status(Mgmt_Zone_Ctrl *InstancePtr);
+
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // MGMT_ZONE_CTRL_H
