@@ -1,9 +1,9 @@
+#ifndef MGMT_ZONE_CTRL_H
+#define MGMT_ZONE_CTRL_H
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#ifndef MGMT_ZONE_CTRL_H
-#define MGMT_ZONE_CTRL_H
 
 /****************** Include Files ********************/
 #include "xil_types.h"

@@ -261,7 +261,7 @@
 #define XPAR_GPIO_AXI_GPIO_0_HIGHADDR 0x4120FFFF
 #define XPAR_GPIO_AXI_GPIO_0_DEVICE_ID 0
 #define XPAR_GPIO_AXI_GPIO_0_INTERRUPT_PRESENT 0
-#define XPAR_GPIO_AXI_GPIO_0_IS_DUAL 1
+#define XPAR_GPIO_AXI_GPIO_0_IS_DUAL 0
 
 
 /* Definitions for peripheral MANAGEMENT_AXI_GPIO_0 */
@@ -269,7 +269,7 @@
 #define XPAR_MANAGEMENT_AXI_GPIO_0_HIGHADDR 0x4121FFFF
 #define XPAR_MANAGEMENT_AXI_GPIO_0_DEVICE_ID 1
 #define XPAR_MANAGEMENT_AXI_GPIO_0_INTERRUPT_PRESENT 0
-#define XPAR_MANAGEMENT_AXI_GPIO_0_IS_DUAL 1
+#define XPAR_MANAGEMENT_AXI_GPIO_0_IS_DUAL 0
 
 
 /******************************************************************/
@@ -279,14 +279,14 @@
 #define XPAR_GPIO_0_HIGHADDR 0x4120FFFF
 #define XPAR_GPIO_0_DEVICE_ID XPAR_GPIO_AXI_GPIO_0_DEVICE_ID
 #define XPAR_GPIO_0_INTERRUPT_PRESENT 0
-#define XPAR_GPIO_0_IS_DUAL 1
+#define XPAR_GPIO_0_IS_DUAL 0
 
 /* Canonical definitions for peripheral MANAGEMENT_AXI_GPIO_0 */
 #define XPAR_GPIO_1_BASEADDR 0x41210000
 #define XPAR_GPIO_1_HIGHADDR 0x4121FFFF
 #define XPAR_GPIO_1_DEVICE_ID XPAR_MANAGEMENT_AXI_GPIO_0_DEVICE_ID
 #define XPAR_GPIO_1_INTERRUPT_PRESENT 0
-#define XPAR_GPIO_1_IS_DUAL 1
+#define XPAR_GPIO_1_IS_DUAL 0
 
 
 /******************************************************************/
@@ -555,25 +555,9 @@
 #define XPAR_MGMT_ZONE_CTRL_0_DEVICE_ID 0
 #define XPAR_MGMT_ZONE_CTRL_0_S_AXI_BASEADDR 0x43CC0000
 #define XPAR_MGMT_ZONE_CTRL_0_S_AXI_HIGHADDR 0x43CCFFFF
-#define XPAR_MGMT_ZONE_CTRL_0_MZ_CNT 8
+#define XPAR_MGMT_ZONE_CTRL_0_MZ_CNT 2
 #define XPAR_MGMT_ZONE_CTRL_0_HF_CNT 64
-#define XPAR_MGMT_ZONE_CTRL_0_PWREN_CNT 12
-
-
-/******************************************************************/
-
-
-/******************************************************************/
-
-/* Definitions for driver PYLD_PWR_CTRL */
-#define XPAR_PYLD_PWR_CTRL_NUM_INSTANCES 1
-
-/* Definitions for peripheral PYLD_PWR_CTRL_0 */
-#define XPAR_PYLD_PWR_CTRL_0_DEVICE_ID 0
-#define XPAR_PYLD_PWR_CTRL_0_S_AXI_BASEADDR 0x43CA0000
-#define XPAR_PYLD_PWR_CTRL_0_S_AXI_HIGHADDR 0x43CAFFFF
-#define XPAR_PYLD_PWR_CTRL_0_PE_PIN_CNT 13
-#define XPAR_PYLD_PWR_CTRL_0_PG_PIN_CNT 8
+#define XPAR_MGMT_ZONE_CTRL_0_PWREN_CNT 7
 
 
 /******************************************************************/
