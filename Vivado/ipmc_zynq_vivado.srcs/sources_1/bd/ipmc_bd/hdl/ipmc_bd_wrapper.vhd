@@ -1,7 +1,7 @@
 --Copyright 1986-2017 Xilinx, Inc. All Rights Reserved.
 ----------------------------------------------------------------------------------
 --Tool Version: Vivado v.2017.2 (lin64) Build 1909853 Thu Jun 15 18:39:10 MDT 2017
---Date        : Thu Mar 22 11:12:15 2018
+--Date        : Thu Mar 22 14:30:04 2018
 --Host        : moonraker.cern.ch running 64-bit Scientific Linux CERN SLC release 6.9 (Carbon)
 --Command     : generate_target ipmc_bd_wrapper.bd
 --Design      : ipmc_bd_wrapper
@@ -99,7 +99,8 @@ entity ipmc_bd_wrapper is
     TPS2358_4_pwr_ena_n : out STD_LOGIC;
     TPS2358_4_pwr_flt_n : in STD_LOGIC;
     TPS2358_4_pwr_pg_n : in STD_LOGIC;
-    pwr_en : out STD_LOGIC_VECTOR ( 6 downto 0 )
+    pwr_en : out STD_LOGIC_VECTOR ( 6 downto 0 );
+    pwr_status : in STD_LOGIC_VECTOR ( 5 downto 0 )
   );
 end ipmc_bd_wrapper;
 
@@ -192,7 +193,8 @@ architecture STRUCTURE of ipmc_bd_wrapper is
     TPS2358_1_mp_flt_n : in STD_LOGIC;
     TPS2358_1_pwr_ena_n : out STD_LOGIC;
     MC_1_ps1_n : in STD_LOGIC;
-    MC_1_enable_n : out STD_LOGIC
+    MC_1_enable_n : out STD_LOGIC;
+    pwr_status : in STD_LOGIC_VECTOR ( 5 downto 0 )
   );
   end component ipmc_bd;
 begin
@@ -284,6 +286,7 @@ ipmc_bd_i: component ipmc_bd
       TPS2358_4_pwr_ena_n => TPS2358_4_pwr_ena_n,
       TPS2358_4_pwr_flt_n => TPS2358_4_pwr_flt_n,
       TPS2358_4_pwr_pg_n => TPS2358_4_pwr_pg_n,
-      pwr_en(6 downto 0) => pwr_en(6 downto 0)
+      pwr_en(6 downto 0) => pwr_en(6 downto 0),
+      pwr_status(5 downto 0) => pwr_status(5 downto 0)
     );
 end STRUCTURE;

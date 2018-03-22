@@ -18,8 +18,8 @@
 
 #include "xparameters_ps.h"
 
-#define STDIN_BASEADDRESS 0xE0000000
-#define STDOUT_BASEADDRESS 0xE0000000
+#define STDIN_BASEADDRESS 0xF8800000
+#define STDOUT_BASEADDRESS 0xF8800000
 
 /******************************************************************/
 
@@ -254,7 +254,7 @@
 /******************************************************************/
 
 /* Definitions for driver GPIO */
-#define XPAR_XGPIO_NUM_INSTANCES 2
+#define XPAR_XGPIO_NUM_INSTANCES 3
 
 /* Definitions for peripheral GPIO_AXI_GPIO_0 */
 #define XPAR_GPIO_AXI_GPIO_0_BASEADDR 0x41200000
@@ -272,6 +272,14 @@
 #define XPAR_MANAGEMENT_AXI_GPIO_0_IS_DUAL 0
 
 
+/* Definitions for peripheral PWR_FAIL_LGC_AXI_PWR_FAIL_GPIO */
+#define XPAR_PWR_FAIL_LGC_AXI_PWR_FAIL_GPIO_BASEADDR 0x41220000
+#define XPAR_PWR_FAIL_LGC_AXI_PWR_FAIL_GPIO_HIGHADDR 0x4122FFFF
+#define XPAR_PWR_FAIL_LGC_AXI_PWR_FAIL_GPIO_DEVICE_ID 2
+#define XPAR_PWR_FAIL_LGC_AXI_PWR_FAIL_GPIO_INTERRUPT_PRESENT 0
+#define XPAR_PWR_FAIL_LGC_AXI_PWR_FAIL_GPIO_IS_DUAL 1
+
+
 /******************************************************************/
 
 /* Canonical definitions for peripheral GPIO_AXI_GPIO_0 */
@@ -287,6 +295,13 @@
 #define XPAR_GPIO_1_DEVICE_ID XPAR_MANAGEMENT_AXI_GPIO_0_DEVICE_ID
 #define XPAR_GPIO_1_INTERRUPT_PRESENT 0
 #define XPAR_GPIO_1_IS_DUAL 0
+
+/* Canonical definitions for peripheral PWR_FAIL_LGC_AXI_PWR_FAIL_GPIO */
+#define XPAR_GPIO_2_BASEADDR 0x41220000
+#define XPAR_GPIO_2_HIGHADDR 0x4122FFFF
+#define XPAR_GPIO_2_DEVICE_ID XPAR_PWR_FAIL_LGC_AXI_PWR_FAIL_GPIO_DEVICE_ID
+#define XPAR_GPIO_2_INTERRUPT_PRESENT 0
+#define XPAR_GPIO_2_IS_DUAL 1
 
 
 /******************************************************************/

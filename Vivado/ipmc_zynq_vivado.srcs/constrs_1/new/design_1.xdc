@@ -9,6 +9,34 @@
 # False path constraints to async inputs coming directly to synchronizer
 
 
+set_property IOSTANDARD LVCMOS33 [get_ports {pwr_status[5]}]
+set_property IOSTANDARD LVCMOS33 [get_ports {pwr_status[4]}]
+set_property IOSTANDARD LVCMOS33 [get_ports {pwr_status[3]}]
+set_property IOSTANDARD LVCMOS33 [get_ports {pwr_status[2]}]
+set_property IOSTANDARD LVCMOS33 [get_ports {pwr_status[1]}]
+set_property IOSTANDARD LVCMOS33 [get_ports {pwr_status[0]}]
+
+
+ #PGOOD_2V5ETH, GPIO47
+set_property PACKAGE_PIN G18 [get_ports {pwr_status[0]}]
+
+#PGOOD_1V0ETH, GPIO48
+set_property PACKAGE_PIN G19 [get_ports {pwr_status[1]}]
+
+#PGOOD_3V3PYLD, GPIO21 
+set_property PACKAGE_PIN M20 [get_ports {pwr_status[2]}] 
+
+#PGOOD_5V0PYLD, GPIO23
+set_property PACKAGE_PIN L15 [get_ports {pwr_status[3]}] 
+
+#PGOOD_1V2PHY, GPIO8
+set_property PACKAGE_PIN N17 [get_ports {pwr_status[4]}] 
+
+#ELM_PFAIL, GPIO3
+set_property PACKAGE_PIN V11 [get_ports {pwr_status[5]}] 
+
+
+
 
 set_property IOSTANDARD LVCMOS33 [get_ports {pwr_en[6]}]
 set_property IOSTANDARD LVCMOS33 [get_ports {pwr_en[5]}]
@@ -79,7 +107,9 @@ set_property PACKAGE_PIN V6 [get_ports {GPIO[1]}]
  # remapped from GPIO_32
 set_property PACKAGE_PIN K18 [get_ports {GPIO[2]}]
 
-set_property PACKAGE_PIN V11 [get_ports {GPIO[3]}]
+ # remapped from GPIO_41
+set_property PACKAGE_PIN H18 [get_ports {GPIO[3]}]
+
 set_property PACKAGE_PIN Y13 [get_ports {GPIO[4]}]
 
  # remapped from GPIO_33
@@ -87,7 +117,9 @@ set_property PACKAGE_PIN G14 [get_ports {GPIO[13]}]
 set_property PACKAGE_PIN R16 [get_ports {GPIO[5]}]
 set_property PACKAGE_PIN R17 [get_ports {GPIO[6]}]
 set_property PACKAGE_PIN R18 [get_ports {GPIO[7]}]
-set_property PACKAGE_PIN N17 [get_ports {GPIO[8]}]
+
+ # remapped from GPIO_38
+set_property PACKAGE_PIN J20 [get_ports {GPIO[8]}]
 set_property PACKAGE_PIN P18 [get_ports {GPIO[9]}]
 
 # remapped from GPIO_34
@@ -108,9 +140,14 @@ set_property PACKAGE_PIN M15 [get_ports {GPIO[17]}]
 set_property PACKAGE_PIN M17 [get_ports {GPIO[18]}]
 set_property PACKAGE_PIN M18 [get_ports {GPIO[19]}]
 set_property PACKAGE_PIN M19 [get_ports {GPIO[20]}]
-set_property PACKAGE_PIN M20 [get_ports {GPIO[21]}]
+
+ # remapped from GPIO_39
+set_property PACKAGE_PIN H20 [get_ports {GPIO[21]}]
+
 set_property PACKAGE_PIN L14 [get_ports {GPIO[22]}]
-set_property PACKAGE_PIN L15 [get_ports {GPIO[23]}]
+
+ # remapped from GPIO_40
+set_property PACKAGE_PIN J18 [get_ports {GPIO[23]}]
 set_property PACKAGE_PIN L16 [get_ports {GPIO[24]}]
 set_property PACKAGE_PIN L17 [get_ports {GPIO[25]}]
 set_property PACKAGE_PIN L20 [get_ports {GPIO[26]}]

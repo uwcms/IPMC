@@ -6,8 +6,8 @@ BEGIN OS
  PARAMETER OS_NAME = standalone
  PARAMETER OS_VER = 6.3
  PARAMETER PROC_INSTANCE = ps7_cortexa9_0
- PARAMETER stdin = ps7_uart_0
- PARAMETER stdout = ps7_uart_0
+ PARAMETER stdin = ps7_coresight_comp_0
+ PARAMETER stdout = ps7_coresight_comp_0
 END
 
 
@@ -346,6 +346,12 @@ BEGIN DRIVER
  PARAMETER DRIVER_NAME = generic
  PARAMETER DRIVER_VER = 2.0
  PARAMETER HW_INSTANCE = xadc_wiz_0
+END
+
+BEGIN DRIVER
+ PARAMETER DRIVER_NAME = gpio
+ PARAMETER DRIVER_VER = 4.3
+ PARAMETER HW_INSTANCE = pwr_fail_lgc_axi_pwr_fail_gpio
 END
 
 
