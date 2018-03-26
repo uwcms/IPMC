@@ -10,6 +10,7 @@
 #include <drivers/watchdog/PSWDT.h>
 #include <drivers/ps_uart/PSUART.h>
 #include <drivers/ps_ipmb/PSIPMB.h>
+#include <drivers/mgmt_zone/MGMTZone.h>
 #include <services/ipmi/ipmbsvc/IPMBSvc.h>
 #include <services/ipmi/ipmbsvc/IPMICommandParser.h>
 #include <services/ipmi/commands/IPMICmd_Index.h>
@@ -39,6 +40,7 @@ u8 IPMC_HW_REVISION = 1; // TODO: Detect, Update, etc
 
 PS_WDT *SWDT;
 PS_UART *uart_ps0;
+MGMT_Zone *mgmt_zones[XPAR_MGMT_ZONE_CTRL_0_MZ_CNT];
 IPMBSvc *ipmb0;
 Network *network;
 IPMICommandParser *ipmi_command_parser;
@@ -121,6 +123,54 @@ void driver_init(bool use_pl) {
 	ipmi_command_parser = new IPMICommandParser(ipmicmd_default, *ipmicmd_index);
 	ipmb0 = new IPMBSvc(ps_ipmb[0], ps_ipmb[1], ipmbaddr, ipmi_command_parser, log_ipmb0, "ipmb0", SWDT);
 	ipmb0->register_console_commands(console_command_parser, "ipmb0.");
+
+	for (int i = 0; i < XPAR_MGMT_ZONE_CTRL_0_MZ_CNT; ++i)
+		mgmt_zones[i] = new MGMT_Zone(XPAR_MGMT_ZONE_CTRL_0_DEVICE_ID, i);
+
+	std::vector<MGMT_Zone::OutputConfig> pen_config;
+	uint64_t hf_mask = 0
+			| (1<<0) // PGOOD_2V5ETH
+			| (1<<1) // PGOOD_1V0ETH
+			| (1<<2) // PGOOD_3V3PYLD
+			| (1<<3) // PGOOD_5V0PYLD
+			| (1<<4);// PGOOD_1V2PHY
+	hf_mask = 0; // XXX Disable Hardfault Safety
+	mgmt_zones[0]->set_hardfault_mask(hf_mask, 140);
+	mgmt_zones[0]->get_pen_config(pen_config);
+	for (int i = 0; i < 6; ++i) {
+		pen_config[i].active_high = true;
+		pen_config[i].drive_enabled = true;
+	}
+	// +12VPYLD
+	pen_config[0].enable_delay = 10;
+	// +2V5ETH
+	pen_config[1].enable_delay = 200;
+	// +1V0ETH
+	pen_config[2].enable_delay = 20;
+	// +3V3PYLD
+	// +1V8PYLD
+	// +3V3FFTX_TX
+	// +3V3FFTX_RX
+	// +3V3FFRX_TX
+	// +3V3FFRX_RX
+	pen_config[3].enable_delay = 30;
+	// +5V0PYLD
+	pen_config[4].enable_delay = 30;
+	// +1V2PHY
+	pen_config[5].enable_delay = 40;
+	mgmt_zones[0]->set_pen_config(pen_config);
+	mgmt_zones[0]->set_power_state(MGMT_Zone::ON); // Immediately power up.  Xil ethernet driver asserts otherwise.
+
+	hf_mask = 0
+			| (1<<5);// ELM_PFAIL
+	hf_mask = 0; // XXX Disable Hardfault Safety
+	mgmt_zones[1]->set_hardfault_mask(hf_mask, 150);
+	mgmt_zones[1]->get_pen_config(pen_config);
+	// ELM_PWR_EN_I
+	pen_config[6].active_high = true;
+	pen_config[6].drive_enabled = true;
+	pen_config[6].enable_delay = 50;
+	mgmt_zones[1]->set_pen_config(pen_config);
 }
 
 /** IPMC service initialization.
@@ -276,12 +326,61 @@ public:
 
 	//virtual std::vector<std::string> complete(const CommandParser::CommandParameters &parameters) const { };
 };
+
+
+/// A temporary "backend_power" command
+class ConsoleCommand_backend_power : public CommandParser::Command {
+public:
+	virtual std::string get_helptext(const std::string &command) const {
+		return stdsprintf(
+				"%s [(on|off)]\n"
+				"\n"
+				"Enable/Disable MZs\n"
+				"Without parameters, returns power status.\n", command.c_str());
+	}
+
+	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
+		if (parameters.nargs() == 1) {
+			std::string out;
+			bool transitioning;
+			bool enabled = mgmt_zones[1]->get_power_state(&transitioning);
+			if (transitioning)
+				out += stdsprintf("ELM power status is (transitioning to) %s\n", (enabled?"on":"off"));
+			else
+				out += stdsprintf("ELM power status is %s\n", (enabled?"on":"off"));
+			out += "\n";
+			uint32_t pen_state = mgmt_zones[1]->get_pen_status(false);
+			out += stdsprintf("The power enables are currently at 0x%08x\n", pen_state);
+			console->write(out);
+			return;
+		}
+
+		std::string action;
+		if (!parameters.parse_parameters(1, true, &action)) {
+			console->write("Invalid parameters.\n");
+			return;
+		}
+		if (action == "on") {
+			mgmt_zones[1]->set_power_state(MGMT_Zone::ON);
+		}
+		else if (action == "off") {
+			mgmt_zones[1]->set_power_state(MGMT_Zone::OFF);
+		}
+		else {
+			console->write("Unknown action.\n");
+			return;
+		}
+	}
+
+	//virtual std::vector<std::string> complete(const CommandParser::CommandParameters &parameters) const { };
+};
 } // anonymous namespace
 
 static void register_core_console_commands(CommandParser &parser) {
 	console_command_parser.register_command("uptime", std::make_shared<ConsoleCommand_uptime>());
 	console_command_parser.register_command("version", std::make_shared<ConsoleCommand_version>());
 	console_command_parser.register_command("ps", std::make_shared<ConsoleCommand_ps>());
+	console_command_parser.register_command("backend_power", std::make_shared<ConsoleCommand_backend_power>());
 }
 
 static void console_log_handler(LogTree &logtree, const std::string &message, enum LogTree::LogLevel level) {
