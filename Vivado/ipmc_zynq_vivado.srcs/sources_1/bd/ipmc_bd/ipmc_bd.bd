@@ -618,19 +618,9 @@
         <spirit:instanceName>vio_hard_fault</spirit:instanceName>
         <spirit:componentRef spirit:library="ip" spirit:name="vio" spirit:vendor="xilinx.com" spirit:version="3.0"/>
         <spirit:configurableElementValues>
-          <spirit:configurableElementValue spirit:referenceId="bd:xciName">ipmc_bd_vio_0_0</spirit:configurableElementValue>
+          <spirit:configurableElementValue spirit:referenceId="bd:xciName">ipmc_bd_vio_hard_fault_0</spirit:configurableElementValue>
           <spirit:configurableElementValue spirit:referenceId="C_PROBE_OUT0_WIDTH">58</spirit:configurableElementValue>
           <spirit:configurableElementValue spirit:referenceId="C_NUM_PROBE_IN">0</spirit:configurableElementValue>
-        </spirit:configurableElementValues>
-      </spirit:componentInstance>
-      <spirit:componentInstance>
-        <spirit:instanceName>mgmt_zone_ctrl_0</spirit:instanceName>
-        <spirit:componentRef spirit:library="user" spirit:name="mgmt_zone_ctrl" spirit:vendor="hep.wisc.edu" spirit:version="1.0"/>
-        <spirit:configurableElementValues>
-          <spirit:configurableElementValue spirit:referenceId="bd:xciName">ipmc_bd_mgmt_zone_ctrl_0_0</spirit:configurableElementValue>
-          <spirit:configurableElementValue spirit:referenceId="C_MZ_CNT">2</spirit:configurableElementValue>
-          <spirit:configurableElementValue spirit:referenceId="C_PWREN_CNT">7</spirit:configurableElementValue>
-          <spirit:configurableElementValue spirit:referenceId="C_VIO_INCLUDE">true</spirit:configurableElementValue>
         </spirit:configurableElementValues>
       </spirit:componentInstance>
       <spirit:componentInstance>
@@ -641,7 +631,17 @@
         <spirit:instanceName>pwr_fail_concat</spirit:instanceName>
         <spirit:componentRef spirit:library="ip" spirit:name="xlconcat" spirit:vendor="xilinx.com" spirit:version="2.1"/>
         <spirit:configurableElementValues>
-          <spirit:configurableElementValue spirit:referenceId="bd:xciName">ipmc_bd_xlconcat_1_1</spirit:configurableElementValue>
+          <spirit:configurableElementValue spirit:referenceId="bd:xciName">ipmc_bd_pwr_fail_concat_0</spirit:configurableElementValue>
+        </spirit:configurableElementValues>
+      </spirit:componentInstance>
+      <spirit:componentInstance>
+        <spirit:instanceName>mgmt_zone_ctrl_0</spirit:instanceName>
+        <spirit:componentRef spirit:library="user" spirit:name="mgmt_zone_ctrl" spirit:vendor="hep.wisc.edu" spirit:version="1.0"/>
+        <spirit:configurableElementValues>
+          <spirit:configurableElementValue spirit:referenceId="bd:xciName">ipmc_bd_mgmt_zone_ctrl_0_0</spirit:configurableElementValue>
+          <spirit:configurableElementValue spirit:referenceId="C_MZ_CNT">4</spirit:configurableElementValue>
+          <spirit:configurableElementValue spirit:referenceId="C_PWREN_CNT">7</spirit:configurableElementValue>
+          <spirit:configurableElementValue spirit:referenceId="C_VIO_INCLUDE">true</spirit:configurableElementValue>
         </spirit:configurableElementValues>
       </spirit:componentInstance>
     </spirit:componentInstances>
@@ -726,7 +726,6 @@
         <spirit:internalPortReference spirit:componentRef="led_controller_1" spirit:portRef="s_axi_aclk"/>
         <spirit:internalPortReference spirit:componentRef="xadc_wiz_0" spirit:portRef="s_axi_aclk"/>
         <spirit:internalPortReference spirit:componentRef="vio_hard_fault" spirit:portRef="clk"/>
-        <spirit:internalPortReference spirit:componentRef="mgmt_zone_ctrl_0" spirit:portRef="s_axi_aclk"/>
         <spirit:internalPortReference spirit:componentRef="AMCs" spirit:portRef="S00_ACLK"/>
         <spirit:internalPortReference spirit:componentRef="GPIO" spirit:portRef="s_axi_aclk"/>
         <spirit:internalPortReference spirit:componentRef="Management" spirit:portRef="s_axi_aclk"/>
@@ -745,6 +744,7 @@
         <spirit:internalPortReference spirit:componentRef="axi_interconnect_0" spirit:portRef="M10_ACLK"/>
         <spirit:internalPortReference spirit:componentRef="axi_interconnect_0" spirit:portRef="M11_ACLK"/>
         <spirit:internalPortReference spirit:componentRef="pwr_fail_lgc" spirit:portRef="s_axi_aclk"/>
+        <spirit:internalPortReference spirit:componentRef="mgmt_zone_ctrl_0" spirit:portRef="s_axi_aclk"/>
       </spirit:adHocConnection>
       <spirit:adHocConnection>
         <spirit:name>ALARM_A_1</spirit:name>
@@ -807,7 +807,6 @@
         <spirit:internalPortReference spirit:componentRef="led_controller_0" spirit:portRef="s_axi_aresetn"/>
         <spirit:internalPortReference spirit:componentRef="led_controller_1" spirit:portRef="s_axi_aresetn"/>
         <spirit:internalPortReference spirit:componentRef="xadc_wiz_0" spirit:portRef="s_axi_aresetn"/>
-        <spirit:internalPortReference spirit:componentRef="mgmt_zone_ctrl_0" spirit:portRef="s_axi_aresetn"/>
         <spirit:internalPortReference spirit:componentRef="AMCs" spirit:portRef="M04_ARESETN"/>
         <spirit:internalPortReference spirit:componentRef="GPIO" spirit:portRef="s_axi_aresetn"/>
         <spirit:internalPortReference spirit:componentRef="Management" spirit:portRef="s_axi_aresetn"/>
@@ -825,6 +824,7 @@
         <spirit:internalPortReference spirit:componentRef="axi_interconnect_0" spirit:portRef="M10_ARESETN"/>
         <spirit:internalPortReference spirit:componentRef="axi_interconnect_0" spirit:portRef="M11_ARESETN"/>
         <spirit:internalPortReference spirit:componentRef="pwr_fail_lgc" spirit:portRef="s_axi_aresetn"/>
+        <spirit:internalPortReference spirit:componentRef="mgmt_zone_ctrl_0" spirit:portRef="s_axi_aresetn"/>
       </spirit:adHocConnection>
       <spirit:adHocConnection>
         <spirit:name>processing_system7_0_FCLK_RESET0_N</spirit:name>
@@ -1047,7 +1047,7 @@
         <spirit:instanceName>axi_pwr_fail_gpio</spirit:instanceName>
         <spirit:componentRef spirit:library="ip" spirit:name="axi_gpio" spirit:vendor="xilinx.com" spirit:version="2.0"/>
         <spirit:configurableElementValues>
-          <spirit:configurableElementValue spirit:referenceId="bd:xciName">ipmc_bd_axi_gpio_0_2</spirit:configurableElementValue>
+          <spirit:configurableElementValue spirit:referenceId="bd:xciName">ipmc_bd_axi_pwr_fail_gpio_0</spirit:configurableElementValue>
           <spirit:configurableElementValue spirit:referenceId="C_GPIO_WIDTH">6</spirit:configurableElementValue>
           <spirit:configurableElementValue spirit:referenceId="C_GPIO2_WIDTH">6</spirit:configurableElementValue>
           <spirit:configurableElementValue spirit:referenceId="C_IS_DUAL">1</spirit:configurableElementValue>
@@ -1059,7 +1059,7 @@
         <spirit:instanceName>util_vect_lgc_XOR</spirit:instanceName>
         <spirit:componentRef spirit:library="ip" spirit:name="util_vector_logic" spirit:vendor="xilinx.com" spirit:version="2.0"/>
         <spirit:configurableElementValues>
-          <spirit:configurableElementValue spirit:referenceId="bd:xciName">ipmc_bd_util_vector_logic_0_0</spirit:configurableElementValue>
+          <spirit:configurableElementValue spirit:referenceId="bd:xciName">ipmc_bd_util_vect_lgc_XOR_0</spirit:configurableElementValue>
           <spirit:configurableElementValue spirit:referenceId="C_SIZE">6</spirit:configurableElementValue>
           <spirit:configurableElementValue spirit:referenceId="C_OPERATION">xor</spirit:configurableElementValue>
         </spirit:configurableElementValues>
@@ -1091,8 +1091,8 @@
       <spirit:adHocConnection>
         <spirit:name>util_vect_lgc_XOR_Res</spirit:name>
         <spirit:internalPortReference spirit:componentRef="util_vect_lgc_XOR" spirit:portRef="Res"/>
-        <spirit:internalPortReference spirit:componentRef="axi_pwr_fail_gpio" spirit:portRef="gpio_io_i"/>
         <spirit:externalPortReference spirit:portRef="pwr_fail_hard_fault"/>
+        <spirit:internalPortReference spirit:componentRef="axi_pwr_fail_gpio" spirit:portRef="gpio_io_i"/>
       </spirit:adHocConnection>
     </spirit:adHocConnections>
     <spirit:hierConnections>
@@ -5573,7 +5573,7 @@
         <spirit:instanceName>xlconcat_1</spirit:instanceName>
         <spirit:componentRef spirit:library="ip" spirit:name="xlconcat" spirit:vendor="xilinx.com" spirit:version="2.1"/>
         <spirit:configurableElementValues>
-          <spirit:configurableElementValue spirit:referenceId="bd:xciName">ipmc_bd_xlconcat_1_2</spirit:configurableElementValue>
+          <spirit:configurableElementValue spirit:referenceId="bd:xciName">ipmc_bd_xlconcat_1_1</spirit:configurableElementValue>
           <spirit:configurableElementValue spirit:referenceId="NUM_PORTS">5</spirit:configurableElementValue>
           <spirit:configurableElementValue spirit:referenceId="dout_width">20</spirit:configurableElementValue>
         </spirit:configurableElementValues>

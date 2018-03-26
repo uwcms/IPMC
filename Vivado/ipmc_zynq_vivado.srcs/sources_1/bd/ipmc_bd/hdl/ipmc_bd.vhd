@@ -1,7 +1,7 @@
 --Copyright 1986-2017 Xilinx, Inc. All Rights Reserved.
 ----------------------------------------------------------------------------------
 --Tool Version: Vivado v.2017.2 (lin64) Build 1909853 Thu Jun 15 18:39:10 MDT 2017
---Date        : Thu Mar 22 14:30:03 2018
+--Date        : Mon Mar 26 15:50:51 2018
 --Host        : moonraker.cern.ch running 64-bit Scientific Linux CERN SLC release 6.9 (Carbon)
 --Command     : generate_target ipmc_bd.bd
 --Design      : ipmc_bd
@@ -3298,7 +3298,7 @@ entity pwr_fail_lgc_imp_Y5US5C is
 end pwr_fail_lgc_imp_Y5US5C;
 
 architecture STRUCTURE of pwr_fail_lgc_imp_Y5US5C is
-  component ipmc_bd_axi_gpio_0_2 is
+  component ipmc_bd_axi_pwr_fail_gpio_0 is
   port (
     s_axi_aclk : in STD_LOGIC;
     s_axi_aresetn : in STD_LOGIC;
@@ -3324,14 +3324,14 @@ architecture STRUCTURE of pwr_fail_lgc_imp_Y5US5C is
     gpio2_io_o : out STD_LOGIC_VECTOR ( 5 downto 0 );
     gpio2_io_t : out STD_LOGIC_VECTOR ( 5 downto 0 )
   );
-  end component ipmc_bd_axi_gpio_0_2;
-  component ipmc_bd_util_vector_logic_0_0 is
+  end component ipmc_bd_axi_pwr_fail_gpio_0;
+  component ipmc_bd_util_vect_lgc_XOR_0 is
   port (
     Op1 : in STD_LOGIC_VECTOR ( 5 downto 0 );
     Op2 : in STD_LOGIC_VECTOR ( 5 downto 0 );
     Res : out STD_LOGIC_VECTOR ( 5 downto 0 )
   );
-  end component ipmc_bd_util_vector_logic_0_0;
+  end component ipmc_bd_util_vect_lgc_XOR_0;
   signal ACLK_1 : STD_LOGIC;
   signal Op2_1 : STD_LOGIC_VECTOR ( 5 downto 0 );
   signal axi_interconnect_0_M11_AXI_ARADDR : STD_LOGIC_VECTOR ( 31 downto 0 );
@@ -3377,7 +3377,7 @@ begin
   axi_interconnect_0_M11_AXI_WVALID <= S_AXI_wvalid;
   proc_sys_reset_0_peripheral_aresetn <= s_axi_aresetn;
   pwr_fail_hard_fault(5 downto 0) <= util_vect_lgc_XOR_Res(5 downto 0);
-axi_pwr_fail_gpio: component ipmc_bd_axi_gpio_0_2
+axi_pwr_fail_gpio: component ipmc_bd_axi_pwr_fail_gpio_0
      port map (
       gpio2_io_i(5 downto 0) => axi_pwr_good_gpio_gpio2_io_o(5 downto 0),
       gpio2_io_o(5 downto 0) => axi_pwr_good_gpio_gpio2_io_o(5 downto 0),
@@ -3403,7 +3403,7 @@ axi_pwr_fail_gpio: component ipmc_bd_axi_gpio_0_2
       s_axi_wstrb(3 downto 0) => axi_interconnect_0_M11_AXI_WSTRB(3 downto 0),
       s_axi_wvalid => axi_interconnect_0_M11_AXI_WVALID
     );
-util_vect_lgc_XOR: component ipmc_bd_util_vector_logic_0_0
+util_vect_lgc_XOR: component ipmc_bd_util_vect_lgc_XOR_0
      port map (
       Op1(5 downto 0) => axi_pwr_good_gpio_gpio2_io_o(5 downto 0),
       Op2(5 downto 0) => Op2_1(5 downto 0),
@@ -11932,7 +11932,7 @@ entity AMCs_imp_13Y6X5Z is
 end AMCs_imp_13Y6X5Z;
 
 architecture STRUCTURE of AMCs_imp_13Y6X5Z is
-  component ipmc_bd_xlconcat_1_2 is
+  component ipmc_bd_xlconcat_1_1 is
   port (
     In0 : in STD_LOGIC_VECTOR ( 3 downto 0 );
     In1 : in STD_LOGIC_VECTOR ( 3 downto 0 );
@@ -11941,7 +11941,7 @@ architecture STRUCTURE of AMCs_imp_13Y6X5Z is
     In4 : in STD_LOGIC_VECTOR ( 3 downto 0 );
     dout : out STD_LOGIC_VECTOR ( 19 downto 0 )
   );
-  end component ipmc_bd_xlconcat_1_2;
+  end component ipmc_bd_xlconcat_1_1;
   signal ARESETN_1 : STD_LOGIC;
   signal Conn10_enable_n : STD_LOGIC;
   signal Conn10_ps1_n : STD_LOGIC;
@@ -12495,7 +12495,7 @@ axi_interconnect_1: entity work.ipmc_bd_axi_interconnect_1_0
       S00_AXI_wstrb(3 downto 0) => Conn2_WSTRB(3 downto 0),
       S00_AXI_wvalid(0) => Conn2_WVALID(0)
     );
-xlconcat_1: component ipmc_bd_xlconcat_1_2
+xlconcat_1: component ipmc_bd_xlconcat_1_1
      port map (
       In0(3 downto 0) => amc0_irq(3 downto 0),
       In1(3 downto 0) => amc1_irq(3 downto 0),
@@ -12600,10 +12600,10 @@ entity ipmc_bd is
     pwr_en : out STD_LOGIC_VECTOR ( 6 downto 0 );
     pwr_status : in STD_LOGIC_VECTOR ( 5 downto 0 )
   );
-  attribute core_generation_info : string;
-  attribute core_generation_info of ipmc_bd : entity is "ipmc_bd,IP_Integrator,{x_ipVendor=xilinx.com,x_ipLibrary=BlockDiagram,x_ipName=ipmc_bd,x_ipVersion=1.00.a,x_ipLanguage=VHDL,numBlks=104,numReposBlks=54,numNonXlnxBlks=22,numHierBlks=50,maxHierDepth=2,numSysgenBlks=0,numHlsBlks=0,numHdlrefBlks=11,numPkgbdBlks=0,bdsource=USER,da_axi4_cnt=2,synth_mode=OOC_per_IP}";
-  attribute hw_handoff : string;
-  attribute hw_handoff of ipmc_bd : entity is "ipmc_bd.hwdef";
+  attribute CORE_GENERATION_INFO : string;
+  attribute CORE_GENERATION_INFO of ipmc_bd : entity is "ipmc_bd,IP_Integrator,{x_ipVendor=xilinx.com,x_ipLibrary=BlockDiagram,x_ipName=ipmc_bd,x_ipVersion=1.00.a,x_ipLanguage=VHDL,numBlks=104,numReposBlks=54,numNonXlnxBlks=22,numHierBlks=50,maxHierDepth=2,numSysgenBlks=0,numHlsBlks=0,numHdlrefBlks=11,numPkgbdBlks=0,bdsource=USER,synth_mode=OOC_per_IP}";
+  attribute HW_HANDOFF : string;
+  attribute HW_HANDOFF of ipmc_bd : entity is "ipmc_bd.hwdef";
 end ipmc_bd;
 
 architecture STRUCTURE of ipmc_bd is
@@ -12897,17 +12897,24 @@ architecture STRUCTURE of ipmc_bd is
     busy_out : out STD_LOGIC
   );
   end component ipmc_bd_xadc_wiz_0_0;
-  component ipmc_bd_vio_0_0 is
+  component ipmc_bd_vio_hard_fault_0 is
   port (
     clk : in STD_LOGIC;
     probe_out0 : out STD_LOGIC_VECTOR ( 57 downto 0 )
   );
-  end component ipmc_bd_vio_0_0;
+  end component ipmc_bd_vio_hard_fault_0;
+  component ipmc_bd_pwr_fail_concat_0 is
+  port (
+    In0 : in STD_LOGIC_VECTOR ( 5 downto 0 );
+    In1 : in STD_LOGIC_VECTOR ( 57 downto 0 );
+    dout : out STD_LOGIC_VECTOR ( 63 downto 0 )
+  );
+  end component ipmc_bd_pwr_fail_concat_0;
   component ipmc_bd_mgmt_zone_ctrl_0_0 is
   port (
     hard_fault : in STD_LOGIC_VECTOR ( 63 downto 0 );
     pwr_en : out STD_LOGIC_VECTOR ( 6 downto 0 );
-    mz_sneak_path : out STD_LOGIC_VECTOR ( 1 downto 0 );
+    mz_enabled : out STD_LOGIC_VECTOR ( 3 downto 0 );
     irq : out STD_LOGIC;
     s_axi_awaddr : in STD_LOGIC_VECTOR ( 12 downto 0 );
     s_axi_awprot : in STD_LOGIC_VECTOR ( 2 downto 0 );
@@ -12932,13 +12939,6 @@ architecture STRUCTURE of ipmc_bd is
     s_axi_aresetn : in STD_LOGIC
   );
   end component ipmc_bd_mgmt_zone_ctrl_0_0;
-  component ipmc_bd_xlconcat_1_1 is
-  port (
-    In0 : in STD_LOGIC_VECTOR ( 5 downto 0 );
-    In1 : in STD_LOGIC_VECTOR ( 57 downto 0 );
-    dout : out STD_LOGIC_VECTOR ( 63 downto 0 )
-  );
-  end component ipmc_bd_xlconcat_1_1;
   signal ACLK_1 : STD_LOGIC;
   signal ALARM_A_1 : STD_LOGIC;
   signal ALARM_B_1 : STD_LOGIC;
@@ -13297,7 +13297,7 @@ architecture STRUCTURE of ipmc_bd is
   signal xvc_0_JTAG_TMS : STD_LOGIC;
   signal xvc_0_JTAG_TRST : STD_LOGIC;
   signal NLW_mgmt_zone_ctrl_0_irq_UNCONNECTED : STD_LOGIC;
-  signal NLW_mgmt_zone_ctrl_0_mz_sneak_path_UNCONNECTED : STD_LOGIC_VECTOR ( 1 downto 0 );
+  signal NLW_mgmt_zone_ctrl_0_mz_enabled_UNCONNECTED : STD_LOGIC_VECTOR ( 3 downto 0 );
   signal NLW_proc_sys_reset_0_mb_reset_UNCONNECTED : STD_LOGIC;
   signal NLW_proc_sys_reset_0_bus_struct_reset_UNCONNECTED : STD_LOGIC_VECTOR ( 0 to 0 );
   signal NLW_proc_sys_reset_0_peripheral_reset_UNCONNECTED : STD_LOGIC_VECTOR ( 0 to 0 );
@@ -13933,7 +13933,7 @@ mgmt_zone_ctrl_0: component ipmc_bd_mgmt_zone_ctrl_0_0
      port map (
       hard_fault(63 downto 0) => xlconcat_1_dout1(63 downto 0),
       irq => NLW_mgmt_zone_ctrl_0_irq_UNCONNECTED,
-      mz_sneak_path(1 downto 0) => NLW_mgmt_zone_ctrl_0_mz_sneak_path_UNCONNECTED(1 downto 0),
+      mz_enabled(3 downto 0) => NLW_mgmt_zone_ctrl_0_mz_enabled_UNCONNECTED(3 downto 0),
       pwr_en(6 downto 0) => mgmt_zone_ctrl_0_pwr_en(6 downto 0),
       s_axi_aclk => ACLK_1,
       s_axi_araddr(12 downto 0) => axi_interconnect_0_M09_AXI_ARADDR(12 downto 0),
@@ -14038,7 +14038,7 @@ processing_system7_0: component ipmc_bd_processing_system7_0_0
       PS_SRSTB => NLW_processing_system7_0_PS_SRSTB_UNCONNECTED,
       WDT_RST_OUT => NLW_processing_system7_0_WDT_RST_OUT_UNCONNECTED
     );
-pwr_fail_concat: component ipmc_bd_xlconcat_1_1
+pwr_fail_concat: component ipmc_bd_pwr_fail_concat_0
      port map (
       In0(5 downto 0) => pwr_fail_lgc_Res(5 downto 0),
       In1(57 downto 0) => vio_hard_fault_probe_out0(57 downto 0),
@@ -14068,7 +14068,7 @@ pwr_fail_lgc: entity work.pwr_fail_lgc_imp_Y5US5C
       s_axi_aclk => ACLK_1,
       s_axi_aresetn => proc_sys_reset_0_peripheral_aresetn(0)
     );
-vio_hard_fault: component ipmc_bd_vio_0_0
+vio_hard_fault: component ipmc_bd_vio_hard_fault_0
      port map (
       clk => ACLK_1,
       probe_out0(57 downto 0) => vio_hard_fault_probe_out0(57 downto 0)

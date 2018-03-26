@@ -20,7 +20,7 @@ entity mgmt_zone_ctrl_v1_0 is
 
         hard_fault : in std_logic_vector(C_HF_CNT - 1 downto 0);
         pwr_en : out std_logic_vector(C_PWREN_CNT - 1 downto 0);
-        mz_sneak_path : out std_logic_vector(C_MZ_CNT - 1 downto 0);
+        mz_enabled : out std_logic_vector(C_MZ_CNT - 1 downto 0);
 		irq	: out std_logic;
 
 		-- Ports of Axi Slave Bus Interface S_AXI

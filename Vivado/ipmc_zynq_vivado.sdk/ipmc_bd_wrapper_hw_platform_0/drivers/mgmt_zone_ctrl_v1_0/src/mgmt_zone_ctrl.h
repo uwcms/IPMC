@@ -59,10 +59,10 @@ typedef struct {
 } MZ_config;
 
 typedef enum MZ_pwr {
-	MZ_PWR_ON = 0,
-	MZ_PWR_TRANS_ON = 1,
-	MZ_PWR_TRANS_OFF = 2,
-	MZ_PWR_OFF = 3
+	MZ_PWR_OFF = 0,
+	MZ_PWR_TRANS_OFF = 1,
+	MZ_PWR_TRANS_ON = 2,
+	MZ_PWR_ON = 3
 } MZ_pwr;
 
 /****************************************************************************/
@@ -121,7 +121,7 @@ u64 Mgmt_Zone_Ctrl_Get_Hard_Fault_Status(Mgmt_Zone_Ctrl *InstancePtr);
 *
 * @param Management Zone select
 *
-* @param Management Zone Configuration
+* @param Pointer to Management Zone Configuration
 * 		 MZ_config members:
 * 		 	u64 hardfault_mask;
 * 		    u32 fault_holdoff;
@@ -131,7 +131,7 @@ u64 Mgmt_Zone_Ctrl_Get_Hard_Fault_Status(Mgmt_Zone_Ctrl *InstancePtr);
 * @note		None.
 *
 *****************************************************************************/
-void Mgmt_Zone_Ctrl_Set_MZ_Cfg(Mgmt_Zone_Ctrl *InstancePtr, u32 MZ, MZ_config cfg);
+void Mgmt_Zone_Ctrl_Set_MZ_Cfg(Mgmt_Zone_Ctrl *InstancePtr, u32 MZ, const MZ_config * cfg);
 
 
 /****************************************************************************/
