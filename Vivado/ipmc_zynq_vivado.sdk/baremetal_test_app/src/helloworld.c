@@ -46,6 +46,7 @@
  */
 
 #include <stdio.h>
+#include <string.h>
 #include <time.h>
 #include "platform.h"
 #include "xil_printf.h"
@@ -117,10 +118,13 @@ int mgmt_zone_ctrl_demo(void) {
 		return XST_FAILURE;
 	}
 
-	MZ_config cfg;
+	MZ_config cfg, cfg_rb;
+
+	memset(&cfg, 0, sizeof(cfg));
+	memset(&cfg_rb, 0, sizeof(cfg_rb));
 
 	cfg.fault_holdoff = 10;
-	cfg.hardfault_mask = 0x0000000000000000;
+	cfg.hardfault_mask = 0xABCD00000ff0f0f;
 
 	for (int i = 0; i<32; i++)
 	{
@@ -149,30 +153,80 @@ int mgmt_zone_ctrl_demo(void) {
 	cfg.pwren_cfg[6] = (1 << 17) | (1 << 16) | 7000;
 
 
-	u32 MZ = 0;
+	u32 MZ = 1;
 
 	// Configure MZ
-	Mgmt_Zone_Ctrl_Set_MZ_Cfg(&Mgmt_Zone_Ctrl_inst,  MZ,  cfg);
+	Mgmt_Zone_Ctrl_Set_MZ_Cfg(&Mgmt_Zone_Ctrl_inst,  MZ,  &cfg);
 
+	//Read back MZ configuration
+	Mgmt_Zone_Ctrl_Get_MZ_Cfg(&Mgmt_Zone_Ctrl_inst,  MZ,  &cfg_rb);
+
+    s32 rb_valid = memcmp(&cfg, &cfg_rb, sizeof(cfg));
+
+    if (rb_valid != 0)
+    {
+    	xil_printf("MZ_cfg readback validation failure");
+    	xil_printf("\n\rMgmt_Zone_Ctrl test failed.\n\r");
+    	return XST_FAILURE;
+    }
 
 	// Initiate power ON sequence
 	Mgmt_Zone_Ctrl_Pwr_ON_Seq(&Mgmt_Zone_Ctrl_inst, MZ);
-	sleep(10); // with the configuration above, it takes 7 seconds for the last pwr en pin to activate
+
+	// with the configuration above, it takes 7 seconds for the last pwr en pin to activate
+	for (int idx = 0; idx < 10; idx++)
+	{
+		MZ_pwr mz_pwr = Mgmt_Zone_Ctrl_Get_MZ_Status(&Mgmt_Zone_Ctrl_inst, MZ);
+		u32 pwr_en_status = Mgmt_Zone_Ctrl_Get_Pwr_En_Status(&Mgmt_Zone_Ctrl_inst);
+
+		sleep(1);
+
+		xil_printf("Power ON sequence in progress...  MZ pwr state: %d; Pwr En Status: 0x%08x\n\r", mz_pwr, pwr_en_status);
+	}
+
+	xil_printf("\n\r");
 
 	// Initiate power OFF sequence
 	Mgmt_Zone_Ctrl_Pwr_OFF_Seq(&Mgmt_Zone_Ctrl_inst, MZ);
-	sleep(10); // with the configuration above, it takes 7 seconds for the last pwr en pin to deactivate
+	// with the configuration above, it takes 7 seconds for the last pwr en pin to deactivate
+	for (int idx = 0; idx < 10; idx++)
+	{
+		MZ_pwr mz_pwr = Mgmt_Zone_Ctrl_Get_MZ_Status(&Mgmt_Zone_Ctrl_inst, MZ);
+		u32 pwr_en_status = Mgmt_Zone_Ctrl_Get_Pwr_En_Status(&Mgmt_Zone_Ctrl_inst);
+
+		sleep(1);
+
+		xil_printf("Power OFF sequence in progress... MZ pwr state: %d; Pwr En Status: 0x%08x\n\r", mz_pwr, pwr_en_status);
+	}
+
+	xil_printf("\n\r");
 
 
 	//Renable power enable outputs
 	Mgmt_Zone_Ctrl_Pwr_ON_Seq(&Mgmt_Zone_Ctrl_inst, MZ);
-	sleep(10); // with the configuration above, it takes 7 seconds for the last pwr en pin to activate
+	for (int idx = 0; idx < 10; idx++)
+	{
+		MZ_pwr mz_pwr = Mgmt_Zone_Ctrl_Get_MZ_Status(&Mgmt_Zone_Ctrl_inst, MZ);
+		u32 pwr_en_status = Mgmt_Zone_Ctrl_Get_Pwr_En_Status(&Mgmt_Zone_Ctrl_inst);
 
+		sleep(1);
+
+		xil_printf("Power ON sequence in progress...  MZ pwr state: %d; Pwr En Status: 0x%08x\n\r", mz_pwr, pwr_en_status);
+	}
+
+	xil_printf("Dispatch soft fault to MZ %d...\n\r", MZ);
 	// Power off instantly all pwr en pins managed by this MZ
 	Mgmt_Zone_Ctrl_Dispatch_Soft_Fault(&Mgmt_Zone_Ctrl_inst, MZ);
 
-	xil_printf("\n\rMgmt_Zone_Ctrl test completed successfully.\n\r");
+	MZ_pwr mz_pwr = Mgmt_Zone_Ctrl_Get_MZ_Status(&Mgmt_Zone_Ctrl_inst, MZ);
+	u32 pwr_en_status = Mgmt_Zone_Ctrl_Get_Pwr_En_Status(&Mgmt_Zone_Ctrl_inst);
 
+	xil_printf("\n\r");
+
+	xil_printf("Post soft fault dispatch status... MZ pwr state: %d; Pwr En Status: 0x%08x\n\r", mz_pwr, pwr_en_status);
+
+
+	xil_printf("\n\rMgmt_Zone_Ctrl test completed successfully.\n\r");
 
 	return XST_SUCCESS;
 }
