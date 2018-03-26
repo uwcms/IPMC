@@ -8,10 +8,12 @@
 #define MZ_POWER_EN_COUNT 	(32)
 #define MZ_HARDFAULT_COUNT  (64)
 
+#define CORE_CLK_FREQ_IN_MHZ (50000000)
+
 /*******************************/
 /********  Register Map ********/
 
-/* Global Registers*/
+/* Core register mapping */
 #define HARD_FAULT_STATUS_0_REG (0)
 #define HARD_FAULT_STATUS_1_REG (4)
 
@@ -21,11 +23,11 @@
 
 #define PWR_EN_AGGR_STATUS 	(20)
 
-#define PEN_2_PEN_ADDR_OFFSET (16)
+#define PWR_2_PWR_ADDR_OFFSET (16)
 
-#define PEN_EN_0_CFG_0_REG (32)
-#define PEN_EN_0_CFG_1_REG (36)
-#define PEN_EN_0_INDIV_STATUS_REG (40)
+#define PWR_EN_0_CFG_0_REG (32)
+#define PWR_EN_0_CFG_1_REG (36)
+#define PWR_EN_0_INDIV_STATUS_REG (40)
 
 
 /* Individual MZ registers*/
@@ -184,41 +186,39 @@ int Mgmt_Zone_Ctrl_Initialize(Mgmt_Zone_Ctrl * InstancePtr, u16 DeviceId)
 
 u64 Mgmt_Zone_Ctrl_Get_Hard_Fault_Status(Mgmt_Zone_Ctrl *InstancePtr)
 {
- u32 tmp0, tmp1;
+ u32 hard_fault_mask_0, hard_fault_mask_1;
 
- tmp0 = Mgmt_Zone_Ctrl_ReadReg(InstancePtr->BaseAddress, HARD_FAULT_STATUS_0_REG);
- tmp1 = Mgmt_Zone_Ctrl_ReadReg(InstancePtr->BaseAddress, HARD_FAULT_STATUS_1_REG);
+ hard_fault_mask_0 = Mgmt_Zone_Ctrl_ReadReg(InstancePtr->BaseAddress, HARD_FAULT_STATUS_0_REG);
+ hard_fault_mask_1 = Mgmt_Zone_Ctrl_ReadReg(InstancePtr->BaseAddress, HARD_FAULT_STATUS_1_REG);
 
- return (u64)(((u64)tmp1 << 32) | tmp0);
+ return (u64)((((u64)hard_fault_mask_1) << 32) | hard_fault_mask_0);
 }
 
-void Mgmt_Zone_Ctrl_Set_MZ_Cfg(Mgmt_Zone_Ctrl *InstancePtr, u32 MZ, MZ_config cfg)
+void Mgmt_Zone_Ctrl_Set_MZ_Cfg(Mgmt_Zone_Ctrl *InstancePtr, u32 MZ, const MZ_config * cfg)
 {
-	 int hw_mz_holdoff;
-	 int hw_pwr_en_lvl_and_drive;
-	 int hw_pwr_en_tmr;
-	 int hw_pwr_en_cfg1;
+	 u32 hw_pwr_en_lvl_and_drive;
+	 u32 hw_pwr_en_tmr;
+	 u32 hw_pwr_en_cfg1;
 
+	 u32 hard_fault_mask_0 = (u32)(cfg->hardfault_mask & 0xFFFFFFFF); // lower 32-bit word
+	 u32 hard_fault_mask_1 = (u32)(cfg->hardfault_mask >> 32); // upper 32-bit word
+	 u32 hw_mz_holdoff = cfg->fault_holdoff * CORE_CLK_FREQ_IN_MHZ/1000; // units specified in miliseconds
 
-	 Mgmt_Zone_Ctrl_WriteReg(InstancePtr->BaseAddress, MZ * MZ_2_MZ_ADDR_OFFSET + MZ_0_HARD_FAULT_MASK_0_REG, (u32)(cfg.hardfault_mask & 0xFFFFFFFF));
-	 Mgmt_Zone_Ctrl_WriteReg(InstancePtr->BaseAddress, MZ * MZ_2_MZ_ADDR_OFFSET + MZ_0_HARD_FAULT_MASK_1_REG, (u32)((cfg.hardfault_mask >> 32)));
-
-	 hw_mz_holdoff = cfg.fault_holdoff * 50000;
-
+	 Mgmt_Zone_Ctrl_WriteReg(InstancePtr->BaseAddress, MZ * MZ_2_MZ_ADDR_OFFSET + MZ_0_HARD_FAULT_MASK_0_REG, hard_fault_mask_0);
+	 Mgmt_Zone_Ctrl_WriteReg(InstancePtr->BaseAddress, MZ * MZ_2_MZ_ADDR_OFFSET + MZ_0_HARD_FAULT_MASK_1_REG, hard_fault_mask_1);
 	 Mgmt_Zone_Ctrl_WriteReg(InstancePtr->BaseAddress, MZ * MZ_2_MZ_ADDR_OFFSET + MZ_0_HARD_FAULT_HOLDOFF_REG, hw_mz_holdoff);
 
 	 for (int idx = 0; idx < 32; idx++)
 	 {
-		 if (cfg.pwren_cfg[idx] != 0)
+		 if (cfg->pwren_cfg[idx] != 0)
 		 {
-			 hw_pwr_en_tmr = (cfg.pwren_cfg[idx] & 0xFFFF) * 50000;
-			 hw_pwr_en_lvl_and_drive = (cfg.pwren_cfg[idx] >> 16 ) & 3;
+			 hw_pwr_en_tmr = (u16)(cfg->pwren_cfg[idx] & 0xFFFF) * CORE_CLK_FREQ_IN_MHZ/1000; // units specified in miliseconds
+			 hw_pwr_en_lvl_and_drive = (cfg->pwren_cfg[idx] >> 16 ) & 3;
 
 			 hw_pwr_en_cfg1 = (hw_pwr_en_lvl_and_drive << 16 ) | (1 << MZ);
 
-			 Mgmt_Zone_Ctrl_WriteReg(InstancePtr->BaseAddress, PEN_EN_0_CFG_0_REG + idx*PEN_2_PEN_ADDR_OFFSET, hw_pwr_en_tmr);
-			 Mgmt_Zone_Ctrl_WriteReg(InstancePtr->BaseAddress, PEN_EN_0_CFG_1_REG + idx*PEN_2_PEN_ADDR_OFFSET, hw_pwr_en_cfg1);
-
+			 Mgmt_Zone_Ctrl_WriteReg(InstancePtr->BaseAddress, PWR_EN_0_CFG_0_REG + idx*PWR_2_PWR_ADDR_OFFSET, hw_pwr_en_tmr);
+			 Mgmt_Zone_Ctrl_WriteReg(InstancePtr->BaseAddress, PWR_EN_0_CFG_1_REG + idx*PWR_2_PWR_ADDR_OFFSET, hw_pwr_en_cfg1);
 		 }
 	 }
 }
@@ -226,27 +226,86 @@ void Mgmt_Zone_Ctrl_Set_MZ_Cfg(Mgmt_Zone_Ctrl *InstancePtr, u32 MZ, MZ_config cf
 
 void Mgmt_Zone_Ctrl_Get_MZ_Cfg(Mgmt_Zone_Ctrl *InstancePtr, u32 MZ, MZ_config * cfg)
 {
-	cfg->fault_holdoff = Mgmt_Zone_Ctrl_ReadReg(InstancePtr->BaseAddress, MZ * MZ_2_MZ_ADDR_OFFSET + MZ_0_HARD_FAULT_HOLDOFF_REG);
 
-	//TODO: hardfault readback
+	 u32 hard_fault_mask_0_reg = Mgmt_Zone_Ctrl_ReadReg(InstancePtr->BaseAddress, MZ * MZ_2_MZ_ADDR_OFFSET + MZ_0_HARD_FAULT_MASK_0_REG);
+	 u32 hard_fault_mask_1_reg = Mgmt_Zone_Ctrl_ReadReg(InstancePtr->BaseAddress, MZ * MZ_2_MZ_ADDR_OFFSET + MZ_0_HARD_FAULT_MASK_1_REG);
+	 u64 hard_fault_mask = ((((u64)hard_fault_mask_1_reg) << 32) | hard_fault_mask_0_reg);
+
+	 cfg->hardfault_mask = hard_fault_mask;
+
+	 u32 hw_mz_holdoff_reg = Mgmt_Zone_Ctrl_ReadReg(InstancePtr->BaseAddress, MZ * MZ_2_MZ_ADDR_OFFSET + MZ_0_HARD_FAULT_HOLDOFF_REG);
+	 cfg->fault_holdoff = hw_mz_holdoff_reg / (CORE_CLK_FREQ_IN_MHZ/1000);
+
+
 	for (int idx = 0; idx < 32; idx++)
-		;
-	//	cfg->pwren_cfg[idx] = Mgmt_Zone_Ctrl_ReadReg(InstancePtr->BaseAddress, MZ * MZ_2_MZ_ADDR_OFFSET + MZ_0_PWR_EN_0_CFG_REG + idx*4);
+	{
+		u32 pwr_en_cfg_0 =  Mgmt_Zone_Ctrl_ReadReg(InstancePtr->BaseAddress, PWR_EN_0_CFG_0_REG + idx*PWR_2_PWR_ADDR_OFFSET);
+		u32 pwr_en_cfg_1 =  Mgmt_Zone_Ctrl_ReadReg(InstancePtr->BaseAddress, PWR_EN_0_CFG_1_REG + idx*PWR_2_PWR_ADDR_OFFSET);
+
+		u32 pwr_en_cfg_mz = pwr_en_cfg_1 & 0xFFFF;
+
+		if ((pwr_en_cfg_mz & (1 << MZ)) == 0)
+		{
+			cfg->pwren_cfg[idx] = 0;
+		}
+		else
+		{
+			u16 hw_pwr_en_tmr = pwr_en_cfg_0 / (CORE_CLK_FREQ_IN_MHZ/1000);
+			u32 hw_pwr_en_lvl_and_drive = (pwr_en_cfg_1 >> 16 ) & 3;
+
+			cfg->pwren_cfg[idx] = (hw_pwr_en_lvl_and_drive << 16 ) | hw_pwr_en_tmr;
+		}
+	}
+
 }
 
  MZ_pwr Mgmt_Zone_Ctrl_Get_MZ_Status(Mgmt_Zone_Ctrl *InstancePtr, u32 MZ)
 {
-		// TODO
 
-#if 0
-	status->MZ_pwr_status = Mgmt_Zone_Ctrl_ReadReg(InstancePtr->BaseAddress, MZ * MZ_2_MZ_ADDR_OFFSET + MZ_0_PWR_STATUS_REG);
+	 MZ_pwr mz_pwr = MZ_PWR_OFF;
+	 u32 mz_pwr_on_cnt = 0;
+	 u32 mz_pwr_trans_on_cnt = 0;
+	 u32 mz_pwr_trans_off_cnt = 0;
+	 u32 mz_pwr_off_cnt = 0;
 
 	for (int idx = 0; idx < 32; idx++)
-		status->pwren_stat[idx] = Mgmt_Zone_Ctrl_ReadReg(InstancePtr->BaseAddress, MZ * MZ_2_MZ_ADDR_OFFSET + MZ_0_PWR_EN_0_STAT_REG + idx*4);
-#endif
-	return MZ_PWR_OFF;
+	{
+		u32 pwr_en_cfg_1 =  Mgmt_Zone_Ctrl_ReadReg(InstancePtr->BaseAddress, PWR_EN_0_CFG_1_REG + idx*PWR_2_PWR_ADDR_OFFSET);
+
+		u32 pwr_en_cfg_mz = pwr_en_cfg_1 & 0xFFFF;
+
+		if ((pwr_en_cfg_mz & (1 << MZ)) != 0)
+		{
+			u32 pwr_en_indiv_status =  Mgmt_Zone_Ctrl_ReadReg(InstancePtr->BaseAddress, PWR_EN_0_INDIV_STATUS_REG + idx*PWR_2_PWR_ADDR_OFFSET);
+
+			if (pwr_en_indiv_status == MZ_PWR_ON)
+				mz_pwr_on_cnt++;
+			else if (pwr_en_indiv_status == MZ_PWR_TRANS_ON)
+				mz_pwr_trans_on_cnt++;
+			else if (pwr_en_indiv_status == MZ_PWR_TRANS_OFF)
+				mz_pwr_trans_off_cnt++;
+			else
+				mz_pwr_off_cnt++;
+		}
+	}
+
+	if (mz_pwr_on_cnt != 0)
+		mz_pwr = MZ_PWR_ON;
+	else if (mz_pwr_trans_on_cnt != 0)
+		mz_pwr = MZ_PWR_TRANS_ON;
+	else if (mz_pwr_trans_off_cnt != 0)
+		mz_pwr = MZ_PWR_TRANS_OFF;
+	else
+		mz_pwr = MZ_PWR_OFF;
+
+	return mz_pwr;
 
 }
+
+ u32 Mgmt_Zone_Ctrl_Get_Pwr_En_Status(Mgmt_Zone_Ctrl *InstancePtr)
+ {
+		return 	 Mgmt_Zone_Ctrl_ReadReg(InstancePtr->BaseAddress, PWR_EN_AGGR_STATUS);
+ }
 
 void Mgmt_Zone_Ctrl_Pwr_ON_Seq(Mgmt_Zone_Ctrl *InstancePtr, u32 MZ)
 {
