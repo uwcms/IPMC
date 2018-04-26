@@ -411,7 +411,7 @@ public:
 			// Good.
 		}
 		else {
-			print("Invalid parameters.  See help.\n");
+			console->write("Invalid parameters.  See help.\n");
 			return;
 		}
 
@@ -426,11 +426,11 @@ public:
 		for (auto i = data_offset; i < parameters.nargs(); ++i) {
 			CommandParser::CommandParameters::xint8_t databyte;
 			if (!parameters.parse_parameters(i, false, &databyte)) {
-				print("Invalid IPMI command data.  See help.\n");
+				console->write("Invalid IPMI command data.  See help.\n");
 				return;
 			}
 			if (++msg->data_len > msg->max_data_len) {
-				print("Too much IPMI command data.\n");
+				console->write("Too much IPMI command data.\n");
 				return;
 			}
 			msg->data[i - data_offset] = databyte;
