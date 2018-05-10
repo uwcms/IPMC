@@ -172,7 +172,7 @@ static void prvSetupHardware(void) {
 void init_task(void *dummy0 __attribute__((unused))) {
 	driver_init(true);
 	ipmc_service_init();
-	LOG.log(generate_banner(), LogTree::LOG_NOTICE); // This is the ONLY place that should EVER log directly to LOG rather than a subtree.
+	LOG.log(std::string("\n") + generate_banner(), LogTree::LOG_NOTICE); // This is the ONLY place that should EVER log directly to LOG rather than a subtree.
 
 	vTaskDelete(NULL); // Clean up after ourselves.
 }
