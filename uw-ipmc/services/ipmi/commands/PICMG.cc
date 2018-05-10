@@ -117,6 +117,7 @@ IPMICMD_INDEX_REGISTER(Set_FRU_Activation);
 #if 0 // Unimplemented.
 static void ipmicmd_Get_Device_Locator_Record_ID(IPMBSvc &ipmb, const IPMI_MSG &message) {
 	ASSERT_PICMG_IDENTIFIER(ipmb, message);
+	// TODO: Required: PICMG 3.0 REQ 3.352
 }
 IPMICMD_INDEX_REGISTER(Get_Device_Locator_Record_ID);
 #endif
