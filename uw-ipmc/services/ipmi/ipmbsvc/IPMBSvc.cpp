@@ -67,7 +67,7 @@ IPMBSvc::IPMBSvc(IPMB *ipmbA, IPMB *ipmbB, uint8_t ipmb_address, IPMICommandPars
 		ipmbB->incoming_message_queue = this->recvq;
 
 	if (this->wdt) {
-		this->wdt_slot = this->wdt->register_slot(configTICK_RATE_HZ);
+		this->wdt_slot = this->wdt->register_slot(configTICK_RATE_HZ*10);
 		this->wdt->activate_slot(this->wdt_slot);
 	}
 
@@ -297,6 +297,14 @@ void IPMBSvc::run_thread() {
 					next_timeout = 250;
 				it->next_retry = AbsoluteTimeout(next_timeout);
 				it->retry_count++;
+
+				/* We just processed a non-response message.  We'll probably get
+				 * a response, and if our out queue is large, might not get to
+				 * it in time.  We'll iterate the mainloop now regardless,
+				 * therefore.
+				 */
+				next_wait.timeout64 = 0;
+				break;
 			}
 
 			if (it->next_retry.timeout64 < next_wait.timeout64)

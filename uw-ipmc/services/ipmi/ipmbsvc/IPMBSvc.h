@@ -75,7 +75,7 @@ protected:
 	};
 
 	IPMB *ipmb[2]; ///< The subordinate IPMBs.
-	const size_t recvq_size = 16; ///< The length of the receive queue.
+	const size_t recvq_size = 32; ///< The length of the receive queue.
 	QueueHandle_t recvq; ///< A queue for received messages from both interfaces.
 	SemaphoreHandle_t sendq_mutex; ///< A mutex protecting the sendq.
 	SemaphoreHandle_t sendq_notify_sem; ///< A binary semaphore used to signal the task after a .send()
