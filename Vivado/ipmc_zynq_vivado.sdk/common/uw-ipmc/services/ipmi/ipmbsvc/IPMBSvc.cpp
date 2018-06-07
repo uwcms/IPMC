@@ -251,7 +251,7 @@ void IPMBSvc::run_thread() {
 				}
 
 				this->stat_send_attempts.increment();
-				uint8_t ipmb_choice = it->retry_count % 2;
+				uint8_t ipmb_choice = (it->retry_count + it->msg->rqSeq) % 2;
 				if (!this->ipmb[1])
 					ipmb_choice = 0;
 
