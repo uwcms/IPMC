@@ -11,6 +11,7 @@
 #include <libs/LogTree.h>
 #include <stdint.h>
 #include <xil_types.h>
+#include <functional>
 #include "xwdtps.h"
 
 /**
@@ -18,7 +19,7 @@
  */
 class PS_WDT {
 public:
-	PS_WDT(u32 DeviceId, u8 num_slots, LogTree &log);
+	PS_WDT(u32 DeviceId, u8 num_slots, LogTree &log, std::function<void(void)> on_trip=NULL);
 	virtual ~PS_WDT();
 
 	typedef uint32_t slot_handle_t; ///< A type for watchdog slot handles.
@@ -30,6 +31,8 @@ public:
 
 protected:
 	LogTree &log; ///< A log facility for critical alerts.
+
+	std::function<void(void)> on_trip; ///< A function running when the watchdog is tripped
 
 	/// A structure defining a WDT slot.
 	struct wdtslot {

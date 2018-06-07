@@ -26,8 +26,8 @@ const static volatile uint32_t global_canary_lshifted1 = 0x87d64518;
  * @param num_slots The number of service slots provided by this watchdog
  * @param log A log facility for when things go VERY wrong
  */
-PS_WDT::PS_WDT(u32 DeviceId, u8 num_slots, LogTree &log)
-	: log(log), num_slots(num_slots), free_slot(0) {
+PS_WDT::PS_WDT(u32 DeviceId, u8 num_slots, LogTree &log, std::function<void(void)> on_trip)
+	: log(log), on_trip(on_trip), num_slots(num_slots), free_slot(0) {
 	this->slots = (struct wdtslot*)malloc(num_slots * sizeof(struct wdtslot));
 	this->heap_slotkey_rshifted1 = (volatile uint64_t*)malloc(sizeof(uint64_t));
 	*this->heap_slotkey_rshifted1 = PS_WDT::slotkey_lshifted1 >> 2;
@@ -115,6 +115,11 @@ void PS_WDT::_run_thread() {
 		}
 		if (this->global_canary == (global_canary_lshifted1>>1) && this->global_canary == (GLOBAL_CANARY_RSHIFTED1<<1)) {
 			XWdtPs_RestartWdt(&this->wdt);
+		}
+		else {
+			if (this->on_trip)
+				this->on_trip();
+			while (true) ; // Done.
 		}
 	}
 }
