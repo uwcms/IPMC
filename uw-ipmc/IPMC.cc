@@ -66,6 +66,7 @@ extern uint8_t mac_address[6]; ///< The MAC address of the board, read by persis
 static void tracebuffer_log_handler(LogTree &logtree, const std::string &message, enum LogTree::LogLevel level);
 static void register_core_console_commands(CommandParser &parser);
 static void console_log_handler(LogTree &logtree, const std::string &message, enum LogTree::LogLevel level);
+static void watchdog_ontrip();
 
 /** Stage 1 driver initialization.
  *
@@ -87,7 +88,7 @@ void driver_init(bool use_pl) {
 	new LogTree::Filter(LOG, tracebuffer_log_handler, LogTree::LOG_TRACE);
 
 	// Initialize the watchdog.
-	SWDT = new PS_WDT(XPAR_PS7_WDT_0_DEVICE_ID, 8, LOG["watchdog"]);
+	SWDT = new PS_WDT(XPAR_PS7_WDT_0_DEVICE_ID, 8, LOG["watchdog"], watchdog_ontrip);
 
 	/* Initialize the UART console.
 	 *
@@ -278,13 +279,16 @@ public:
 	}
 
 	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
+		console->write(this->get_ps_string());
+	}
+
+	static std::string get_ps_string() {
 		std::string out;
 		UBaseType_t task_count = uxTaskGetNumberOfTasks();
 		TaskStatus_t taskinfo[task_count+2];
 		UBaseType_t total_runtime;
 		if (!uxTaskGetSystemState(taskinfo, task_count+2, &total_runtime)) {
-			print("Failed to generate process listing.\n");
-			return;
+			return "Failed to generate process listing.\n";
 		}
 
 		// Runtime stats are accurate only if they havent rolled over.  It seems to be a tad under 666 per tick.
@@ -299,17 +303,28 @@ public:
 		else
 			std::sort(tasks.begin(), tasks.end(), [](const TaskStatus_t &a, const TaskStatus_t &b) -> bool { return (a.uxCurrentPriority > b.uxCurrentPriority) || (a.uxCurrentPriority == b.uxCurrentPriority && a.xTaskNumber < b.xTaskNumber); });
 
-		out += "PID Name             BasePrio CurPrio StackHW";
+		out += "PID Name             BasePrio CurPrio StackHW State";
 		if (runstats)
 			out += " CPU% CPU";
 		out += "\n";
 		for (auto it = tasks.begin(), eit = tasks.end(); it != eit; ++it) {
-			out += stdsprintf("%3lu %-16s %8lu %7lu %7hu",
+			if (it->eCurrentState < 0 || it->eCurrentState > eInvalid)
+				it->eCurrentState = eInvalid;
+			static const char *taskstates[] = {
+				"*Running*",
+				"Ready",
+				"Blocked",
+				"Suspended",
+				"Deleted",
+				"Invalid"
+			};
+			out += stdsprintf("%3lu %-16s %8lu %7lu %7hu %5c",
 					it->xTaskNumber,
 					it->pcTaskName,
 					it->uxBasePriority,
 					it->uxCurrentPriority,
-					it->usStackHighWaterMark);
+					it->usStackHighWaterMark,
+					taskstates[it->eCurrentState][0]);
 			if (runstats) {
 				UBaseType_t cpu_percent = it->ulRunTimeCounter / (total_runtime/100);
 				if (it->ulRunTimeCounter && cpu_percent < 1)
@@ -321,7 +336,7 @@ public:
 		}
 		if (!runstats)
 			out += "\nNote: Runtime stats were not displayed, as we are likely past the point\nof counter wrapping and they are no longer accurate.\n";
-		console->write(out);
+		return out;
 	}
 
 	//virtual std::vector<std::string> complete(const CommandParser::CommandParameters &parameters) const { };
@@ -399,6 +414,10 @@ static void console_log_handler(LogTree &logtree, const std::string &message, en
 		// TODO: Maybe there's a better way?
 		console_service->write(logmsg, 1);
 	}
+}
+
+static void watchdog_ontrip() {
+	LOG["watchdog"].log(std::string("\n")+ConsoleCommand_ps::get_ps_string(), LogTree::LOG_NOTICE);
 }
 
 /**
