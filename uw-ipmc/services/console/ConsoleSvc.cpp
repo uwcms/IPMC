@@ -177,7 +177,8 @@ void ConsoleSvc::_run_thread() {
 			std::string tracebuf = this->linebuf.buffer + rawbuffer.substr(0, rst_before+1);
 			TRACE.log(ctrlc_erased_facility.c_str(), ctrlc_erased_facility.size(), LogTree::LOG_TRACE, tracebuf.data(), tracebuf.size(), true);
 			history.go_latest("",0);
-			echobuf.append(this->linebuf.reset(80, 24)); // This will internally send a new terminal size query.
+			echobuf.append(this->linebuf.reset(80, 24));
+			echobuf.append(this->linebuf.query_size());
 			rawbuffer.erase(0, rst_before+1);
 			this->linebuf.overwrite_mode = false; // Force disable this, to return to normal state.
 		}
@@ -201,6 +202,7 @@ void ConsoleSvc::_run_thread() {
 				// Ready next commandline.
 				std::string cmdbuf = this->linebuf.buffer;
 				echobuf.append(this->linebuf.clear());
+				echobuf.append(this->linebuf.query_size());
 
 				// Parse & run the command line.
 				if (!cmdbuf.empty()) {
@@ -590,8 +592,6 @@ std::string ConsoleSvc::InputBuffer::set_buffer(std::string buffer, size_type cu
 	// Ensure our cursor is not past our buffer.
 	if (this->cursor > this->buffer.size())
 		this->cursor = this->buffer.size();
-
-	out += this->query_size();
 
 	for (size_type i = this->buffer.size(); i > this->cursor; --i)
 		out += ANSICode::ASCII_BACKSPACE;
