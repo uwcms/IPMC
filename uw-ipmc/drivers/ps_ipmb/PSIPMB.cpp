@@ -162,7 +162,7 @@ void PS_IPMB::_HandleInterrupt(u32 StatusEvent) {
 
 	if (this->master) {
 		// Just pass this along to the sendmessage function to handle matters.
-		xQueueSendFromISR(this->sendresult_q, &StatusEvent, &isrwake);
+		configASSERT(pdTRUE == xQueueSendFromISR(this->sendresult_q, &StatusEvent, &isrwake));
 	}
 
 	portYIELD_FROM_ISR(isrwake);
