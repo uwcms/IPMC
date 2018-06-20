@@ -9,16 +9,8 @@
 #include "IPMC.h"
 #include <xiic.h>
 
-static void XIic_HandleRecv(PL_I2C *pl_i2c, int ByteCount) {
-	pl_i2c->_HandleRecv(ByteCount);
-}
-
-static void XIic_HandleSend(PL_I2C *pl_i2c, int ByteCount) {
-	pl_i2c->_HandleSend(ByteCount);
-}
-
-static void XIic_HandlerStatus(PL_I2C *pl_i2c, int Status) {
-	pl_i2c->_HandleStatus(Status);
+static void XIic_HandlerIRQ(void *pl_i2c) {
+	reinterpret_cast<PL_I2C*>(pl_i2c)->_HandleIRQ();
 }
 
 /**
@@ -45,6 +37,9 @@ DeviceId(DeviceId), IntrId(IntrId) {
 
 	configASSERT(XST_SUCCESS == XIic_SelfTest(&(this->IicInst)));
 
+	// Enable dynamic mode - it seems that dynamic mode doesn't support variable length receives
+	//XIic_DynamicInitialize(&(this->IicInst));
+
 	// Create the required mutex to keep things safe
 	this->Mutex = xSemaphoreCreateMutex();
 	configASSERT(this->Mutex);
@@ -52,14 +47,9 @@ DeviceId(DeviceId), IntrId(IntrId) {
 	this->IRQ_q = xQueueCreate(1, 0);
 	configASSERT(this->IRQ_q);
 
-	// Set handlers
-	XIic_SetRecvHandler(&(this->IicInst), reinterpret_cast<void*>(this), reinterpret_cast<XIic_Handler>(XIic_HandleRecv));
-	XIic_SetSendHandler(&(this->IicInst), reinterpret_cast<void*>(this), reinterpret_cast<XIic_Handler>(XIic_HandleSend));
-	XIic_SetStatusHandler(&(this->IicInst), reinterpret_cast<void*>(this), reinterpret_cast<XIic_Handler>(XIic_HandlerStatus));
-
 	// Enable interrupts
 	configASSERT(XST_SUCCESS ==
-			XScuGic_Connect(&xInterruptController, this->IntrId, XIic_InterruptHandler, (void*)&(this->IicInst)));
+			XScuGic_Connect(&xInterruptController, this->IntrId, XIic_HandlerIRQ, (void*)&(this->IicInst)));
 	XScuGic_Enable(&xInterruptController, this->IntrId);
 }
 
@@ -127,7 +117,22 @@ size_t PL_I2C::write(u8 addr, const u8 *buf, size_t len, TickType_t timeout) {
 
 	xSemaphoreTake(this->Mutex, portMAX_DELAY);
 
-	this->HandlerInfo.SendBytesUpdated = false;
+
+	// TODO: Check if device is busy
+
+	// Write address to TX FIFO
+	XIic_WriteReg(this->IicInst.BaseAddress, XIIC_DTR_REG_OFFSET, 0x7F & addr);
+
+	// Write data to TX FIFO
+	// TODO: throttle data if FIFO is not big enough
+	for (unsigned int i = 0; i < len; i++) {
+		XIic_WriteReg(this->IicInst.BaseAddress, XIIC_DTR_REG_OFFSET, buf[i]);
+	}
+
+	XIic_WriteReg(this->IicInst.BaseAddress, XIIC_CR_REG_OFFSET, XIIC_CR_MSMS_MASK | XIIC_CR_DIR_IS_TX_MASK);
+
+
+	/*this->HandlerInfo.SendBytesUpdated = false;
 	this->HandlerInfo.EventStatusUpdated = false;
 
 	XIic_SetAddress(&(this->IicInst), XII_ADDR_TO_SEND_TYPE, addr);
@@ -164,7 +169,7 @@ size_t PL_I2C::write(u8 addr, const u8 *buf, size_t len, TickType_t timeout) {
 		r = len - this->HandlerInfo.RemainingSendBytes;
 	}
 
-	XIic_Stop(&(this->IicInst));
+	XIic_Stop(&(this->IicInst));*/
 
 	xSemaphoreGive(this->Mutex);
 
@@ -172,23 +177,6 @@ size_t PL_I2C::write(u8 addr, const u8 *buf, size_t len, TickType_t timeout) {
 	//return XIic_Send(this->IicInst.BaseAddress,addr, (u8*)buf, len, XIIC_STOP);
 }
 
-void PL_I2C::_HandleRecv(int ByteCount) {
-	this->HandlerInfo.RemainingRecvBytes = ByteCount;
-	this->HandlerInfo.RecvBytesUpdated = true;
-	if (ByteCount == 0)
-		xQueueSendFromISR(this->IRQ_q, NULL, pdFALSE);
-}
+void PL_I2C::_HandleIRQ() {
 
-void PL_I2C::_HandleSend(int ByteCount) {
-	this->HandlerInfo.RemainingSendBytes = ByteCount;
-	this->HandlerInfo.SendBytesUpdated = true;
-	if (ByteCount == 0)
-		xQueueSendFromISR(this->IRQ_q, NULL, pdFALSE);
-}
-
-void PL_I2C::_HandleStatus(int Status) {
-	this->HandlerInfo.EventStatus = Status;
-	this->HandlerInfo.EventStatusUpdated = true;
-
-	xQueueSendFromISR(this->IRQ_q, NULL, pdFALSE);
 }

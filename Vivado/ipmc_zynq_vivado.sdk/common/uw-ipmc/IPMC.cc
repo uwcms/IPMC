@@ -86,7 +86,8 @@ void driver_init(bool use_pl) {
 	new LogTree::Filter(LOG, tracebuffer_log_handler, LogTree::LOG_TRACE);
 
 	// Initialize the watchdog.
-	SWDT = new PS_WDT(XPAR_PS7_WDT_0_DEVICE_ID, 8, LOG["watchdog"]);
+	//SWDT = new PS_WDT(XPAR_PS7_WDT_0_DEVICE_ID, 8, LOG["watchdog"]);
+	SWDT = NULL;
 
 	/* Initialize the UART console.
 	 *
