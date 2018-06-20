@@ -23,9 +23,7 @@ public:
 	size_t read(u8 addr, u8 *buf, size_t len, TickType_t timeout=portMAX_DELAY);
 	size_t write(u8 addr, const u8 *buf, size_t len, TickType_t timeout=portMAX_DELAY);
 
-	void _HandleRecv(int ByteCount);  ///< \protected Internal.
-	void _HandleSend(int ByteCount);  ///< \protected Internal.
-	void _HandleStatus(int Status);   ///< \protected Internal.
+	void _HandleIRQ();   ///< \protected Internal.
 private:
 	u16 DeviceId;
 	u32 IntrId;
