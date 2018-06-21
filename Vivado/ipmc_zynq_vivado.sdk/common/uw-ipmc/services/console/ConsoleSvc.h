@@ -60,7 +60,7 @@ public:
 	TickType_t read_data_timeout; ///< The read data timeout for the UART, which influences responsiveness.
 	TaskHandle_t task; ///< A random handle to our task, mainly just for double-start checks.
 
-	virtual bool write(std::string data, TickType_t timeout=portMAX_DELAY);
+	virtual bool write(const std::string data, TickType_t timeout=portMAX_DELAY);
 
 protected:
 	std::string::size_type safe_write_line_cursor; ///< The safe_write output cursor.
