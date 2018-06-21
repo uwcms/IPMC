@@ -81,12 +81,14 @@ void ConsoleSvc::start() {
  * @param timeout How long to wait.
  * @return
  */
-bool ConsoleSvc::write(std::string data, TickType_t timeout) {
+bool ConsoleSvc::write(const std::string data, TickType_t timeout) {
 	if (this->shutdown)
 		return true; // Discard.
 	AbsoluteTimeout abstimeout(timeout);
 	if (!xSemaphoreTake(this->linebuf_mutex, abstimeout.get_timeout()))
 		return false;
+
+	std::string writebuf = data; // Make a copy, since we'll consume it later.
 
 	/* 1. Move to proper position to resume writing.
 	 * 2. Write.
@@ -106,10 +108,10 @@ bool ConsoleSvc::write(std::string data, TickType_t timeout) {
 		out += ANSICode::ANSI_ERASE_DOWN;
 	}
 	std::string::size_type pos;
-	while ( ( pos = data.find_first_of("\n") ) != std::string::npos ) {
-		out += data.substr(0, pos);
-		data.erase(0, pos+1);
-		if (data.size())
+	while ( ( pos = writebuf.find_first_of("\n") ) != std::string::npos ) {
+		out += writebuf.substr(0, pos);
+		writebuf.erase(0, pos+1);
+		if (writebuf.size())
 			out += std::string("\r\n") /* back down to prompt */;
 
 		// Either way, we just put out a line, so our cursor is 0 now.
@@ -117,8 +119,8 @@ bool ConsoleSvc::write(std::string data, TickType_t timeout) {
 	}
 
 	// Ok, done with all LINES.  If we have a partial, we need to deal with it now.
-	out += data; // All remainder.
-	this->safe_write_line_cursor = data.size();
+	out += writebuf; // All remainder.
+	this->safe_write_line_cursor = writebuf.size();
 
 	// And now return to the prompt line.
 	out += "\r\n";
