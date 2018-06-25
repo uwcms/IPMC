@@ -8,6 +8,7 @@
 #ifndef SRC_COMMON_UW_IPMC_DRIVERS_NETWORK_SOCKETADDRESS_H_
 #define SRC_COMMON_UW_IPMC_DRIVERS_NETWORK_SOCKETADDRESS_H_
 
+#include <IPMC.h>
 #include <lwip/inet.h>
 #include <lwip/sockets.h>
 #include <string.h>
@@ -34,8 +35,8 @@ public:
 
 	/**
 	 * Creates a new socketaddress instance with a specified address and port
-	 * @param the address of the socket
-	 * @param the port
+	 * @param address The address of the socket
+	 * @param port The port
 	 */
 	SocketAddress(std::string address, int port) {
 		this->address = address;

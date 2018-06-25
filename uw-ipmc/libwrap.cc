@@ -250,32 +250,30 @@ void ipmc_lwip_printf(const char *ctrl1, ...) {
 	 * going to have to guess.
 	 */
 
-	static const std::map<std::string, enum LogTree::LogLevel> prio_mapping{
-		{"assert",    LogTree::LOG_CRITICAL},
-		{"error",     LogTree::LOG_ERROR},
-		{"err:",      LogTree::LOG_ERROR},
-		{"failed",    LogTree::LOG_ERROR},
-		{"failure",   LogTree::LOG_ERROR},
-		{"incorrect", LogTree::LOG_ERROR},
-		{"unable",    LogTree::LOG_ERROR},
-		{"invalid",   LogTree::LOG_ERROR},
-		{"warn",      LogTree::LOG_WARNING},
-	};
-	std::string outstr_l = outstr;
-	std::transform(outstr_l.begin(), outstr_l.end(), outstr_l.begin(), tolower /* defined in ctype.h */);
-	enum LogTree::LogLevel outlevel = LogTree::LOG_INFO;
-	for (auto it = prio_mapping.begin(), eit = prio_mapping.end(); it != eit; ++it) {
-		if (it->second < outlevel && outstr_l.find(it->first) != std::string::npos)
-			outlevel = it->second;
-	}
-
-	if (outstr == "WARNING: Not a Marvell or TI Ethernet PHY. Please verify the initialization sequence")
-		outlevel = LogTree::LOG_DIAGNOSTIC;
+//	static const std::map<std::string, enum LogTree::LogLevel> prio_mapping{
+//		{"assert",    LogTree::LOG_CRITICAL},
+//		{"error",     LogTree::LOG_ERROR},
+//		{"err:",      LogTree::LOG_ERROR},
+//		{"failed",    LogTree::LOG_ERROR},
+//		{"failure",   LogTree::LOG_ERROR},
+//		{"incorrect", LogTree::LOG_ERROR},
+//		{"unable",    LogTree::LOG_ERROR},
+//		{"invalid",   LogTree::LOG_ERROR},
+//		{"warn",      LogTree::LOG_WARNING},
+//	};
+//	std::string outstr_l = outstr;
+//	std::transform(outstr_l.begin(), outstr_l.end(), outstr_l.begin(), tolower /* defined in ctype.h */);
+//	enum LogTree::LogLevel outlevel = LogTree::LOG_INFO;
+//	for (auto it = prio_mapping.begin(), eit = prio_mapping.end(); it != eit; ++it) {
+//		if (it->second < outlevel && outstr_l.find(it->first) != std::string::npos)
+//			outlevel = it->second;
+//	}
 
 	static LogTree *lwiplog = NULL;
 	if (!lwiplog)
 		lwiplog = &LOG["network"]["lwip"];
-	lwiplog->log(outstr, outlevel);
+	//lwiplog->log(outstr, outlevel);
+	lwiplog->log(outstr, LogTree::LOG_ERROR);
 }
 
 void __wrap_print( const char8 *ptr) {

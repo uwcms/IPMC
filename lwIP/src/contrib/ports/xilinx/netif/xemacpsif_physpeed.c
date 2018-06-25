@@ -162,6 +162,7 @@
 #define PHY_DETECT_MASK 					0x1808
 #define PHY_MARVELL_IDENTIFIER				0x0141
 #define PHY_TI_IDENTIFIER					0x2000
+#define PHY_ATHEROS_IDENTIFIER				0x004D
 #define PHY_XILINX_PCS_PMA_ID1			0x0174
 #define PHY_XILINX_PCS_PMA_ID2			0x0C00
 
@@ -344,8 +345,9 @@ void detect_phy(XEmacPs *xemacpsp)
 			XEmacPs_PhyRead(xemacpsp, phy_addr, PHY_IDENTIFIER_1_REG,
 							&phy_reg);
 			if ((phy_reg != PHY_MARVELL_IDENTIFIER) &&
-				(phy_reg != PHY_TI_IDENTIFIER)) {
-				ipmc_lwip_printf("WARNING: Not a Marvell or TI Ethernet PHY. Please verify the initialization sequence\r\n");
+				(phy_reg != PHY_TI_IDENTIFIER) &&
+				(phy_reg != PHY_ATHEROS_IDENTIFIER)) {
+				ipmc_lwip_printf("WARNING: Not a Marvell, TI Ethernet or Atheros PHY. Please verify the initialization sequence\r\n");
 			}
 		}
 	}
@@ -406,7 +408,8 @@ u32_t phy_setup (XEmacPs *xemacpsp, u32_t phy_addr)
 		XEMACPS_GMII2RGMII_REG_NUM, convspeeddupsetting);
 	}
 
-	ipmc_lwip_printf("link speed for phy address %d: %d\r\n", phy_addr, link_speed);
+	// TODO: By default the PHY configuration should return 1000, but this is currently hardcoded
+	//ipmc_lwip_printf("link speed for phy address %d: %d\r\n", phy_addr, link_speed);
 	return link_speed;
 }
 
@@ -643,6 +646,45 @@ static u32_t get_Marvell_phy_speed(XEmacPs *xemacpsp, u32_t phy_addr)
 	return XST_SUCCESS;
 }
 
+static u32_t get_Atheros_phy_speed(XEmacPs *xemacpsp, u32_t phy_addr)
+{
+	// The way xilinx EMAC code is written this in fact an init function, so do that
+	LONG r;
+	u16_t regval = 0;
+
+	r = XEmacPs_PhyRead(xemacpsp, phy_addr, IEEE_CONTROL_REG_OFFSET, &regval);
+	if (r != XST_SUCCESS) return XST_FAILURE;
+
+	// Set TX/RX internal clock delay
+	XEmacPs_PhyWrite(xemacpsp, phy_addr, 0x1d, 0x05);
+	XEmacPs_PhyRead(xemacpsp, phy_addr, 0x1e, &regval);
+
+	XEmacPs_PhyWrite(xemacpsp, phy_addr, 0x1d, 0x05);
+	XEmacPs_PhyWrite(xemacpsp, phy_addr, 0x1e, (regval|0x0100));
+
+	// 10/100 auto-negotiation
+	XEmacPs_PhyRead(xemacpsp, phy_addr, IEEE_AUTONEGO_ADVERTISE_REG, &regval);
+	regval |= IEEE_ASYMMETRIC_PAUSE_MASK;
+	regval |= IEEE_PAUSE_MASK;
+	regval |= ADVERTISE_100;
+	regval |= ADVERTISE_10;
+	XEmacPs_PhyWrite(xemacpsp, phy_addr, IEEE_AUTONEGO_ADVERTISE_REG, regval);
+
+	// 1000 auto-negotiation
+	XEmacPs_PhyRead(xemacpsp, phy_addr, IEEE_1000_ADVERTISE_REG_OFFSET, &regval);
+	regval |= ADVERTISE_1000;
+	XEmacPs_PhyWrite(xemacpsp, phy_addr, IEEE_1000_ADVERTISE_REG_OFFSET, regval);
+
+	// Start/restart auto-negotiation
+	XEmacPs_PhyRead(xemacpsp, phy_addr, IEEE_CONTROL_REG_OFFSET, &regval);
+	regval |= IEEE_CTRL_AUTONEGOTIATE_ENABLE;
+	regval |= IEEE_STAT_AUTONEGOTIATE_RESTART;
+	XEmacPs_PhyWrite(xemacpsp, phy_addr, IEEE_CONTROL_REG_OFFSET, regval);
+
+	// TODO: Returning 1000 for now, ESM will be plugged to IPMC but this should change!
+	return 1000;
+}
+
 static u32_t get_IEEE_phy_speed(XEmacPs *xemacpsp, u32_t phy_addr)
 {
 	u16_t phy_identity;
@@ -652,6 +694,8 @@ static u32_t get_IEEE_phy_speed(XEmacPs *xemacpsp, u32_t phy_addr)
 					&phy_identity);
 	if (phy_identity == PHY_TI_IDENTIFIER) {
 		RetStatus = get_TI_phy_speed(xemacpsp, phy_addr);
+	} else if (phy_identity == PHY_ATHEROS_IDENTIFIER) {
+		RetStatus = get_Atheros_phy_speed(xemacpsp, phy_addr);
 	} else {
 		RetStatus = get_Marvell_phy_speed(xemacpsp, phy_addr);
 	}

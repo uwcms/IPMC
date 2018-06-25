@@ -10,11 +10,12 @@
 #include <stdio.h>
 #include "xparameters.h"
 #include "netif/xadapter.h"
+#include "netif/xemacpsif.h"
 #include "platform_config.h"
 
-#include <atheros/atheros.h>
 #include <drivers/network/Network.h>
-#include <drivers/network/Network.h>
+#include <services/console/CommandParser.h>
+#include <services/console/ConsoleSvc.h>
 #include <FreeRTOS.h>
 #include <task.h>
 
@@ -24,13 +25,60 @@
 #include "lwip/inet.h"
 #include "lwip/dhcp.h"
 #include "lwip/init.h"
+#include "lwip/stats.h"
 
-void _thread_lwip_start(void *p) {
-	reinterpret_cast<Network*>(p)->thread_lwip_start();
+void _thread_network_start(void *p) {
+	reinterpret_cast<Network*>(p)->thread_network_start();
 }
 
-void _thread_networkd(void *p) {
-	reinterpret_cast<Network*>(p)->thread_networkd();
+void _thread_dhcpd(void *p) {
+	unsigned int mscnt = 0;
+
+	dhcp_start((struct netif*)p);
+	while (1) {
+		vTaskDelay(DHCP_FINE_TIMER_MSECS / portTICK_RATE_MS);
+		dhcp_fine_tmr();
+		mscnt += DHCP_FINE_TIMER_MSECS;
+		if (mscnt >= DHCP_COARSE_TIMER_MSECS) {
+			dhcp_coarse_tmr();
+			mscnt = 0;
+		}
+	}
+
+	vTaskDelete(NULL);
+}
+
+void _thread_netifsd(void *p) {
+	struct netif *netif = (struct netif*)p;
+	struct xemac_s *xemac = (struct xemac_s*)netif->state;
+	xemacpsif_s *xemacpsif = (xemacpsif_s*)xemac->state;
+	XEmacPs *xemacpsp = (XEmacPs*)&(xemacpsif->emacps);
+	u32 phy_addr = 7; // TODO: Find a way not to have this hard coded
+	u16 status = 0;
+
+	// Check if link is up
+	while (1) {
+		// Check special register in PHY for real-time monitoring of UP/DOWN
+		XEmacPs_PhyRead(xemacpsp, phy_addr, 0x11, &status);
+		bool linkUp = (status & (1 << 10))? true : false;
+
+		// TODO: netif_ functions might need a MUTEX with other DHCP services
+		if (linkUp) {
+			// Link is up
+			if (!netif_is_link_up(netif)) {
+				netif_set_link_up(netif);
+			}
+			vTaskDelay(Network::LINK_POOLING_PERIOD_WHEN_UP_MS / portTICK_PERIOD_MS);
+		} else {
+			// Link is down
+			if (netif_is_link_up(netif)) {
+				netif_set_link_down(netif);
+			}
+			vTaskDelay(Network::LINK_POOLING_PERIOD_WHEN_DOWN_MS / portTICK_PERIOD_MS);
+		}
+	}
+
+	vTaskDelete(NULL);
 }
 
 std::string Network::ipaddr_to_string(struct ip_addr &ip) {
@@ -43,52 +91,23 @@ std::string Network::ipaddr_to_string(struct ip_addr &ip) {
 	return s;
 }
 
+static Network *pNetworkInstance = NULL;
+
 Network::Network(LogTree &logtree, uint8_t mac[6]) :
 logtree(logtree) {
+	configASSERT(!pNetworkInstance);
+	pNetworkInstance = this;
 	memcpy(this->mac, mac, sizeof(uint8_t) * 6);
 	memset(&(this->netif), 0, sizeof(struct netif));
 
-	xTaskCreate(_thread_lwip_start, "lwip_start", UWIPMC_STANDARD_STACK_SIZE, this, configLWIP_TASK_PRIORITY, NULL);
-}
-
-void Network::thread_lwip_start() {
-	// Initialize lwIP before calling sys_thread_new
+	// It is imperative that lwIP gets initialized before the network start thread gets launched
+	// otherwise there will be problems with TCP requests
 	lwip_init();
 
-	// Start the network daemon thread
-	xTaskCreate(_thread_networkd, "networkd", UWIPMC_STANDARD_STACK_SIZE, this, TASK_PRIORITY_SERVICE, NULL);
-
-#if LWIP_DHCP==1
-	unsigned int mscnt = 0;
-	while (1) {
-		vTaskDelay(DHCP_FINE_TIMER_MSECS / portTICK_RATE_MS);
-		if (this->netif.ip_addr.addr) {
-			std::string s = "";
-			s += "DHCP request success\n";
-			s += "Address: " + ipaddr_to_string(netif.ip_addr) + "\n";
-			s += "Netmask: " + ipaddr_to_string(netif.netmask) + "\n";
-			s += "Gateway: " + ipaddr_to_string(netif.gw) + "\n";
-			logtree.log(s, LogTree::LOG_NOTICE);
-			break;
-		}
-		mscnt += DHCP_FINE_TIMER_MSECS;
-		if (mscnt >= DHCP_TIMEOUT_SEC * 1000) {
-			logtree.log("DHCP request timed out\n", LogTree::LOG_ERROR);
-			// TODO: Consider applying a status configuration as Xilinx example
-			/*xil_printf("Configuring default IP of 192.168.1.10\r\n");
-			IP4_ADDR(&(server_netif.ip_addr), 192, 168, 1, 10);
-			IP4_ADDR(&(server_netif.netmask), 255, 255, 255, 0);
-			IP4_ADDR(&(server_netif.gw), 192, 168, 1, 1);
-			print_ip_settings(&(server_netif.ip_addr), &(server_netif.netmask), &(server_netif.gw));*/
-			break;
-		}
-	}
-#endif
-
-	vTaskDelete(NULL);
+	xTaskCreate(_thread_network_start, "network_start", UWIPMC_STANDARD_STACK_SIZE, this, TCPIP_THREAD_PRIO, NULL);
 }
 
-void Network::thread_networkd() {
+void Network::thread_network_start() {
 	struct ip_addr ipaddr, netmask, gw;
 
 #if LWIP_DHCP==0
@@ -109,35 +128,133 @@ void Network::thread_networkd() {
 		return;
 	}
 
-	// UW-IPMC specific, configure AR8035 internal delays
-	ar8035_enable_internal_delays(&(this->netif));
-
 	// Set the current interface as the default one
 	netif_set_default(&(this->netif));
 
 	// TODO: Find a way to get status with a callback
-	//netif_set_status_callback(&netif, ?);
+	netif_set_status_callback(&(this->netif), [](struct netif *netif) {
+		if (netif_is_up(netif)) {
+			pNetworkInstance->logtree.log("Network interface is UP", LogTree::LOG_NOTICE);
+		} else {
+			pNetworkInstance->logtree.log("Network interface is DOWN", LogTree::LOG_WARNING);
+		}
+	});
 
-	// Specify that the network if is up
-	netif_set_up(&(this->netif));
+	netif_set_link_callback(&(this->netif), [](struct netif *netif) {
+		if (netif_is_link_up(netif)){
+			pNetworkInstance->logtree.log("Network link is UP", LogTree::LOG_NOTICE);
+		} else {
+			pNetworkInstance->logtree.log("Network link is DOWN", LogTree::LOG_WARNING);
+		}
+	});
+
+	// Specify that the network if is up (This will be set by the DHCP server)
+	//netif_set_up(&(this->netif));
+
+	xTaskCreate([](void *p) {
+		struct netif *netif = (struct netif*)p;
+		struct xemac_s *xemac = (struct xemac_s*)netif->state;
+		xemacpsif_s *xemacpsif = (xemacpsif_s*)xemac->state;
+		XEmacPs *xemacpsp = (XEmacPs*)&(xemacpsif->emacps);
+		u32 phy_addr = 7; // TODO: Find a way not to have this hard coded
+		u16 status = 0;
+
+		// Check if link is up
+		while (1) {
+			// Check special register in PHY for real-time monitoring of UP/DOWN
+			XEmacPs_PhyRead(xemacpsp, phy_addr, 0x11, &status);
+			bool linkUp = (status & (1 << 10))? true : false;
+
+			// TODO: netif_ functions might need a MUTEX with other DHCP services
+			if (linkUp) {
+				// Link is up
+				if (!netif_is_link_up(netif)) {
+					netif_set_link_up(netif);
+				}
+				vTaskDelay(LINK_POOLING_PERIOD_WHEN_UP_MS / portTICK_PERIOD_MS);
+			} else {
+				// Link is down
+				if (netif_is_link_up(netif)) {
+					netif_set_link_down(netif);
+				}
+				vTaskDelay(LINK_POOLING_PERIOD_WHEN_DOWN_MS / portTICK_PERIOD_MS);
+			}
+		}
+
+		vTaskDelete(NULL);
+	}, "_netifsd", UWIPMC_STANDARD_STACK_SIZE, &(this->netif), TCPIP_THREAD_XEMACIFD_PRIO, NULL);
 
 	// Start packet receive thread, required for lwIP operation
-	xTaskCreate((void (*)(void*)) xemacif_input_thread, "xemacifd", UWIPMC_STANDARD_STACK_SIZE, &(this->netif), TASK_PRIORITY_DRIVER, NULL);
+	xTaskCreate((void (*)(void*)) xemacif_input_thread, "_xemacifd", UWIPMC_STANDARD_STACK_SIZE, &(this->netif), TCPIP_THREAD_XEMACIFD_PRIO, NULL);
 
 #if LWIP_DHCP==1
 	// If DHCP is enabled then start it
-	int mscnt = 0;
-	dhcp_start(&(this->netif));
+	xTaskCreate(_thread_dhcpd, "_dhcpd", UWIPMC_STANDARD_STACK_SIZE, &(this->netif), TCPIP_THREAD_PRIO, NULL);
+
+	// TODO
+	unsigned int mscnt = 0;
 	while (1) {
-		vTaskDelay(DHCP_FINE_TIMER_MSECS / portTICK_RATE_MS);
-		dhcp_fine_tmr();
+		vTaskDelay(DHCP_FINE_TIMER_MSECS / portTICK_PERIOD_MS);
+		if (this->netif.ip_addr.addr) {
+			std::string s = "";
+			s += "DHCP request success\n";
+			s += "Address: " + ipaddr_to_string(netif.ip_addr) + "\n";
+			s += "Netmask: " + ipaddr_to_string(netif.netmask) + "\n";
+			s += "Gateway: " + ipaddr_to_string(netif.gw) + "\n";
+			logtree.log(s, LogTree::LOG_NOTICE);
+			break;
+		}
 		mscnt += DHCP_FINE_TIMER_MSECS;
-		if (mscnt >= DHCP_COARSE_TIMER_SECS*1000) {
-			dhcp_coarse_tmr();
-			mscnt = 0;
+		if (mscnt >= DHCP_TIMEOUT_SEC * 1000) {
+			logtree.log("DHCP request timed out\n", LogTree::LOG_ERROR);
+			break;
 		}
 	}
 #endif
 
 	vTaskDelete(NULL);
+}
+
+
+namespace {
+	/// A "status" console command.
+	class Network_status : public CommandParser::Command {
+	public:
+		Network &network;
+
+		/// Instantiate
+		Network_status(Network &network) : network(network) { };
+
+		virtual std::string get_helptext(const std::string &command) const {
+			return stdsprintf(
+					"%s\n"
+					"\n"
+					"Shows network status and statistics.\n", command.c_str());
+		}
+
+		virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
+			console->write(std::string("Network status: Link is ") + (pNetworkInstance->isLinkUp()?"UP":"DOWN")+ ", interface is " + (pNetworkInstance->isInterfaceUp()?"UP":"DOWN") + "\n");
+			console->write(std::string("IP Address: ") + pNetworkInstance->getIP() + "\n");
+			console->write(std::string("Netmask: ") + pNetworkInstance->getNetmask() + "\n");
+			console->write(std::string("Gateway: ") + pNetworkInstance->getGateway() + "\n");
+		}
+	};
+};
+
+/**
+ * Register console commands related to this storage.
+ * @param parser The command parser to register to.
+ * @param prefix A prefix for the registered commands.
+ */
+void Network::register_console_commands(CommandParser &parser, const std::string &prefix) {
+	parser.register_command(prefix + "status", std::make_shared<Network_status>(*this));
+}
+
+/**
+ * Unregister console commands related to this storage.
+ * @param parser The command parser to unregister from.
+ * @param prefix A prefix for the registered commands.
+ */
+void Network::deregister_console_commands(CommandParser &parser, const std::string &prefix) {
+	parser.register_command(prefix + "status", NULL);
 }
