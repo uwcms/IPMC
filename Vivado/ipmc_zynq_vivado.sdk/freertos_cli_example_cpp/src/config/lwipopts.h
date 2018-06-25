@@ -42,46 +42,66 @@ void ipmc_lwip_printf(const char *ctrl1, ...);
 }
 #endif
 
-#define PROCESSOR_LITTLE_ENDIAN
+/* Configurationg specific for Zynq 7-series w/ FreeRTOS */
+/* Based on:
+ *  1) http://www.wiki.xilinx.com/Zynq-7000+AP+SoC+Performance+%E2%80%93+Gigabit+Ethernet+achieving+the+best+performance
+ *  2) https://www.xilinx.com/support/documentation/application_notes/xapp1026.pdf */
+#define PROCESSOR_LITTLE_ENDIAN		1
+#define OS_IS_FREERTOS				1
+#define SYS_LIGHTWEIGHT_PROT		1
 
-/* Functions used to obtain and release exclusive access to the Tx buffer.  The
-Get function will block if the Tx buffer is not available - use with care! */
-signed char *pcLwipBlockingGetTxBuffer( void );
-void vLwipAppsReleaseTxBuffer( void );
+#define TCPIP_THREAD_NAME			"_lwipd"
+#define TCPIP_THREAD_PRIO			3 // TODO: Needs to be less than the socket app and more than EMAC driver - configLWIP_TASK_PRIORITY
+#define TCPIP_THREAD_XEMACIFD_PRIO	(TCPIP_THREAD_PRIO)
+#define TCPIP_THREAD_HIGH_PRIO		(TCPIP_THREAD_PRIO)
+#define TCPIP_THREAD_STACKSIZE		1024 // TODO: Consider put somewhere else
+
+#define DEFAULT_TCP_RECVMBOX_SIZE	200
+#define DEFAULT_ACCEPTMBOX_SIZE		5
+#define TCPIP_MBOX_SIZE				200
+#define DEFAULT_UDP_RECVMBOX_SIZE	100
+#define DEFAULT_RAW_RECVMBOX_SIZE	30
+
+#define LWIP_COMPAT_MUTEX 0
+#define LWIP_ALLOW_MEM_FREE_FROM_OTHER_CONTEXT 1
+
+#define LWIP_TCP_KEEPALIVE			1
+
+#define LWIP_PROVIDE_ERRNO			1
+
+// Unclear if this help or does harm, offload seems to be ON by default anyway
+#define CHECKSUM_GEN_TCP 	0
+#define CHECKSUM_GEN_UDP 	0
+#define CHECKSUM_GEN_IP  	0
+#define CHECKSUM_CHECK_TCP  0
+#define CHECKSUM_CHECK_UDP  0
+#define CHECKSUM_CHECK_IP 	0
+#define LWIP_FULL_CSUM_OFFLOAD_RX  1
+#define LWIP_FULL_CSUM_OFFLOAD_TX  1
+
+#define MEMP_SEPARATE_POOLS		1
+#define MEMP_NUM_FRAG_PBUF		256
+#define IP_OPTIONS_ALLOWED		0
+#define TCP_OVERSIZE			TCP_MSS
+
+#define LWIP_NETIF_STATUS_CALLBACK 1
+#define LWIP_NETIF_LINK_CALLBACK 1
 
 #define CONFIG_LINKSPEED_AUTODETECT 1
-#define OS_IS_FREERTOS
+
 
 /* SSI options. */
-#define TCPIP_THREAD_NAME              "lwipd"
-
-#define TCPIP_THREAD_PRIO configLWIP_TASK_PRIORITY
-#define TCPIP_THREAD_STACKSIZE configMINIMAL_STACK_SIZE * 3
-
-#define DEFAULT_TCP_RECVMBOX_SIZE 5
-#define DEFAULT_ACCEPTMBOX_SIZE 5
-#define TCPIP_MBOX_SIZE			 		10
-
-#define LWIP_DEBUG
-
+//#define LWIP_DEBUG
 #define NO_SYS							0
 #define LWIP_SOCKET						(NO_SYS==0)
 #define LWIP_COMPAT_SOCKETS             0
 #define LWIP_NETCONN              		1
-
 #define LWIP_SNMP						0
 #define LWIP_IGMP						0
 #define LWIP_ICMP						1
-
 #define LWIP_DNS						1
 
-#define LWIP_HAVE_LOOPIF				0
-#define TCP_LISTEN_BACKLOG				0
-#define LWIP_SO_RCVTIMEO		   		1
-#define LWIP_SO_RCVBUF			 		1
-
-//#define LWIP_DEBUG
-
+/* -------- Debugging options -------- */
 #ifdef LWIP_DEBUG
 #define LWIP_DBG_MIN_LEVEL        LWIP_DBG_LEVEL_ALL // LWIP_DBG_LEVEL_SERIOUS
 #define PPP_DEBUG                  LWIP_DBG_OFF
@@ -115,7 +135,6 @@ void vLwipAppsReleaseTxBuffer( void );
 #define LWIP_DBG_TYPES_ON         (LWIP_DBG_ON|LWIP_DBG_TRACE|LWIP_DBG_STATE|LWIP_DBG_FRESH|LWIP_DBG_HALT)
 
 
-
 /* ---------- Memory options ---------- */
 /* MEM_ALIGNMENT: should be set to the alignment of the CPU for which
    lwIP is compiled. 4 byte alignment -> define MEM_ALIGNMENT to 4, 2
@@ -126,12 +145,12 @@ void vLwipAppsReleaseTxBuffer( void );
 
 /* MEM_SIZE: the size of the heap memory. If the application will send
 a lot of data that needs to be copied, this should be set high. */
-#define MEM_SIZE				0x40000
+#define MEM_SIZE				0x10000 // 1 MByte
 
 /* MEMP_NUM_PBUF: the number of memp struct pbufs. If the application
    sends a lot of data out of ROM (or other static memory), this
    should be set high. */
-#define MEMP_NUM_PBUF			16
+#define MEMP_NUM_PBUF			2048
 
 /* MEMP_NUM_RAW_PCB: the number of UDP protocol control blocks. One
    per active RAW "connection". */
@@ -140,19 +159,19 @@ a lot of data that needs to be copied, this should be set high. */
 
 /* MEMP_NUM_UDP_PCB: the number of UDP protocol control blocks. One
    per active UDP "connection". */
-#define MEMP_NUM_UDP_PCB		4
+#define MEMP_NUM_UDP_PCB		256
 
 /* MEMP_NUM_TCP_PCB: the number of simulatenously active TCP
    connections. */
-#define MEMP_NUM_TCP_PCB		32
+#define MEMP_NUM_TCP_PCB		128
 
 /* MEMP_NUM_TCP_PCB_LISTEN: the number of listening TCP
    connections. */
-#define MEMP_NUM_TCP_PCB_LISTEN 8
+#define MEMP_NUM_TCP_PCB_LISTEN 16
 
 /* MEMP_NUM_TCP_SEG: the number of simultaneously queued TCP
    segments. */
-#define MEMP_NUM_TCP_SEG		256
+#define MEMP_NUM_TCP_SEG		1024
 
 /* MEMP_NUM_SYS_TIMEOUT: the number of simulateously active
    timeouts. */
@@ -161,22 +180,22 @@ a lot of data that needs to be copied, this should be set high. */
 /* The following four are used only with the sequential API and can be
    set to 0 if the application only will use the raw API. */
 /* MEMP_NUM_NETBUF: the number of struct netbufs. */
-#define MEMP_NUM_NETBUF         0
+#define MEMP_NUM_NETBUF         8
 
 /* MEMP_NUM_NETCONN: the number of struct netconns. */
-#define MEMP_NUM_NETCONN        10
+#define MEMP_NUM_NETCONN        16
 
 /* MEMP_NUM_TCPIP_MSG_*: the number of struct tcpip_msg, which is used
    for sequential API communication and incoming packets. Used in
    src/api/tcpip.c. */
-#define MEMP_NUM_TCPIP_MSG_API   4
-#define MEMP_NUM_TCPIP_MSG_INPKT 4
+#define MEMP_NUM_TCPIP_MSG_API   32
+#define MEMP_NUM_TCPIP_MSG_INPKT 128
 
 #define MEMP_NUM_ARP_QUEUE		5
 
 /* ---------- Pbuf options ---------- */
 /* PBUF_POOL_SIZE: the number of buffers in the pbuf pool. */
-#define PBUF_POOL_SIZE			256
+#define PBUF_POOL_SIZE			4096
 
 /* PBUF_POOL_BUFSIZE: the size of each pbuf in the pbuf pool. */
 #define PBUF_POOL_BUFSIZE		1700
@@ -184,14 +203,6 @@ a lot of data that needs to be copied, this should be set high. */
 /* PBUF_LINK_HLEN: the number of bytes that should be allocated for a
    link level header. */
 #define PBUF_LINK_HLEN			16
-
-/** SYS_LIGHTWEIGHT_PROT
- * define SYS_LIGHTWEIGHT_PROT in lwipopts.h if you want inter-task protection
- * for certain critical regions during buffer allocation, deallocation and memory
- * allocation and deallocation.
- */
-#define SYS_LIGHTWEIGHT_PROT	(NO_SYS==0)
-
 
 /* ---------- TCP options ---------- */
 #define LWIP_TCP				1
@@ -205,7 +216,7 @@ a lot of data that needs to be copied, this should be set high. */
 #define TCP_MSS					1460
 
 /* TCP sender buffer space (bytes). */
-#define TCP_SND_BUF				8129
+#define TCP_SND_BUF				65535
 
 /* TCP sender buffer space (pbufs). This must be at least = 2 *
    TCP_SND_BUF/TCP_MSS for things to work. */
@@ -217,7 +228,7 @@ a lot of data that needs to be copied, this should be set high. */
 #define TCP_SNDLOWAT			(TCP_SND_BUF/2)
 
 /* TCP receive window. */
-#define TCP_WND					( 8 * TCP_MSS )
+#define TCP_WND					65535
 
 /* Maximum number of retransmissions of data segments. */
 #define TCP_MAXRTX				12
@@ -231,8 +242,6 @@ a lot of data that needs to be copied, this should be set high. */
 #define ARP_TABLE_SIZE			10
 #define ARP_QUEUEING			1
 
-#define ICMP_TTL 255
-
 #define IP_OPTIONS 0
 
 /* ---------- IP options ---------- */
@@ -243,10 +252,12 @@ a lot of data that needs to be copied, this should be set high. */
 
 /* IP reassembly and segmentation.These are orthogonal even
  * if they both deal with IP fragments */
-#define IP_REASSEMBLY			0
-#define IP_REASS_MAX_PBUFS		10
+#define IP_REASSEMBLY			1
+#define IP_REASS_MAX_PBUFS		10 // If problems, change to 5760
 #define MEMP_NUM_REASSDATA		10
-#define IP_FRAG					0
+#define IP_FRAG					1
+#define IP_FRAG_MAX_MTU			1500
+#define LWIP_CHKSUM_ALGORITHM	3
 
 
 /* ---------- ICMP options ---------- */
@@ -260,7 +271,7 @@ a lot of data that needs to be copied, this should be set high. */
 
 /* 1 if you want to do an ARP check on the offered address
    (recommended). */
-#define DHCP_DOES_ARP_CHECK		(LWIP_DHCP)
+#define DHCP_DOES_ARP_CHECK		(LWIP_DHCP) // Xilinx on their BSP had this to 0
 
 
 /* ---------- AUTOIP options ------- */
@@ -272,13 +283,11 @@ a lot of data that needs to be copied, this should be set high. */
 #define LWIP_UDP				1
 #define LWIP_UDPLITE			1
 #define UDP_TTL					255
-#define DEFAULT_UDP_RECVMBOX_SIZE 1
 
 
 /* ---------- Statistics options ---------- */
-
 #define LWIP_STATS				1
-#define LWIP_STATS_DISPLAY		0
+#define LWIP_STATS_DISPLAY		1
 
 #if LWIP_STATS
 	#define LINK_STATS				1
@@ -318,7 +327,5 @@ a lot of data that needs to be copied, this should be set high. */
 	#define MD5_SUPPORT				1	  /* Set > 0 for MD5 (see also CHAP) */
 
 #endif /* PPP_SUPPORT */
-
-#define LWIP_NETIF_STATUS_CALLBACK 1
 
 #endif /* __LWIPOPTS_H__ */

@@ -329,8 +329,7 @@ static err_t low_level_init(struct netif *netif)
 	netif->igmp_mac_filter = xemacpsif_mac_filter_update;
 #endif
 
-	netif->flags = NETIF_FLAG_BROADCAST | NETIF_FLAG_ETHARP |
-											NETIF_FLAG_LINK_UP;
+	netif->flags = NETIF_FLAG_BROADCAST | NETIF_FLAG_ETHARP /*| NETIF_FLAG_LINK_UP */;
 
 #if LWIP_IGMP
 	netif->flags |= NETIF_FLAG_IGMP;

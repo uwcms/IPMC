@@ -36,6 +36,8 @@
 #include <services/telnet/Telnet.h>
 #include <alloca.h>
 
+#include <services/lwiperf/Lwiperf.h>
+
 u8 IPMC_HW_REVISION = 1; // TODO: Detect, Update, etc
 
 PS_WDT *SWDT;
@@ -187,9 +189,14 @@ void ipmc_service_init() {
 	console_service = UARTConsoleSvc::create(*uart_ps0, console_command_parser, "console", LOG["console"]["uart"], true);
 
 	network = new Network(LOG["network"], mac_address);
+	network->register_console_commands(console_command_parser, "network.");
+
 	influxdbclient = new InfluxDBClient(LOG["influxdb"]);
 	influxdbclient->register_console_commands(console_command_parser, "influxdb.");
 	telnet = new TelnetServer();
+
+	// TODO: Can be removed when not needed
+	new Lwiperf(5001);
 }
 
 

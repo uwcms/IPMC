@@ -191,7 +191,7 @@ int main() {
 	/* See http://www.freertos.org/RTOS-Xilinx-Zynq.html. */
 	prvSetupHardware();
 
-	xTaskCreate(init_task, "init", UWIPMC_STANDARD_STACK_SIZE, NULL, TASK_PRIORITY_PRIORITY, NULL);
+	xTaskCreate(init_task, "init", UWIPMC_STANDARD_STACK_SIZE, NULL, TASK_PRIORITY_SERVICE, NULL);
 
 	/* Start the tasks and timer running. */
 	vTaskStartScheduler();
