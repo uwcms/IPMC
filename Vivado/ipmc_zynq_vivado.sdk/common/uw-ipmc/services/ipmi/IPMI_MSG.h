@@ -44,13 +44,7 @@ public:
 	std::string format() const;
 
 	IPMI_MSG() { };
-	/// Instantiate an IPMI_MSG with parameters as a convenience.
-	IPMI_MSG(uint8_t rqLUN, uint8_t rqSA, uint8_t rsLUN, uint8_t rsSA, uint8_t netFn, uint8_t cmd, const std::vector<uint8_t> &data)
-		: rqLUN(rqLUN), rqSA(rqSA), rsLUN(rsLUN), rsSA(rsSA), netFn(netFn), cmd(cmd), data_len(data.size()), broadcast(false), duplicate(false) {
-		configASSERT(data.size() <= max_data_len);
-		for (std::vector<uint8_t>::size_type i = 0; i < data.size(); ++i)
-			this->data[i] = data[i];
-	};
+	IPMI_MSG(uint8_t rqLUN, uint8_t rqSA, uint8_t rsLUN, uint8_t rsSA, uint8_t netFn, uint8_t cmd, const std::vector<uint8_t> &data);
 };
 
 uint8_t ipmi_checksum(const uint8_t* buf, uint32_t len);
