@@ -54,6 +54,7 @@ public:
 	typedef std::function<void(std::shared_ptr<IPMI_MSG> original, std::shared_ptr<IPMI_MSG> response)> response_cb_t;
 
 	void send(std::shared_ptr<IPMI_MSG> msg, response_cb_t response_cb = NULL);
+	std::shared_ptr<IPMI_MSG> send_sync(std::shared_ptr<IPMI_MSG> msg);
 
 	LogTree &logroot; ///< The root logtree for this object.
 
