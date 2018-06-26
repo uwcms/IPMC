@@ -28,11 +28,21 @@ public:
 	virtual ~Socket();
 
 	/**
-	 * Reads a specified amount of data into a character pointer
-	 * @param the character buffer
-	 * @param the length of the character buffer
+	 * Reads data if present
+	 * @param ptr the data buffer
+	 * @param len the length of the buffer in buffer
+	 * @return The total number of read bytes
 	 */
-	virtual int read(char*, int);
+	virtual int read(void *ptr, int len);
+
+	/**
+	 * Will read the number of requested bytes
+	 * @param ptr the data buffer
+	 * @param len number of bytes available in buffer and
+	 *            quantity to read
+	 * @return 1 if read successful
+	 */
+	virtual int sread(void *ptr, int len);
 
 	/**
 	 * Sends a string to the client
@@ -46,17 +56,19 @@ public:
 	 * @param the starting position
 	 * @param the length
 	 */
-	virtual int send(const char* buf, int len, int flags=0);
+	virtual int send(const void* buf, int len, int flags=0);
 
 	/**
 	 * Sets the socket in blocking mode
 	 */
-	virtual void set_blocking();
+	virtual void setBlocking();
 
 	/**
 	 * Sets the socket in non-blocking mode
 	 */
-	virtual void set_unblocking();
+	virtual void setUnblocking();
+
+	virtual void setTCPNoDelay();
 
 	/**
 	 * Closes the socket connection

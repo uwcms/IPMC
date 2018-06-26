@@ -34,7 +34,7 @@ port(port) {
 				continue;
 			}
 
-			char recv_buf[1500];
+			uint8_t recv_buf[1500];
 			while (true) {
 				/* keep reading data */
 				if (client->read(recv_buf, 1460) <= 0)
