@@ -1,8 +1,8 @@
 --Copyright 1986-2017 Xilinx, Inc. All Rights Reserved.
 ----------------------------------------------------------------------------------
 --Tool Version: Vivado v.2017.2 (lin64) Build 1909853 Thu Jun 15 18:39:10 MDT 2017
---Date        : Mon Mar 26 15:50:52 2018
---Host        : moonraker.cern.ch running 64-bit Scientific Linux CERN SLC release 6.9 (Carbon)
+--Date        : Tue Jun 26 16:16:14 2018
+--Host        : beck.hep.wisc.edu running 64-bit CentOS Linux release 7.4.1708 (Core)
 --Command     : generate_target ipmc_bd_wrapper.bd
 --Design      : ipmc_bd_wrapper
 --Purpose     : IP block netlist
@@ -41,64 +41,13 @@ entity ipmc_bd_wrapper is
     DDR_we_n : inout STD_LOGIC;
     GPIO : inout STD_LOGIC_VECTOR ( 31 downto 0 );
     HNDL_SW : in STD_LOGIC;
-    I2C_0_scl : out STD_LOGIC;
-    I2C_0_sda : inout STD_LOGIC;
-    I2C_1_scl : out STD_LOGIC;
-    I2C_1_sda : inout STD_LOGIC;
-    I2C_2_scl : out STD_LOGIC;
-    I2C_2_sda : inout STD_LOGIC;
-    I2C_3_scl : out STD_LOGIC;
-    I2C_3_sda : inout STD_LOGIC;
-    I2C_4_scl : out STD_LOGIC;
-    I2C_4_sda : inout STD_LOGIC;
-    JTAG_tck : out STD_LOGIC;
-    JTAG_tdi : out STD_LOGIC;
-    JTAG_tdo : in STD_LOGIC;
-    JTAG_tms : out STD_LOGIC;
-    JTAG_trst : out STD_LOGIC;
-    MC_0_enable_n : out STD_LOGIC;
-    MC_0_ps1_n : in STD_LOGIC;
-    MC_1_enable_n : out STD_LOGIC;
-    MC_1_ps1_n : in STD_LOGIC;
-    MC_2_enable_n : out STD_LOGIC;
-    MC_2_ps1_n : in STD_LOGIC;
-    MC_3_enable_n : out STD_LOGIC;
-    MC_3_ps1_n : in STD_LOGIC;
-    MC_4_enable_n : out STD_LOGIC;
-    MC_4_ps1_n : in STD_LOGIC;
     PG_A : in STD_LOGIC;
     PG_B : in STD_LOGIC;
     PL_LEDS : out STD_LOGIC_VECTOR ( 1 downto 0 );
-    TPS2358_0_mp_ena_n : out STD_LOGIC;
-    TPS2358_0_mp_flt_n : in STD_LOGIC;
-    TPS2358_0_mp_pg_n : in STD_LOGIC;
-    TPS2358_0_pwr_ena_n : out STD_LOGIC;
-    TPS2358_0_pwr_flt_n : in STD_LOGIC;
-    TPS2358_0_pwr_pg_n : in STD_LOGIC;
-    TPS2358_1_mp_ena_n : out STD_LOGIC;
-    TPS2358_1_mp_flt_n : in STD_LOGIC;
-    TPS2358_1_mp_pg_n : in STD_LOGIC;
-    TPS2358_1_pwr_ena_n : out STD_LOGIC;
-    TPS2358_1_pwr_flt_n : in STD_LOGIC;
-    TPS2358_1_pwr_pg_n : in STD_LOGIC;
-    TPS2358_2_mp_ena_n : out STD_LOGIC;
-    TPS2358_2_mp_flt_n : in STD_LOGIC;
-    TPS2358_2_mp_pg_n : in STD_LOGIC;
-    TPS2358_2_pwr_ena_n : out STD_LOGIC;
-    TPS2358_2_pwr_flt_n : in STD_LOGIC;
-    TPS2358_2_pwr_pg_n : in STD_LOGIC;
-    TPS2358_3_mp_ena_n : out STD_LOGIC;
-    TPS2358_3_mp_flt_n : in STD_LOGIC;
-    TPS2358_3_mp_pg_n : in STD_LOGIC;
-    TPS2358_3_pwr_ena_n : out STD_LOGIC;
-    TPS2358_3_pwr_flt_n : in STD_LOGIC;
-    TPS2358_3_pwr_pg_n : in STD_LOGIC;
-    TPS2358_4_mp_ena_n : out STD_LOGIC;
-    TPS2358_4_mp_flt_n : in STD_LOGIC;
-    TPS2358_4_mp_pg_n : in STD_LOGIC;
-    TPS2358_4_pwr_ena_n : out STD_LOGIC;
-    TPS2358_4_pwr_flt_n : in STD_LOGIC;
-    TPS2358_4_pwr_pg_n : in STD_LOGIC;
+    TCK : out STD_LOGIC;
+    TDI : out STD_LOGIC;
+    TDO : in STD_LOGIC;
+    TMS : out STD_LOGIC;
     pwr_en : out STD_LOGIC_VECTOR ( 6 downto 0 );
     pwr_status : in STD_LOGIC_VECTOR ( 5 downto 0 )
   );
@@ -130,11 +79,6 @@ architecture STRUCTURE of ipmc_bd_wrapper is
     DDR_dq : inout STD_LOGIC_VECTOR ( 31 downto 0 );
     DDR_dqs_n : inout STD_LOGIC_VECTOR ( 3 downto 0 );
     DDR_dqs_p : inout STD_LOGIC_VECTOR ( 3 downto 0 );
-    JTAG_trst : out STD_LOGIC;
-    JTAG_tdi : out STD_LOGIC;
-    JTAG_tms : out STD_LOGIC;
-    JTAG_tck : out STD_LOGIC;
-    JTAG_tdo : in STD_LOGIC;
     ALARM_A : in STD_LOGIC;
     ALARM_B : in STD_LOGIC;
     HNDL_SW : in STD_LOGIC;
@@ -145,56 +89,10 @@ architecture STRUCTURE of ipmc_bd_wrapper is
     pwr_en : out STD_LOGIC_VECTOR ( 6 downto 0 );
     GPIO : inout STD_LOGIC_VECTOR ( 31 downto 0 );
     pwr_status : in STD_LOGIC_VECTOR ( 5 downto 0 );
-    I2C_3_scl : out STD_LOGIC;
-    I2C_3_sda : inout STD_LOGIC;
-    TPS2358_3_mp_ena_n : out STD_LOGIC;
-    TPS2358_3_mp_pg_n : in STD_LOGIC;
-    TPS2358_3_pwr_pg_n : in STD_LOGIC;
-    TPS2358_3_pwr_flt_n : in STD_LOGIC;
-    TPS2358_3_mp_flt_n : in STD_LOGIC;
-    TPS2358_3_pwr_ena_n : out STD_LOGIC;
-    MC_3_ps1_n : in STD_LOGIC;
-    MC_3_enable_n : out STD_LOGIC;
-    I2C_4_scl : out STD_LOGIC;
-    I2C_4_sda : inout STD_LOGIC;
-    TPS2358_4_mp_ena_n : out STD_LOGIC;
-    TPS2358_4_mp_pg_n : in STD_LOGIC;
-    TPS2358_4_pwr_pg_n : in STD_LOGIC;
-    TPS2358_4_pwr_flt_n : in STD_LOGIC;
-    TPS2358_4_mp_flt_n : in STD_LOGIC;
-    TPS2358_4_pwr_ena_n : out STD_LOGIC;
-    MC_4_ps1_n : in STD_LOGIC;
-    MC_4_enable_n : out STD_LOGIC;
-    I2C_0_scl : out STD_LOGIC;
-    I2C_0_sda : inout STD_LOGIC;
-    TPS2358_0_mp_ena_n : out STD_LOGIC;
-    TPS2358_0_mp_pg_n : in STD_LOGIC;
-    TPS2358_0_pwr_pg_n : in STD_LOGIC;
-    TPS2358_0_pwr_flt_n : in STD_LOGIC;
-    TPS2358_0_mp_flt_n : in STD_LOGIC;
-    TPS2358_0_pwr_ena_n : out STD_LOGIC;
-    MC_0_ps1_n : in STD_LOGIC;
-    MC_0_enable_n : out STD_LOGIC;
-    I2C_2_scl : out STD_LOGIC;
-    I2C_2_sda : inout STD_LOGIC;
-    TPS2358_2_mp_ena_n : out STD_LOGIC;
-    TPS2358_2_mp_pg_n : in STD_LOGIC;
-    TPS2358_2_pwr_pg_n : in STD_LOGIC;
-    TPS2358_2_pwr_flt_n : in STD_LOGIC;
-    TPS2358_2_mp_flt_n : in STD_LOGIC;
-    TPS2358_2_pwr_ena_n : out STD_LOGIC;
-    MC_2_ps1_n : in STD_LOGIC;
-    MC_2_enable_n : out STD_LOGIC;
-    I2C_1_scl : out STD_LOGIC;
-    I2C_1_sda : inout STD_LOGIC;
-    TPS2358_1_mp_ena_n : out STD_LOGIC;
-    TPS2358_1_mp_pg_n : in STD_LOGIC;
-    TPS2358_1_pwr_pg_n : in STD_LOGIC;
-    TPS2358_1_pwr_flt_n : in STD_LOGIC;
-    TPS2358_1_mp_flt_n : in STD_LOGIC;
-    TPS2358_1_pwr_ena_n : out STD_LOGIC;
-    MC_1_ps1_n : in STD_LOGIC;
-    MC_1_enable_n : out STD_LOGIC
+    TCK : out STD_LOGIC;
+    TDI : out STD_LOGIC;
+    TDO : in STD_LOGIC;
+    TMS : out STD_LOGIC
   );
   end component ipmc_bd;
 begin
@@ -228,64 +126,13 @@ ipmc_bd_i: component ipmc_bd
       DDR_we_n => DDR_we_n,
       GPIO(31 downto 0) => GPIO(31 downto 0),
       HNDL_SW => HNDL_SW,
-      I2C_0_scl => I2C_0_scl,
-      I2C_0_sda => I2C_0_sda,
-      I2C_1_scl => I2C_1_scl,
-      I2C_1_sda => I2C_1_sda,
-      I2C_2_scl => I2C_2_scl,
-      I2C_2_sda => I2C_2_sda,
-      I2C_3_scl => I2C_3_scl,
-      I2C_3_sda => I2C_3_sda,
-      I2C_4_scl => I2C_4_scl,
-      I2C_4_sda => I2C_4_sda,
-      JTAG_tck => JTAG_tck,
-      JTAG_tdi => JTAG_tdi,
-      JTAG_tdo => JTAG_tdo,
-      JTAG_tms => JTAG_tms,
-      JTAG_trst => JTAG_trst,
-      MC_0_enable_n => MC_0_enable_n,
-      MC_0_ps1_n => MC_0_ps1_n,
-      MC_1_enable_n => MC_1_enable_n,
-      MC_1_ps1_n => MC_1_ps1_n,
-      MC_2_enable_n => MC_2_enable_n,
-      MC_2_ps1_n => MC_2_ps1_n,
-      MC_3_enable_n => MC_3_enable_n,
-      MC_3_ps1_n => MC_3_ps1_n,
-      MC_4_enable_n => MC_4_enable_n,
-      MC_4_ps1_n => MC_4_ps1_n,
       PG_A => PG_A,
       PG_B => PG_B,
       PL_LEDS(1 downto 0) => PL_LEDS(1 downto 0),
-      TPS2358_0_mp_ena_n => TPS2358_0_mp_ena_n,
-      TPS2358_0_mp_flt_n => TPS2358_0_mp_flt_n,
-      TPS2358_0_mp_pg_n => TPS2358_0_mp_pg_n,
-      TPS2358_0_pwr_ena_n => TPS2358_0_pwr_ena_n,
-      TPS2358_0_pwr_flt_n => TPS2358_0_pwr_flt_n,
-      TPS2358_0_pwr_pg_n => TPS2358_0_pwr_pg_n,
-      TPS2358_1_mp_ena_n => TPS2358_1_mp_ena_n,
-      TPS2358_1_mp_flt_n => TPS2358_1_mp_flt_n,
-      TPS2358_1_mp_pg_n => TPS2358_1_mp_pg_n,
-      TPS2358_1_pwr_ena_n => TPS2358_1_pwr_ena_n,
-      TPS2358_1_pwr_flt_n => TPS2358_1_pwr_flt_n,
-      TPS2358_1_pwr_pg_n => TPS2358_1_pwr_pg_n,
-      TPS2358_2_mp_ena_n => TPS2358_2_mp_ena_n,
-      TPS2358_2_mp_flt_n => TPS2358_2_mp_flt_n,
-      TPS2358_2_mp_pg_n => TPS2358_2_mp_pg_n,
-      TPS2358_2_pwr_ena_n => TPS2358_2_pwr_ena_n,
-      TPS2358_2_pwr_flt_n => TPS2358_2_pwr_flt_n,
-      TPS2358_2_pwr_pg_n => TPS2358_2_pwr_pg_n,
-      TPS2358_3_mp_ena_n => TPS2358_3_mp_ena_n,
-      TPS2358_3_mp_flt_n => TPS2358_3_mp_flt_n,
-      TPS2358_3_mp_pg_n => TPS2358_3_mp_pg_n,
-      TPS2358_3_pwr_ena_n => TPS2358_3_pwr_ena_n,
-      TPS2358_3_pwr_flt_n => TPS2358_3_pwr_flt_n,
-      TPS2358_3_pwr_pg_n => TPS2358_3_pwr_pg_n,
-      TPS2358_4_mp_ena_n => TPS2358_4_mp_ena_n,
-      TPS2358_4_mp_flt_n => TPS2358_4_mp_flt_n,
-      TPS2358_4_mp_pg_n => TPS2358_4_mp_pg_n,
-      TPS2358_4_pwr_ena_n => TPS2358_4_pwr_ena_n,
-      TPS2358_4_pwr_flt_n => TPS2358_4_pwr_flt_n,
-      TPS2358_4_pwr_pg_n => TPS2358_4_pwr_pg_n,
+      TCK => TCK,
+      TDI => TDI,
+      TDO => TDO,
+      TMS => TMS,
       pwr_en(6 downto 0) => pwr_en(6 downto 0),
       pwr_status(5 downto 0) => pwr_status(5 downto 0)
     );

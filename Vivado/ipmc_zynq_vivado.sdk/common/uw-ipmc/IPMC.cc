@@ -37,6 +37,7 @@
 #include <alloca.h>
 
 #include <services/lwiperf/Lwiperf.h>
+#include <services/xvcserver/XVCServer.h>
 
 u8 IPMC_HW_REVISION = 1; // TODO: Detect, Update, etc
 
@@ -197,6 +198,7 @@ void ipmc_service_init() {
 
 	// TODO: Can be removed when not needed
 	new Lwiperf(5001);
+	new XVCServer(XPAR_AXI_JTAG_0_BASEADDR);
 }
 
 
