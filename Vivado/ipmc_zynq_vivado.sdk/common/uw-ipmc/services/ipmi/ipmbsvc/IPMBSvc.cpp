@@ -151,6 +151,36 @@ void IPMBSvc::send(std::shared_ptr<IPMI_MSG> msg, response_cb_t response_cb) {
 	}
 }
 
+/**
+ * Enqueue an outgoing IPMI_MSG.
+ *
+ * \note This will update the sequence number on any request (not response) message.
+ *
+ * \param msg The message to send.
+ * \return If this is a request message, it will wait for and return the
+ *         matching response message.  If the retransmit limit is hit, or an
+ *         error prevents delivery, this will return a NULL shared_ptr.  If this
+ *         is a response message, it will immediately return a NULL shared_ptr,
+ *         as there is no acknowledgment mechanism for response messages, so
+ *         there is nothing to block for.
+ */
+std::shared_ptr<IPMI_MSG> IPMBSvc::send_sync(std::shared_ptr<IPMI_MSG> msg) {
+	if (msg->netFn & 1) {
+		// Response message
+		this->send(msg, NULL);
+		return NULL;
+	}
+	SemaphoreHandle_t syncsem = xSemaphoreCreateBinary();
+	std::shared_ptr<IPMI_MSG> rsp;
+	this->send(msg, [&syncsem,&rsp](std::shared_ptr<IPMI_MSG> original, std::shared_ptr<IPMI_MSG> response) -> void {
+		rsp = response;
+		xSemaphoreGive(syncsem);
+	});
+	xSemaphoreTake(syncsem, portMAX_DELAY);
+	vSemaphoreDelete(syncsem);
+	return rsp;
+}
+
 void IPMBSvc::run_thread() {
 	SkyRoad::Temple temple;
 	xQueueAddToSet(temple.get_queue(), this->qset);
