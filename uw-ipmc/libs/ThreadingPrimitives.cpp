@@ -221,3 +221,38 @@ void trampoline_cancel(void *voidstar) {
 		return;
 	delete reinterpret_cast< std::function<void(void)>* >(voidstar);
 }
+
+/**
+ * Provides the wrapper handling function call and thread cleanup for UWTaskCreate().
+ *
+ * @param stdfunc_cb The *stdfunction to execute and destroy.
+ */
+static void uwtask_run(void *stdfunc_cb) {
+	std::function<void(void)> *stdfunc = reinterpret_cast< std::function<void(void)>* >(stdfunc_cb);
+	(*stdfunc)();
+	delete stdfunc;
+	vTaskDelete(NULL);
+}
+
+/**
+ * Runs the supplied std::function in a new thread, cleaning up the thread when it
+ * returns.
+ *
+ * @param thread_func The function to run, C function, lambda, bind, method, all are welcome.
+ * @param name The name of the thread.
+ * @param priority
+ * @param additional_stack_words
+ * @return
+ */
+TaskHandle_t UWTaskCreate(std::function<void(void)> thread_func, const std::string name, BaseType_t priority, BaseType_t additional_stack_words) {
+	configASSERT(name.size() < configMAX_TASK_NAME_LEN); // < because we need the '\0' still.
+	TaskHandle_t handle = NULL;
+	configASSERT(xTaskCreate(
+			uwtask_run,
+			name.c_str(),
+			UWIPMC_STANDARD_STACK_SIZE + additional_stack_words,
+			new std::function<void(void)>(thread_func),
+			TASK_PRIORITY_INTERACTIVE,
+			&handle));
+	return handle;
+}

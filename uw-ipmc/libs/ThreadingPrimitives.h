@@ -112,4 +112,6 @@ extern "C" {
 	void trampoline_cancel(void *voidstar);
 }
 
+TaskHandle_t UWTaskCreate(std::function<void(void)> thread_func, const std::string name, BaseType_t priority, BaseType_t additional_stack_words=0);
+
 #endif /* UW_IPMC_LIBS_THREADINGPRIMITIVES_H_ */
