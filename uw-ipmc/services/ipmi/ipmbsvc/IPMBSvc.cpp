@@ -497,6 +497,237 @@ public:
 		return ret;
 	};
 };
+
+class ConsoleCommand_enumerate_fru_storages : public CommandParser::Command {
+public:
+	IPMBSvc &ipmb;
+	ConsoleCommand_enumerate_fru_storages(IPMBSvc &ipmb) : ipmb(ipmb) { };
+
+	virtual std::string get_helptext(const std::string &command) const {
+		return stdsprintf(
+					"%s $targetaddr\n"
+					"\n"
+					"Enumerate all FRU storage devices on a specified device.\n", command.c_str());
+	}
+
+	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
+		uint8_t ipmbtarget;
+		if (!parameters.parse_parameters(1, true, &ipmbtarget)) {
+			console->write("Incorrect parameters.  Try help.\n");
+			return;
+		}
+		IPMBSvc *ipmb = &this->ipmb;
+		UWTaskCreate(
+				[ipmb, console, ipmbtarget]() -> void {
+					class FRUStorage {
+					public:
+						uint8_t id;
+						uint16_t size;
+						bool byte_addressed;
+						std::vector<uint8_t> header;
+						FRUStorage(uint8_t id, uint16_t size, bool byte_addressed, std::vector<uint8_t> header) : id(id), size(size), byte_addressed(byte_addressed), header(header) { };
+					};
+					std::vector<FRUStorage> fru_storages;
+					for (uint8_t frudev = 0; frudev < 0xff; ++frudev) {
+						if ((frudev % 0x10) == 0)
+							console->write(stdsprintf("Enumerating FRU Storage Device %02hhXh...\n", frudev));
+						std::shared_ptr<IPMI_MSG> probersp;
+						for (int retry = 0; retry < 3; ++retry) {
+							probersp = ipmb->send_sync(std::make_shared<IPMI_MSG>(
+									0, ipmb->ipmb_address,
+									0, ipmbtarget,
+									(IPMI::Get_FRU_Inventory_Area_Info >> 8) & 0xff, IPMI::Get_FRU_Inventory_Area_Info & 0xff,
+									std::vector<uint8_t> {static_cast<uint8_t>(frudev)}));
+							if (!probersp || probersp->data_len != 4 || probersp->data[0] != IPMI::Completion::Success) {
+								vTaskDelay(333);
+								continue;
+							}
+							break;
+						}
+						if (probersp && probersp->data_len == 4 && probersp->data[0] == IPMI::Completion::Success) {
+							// Okay we probed one up.  Let's read its header.
+							std::shared_ptr<IPMI_MSG> rd_rsp;
+							for (int i = 0; i < 3; ++i) {
+								rd_rsp = ipmb->send_sync(
+										std::make_shared<IPMI_MSG>(
+												0, ipmb->ipmb_address, 0, 0x20,
+												(IPMI::Read_FRU_Data >> 8) & 0xff, IPMI::Read_FRU_Data & 0xff,
+												std::vector<uint8_t> {frudev, 0, 0, 8}));
+								if (!rd_rsp || (rd_rsp->data_len && rd_rsp->data[0] == IPMI::Completion::FRU_Device_Busy)) {
+									vTaskDelay(333);
+									continue;
+								}
+								break;
+							}
+
+							if (!rd_rsp || rd_rsp->data_len != 10 || rd_rsp->data[0] != IPMI::Completion::Success) {
+								console->write(stdsprintf("Retries exhausted reading FRU storage %02hhXh header. Skipped.\n", frudev));
+							}
+							else {
+								fru_storages.emplace_back(
+										frudev,
+										(probersp->data[2]<<8) | probersp->data[1],
+										!(probersp->data[3]&1),
+										std::vector<uint8_t>(rd_rsp->data+2, rd_rsp->data+10)
+										);
+							}
+						}
+						else if (probersp && probersp->data_len && probersp->data[0] == IPMI::Completion::Parameter_Out_Of_Range) {
+							// No device present.
+						}
+						else {
+							// We ran out of retries.
+							if (probersp && probersp->data_len >= 1)
+								console->write(stdsprintf("Retries exhausted enumerating FRU storage %02hhXh: Last completion code %02hhXh\n", frudev, probersp->data[0]));
+							else
+								console->write(stdsprintf("Retries exhausted enumerating FRU storage %02hhXh: No response received.\n", frudev));
+						}
+					}
+					if (fru_storages.empty()) {
+						console->write(stdsprintf("No FRU storages found at %02hhXh\n", ipmbtarget));
+					}
+					else {
+						std::string out = "Found FRU Storages:\n";
+						for (auto it = fru_storages.begin(), eit = fru_storages.end(); it != eit; ++it) {
+							out += stdsprintf("  %02hhXh: %hu %s (Header Version %2hhu)\n", it->id, it->size, it->byte_addressed?"bytes":"words", it->header[0]);
+							if (it->header[1])
+								out += stdsprintf("       Internal Use Area Offset:  %4hu\n", it->header[1]*8);
+							if (it->header[2])
+								out += stdsprintf("       Chassis Info Area Offset:  %4hu\n", it->header[2]*8);
+							if (it->header[3])
+								out += stdsprintf("       Board Area Offset:         %4hu\n", it->header[3]*8);
+							if (it->header[4])
+								out += stdsprintf("       Product Info Area Offset:  %4hu\n", it->header[4]*8);
+							if (it->header[5])
+								out += stdsprintf("       Multi-Record  Area Offset: %4hu\n", it->header[5]*8);
+						}
+						console->write(out);
+					}
+				}, "enum_fru_stores", TASK_PRIORITY_INTERACTIVE);
+	}
+
+	//virtual std::vector<std::string> complete(const CommandParser::CommandParameters &parameters) const { };
+};
+
+class ConsoleCommand_dump_fru_storage : public CommandParser::Command {
+public:
+	IPMBSvc &ipmb;
+	ConsoleCommand_dump_fru_storage(IPMBSvc &ipmb) : ipmb(ipmb) { };
+
+	virtual std::string get_helptext(const std::string &command) const {
+		return stdsprintf(
+					"%s $targetaddr $fru_storage_id\n"
+					"\n"
+					"Dump the contents of the specified FRU storage device.\n", command.c_str());
+	}
+
+	virtual void execute(std::shared_ptr<ConsoleSvc> console,
+			const CommandParser::CommandParameters &parameters) {
+		uint8_t ipmbtarget;
+		uint8_t frudev;
+		if (!parameters.parse_parameters(1, true, &ipmbtarget, &frudev)) {
+			console->write("Incorrect parameters.  Try help.\n");
+			return;
+		}
+		IPMBSvc *ipmb = &this->ipmb;
+		UWTaskCreate(
+				[ipmb, console, ipmbtarget, frudev]() -> void {
+					std::shared_ptr<IPMI_MSG> probersp = ipmb->send_sync(std::make_shared<IPMI_MSG>(
+									0, ipmb->ipmb_address,
+									0, ipmbtarget,
+									(IPMI::Get_FRU_Inventory_Area_Info >> 8) & 0xff, IPMI::Get_FRU_Inventory_Area_Info & 0xff,
+									std::vector<uint8_t> {static_cast<uint8_t>(frudev)}));
+					if (!probersp || !probersp->data_len) {
+						console->write(stdsprintf("Error querying FRU Inventory Area Info for FRU Device %02hhXh at IPMB address %02hhXh.\n", frudev, ipmbtarget));
+						return;
+					}
+					else if (probersp->data[0] == IPMI::Completion::Parameter_Out_Of_Range) {
+						console->write(stdsprintf("No FRU Device %02hhXh found at IPMB address %02hhXh.\n", frudev, ipmbtarget));
+						return;
+					}
+					else if (probersp->data_len != 4 || probersp->data[0] != IPMI::Completion::Success) {
+						console->write(stdsprintf("Error querying FRU Inventory Area Info for FRU Device %02hhXh found at IPMB address %02hhXh. (Completion Code %02hhXh)\n", frudev, ipmbtarget, probersp->data[0]));
+						return;
+					}
+
+					uint16_t ia_size = (probersp->data[2]<<8) | probersp->data[1];
+					bool ia_byteaddressed = !(probersp->data[3]&1);
+					if (!ia_byteaddressed) {
+						console->write("Unable to dump FRU Storage, word-access is not supported.\n");
+						return;
+					}
+					// XXX
+					if (ia_size > 0x100) ia_size = 0x100;
+					// XXX
+
+					std::vector<uint8_t> frubuf;
+					frubuf.reserve(ia_size);
+					for (uint16_t rd_cursor = 0; rd_cursor < ia_size; ) {
+						if ((rd_cursor % 0x200) == 0)
+							console->write(stdsprintf("Dumping... %hXh\n", rd_cursor));
+						uint8_t rd_size = 0x10;
+						if ((rd_cursor + rd_size) > ia_size)
+						rd_size = ia_size - rd_cursor;
+						std::shared_ptr<IPMI_MSG> rd_rsp;
+						for (int i = 0; i < 5; ++i) {
+							rd_rsp = ipmb->send_sync(
+									std::make_shared<IPMI_MSG>(
+											0, ipmb->ipmb_address, 0, ipmbtarget,
+											(IPMI::Read_FRU_Data >> 8) & 0xff, IPMI::Read_FRU_Data & 0xff,
+											std::vector<uint8_t> {
+												frudev,
+												static_cast<uint8_t>(rd_cursor&0xff),
+												static_cast<uint8_t>((rd_cursor>>8)&0xff),
+												rd_size
+											}));
+							if (!rd_rsp || (rd_rsp->data_len && rd_rsp->data[0] == IPMI::Completion::FRU_Device_Busy)) {
+								vTaskDelay(333);
+								continue;
+							}
+							break;
+						}
+
+						if (!rd_rsp || !rd_rsp->data_len) {
+							console->write(stdsprintf("Error sending Read FRU Data request to %02hxh.\nDump Aborted.\n", frudev));
+							return;
+						}
+						else if (rd_rsp->data[0] != IPMI::Completion::Success) {
+							std::string cmplstr = "Unknown Completion Code";
+							if (IPMI::Completion::id_to_cmplcode.count(rd_rsp->data[0]))
+							cmplstr = IPMI::Completion::id_to_cmplcode.at(rd_rsp->data[0]);
+							console->write(stdsprintf("Error sending Read FRU Data request to %02hxh: %02hhXh %s\nDump Aborted.\n", frudev, rd_rsp->data[0], cmplstr.c_str()));
+							return;
+						}
+						else if (rd_rsp->data_len != 2+rd_size || rd_rsp->data[1] != rd_size) {
+							console->write(stdsprintf("Error in Read FRU Data response to %02hxh: Unexpected return length: %hhu\nDump Aborted.\n", frudev, rd_rsp->data[1]));
+							return;
+						}
+						else {
+							frubuf.insert(frubuf.end(), rd_rsp->data+2, rd_rsp->data+2+rd_size);
+						}
+						rd_cursor += rd_size;
+					}
+					if (frubuf.size() == ia_size) {
+						std::string outbuf = "";
+						for (std::vector<uint8_t>::size_type i = 0; i < frubuf.size(); ++i) {
+							outbuf += stdsprintf("%02x", frubuf.at(i));
+							if (i%16 == 15) {
+								outbuf += "\n";
+							}
+							else if (i%4 == 3) {
+								outbuf += "  ";
+							}
+							else {
+								outbuf += " ";
+							}
+						}
+						console->write(outbuf+"\n");
+					}
+				}, "dump_fru_store", TASK_PRIORITY_INTERACTIVE);
+	}
+
+	//virtual std::vector<std::string> complete(const CommandParser::CommandParameters &parameters) const { };
+};
 } // anonymous namespace
 
 /**
@@ -506,6 +737,8 @@ public:
  */
 void IPMBSvc::register_console_commands(CommandParser &parser, const std::string &prefix) {
 	parser.register_command(prefix + "sendmsg", std::make_shared<ConsoleCommand_sendmsg>(*this));
+	parser.register_command(prefix + "enumerate_fru_storages", std::make_shared<ConsoleCommand_enumerate_fru_storages>(*this));
+	parser.register_command(prefix + "dump_fru_storage", std::make_shared<ConsoleCommand_dump_fru_storage>(*this));
 }
 
 /**
