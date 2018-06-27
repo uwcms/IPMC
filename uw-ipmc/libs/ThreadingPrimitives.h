@@ -7,6 +7,7 @@
 #include <event_groups.h>
 #include <list>
 #include <memory>
+#include <functional>
 
 /**
  * A class which allows for absolute timeout tracking in a wraparound-aware manner.
@@ -100,6 +101,15 @@ static inline uint64_t get_tick64() {
 	if (!IN_INTERRUPT())
 		taskEXIT_CRITICAL();
 	return ret;
+}
+
+void *trampoline_prepare(std::function<void(void)> cb);
+extern "C" {
+	void trampoline_launch_pv(void *voidstar);
+	void trampoline_launch_pv_x(void *voidstar, BaseType_t ignored);
+	void trampoline_multilaunch_pv(void *voidstar);
+	void trampoline_multilaunch_pv_x(void *voidstar, BaseType_t ignored);
+	void trampoline_cancel(void *voidstar);
 }
 
 #endif /* UW_IPMC_LIBS_THREADINGPRIMITIVES_H_ */

@@ -135,3 +135,89 @@ void vApplicationTickHook() {
 	uwipmc_tick64_count++;
 }
 }; // extern "C"
+
+
+/**
+ * trampoline_prepare produces a void* to pass through a FreeRTOS function that
+ * requires a callback, such as a thread create or timer function, to be run by
+ * #trampoline_launch.
+ *
+ * \note This involves a heap allocation and therefore is not ISR safe, but is
+ *       critical safe. Call #trampoline_cancel to free this if you choose not
+ *       to pass it to #trampoline_launch
+ *
+ * @param cb The void(void) callback to be executed. (Perhaps a lambda or method)
+ *           If NULL is supplied, no allocation is made and NULL is returned.
+ */
+void *trampoline_prepare(std::function<void(void)> cb) {
+	configASSERT(!IN_INTERRUPT());
+	if (!cb)
+		return NULL;
+	std::function<void(void)> *cbp = new std::function<void(void)>(cb);
+	return cbp;
+}
+
+/**
+ * trampoline_launch will accept a void* produced by #trampoline_prepare and
+ * execute it, then clean it up.
+ *
+ * \note After this call, the prepared void* may not be reused.c
+ *
+ * \note This involves a heap deallocation and therefore is not ISR safe, but is
+ *       critical safe.
+ *
+ * @param voidstar The return value of a trampoline_prepare (or NULL for no-op).
+ */
+void trampoline_launch_pv(void *voidstar) {
+	configASSERT(!IN_INTERRUPT());
+	if (!voidstar)
+		return;
+	std::function<void(void)> *cbp = reinterpret_cast< std::function<void(void)>* >(voidstar);
+	if (*cbp)
+		(*cbp)();
+	delete cbp;
+}
+/// \overload
+void trampoline_launch_pv_x(void *voidstar, BaseType_t ignored) {
+	trampoline_launch_pv(voidstar);
+}
+
+/**
+ * trampoline_multilaunch will accept a void* produced by #trampoline_prepare
+ * and execute it, but not clean it up, so it can be reused.
+ *
+ * \note After this call, the prepared void* is not freed and may be reused.
+ *
+ * \note This function is ISR safe.
+ *
+ * @param voidstar The return value of a trampoline_prepare (or NULL for no-op).
+ */
+void trampoline_multilaunch_pv(void *voidstar) {
+	if (!voidstar)
+		return;
+	std::function<void(void)> *cbp = reinterpret_cast< std::function<void(void)>* >(voidstar);
+	if (*cbp)
+		(*cbp)();
+}
+/// \overload
+void trampoline_multilaunch_pv_x(void *voidstar, BaseType_t ignored) {
+	trampoline_multilaunch_pv(voidstar);
+}
+
+/**
+ * trampoline_cancel will accept a void* produced by #trampoline_prepare and
+ * clean it up.
+ *
+ * \note After this call, the prepared void* may not be reused.c
+ *
+ * \note This involves a heap deallocation and therefore is not ISR safe, but is
+ *       critical safe.
+ *
+ * @param voidstar The return value of a trampoline_prepare (or NULL for no-op).
+ */
+void trampoline_cancel(void *voidstar) {
+	configASSERT(!IN_INTERRUPT());
+	if (!voidstar)
+		return;
+	delete reinterpret_cast< std::function<void(void)>* >(voidstar);
+}
