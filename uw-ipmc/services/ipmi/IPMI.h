@@ -51,6 +51,7 @@ namespace IPMI {
 		/// Completion Code Constants
 		///@{
 		const u8 Success                                                                 = 0x00;
+		const u8 FRU_Device_Busy                                                         = 0x81;
 		const u8 Node_Busy                                                               = 0xC0;
 		const u8 Invalid_Command                                                         = 0xC1;
 		const u8 Command_Invalid_For_Lun                                                 = 0xC2;

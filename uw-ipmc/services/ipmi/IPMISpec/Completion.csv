@@ -1,5 +1,6 @@
 Code,Description
 00,"Success"
+81,"FRU Device Busy"
 C0,"Node Busy"
 C1,"Invalid Command"
 C2,"Command Invalid For Lun"
