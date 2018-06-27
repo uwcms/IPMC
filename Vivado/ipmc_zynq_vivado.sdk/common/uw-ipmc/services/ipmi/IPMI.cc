@@ -32,6 +32,7 @@ const std::map<std::string, u8> IPMI::NetFn::netfn_to_id {
 
 const std::map<u8, std::string> IPMI::Completion::id_to_cmplcode {
 	{ IPMI::Completion::Success,                                                                 "Success"                                                                 },
+	{ IPMI::Completion::FRU_Device_Busy,                                                         "FRU Device Busy"                                                         },
 	{ IPMI::Completion::Node_Busy,                                                               "Node Busy"                                                               },
 	{ IPMI::Completion::Invalid_Command,                                                         "Invalid Command"                                                         },
 	{ IPMI::Completion::Command_Invalid_For_Lun,                                                 "Command Invalid For Lun"                                                 },
@@ -59,6 +60,7 @@ const std::map<u8, std::string> IPMI::Completion::id_to_cmplcode {
 
 const std::map<std::string, u8> IPMI::Completion::cmplcode_to_id {
 	{ "Success",                                                                 IPMI::Completion::Success                                                                 },
+	{ "FRU Device Busy",                                                         IPMI::Completion::FRU_Device_Busy                                                         },
 	{ "Node Busy",                                                               IPMI::Completion::Node_Busy                                                               },
 	{ "Invalid Command",                                                         IPMI::Completion::Invalid_Command                                                         },
 	{ "Command Invalid For Lun",                                                 IPMI::Completion::Command_Invalid_For_Lun                                                 },
