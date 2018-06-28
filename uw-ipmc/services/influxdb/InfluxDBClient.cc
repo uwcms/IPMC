@@ -177,24 +177,13 @@ void InfluxDBClient::dtask() {
 	}
 }
 
-static void run_influxdbclient_deamon(void *cb_influxdb) {
-	reinterpret_cast<InfluxDBClient*>(cb_influxdb)->dtask();
-}
-
 void InfluxDBClient::startd() {
-	BaseType_t xReturned;
 	TaskHandle_t xHandle = NULL;
 
 	/* Create the task, storing the handle. */
-	xReturned = xTaskCreate(
-					run_influxdbclient_deamon,       /* Function that implements the task. */
-					"influxdbd",          /* Text name for the task. */
-					UWIPMC_STANDARD_STACK_SIZE,      /* Stack size in words, not bytes. */
-					(void*)this,    /* Parameter passed into the task. */
-					TASK_PRIORITY_BACKGROUND,/* Priority at which the task is created. */
-					&xHandle );      /* Used to pass out the created task's handle. */
+	xHandle = UWTaskCreate("influxdbd", TASK_PRIORITY_BACKGROUND, [this]() -> void { this->dtask(); });
 
-	if( xReturned == pdFAIL )
+	if( !xHandle )
 	{
 		/* The task was created.  Use the task's handle to delete the task. */
 		logtree.log("Failed to create InfluxDB deamon task", LogTree::LOG_ERROR);

@@ -11,19 +11,17 @@
 #include <drivers/network/ServerSocket.h>
 #include <FreeRTOS.h>
 #include <task.h>
-
+#include <libs/ThreadingPrimitives.h>
 
 Lwiperf::Lwiperf(unsigned short port) :
 port(port) {
-	xTaskCreate([](void* p) {
-		Lwiperf *pInst = (Lwiperf*)p;
-
-		ServerSocket server(pInst->port, 1);
+	configASSERT(UWTaskCreate("lwiperfd", TCPIP_THREAD_HIGH_PRIO, [this]() -> void {
+		ServerSocket server(this->port, 1);
 
 		int err = server.listen();
 		if (err != 0) {
 			printf(strerror(err));
-			vTaskDelete(NULL);
+			return;
 		}
 
 		while (true) {
@@ -43,8 +41,5 @@ port(port) {
 
 			delete client;
 		}
-
-		vTaskDelete(NULL);
-
-	}, "lwiperfd", UWIPMC_STANDARD_STACK_SIZE, this, TCPIP_THREAD_HIGH_PRIO, NULL);
+	}));
 }

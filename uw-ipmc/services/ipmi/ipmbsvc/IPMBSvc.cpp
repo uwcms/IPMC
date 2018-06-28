@@ -13,10 +13,6 @@
 #include "queue.h"
 #include "task.h"
 
-static void ipmb0_run_thread(void *ipmb_void) {
-	reinterpret_cast<IPMBSvc*>(ipmb_void)->run_thread();
-}
-
 /**
  * Instantiate the IPMB service.
  *
@@ -71,7 +67,8 @@ IPMBSvc::IPMBSvc(IPMB *ipmbA, IPMB *ipmbB, uint8_t ipmb_address, IPMICommandPars
 		this->wdt->activate_slot(this->wdt_slot);
 	}
 
-	configASSERT(xTaskCreate(ipmb0_run_thread, name.c_str(), UWIPMC_STANDARD_STACK_SIZE, this, TASK_PRIORITY_DRIVER, &this->task));
+	this->task = UWTaskCreate(name, TASK_PRIORITY_DRIVER, [this]() -> void { this->run_thread(); });
+	configASSERT(this->task);
 }
 
 IPMBSvc::~IPMBSvc() {

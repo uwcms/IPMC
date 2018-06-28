@@ -7,6 +7,7 @@
 
 #include <services/xvcserver/XVCServer.h>
 #include <drivers/network/ServerSocket.h>
+#include <libs/ThreadingPrimitives.h>
 #include <FreeRTOS.h>
 #include <task.h>
 
@@ -17,16 +18,14 @@ baseAddr(baseAddr), port(port), verbose(false) {
 	threadName += std::to_string(port);
 
 	// Start the XVC server thread
-	xTaskCreate([](void* p) {
-		XVCServer *pInst = (XVCServer*)p;
-
+	configASSERT(UWTaskCreate(threadName, TASK_PRIORITY_BACKGROUND, [this]() {
 		// Just allow one connection at a time
-		ServerSocket server(pInst->port, 1);
+		ServerSocket server(this->port, 1);
 
 		int err = server.listen();
 		if (err != 0) {
 			printf(strerror(err));
-			vTaskDelete(NULL);
+			return;
 		}
 
 		while (true) {
@@ -40,14 +39,11 @@ baseAddr(baseAddr), port(port), verbose(false) {
 			// Set TCP_NODELAY to socket
 			client->setTCPNoDelay();
 
-			pInst->HandleClient(client);
+			this->HandleClient(client);
 
 			delete client;
 		}
-
-		vTaskDelete(NULL);
-
-	}, threadName.c_str(), UWIPMC_STANDARD_STACK_SIZE, this, TASK_PRIORITY_BACKGROUND, NULL);
+	}));
 }
 
 

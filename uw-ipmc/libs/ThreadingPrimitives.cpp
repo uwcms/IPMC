@@ -247,12 +247,13 @@ static void uwtask_run(void *stdfunc_cb) {
 TaskHandle_t UWTaskCreate(const std::string name, BaseType_t priority, std::function<void(void)> thread_func, BaseType_t additional_stack_words) {
 	configASSERT(name.size() < configMAX_TASK_NAME_LEN); // < because we need the '\0' still.
 	TaskHandle_t handle = NULL;
-	configASSERT(xTaskCreate(
+	if (pdFAIL == xTaskCreate(
 			uwtask_run,
 			name.c_str(),
 			UWIPMC_STANDARD_STACK_SIZE + additional_stack_words,
 			new std::function<void(void)>(thread_func),
 			TASK_PRIORITY_INTERACTIVE,
-			&handle));
+			&handle))
+		return NULL;
 	return handle;
 }

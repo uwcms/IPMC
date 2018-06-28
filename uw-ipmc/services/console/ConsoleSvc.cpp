@@ -15,10 +15,6 @@ template <typename T> static inline T div_ceil(T val, T divisor) {
 	return (val / divisor) + (val % divisor ? 1 : 0);
 }
 
-static void run_ConsoleSvc_thread(void *cb_ucs) {
-	reinterpret_cast<ConsoleSvc*>(cb_ucs)->_run_thread();
-}
-
 /**
  * Instantiate a Console Service.
  *
@@ -70,7 +66,8 @@ ConsoleSvc::~ConsoleSvc() {
  */
 void ConsoleSvc::start() {
 	configASSERT(!this->task);
-	configASSERT(xTaskCreate(run_ConsoleSvc_thread, name.c_str(), UWIPMC_STANDARD_STACK_SIZE, this, TASK_PRIORITY_INTERACTIVE, &this->task));
+	this->task = UWTaskCreate(name, TASK_PRIORITY_INTERACTIVE, [this]() -> void { this->_run_thread(); });
+	configASSERT(this->task);
 }
 /**
  * Write to the console without disrupting the prompt.
@@ -372,7 +369,6 @@ void ConsoleSvc::_run_thread() {
 	}
 	xSemaphoreGive(this->linebuf_mutex);
 	this->shutdown_complete();
-	vTaskDelete(NULL);
 }
 
 /**

@@ -12,14 +12,10 @@
 #include "Telnet.h"
 
 #include "drivers/network/ServerSocket.h"
-
-
-void _thread_telnetd(void *p) {
-	reinterpret_cast<TelnetServer*>(p)->thread_telnetd();
-}
+#include <libs/ThreadingPrimitives.h>
 
 TelnetServer::TelnetServer() {
-	xTaskCreate(_thread_telnetd, "telnetd", UWIPMC_STANDARD_STACK_SIZE, this, TASK_PRIORITY_SERVICE, NULL);
+	configASSERT(UWTaskCreate("telnetd", TASK_PRIORITY_SERVICE, [this]() -> void { this->thread_telnetd(); }));
 }
 
 void TelnetServer::thread_telnetd() {
@@ -29,7 +25,7 @@ void TelnetServer::thread_telnetd() {
 
 	if (err != 0) {
 		printf(strerror(err));
-		vTaskDelete(NULL);
+		return;
 	}
 
 	while (true) {
@@ -43,17 +39,11 @@ void TelnetServer::thread_telnetd() {
 		// Launch a new telnet instance if client is valid
 		TelnetClient *c = new TelnetClient(client);
 	}
-
-	vTaskDelete(NULL);
-}
-
-void _thread_telnetc(void *p) {
-	reinterpret_cast<TelnetClient*>(p)->thread_telnetc();
 }
 
 TelnetClient::TelnetClient(Socket *s) :
 socket(s) {
-	xTaskCreate(_thread_telnetc, "telnetc", UWIPMC_STANDARD_STACK_SIZE, this, TASK_PRIORITY_INTERACTIVE, NULL);
+	configASSERT(UWTaskCreate("telnetc", TASK_PRIORITY_INTERACTIVE, [this]() -> void { this->thread_telnetc(); }));
 }
 
 void TelnetClient::thread_telnetc() {
@@ -81,6 +71,4 @@ void TelnetClient::thread_telnetc() {
 	//   is to destroy class that is created in
 	//   TelnetServer::thread_telnetd when a client connects
 	delete this;
-
-	vTaskDelete(NULL);
 }
