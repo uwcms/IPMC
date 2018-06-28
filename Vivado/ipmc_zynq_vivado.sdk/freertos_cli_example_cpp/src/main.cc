@@ -183,7 +183,7 @@ int main() {
 	/* See http://www.freertos.org/RTOS-Xilinx-Zynq.html. */
 	prvSetupHardware();
 
-	configASSERT(UWTaskCreate("init", TASK_PRIORITY_SERVICE, []() -> void {
+	configASSERT(UWTaskCreate("init", TASK_PRIORITY_WATCHDOG, []() -> void {
 		driver_init(true);
 		ipmc_service_init();
 		LOG.log(std::string("\n") + generate_banner(), LogTree::LOG_NOTICE); // This is the ONLY place that should EVER log directly to LOG rather than a subtree.
