@@ -169,14 +169,6 @@ static void prvSetupHardware(void) {
 }
 } // extern "C"
 
-void init_task(void *dummy0 __attribute__((unused))) {
-	driver_init(true);
-	ipmc_service_init();
-	LOG.log(std::string("\n") + generate_banner(), LogTree::LOG_NOTICE); // This is the ONLY place that should EVER log directly to LOG rather than a subtree.
-
-	vTaskDelete(NULL); // Clean up after ourselves.
-}
-
 int main() {
 	/*
 	 * If you want to run this application outside of SDK,
@@ -191,7 +183,11 @@ int main() {
 	/* See http://www.freertos.org/RTOS-Xilinx-Zynq.html. */
 	prvSetupHardware();
 
-	xTaskCreate(init_task, "init", UWIPMC_STANDARD_STACK_SIZE, NULL, TASK_PRIORITY_SERVICE, NULL);
+	configASSERT(UWTaskCreate("init", TASK_PRIORITY_SERVICE, []() -> void {
+		driver_init(true);
+		ipmc_service_init();
+		LOG.log(std::string("\n") + generate_banner(), LogTree::LOG_NOTICE); // This is the ONLY place that should EVER log directly to LOG rather than a subtree.
+	}));
 
 	/* Start the tasks and timer running. */
 	vTaskStartScheduler();

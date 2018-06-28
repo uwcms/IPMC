@@ -12,10 +12,6 @@
 #include "task.h"
 #include <string.h>
 
-static void run_PS_WDT_thread(void *cb_ps) {
-	reinterpret_cast<PS_WDT*>(cb_ps)->_run_thread();
-}
-
 const static volatile uint32_t global_canary_lshifted1 = 0x87d64518;
 #define GLOBAL_CANARY_RSHIFTED1 0x21f59146
 
@@ -45,7 +41,7 @@ PS_WDT::PS_WDT(u32 DeviceId, u8 num_slots, LogTree &log, std::function<void(void
 		slot.last_serviced_by[0] = '\0'; // null string.
 	}
 
-	configASSERT(xTaskCreate(run_PS_WDT_thread, "PS_WDT", UWIPMC_STANDARD_STACK_SIZE, this, TASK_PRIORITY_WATCHDOG, NULL));
+	UWTaskCreate("PS_WDT", TASK_PRIORITY_WATCHDOG, [this]() -> void { this->_run_thread(); });
 }
 
 PS_WDT::~PS_WDT() {

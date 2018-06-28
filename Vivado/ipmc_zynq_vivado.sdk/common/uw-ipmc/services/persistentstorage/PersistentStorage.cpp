@@ -21,10 +21,6 @@
 
 #define NVREG32(baseptr, offset) (*((uint32_t*)((baseptr)+(offset))))
 
-static void run_persistentstorage_thread(void *cb_ps) {
-	reinterpret_cast<PersistentStorage*>(cb_ps)->run_flush_thread();
-}
-
 /**
  * Instantiate a Persistent Storage module backed by the supplied EEPROM.
  *
@@ -47,7 +43,8 @@ PersistentStorage::PersistentStorage(EEPROM &eeprom, LogTree &logtree, PS_WDT *w
 		this->wdt_slot = this->wdt->register_slot(this->flush_ticks * 10); // We're background, but we should get service EVENTUALLY.
 		this->wdt->activate_slot(this->wdt_slot);
 	}
-	configASSERT(xTaskCreate(run_persistentstorage_thread, "PersistentFlush", UWIPMC_STANDARD_STACK_SIZE, this, TASK_PRIORITY_DRIVER, &this->flushtask));
+	this->flushtask = UWTaskCreate("PersistentFlush", TASK_PRIORITY_DRIVER, [this]() -> void { this->run_flush_thread(); });
+	configASSERT(this->flushtask);
 }
 
 PersistentStorage::~PersistentStorage() {

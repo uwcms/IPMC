@@ -27,27 +27,6 @@
 #include "lwip/init.h"
 #include "lwip/stats.h"
 
-void _thread_network_start(void *p) {
-	reinterpret_cast<Network*>(p)->thread_network_start();
-}
-
-void _thread_dhcpd(void *p) {
-	unsigned int mscnt = 0;
-
-	dhcp_start((struct netif*)p);
-	while (1) {
-		vTaskDelay(DHCP_FINE_TIMER_MSECS / portTICK_RATE_MS);
-		dhcp_fine_tmr();
-		mscnt += DHCP_FINE_TIMER_MSECS;
-		if (mscnt >= DHCP_COARSE_TIMER_MSECS) {
-			dhcp_coarse_tmr();
-			mscnt = 0;
-		}
-	}
-
-	vTaskDelete(NULL);
-}
-
 void _thread_netifsd(void *p) {
 	struct netif *netif = (struct netif*)p;
 	struct xemac_s *xemac = (struct xemac_s*)netif->state;
@@ -77,8 +56,6 @@ void _thread_netifsd(void *p) {
 			vTaskDelay(Network::LINK_POOLING_PERIOD_WHEN_DOWN_MS / portTICK_PERIOD_MS);
 		}
 	}
-
-	vTaskDelete(NULL);
 }
 
 std::string Network::ipaddr_to_string(struct ip_addr &ip) {
@@ -104,7 +81,7 @@ logtree(logtree) {
 	// otherwise there will be problems with TCP requests
 	lwip_init();
 
-	xTaskCreate(_thread_network_start, "network_start", UWIPMC_STANDARD_STACK_SIZE, this, TCPIP_THREAD_PRIO, NULL);
+	configASSERT(UWTaskCreate("network_start", TCPIP_THREAD_PRIO, [this]() -> void { this->thread_network_start(); }));
 }
 
 void Network::thread_network_start() {
@@ -124,7 +101,6 @@ void Network::thread_network_start() {
 	// Add network interface to the netif_list, netif_add internally called by Xilinx port
 	if (!xemac_add(&(this->netif), &ipaddr, &netmask, &gw, this->mac, XPAR_XEMACPS_0_BASEADDR)) {
 		logtree.log("Error adding network interface\n", LogTree::LOG_ERROR);
-		vTaskDelete(NULL);
 		return;
 	}
 
@@ -151,8 +127,8 @@ void Network::thread_network_start() {
 	// Specify that the network if is up (This will be set by the DHCP server)
 	//netif_set_up(&(this->netif));
 
-	xTaskCreate([](void *p) {
-		struct netif *netif = (struct netif*)p;
+	configASSERT(UWTaskCreate("_netifsd", TCPIP_THREAD_XEMACIFD_PRIO, [this]() -> void {
+		struct netif *netif = &this->netif;
 		struct xemac_s *xemac = (struct xemac_s*)netif->state;
 		xemacpsif_s *xemacpsif = (xemacpsif_s*)xemac->state;
 		XEmacPs *xemacpsp = (XEmacPs*)&(xemacpsif->emacps);
@@ -180,16 +156,27 @@ void Network::thread_network_start() {
 				vTaskDelay(LINK_POOLING_PERIOD_WHEN_DOWN_MS / portTICK_PERIOD_MS);
 			}
 		}
-
-		vTaskDelete(NULL);
-	}, "_netifsd", UWIPMC_STANDARD_STACK_SIZE, &(this->netif), TCPIP_THREAD_XEMACIFD_PRIO, NULL);
+	}));
 
 	// Start packet receive thread, required for lwIP operation
-	xTaskCreate((void (*)(void*)) xemacif_input_thread, "_xemacifd", UWIPMC_STANDARD_STACK_SIZE, &(this->netif), TCPIP_THREAD_XEMACIFD_PRIO, NULL);
+	configASSERT(UWTaskCreate("_xemacifd", TCPIP_THREAD_XEMACIFD_PRIO, [this]() -> void { xemacif_input_thread(&this->netif); }));
 
 #if LWIP_DHCP==1
 	// If DHCP is enabled then start it
-	xTaskCreate(_thread_dhcpd, "_dhcpd", UWIPMC_STANDARD_STACK_SIZE, &(this->netif), TCPIP_THREAD_PRIO, NULL);
+	UWTaskCreate("_dhcpd", TCPIP_THREAD_PRIO, [this]() -> void {
+		unsigned int mscnt = 0;
+
+		dhcp_start(&this->netif);
+		while (1) {
+			vTaskDelay(DHCP_FINE_TIMER_MSECS / portTICK_RATE_MS);
+			dhcp_fine_tmr();
+			mscnt += DHCP_FINE_TIMER_MSECS;
+			if (mscnt >= DHCP_COARSE_TIMER_MSECS) {
+				dhcp_coarse_tmr();
+				mscnt = 0;
+			}
+		}
+	});
 
 	// TODO
 	unsigned int mscnt = 0;
@@ -211,8 +198,6 @@ void Network::thread_network_start() {
 		}
 	}
 #endif
-
-	vTaskDelete(NULL);
 }
 
 
