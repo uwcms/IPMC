@@ -239,20 +239,20 @@ static void uwtask_run(void *stdfunc_cb) {
  * returns.
  *
  * @param name The name of the thread.
- * @param priority
- * @param additional_stack_words
+ * @param priority The task priority.
+ * @param stack_words The number of words used for the task stack.
  * @param thread_func The function to run, C function, lambda, bind, method, all are welcome.
  * @return
  */
-TaskHandle_t UWTaskCreate(const std::string name, BaseType_t priority, std::function<void(void)> thread_func, BaseType_t additional_stack_words) {
+TaskHandle_t UWTaskCreate(const std::string name, BaseType_t priority, std::function<void(void)> thread_func, BaseType_t stack_words) {
 	configASSERT(name.size() < configMAX_TASK_NAME_LEN); // < because we need the '\0' still.
 	TaskHandle_t handle = NULL;
 	if (pdFAIL == xTaskCreate(
 			uwtask_run,
 			name.c_str(),
-			UWIPMC_STANDARD_STACK_SIZE + additional_stack_words,
+			(stack_words ? stack_words : UWIPMC_STANDARD_STACK_SIZE),
 			new std::function<void(void)>(thread_func),
-			TASK_PRIORITY_INTERACTIVE,
+			priority,
 			&handle))
 		return NULL;
 	return handle;
