@@ -238,13 +238,13 @@ static void uwtask_run(void *stdfunc_cb) {
  * Runs the supplied std::function in a new thread, cleaning up the thread when it
  * returns.
  *
- * @param thread_func The function to run, C function, lambda, bind, method, all are welcome.
  * @param name The name of the thread.
  * @param priority
  * @param additional_stack_words
+ * @param thread_func The function to run, C function, lambda, bind, method, all are welcome.
  * @return
  */
-TaskHandle_t UWTaskCreate(std::function<void(void)> thread_func, const std::string name, BaseType_t priority, BaseType_t additional_stack_words) {
+TaskHandle_t UWTaskCreate(const std::string name, BaseType_t priority, std::function<void(void)> thread_func, BaseType_t additional_stack_words) {
 	configASSERT(name.size() < configMAX_TASK_NAME_LEN); // < because we need the '\0' still.
 	TaskHandle_t handle = NULL;
 	configASSERT(xTaskCreate(
