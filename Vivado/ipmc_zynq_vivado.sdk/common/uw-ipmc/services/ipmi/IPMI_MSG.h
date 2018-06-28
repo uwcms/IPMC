@@ -48,5 +48,6 @@ public:
 };
 
 uint8_t ipmi_checksum(const uint8_t* buf, uint32_t len);
+uint8_t ipmi_checksum(const std::vector<uint8_t> &buf);
 
 #endif /* SRC_COMMON_UW_IPMC_SERVICES_IPMI_IPMI_MSG_H_ */
