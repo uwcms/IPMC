@@ -176,11 +176,19 @@ std::string IPMI_MSG::format() const {
  * @return The one-byte IPMI checksum.
  */
 uint8_t ipmi_checksum(const uint8_t* buf, uint32_t len) {
-  uint8_t sum = 0;
+	uint8_t sum = 0;
 
-  while (len) {
-    sum += *buf++;
-    len--;
-  }
-  return (~sum) + 1;
+	while (len) {
+		sum += *buf++;
+		len--;
+	}
+	return (~sum) + 1;
+}
+
+/// \overload
+uint8_t ipmi_checksum(const std::vector<uint8_t> &buf) {
+	uint8_t sum = 0;
+	for (auto it = buf.begin(), eit = buf.end(); it != eit; ++it)
+		sum += *it;
+	return (~sum) + 1;
 }
