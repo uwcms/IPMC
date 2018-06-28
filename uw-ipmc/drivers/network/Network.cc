@@ -70,18 +70,21 @@ std::string Network::ipaddr_to_string(struct ip_addr &ip) {
 
 static Network *pNetworkInstance = NULL;
 
-Network::Network(LogTree &logtree, uint8_t mac[6]) :
+Network::Network(LogTree &logtree, uint8_t mac[6], std::function<void(Network*)> net_ready_cb) :
 logtree(logtree) {
 	configASSERT(!pNetworkInstance);
 	pNetworkInstance = this;
 	memcpy(this->mac, mac, sizeof(uint8_t) * 6);
 	memset(&(this->netif), 0, sizeof(struct netif));
 
-	// It is imperative that lwIP gets initialized before the network start thread gets launched
-	// otherwise there will be problems with TCP requests
-	lwip_init();
-
-	configASSERT(UWTaskCreate("network_start", TCPIP_THREAD_PRIO, [this]() -> void { this->thread_network_start(); }));
+	configASSERT(UWTaskCreate("network_start", TCPIP_THREAD_PRIO, [this,net_ready_cb]() -> void {
+		// It is imperative that lwIP gets initialized before the network start thread gets launched
+		// otherwise there will be problems with TCP requests
+		lwip_init();
+		this->thread_network_start();
+		if (net_ready_cb)
+			net_ready_cb(this);
+	}));
 }
 
 void Network::thread_network_start() {
