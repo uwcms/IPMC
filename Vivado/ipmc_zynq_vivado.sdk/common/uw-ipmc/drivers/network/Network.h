@@ -26,7 +26,7 @@ public:
 	 * @param mac The MAC address to uniquely identify the device
 	 * \note Network can only be instantiated ONCE, trying it will cause an assert
 	 */
-	Network(LogTree &logtree, uint8_t mac[6]);
+	Network(LogTree &logtree, uint8_t mac[6], std::function<void(Network*)> net_ready_cb=NULL);
 	virtual ~Network() {};
 
 	// Not copyable or assignable
