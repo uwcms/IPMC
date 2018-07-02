@@ -76,33 +76,82 @@ namespace {
 		}
 
 		virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
+#if FALSE
+			xTaskCreate([](void *p) {
+				int i = 0;
+				PIM400 *pim400 = (PIM400*)p;
 
+				//uint64_t start = get_tick64();
+				TickType_t start = xTaskGetTickCount();
+
+				while (1) {
+
+					++i;
+					float holdup = pim400->read_holdup_voltage();
+					float current = pim400->read_out_current();
+					float feeda = pim400->read_feedA_voltage();
+					float feedb = pim400->read_feedB_voltage();
+					float temp = pim400->read_temperature();
+
+					if (i % 250 == 0) {
+						//uint64_t end = get_tick64();
+						//uint64_t delta = end - start;
+						TickType_t end = xTaskGetTickCount();
+						TickType_t delta = end - start;
+
+						std::string str;
+
+						str += stdsprintf("Attempt: %d\n", ++i);
+						str += stdsprintf("Holdup voltage: %.2fV\n", holdup);
+						str += stdsprintf("Out current: %.3fA\n", current);
+						str += stdsprintf("Feed A voltage: %.2fV\n", feeda);
+						str += stdsprintf("Feed B voltage: %.2fV\n", feedb);
+						str += stdsprintf("Temperature: %.1fC\n", temp);
+						str += stdsprintf("Ticks: %d\n", delta);
+						str += stdsprintf("Time per op: %.3fms\n", (1.0 * delta) / 250.0 / 5.0 / 2.0);
+						printf(str.c_str());
+
+						//start = get_tick64();
+						start = xTaskGetTickCount();
+					}
+
+					//vTaskDelay( 250 / portTICK_RATE_MS );
+				}
+			}, "pim400", UWIPMC_STANDARD_STACK_SIZE, &pim400, TASK_PRIORITY_BACKGROUND, NULL);
+#else
 			int i = 0;
+			TickType_t start = xTaskGetTickCount();
 
 			while (1) {
-				std::string str;
 
-				str += stdsprintf("Attempt: %d\n", ++i);
-				/*str += stdsprintf("Holdup voltage: %.2fV\n", pim400.read_holdup_voltage());
-				str += stdsprintf("Out current: %.3fA\n", pim400.read_out_current());
-				str += stdsprintf("Feed A voltage: %.2fV\n", pim400.read_feedA_voltage());
-				str += stdsprintf("Feed B voltage: %.2fV\n", pim400.read_feedB_voltage());
-				str += stdsprintf("Temperature: %.1fC\n\n", pim400.read_temperature());*/
+				++i;
+				float holdup = pim400.read_holdup_voltage();
+				float current = pim400.read_out_current();
+				float feeda = pim400.read_feedA_voltage();
+				float feedb = pim400.read_feedB_voltage();
+				float temp = pim400.read_temperature();
 
-				//str += stdsprintf("IOUT is %d", pim400.read_int_reg(PIM400::PIM400_NEG48V_IOUT));
+				if (i % 250 == 0) {
+					TickType_t end = xTaskGetTickCount();
+					TickType_t delta = end - start;
 
-				pim400.read_holdup_voltage();
-				pim400.read_out_current();
-				pim400.read_feedA_voltage();
-				pim400.read_feedB_voltage();
-				pim400.read_temperature();
+					std::string str;
 
-
-				if (i % 1000 == 0)
+					str += stdsprintf("Attempt: %d\n", ++i);
+					str += stdsprintf("Holdup voltage: %.2fV\n", holdup);
+					str += stdsprintf("Out current: %.3fA\n", current);
+					str += stdsprintf("Feed A voltage: %.2fV\n", feeda);
+					str += stdsprintf("Feed B voltage: %.2fV\n", feedb);
+					str += stdsprintf("Temperature: %.1fC\n\n", temp);
+					str += stdsprintf("Ticks: %d\n", delta);
+					str += stdsprintf("Time per op: %.3fms\n", (1.0 * delta) / 250.0 / 5.0 / 2.0);
 					console->write(str);
 
-				//vTaskDelay( 250 / portTICK_RATE_MS );
+					start = xTaskGetTickCount();
+				}
+
 			}
+#endif
 		}
 
 		//virtual std::vector<std::string> complete(const CommandParser::CommandParameters &parameters) const { };
@@ -131,8 +180,10 @@ u8 PIM400::read_int_reg(const PIM400::PIM400_REGISTERS reg) {
 	u8 a = reg;
 	u8 r = 0xFF;
 
-	this->i2c.write(this->PimAddr, &a, 1, 1000 / portTICK_RATE_MS);
-	this->i2c.read(this->PimAddr, &r, 1, 1000 / portTICK_RATE_MS);
+	this->i2c.chain([this, &a, &r]() -> void {
+		this->i2c.write(this->PimAddr, &a, 1, 1000 / portTICK_RATE_MS);
+		this->i2c.read(this->PimAddr, &r, 1, 1000 / portTICK_RATE_MS);
+	});
 
 	return r;
 }
