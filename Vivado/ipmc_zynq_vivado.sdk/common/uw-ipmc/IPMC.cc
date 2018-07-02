@@ -142,10 +142,10 @@ void driver_init(bool use_pl) {
 void ipmc_service_init() {
 	console_service = UARTConsoleSvc::create(*uart_ps0, console_command_parser, "console", LOG["console"]["uart"], true);
 
-	network = new Network(LOG["network"], mac_address);
+	/*network = new Network(LOG["network"], mac_address);
 	influxdbclient = new InfluxDBClient(LOG["influxdb"]);
 	influxdbclient->register_console_commands(console_command_parser, "influxdb.");
-	telnet = new TelnetServer();
+	telnet = new TelnetServer();*/
 }
 
 
