@@ -29,7 +29,7 @@ static void PS_IPMB_InterruptPassthrough(PS_IPMB *ps_ipmb, u32 StatusEvent) {
  *
  * \param DeviceId             The DeviceId, used for XIicPs_LookupConfig(), etc
  * \param IntrId               The interrupt ID, for configuring the GIC.
- * \param SlaveAddr            The IPMB slave address to listen on.
+ * \param IPMBAddr             The IPMB slave address to listen on.
  */
 PS_IPMB::PS_IPMB(u16 DeviceId, u32 IntrId, u8 IPMBAddr) :
 		messages_received(stdsprintf("ipmb0.ps_ipmb.%hu.messages_received", DeviceId)),

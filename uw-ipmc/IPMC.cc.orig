@@ -19,6 +19,7 @@
 #include <drivers/network/Network.h>
 #include <services/persistentstorage/PersistentStorage.h>
 #include <drivers/tracebuffer/TraceBuffer.h>
+#include <drivers/pim400/PIM400.h>
 #include <services/console/UARTConsoleSvc.h>
 #include <services/influxdb/InfluxDBClient.h>
 #include <libs/LogTree.h>
@@ -38,8 +39,6 @@
 
 #include <services/lwiperf/Lwiperf.h>
 #include <services/xvcserver/XVCServer.h>
-
-#include <drivers/pim400/PIM400.h>
 
 u8 IPMC_HW_REVISION = 1; // TODO: Detect, Update, etc
 
@@ -93,7 +92,12 @@ void driver_init(bool use_pl) {
 	new LogTree::Filter(LOG, tracebuffer_log_handler, LogTree::LOG_TRACE);
 
 	// Initialize the watchdog.
+<<<<<<< HEAD
 	SWDT = new PS_WDT(XPAR_PS7_WDT_0_DEVICE_ID, 8, LOG["watchdog"], watchdog_ontrip);
+=======
+	//SWDT = new PS_WDT(XPAR_PS7_WDT_0_DEVICE_ID, 8, LOG["watchdog"]);
+	SWDT = NULL;
+>>>>>>> origin/pl_i2c_driver
 
 	/* Initialize the UART console.
 	 *
@@ -130,10 +134,7 @@ void driver_init(bool use_pl) {
 	ipmb0 = new IPMBSvc(ps_ipmb[0], ps_ipmb[1], ipmbaddr, ipmi_command_parser, log_ipmb0, "ipmb0", SWDT);
 	ipmb0->register_console_commands(console_command_parser, "ipmb0.");
 
-	// TODO: Clean up this part
-	PL_I2C *i2c = new PL_I2C(XPAR_AXI_IIC_PIM400_DEVICE_ID, XPAR_FABRIC_AXI_IIC_PIM400_IIC2INTC_IRPT_INTR);
-	(new PIM400(*i2c, 0x5E))->register_console_commands(console_command_parser, "pim400");
-
+<<<<<<< HEAD
 	for (int i = 0; i < XPAR_MGMT_ZONE_CTRL_0_MZ_CNT; ++i)
 		mgmt_zones[i] = new MGMT_Zone(XPAR_MGMT_ZONE_CTRL_0_DEVICE_ID, i);
 
@@ -181,6 +182,12 @@ void driver_init(bool use_pl) {
 	pen_config[6].drive_enabled = true;
 	pen_config[6].enable_delay = 50;
 	mgmt_zones[1]->set_pen_config(pen_config);
+=======
+	// TODO: Remove this at some point, only needed to add the pim400.status to the console
+	PL_I2C *i2c = new PL_I2C(XPAR_AXI_IIC_0_DEVICE_ID, XPAR_FABRIC_AXI_IIC_0_IIC2INTC_IRPT_INTR);
+	(new PIM400(*i2c, 0x5E))->register_console_commands(console_command_parser, "pim400");
+
+>>>>>>> origin/pl_i2c_driver
 }
 
 /** IPMC service initialization.
@@ -195,6 +202,7 @@ void driver_init(bool use_pl) {
 void ipmc_service_init() {
 	console_service = UARTConsoleSvc::create(*uart_ps0, console_command_parser, "console", LOG["console"]["uart"], true);
 
+<<<<<<< HEAD
 	network = new Network(LOG["network"], mac_address, [](Network *network) {
 		// Network Ready callback.
 
@@ -207,6 +215,12 @@ void ipmc_service_init() {
 		new XVCServer(XPAR_AXI_JTAG_0_BASEADDR);
 	});
 	network->register_console_commands(console_command_parser, "network.");
+=======
+	/*network = new Network(LOG["network"], mac_address);
+	influxdbclient = new InfluxDBClient(LOG["influxdb"]);
+	influxdbclient->register_console_commands(console_command_parser, "influxdb.");
+	telnet = new TelnetServer();*/
+>>>>>>> origin/pl_i2c_driver
 }
 
 
