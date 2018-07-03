@@ -39,6 +39,8 @@
 #include <services/lwiperf/Lwiperf.h>
 #include <services/xvcserver/XVCServer.h>
 
+#include <drivers/pim400/PIM400.h>
+
 u8 IPMC_HW_REVISION = 1; // TODO: Detect, Update, etc
 
 PS_WDT *SWDT;
@@ -127,6 +129,10 @@ void driver_init(bool use_pl) {
 	ipmi_command_parser = new IPMICommandParser(ipmicmd_default, *ipmicmd_index);
 	ipmb0 = new IPMBSvc(ps_ipmb[0], ps_ipmb[1], ipmbaddr, ipmi_command_parser, log_ipmb0, "ipmb0", SWDT);
 	ipmb0->register_console_commands(console_command_parser, "ipmb0.");
+
+	// TODO: Clean up this part
+	PL_I2C *i2c = new PL_I2C(XPAR_AXI_IIC_PIM400_DEVICE_ID, XPAR_FABRIC_AXI_IIC_PIM400_IIC2INTC_IRPT_INTR);
+	(new PIM400(*i2c, 0x5E))->register_console_commands(console_command_parser, "pim400");
 
 	for (int i = 0; i < XPAR_MGMT_ZONE_CTRL_0_MZ_CNT; ++i)
 		mgmt_zones[i] = new MGMT_Zone(XPAR_MGMT_ZONE_CTRL_0_DEVICE_ID, i);

@@ -38,57 +38,26 @@
 *******************************************************************/
 
 #include "xparameters.h"
-#include "xintc.h"
-
-
-extern void XNullHandler (void *);
+#include "xiic.h"
 
 /*
 * The configuration table for devices
 */
 
-XIntc_Config XIntc_ConfigTable[] =
+XIic_Config XIic_ConfigTable[XPAR_XIIC_NUM_INSTANCES] =
 {
 	{
-		XPAR_AXI_INTC_0_DEVICE_ID,
-		XPAR_AXI_INTC_0_BASEADDR,
-		XPAR_AXI_INTC_0_KIND_OF_INTR,
-		XPAR_AXI_INTC_0_HAS_FAST,
-		XPAR_AXI_INTC_0_IVAR_RESET_VALUE,
-		XPAR_AXI_INTC_0_NUM_INTR_INPUTS,
-		XIN_SVC_SGL_ISR_OPTION,
-		XPAR_AXI_INTC_0_TYPE,
-		{
-			{
-				XNullHandler,
-				(void *) XNULL
-			},
-			{
-				XNullHandler,
-				(void *) XNULL
-			},
-			{
-				XNullHandler,
-				(void *) XNULL
-			},
-			{
-				XNullHandler,
-				(void *) XNULL
-			},
-			{
-				XNullHandler,
-				(void *) XNULL
-			},
-			{
-				XNullHandler,
-				(void *) XNULL
-			},
-			{
-				XNullHandler,
-				(void *) XNULL
-			}
-		}
-
+		XPAR_AXI_IIC_EEPROM_0_DEVICE_ID,
+		XPAR_AXI_IIC_EEPROM_0_BASEADDR,
+		XPAR_AXI_IIC_EEPROM_0_TEN_BIT_ADR,
+		XPAR_AXI_IIC_EEPROM_0_GPO_WIDTH
+	},
+	{
+		XPAR_AXI_IIC_PIM400_DEVICE_ID,
+		XPAR_AXI_IIC_PIM400_BASEADDR,
+		XPAR_AXI_IIC_PIM400_TEN_BIT_ADR,
+		XPAR_AXI_IIC_PIM400_GPO_WIDTH
 	}
 };
+
 
