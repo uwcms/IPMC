@@ -9,54 +9,39 @@
 #include <services/console/CommandParser.h>
 #include <services/console/ConsoleSvc.h>
 
-/**
- * Initialize the PIM400 interface driver
- *
- * \param MasterI2C            The I2C interface to where the PIM400 is connected to.
- * \param Addr                 The PIM400 I2C address (does NOT require to be shifted!)
- */
-PIM400::PIM400(I2C &MasterI2C, u8 Addr) :
-i2c(MasterI2C), PimAddr(Addr>>1) {
-	configASSERT(this->PimAddr > 0);
+PIM400::PIM400(I2C &i2c, uint8_t i2c_addr) :
+i2c(i2c), i2c_addr(i2c_addr>>1) {
+	configASSERT(this->i2c_addr > 0);
 }
 
 PIM400::~PIM400() {
 
 }
 
-/**
- * Read the hold-up voltage in 0.398V steps.
- */
 float PIM400::read_holdup_voltage() {
 	return ((this->read_int_reg(PIM400_V_HLDP)*1.0) * 0.398);
 }
 
-/**
- * Read the output current in 0.094A steps.
- */
 float PIM400::read_out_current() {
 	return ((this->read_int_reg(PIM400_NEG48V_IOUT)*1.0) * 0.094);
 }
 
-/**
- * Read the feed A voltage in 0.325V steps.
- */
 float PIM400::read_feedA_voltage() {
 	return ((this->read_int_reg(PIM400_NEG48V_AF)*1.0) * 0.325);
 }
 
-/**
- * Read the feed B voltage in 0.325V steps.
- */
 float PIM400::read_feedB_voltage() {
 	return ((this->read_int_reg(PIM400_NEG48V_BF)*1.0) * 0.325);
 }
 
-/**
- * Read the module temperature in 1.961C steps.
- */
 float PIM400::read_temperature() {
 	return ((this->read_int_reg(PIM400_TEMP)*1.0) * 1.961 - 50.0);
+}
+
+PIM400::pim400status PIM400::read_status() {
+	PIM400::pim400status r;
+	r._raw = this->read_int_reg(PIM400_STATUS);
+	return r;
 }
 
 namespace {
@@ -130,6 +115,7 @@ namespace {
 				float feeda = pim400.read_feedA_voltage();
 				float feedb = pim400.read_feedB_voltage();
 				float temp = pim400.read_temperature();
+				PIM400::pim400status status = pim400.read_status();
 
 				if (i % 250 == 0) {
 					TickType_t end = xTaskGetTickCount();
@@ -144,7 +130,7 @@ namespace {
 					str += stdsprintf("Feed B voltage: %.2fV\n", feedb);
 					str += stdsprintf("Temperature: %.1fC\n\n", temp);
 					str += stdsprintf("Ticks: %d\n", delta);
-					str += stdsprintf("Time per op: %.3fms\n", (1.0 * delta) / 250.0 / 5.0 / 2.0);
+					str += stdsprintf("Time per op: %.3fms\n", (1.0 * delta) / 250.0 / 6.0 / 2.0);
 					console->write(str);
 
 					start = xTaskGetTickCount();
@@ -157,6 +143,18 @@ namespace {
 		//virtual std::vector<std::string> complete(const CommandParser::CommandParameters &parameters) const { };
 	};
 };
+
+u8 PIM400::read_int_reg(const PIM400::PIM400_REGISTERS reg) {
+	u8 a = reg;
+	u8 r = 0xFF;
+
+	this->i2c.chain([this, &a, &r]() -> void {
+		this->i2c.write(this->i2c_addr, &a, 1, 1000 / portTICK_RATE_MS);
+		this->i2c.read(this->i2c_addr, &r, 1, 1000 / portTICK_RATE_MS);
+	});
+
+	return r;
+}
 
 /**
  * Register console commands related to this storage.
@@ -176,14 +174,3 @@ void PIM400::deregister_console_commands(CommandParser &parser, const std::strin
 	parser.register_command(prefix + ".status", NULL);
 }
 
-u8 PIM400::read_int_reg(const PIM400::PIM400_REGISTERS reg) {
-	u8 a = reg;
-	u8 r = 0xFF;
-
-	this->i2c.chain([this, &a, &r]() -> void {
-		this->i2c.write(this->PimAddr, &a, 1, 1000 / portTICK_RATE_MS);
-		this->i2c.read(this->PimAddr, &r, 1, 1000 / portTICK_RATE_MS);
-	});
-
-	return r;
-}
