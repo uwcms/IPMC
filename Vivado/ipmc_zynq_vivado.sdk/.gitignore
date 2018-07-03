@@ -12,6 +12,7 @@ tmp/
 .sdk/
 
 # Don't keep the compilation files
+*.o
 .dep/
 .obj/
 bin/
@@ -19,6 +20,7 @@ doxygen/
 *.elf
 *.elf.size
 Xilinx.spec
+
 # Seems to change every time, and is confirmed to recompile if missing.  Exclude from git.
 libxil.a
 
