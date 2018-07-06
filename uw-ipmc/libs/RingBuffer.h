@@ -151,7 +151,11 @@ public:
 				portEXIT_CRITICAL();
 			return;
 		}
-		if (this->next_write_idx > this->next_read_idx) {
+		if (this->empty()) {
+			*data_start = this->buffer;
+			*maxitems = this->maxlength();
+		}
+		else if (this->next_write_idx > this->next_read_idx) {
 			// The next write goes into the end of the physical buffer, and free
 			// space wraps.
 			*data_start = &(this->buffer[this->next_write_idx]);
