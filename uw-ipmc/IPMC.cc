@@ -224,6 +224,8 @@ std::string generate_banner() {
 	bannerstr += std::string("University of Wisconsin IPMC ") + GIT_DESCRIBE + "\n";
 	if (GIT_STATUS[0] != '\0')
 		bannerstr += std::string("\n") + GIT_STATUS; // contains a trailing \n
+	bannerstr += "\n OS: FreeRTOS ";
+	bannerstr += tskKERNEL_VERSION_NUMBER;
 	bannerstr += "\n";
 	bannerstr += "********************************************************************************\n";
 	return bannerstr;
