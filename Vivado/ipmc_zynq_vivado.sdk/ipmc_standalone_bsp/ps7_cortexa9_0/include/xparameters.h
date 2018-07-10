@@ -2,7 +2,7 @@
 #define XPARAMETERS_H   /* by using protection macros */
 
 /* Definition for CPU ID */
-#define XPAR_CPU_ID 0
+#define XPAR_CPU_ID 0U
 
 /* Definitions for peripheral PS7_CORTEXA9_0 */
 #define XPAR_PS7_CORTEXA9_0_CPU_CLK_FREQ_HZ 666666687
@@ -23,6 +23,14 @@
 
 /******************************************************************/
 
+/* Platform specific definitions */
+#define PLATFORM_ZYNQ
+ 
+/* Definitions for sleep timer configuration */
+#define XSLEEP_TIMER_IS_DEFAULT_TIMER
+ 
+ 
+/******************************************************************/
 
 /* Definitions for peripheral PS7_DDR_0 */
 #define XPAR_PS7_DDR_0_S_AXI_BASEADDR 0x00100000
@@ -32,20 +40,20 @@
 /******************************************************************/
 
 /* Definitions for driver DEVCFG */
-#define XPAR_XDCFG_NUM_INSTANCES 1
+#define XPAR_XDCFG_NUM_INSTANCES 1U
 
 /* Definitions for peripheral PS7_DEV_CFG_0 */
-#define XPAR_PS7_DEV_CFG_0_DEVICE_ID 0
-#define XPAR_PS7_DEV_CFG_0_BASEADDR 0xF8007000
-#define XPAR_PS7_DEV_CFG_0_HIGHADDR 0xF80070FF
+#define XPAR_PS7_DEV_CFG_0_DEVICE_ID 0U
+#define XPAR_PS7_DEV_CFG_0_BASEADDR 0xF8007000U
+#define XPAR_PS7_DEV_CFG_0_HIGHADDR 0xF80070FFU
 
 
 /******************************************************************/
 
 /* Canonical definitions for peripheral PS7_DEV_CFG_0 */
 #define XPAR_XDCFG_0_DEVICE_ID XPAR_PS7_DEV_CFG_0_DEVICE_ID
-#define XPAR_XDCFG_0_BASEADDR 0xF8007000
-#define XPAR_XDCFG_0_HIGHADDR 0xF80070FF
+#define XPAR_XDCFG_0_BASEADDR 0xF8007000U
+#define XPAR_XDCFG_0_HIGHADDR 0xF80070FFU
 
 
 /******************************************************************/
@@ -94,10 +102,12 @@
 #define XPAR_PS7_ETHERNET_0_ENET_SLCR_100MBPS_DIV1 5
 #define XPAR_PS7_ETHERNET_0_ENET_SLCR_10MBPS_DIV0 8
 #define XPAR_PS7_ETHERNET_0_ENET_SLCR_10MBPS_DIV1 50
+#define XPAR_PS7_ETHERNET_0_ENET_TSU_CLK_FREQ_HZ 0
 
 
 /******************************************************************/
 
+#define XPAR_PS7_ETHERNET_0_IS_CACHE_COHERENT 0
 /* Canonical definitions for peripheral PS7_ETHERNET_0 */
 #define XPAR_XEMACPS_0_DEVICE_ID XPAR_PS7_ETHERNET_0_DEVICE_ID
 #define XPAR_XEMACPS_0_BASEADDR 0xE000B000
@@ -109,6 +119,7 @@
 #define XPAR_XEMACPS_0_ENET_SLCR_100Mbps_DIV1 5
 #define XPAR_XEMACPS_0_ENET_SLCR_10Mbps_DIV0 8
 #define XPAR_XEMACPS_0_ENET_SLCR_10Mbps_DIV1 50
+#define XPAR_XEMACPS_0_ENET_TSU_CLK_FREQ_HZ 0
 
 
 /******************************************************************/
@@ -385,6 +396,7 @@
 #define XPAR_PS7_QSPI_0_HIGHADDR 0xE000DFFF
 #define XPAR_PS7_QSPI_0_QSPI_CLK_FREQ_HZ 200000000
 #define XPAR_PS7_QSPI_0_QSPI_MODE 0
+#define XPAR_PS7_QSPI_0_QSPI_BUS_WIDTH 2
 
 
 /******************************************************************/
@@ -395,6 +407,7 @@
 #define XPAR_XQSPIPS_0_HIGHADDR 0xE000DFFF
 #define XPAR_XQSPIPS_0_QSPI_CLK_FREQ_HZ 200000000
 #define XPAR_XQSPIPS_0_QSPI_MODE 0
+#define XPAR_XQSPIPS_0_QSPI_BUS_WIDTH 2
 
 
 /******************************************************************/
@@ -408,6 +421,8 @@
 /******************************************************************/
 
 /* Canonical definitions for Fabric interrupts connected to ps7_scugic_0 */
+#define XPAR_FABRIC_IIC_0_VEC_ID XPAR_FABRIC_AXI_IIC_EEPROM_0_IIC2INTC_IRPT_INTR
+#define XPAR_FABRIC_IIC_1_VEC_ID XPAR_FABRIC_AXI_IIC_PIM400_IIC2INTC_IRPT_INTR
 
 /******************************************************************/
 
@@ -492,24 +507,24 @@
 /******************************************************************/
 
 /* Definitions for driver SYSMON */
-#define XPAR_XSYSMON_NUM_INSTANCES 1
+#define XPAR_XSYSMON_NUM_INSTANCES 1U
 
 /* Definitions for peripheral XADC_WIZ_0 */
-#define XPAR_XADC_WIZ_0_IP_TYPE 0
-#define XPAR_XADC_WIZ_0_DEVICE_ID 0
-#define XPAR_XADC_WIZ_0_BASEADDR 0x43C60000
-#define XPAR_XADC_WIZ_0_HIGHADDR 0x43C6FFFF
-#define XPAR_XADC_WIZ_0_INCLUDE_INTR 1
+#define XPAR_XADC_WIZ_0_IP_TYPE 0U
+#define XPAR_XADC_WIZ_0_DEVICE_ID 0U
+#define XPAR_XADC_WIZ_0_BASEADDR 0x43C60000U
+#define XPAR_XADC_WIZ_0_HIGHADDR 0x43C6FFFFU
+#define XPAR_XADC_WIZ_0_INCLUDE_INTR 1U
 
 
 /******************************************************************/
 
 /* Canonical definitions for peripheral XADC_WIZ_0 */
-#define XPAR_SYSMON_0_IP_TYPE 0
+#define XPAR_SYSMON_0_IP_TYPE 0U
 #define XPAR_SYSMON_0_DEVICE_ID XPAR_XADC_WIZ_0_DEVICE_ID
-#define XPAR_SYSMON_0_BASEADDR 0x43C60000
-#define XPAR_SYSMON_0_HIGHADDR 0x43C6FFFF
-#define XPAR_SYSMON_0_INCLUDE_INTR 1
+#define XPAR_SYSMON_0_BASEADDR 0x43C60000U
+#define XPAR_SYSMON_0_HIGHADDR 0x43C6FFFFU
+#define XPAR_SYSMON_0_INCLUDE_INTR 1U
 
 
 /******************************************************************/
