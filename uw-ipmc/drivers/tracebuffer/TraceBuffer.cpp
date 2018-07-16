@@ -97,6 +97,8 @@ void TraceBuffer::log(const char *label, size_t label_len, enum LogTree::LogLeve
 		uint32_t prev_record_offset = this->buf->last_record;
 		rec = TRACEREC_PTR(prev_record_offset);
 		next_offset = prev_record_offset + sizeof(struct TraceRecord) + rec->label_length + rec->data_length;
+		if (next_offset % 4)
+			next_offset += 4-(next_offset%4); // Word-align all records.
 		if (next_offset + record_length > this->buf->total_length)
 			next_offset = 0;
 		rec = TRACEREC_PTR(next_offset);
