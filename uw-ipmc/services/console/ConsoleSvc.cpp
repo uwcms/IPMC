@@ -139,7 +139,7 @@ void ConsoleSvc::_run_thread() {
 	xSemaphoreTake(this->linebuf_mutex, portMAX_DELAY);
 
 	if (this->echo)
-		this-raw_write(this->linebuf.prompt.data(), this->linebuf.prompt.size(), portMAX_DELAY);
+		this->raw_write(this->linebuf.prompt.data(), this->linebuf.prompt.size(), portMAX_DELAY);
 	if (this->echo)
 		this->raw_write(ANSICode::ANSI_CURSOR_QUERY_POSITION.data(), ANSICode::ANSI_CURSOR_QUERY_POSITION.size(), portMAX_DELAY);
 
