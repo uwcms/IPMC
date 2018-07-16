@@ -67,7 +67,7 @@ void ipmc_lwip_printf(const char *ctrl1, ...);
 
 #define LWIP_TCP_KEEPALIVE			1
 
-#define LWIP_PROVIDE_ERRNO			1
+#define LWIP_PROVIDE_ERRNO
 
 // Unclear if this help or does harm, offload seems to be ON by default anyway
 #define CHECKSUM_GEN_TCP 	0

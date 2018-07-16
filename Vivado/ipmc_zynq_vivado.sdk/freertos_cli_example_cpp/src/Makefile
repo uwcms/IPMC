@@ -130,19 +130,11 @@ endif
 
 .obj/$(BUILD_CONFIGURATION)/%.o: %.cpp | pre-build
 	@mkdir -p "$(dir $@)" "$(dir $(patsubst .obj/$(BUILD_CONFIGURATION)/%,.dep/$(BUILD_CONFIGURATION)/%,$@))"
-ifeq "common/lwIP/src/" "$(patsubst $@,common/lwIP/src/%,common/lwIP/src/)"
-	$(CXX) -c $(CFLAGS) $(CXXFLAGS) $(LDFLAGS) $(INCLUDE_PATHS) $(LIBRARY_PATHS) -o "$@" "$<" $(LIBS)
-else
 	$(CXX) -c $(CFLAGS) $(WARNING_FLAGS) $(CXXFLAGS) $(LDFLAGS) $(INCLUDE_PATHS) $(LIBRARY_PATHS) -o "$@" "$<" $(LIBS)
-endif
 
 .obj/$(BUILD_CONFIGURATION)/%.o: %.S | pre-build
 	@mkdir -p "$(dir $@)" "$(dir $(patsubst .obj/$(BUILD_CONFIGURATION)/%,.dep/$(BUILD_CONFIGURATION)/%,$@))"
-ifeq "common/lwIP/src/" "$(patsubst $@,common/lwIP/src/%,common/lwIP/src/)"
-	$(CXX) -c $(CFLAGS) $(CXXFLAGS) $(LDFLAGS) $(INCLUDE_PATHS) $(LIBRARY_PATHS) -o "$@" "$<" $(LIBS)
-else
 	$(CXX) -c $(CFLAGS) $(WARNING_FLAGS) $(CXXFLAGS) $(LDFLAGS) $(INCLUDE_PATHS) $(LIBRARY_PATHS) -o "$@" "$<" $(LIBS)
-endif
 
 ifeq (x$(GIT_DIRTY),x)
 export DOXYGEN_GIT_DIRTY :=
