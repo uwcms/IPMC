@@ -250,7 +250,7 @@ TaskHandle_t UWTaskCreate(const std::string name, BaseType_t priority, std::func
 	if (pdFAIL == xTaskCreate(
 			uwtask_run,
 			name.c_str(),
-			(stack_words ? stack_words : UWIPMC_STANDARD_STACK_SIZE),
+			(stack_words ? stack_words : UWIPMC_STANDARD_STACK_SIZE) + 40 /* UWTaskCreate wrappers/etc consume 40 words of stack */,
 			new std::function<void(void)>(thread_func),
 			priority,
 			&handle))
