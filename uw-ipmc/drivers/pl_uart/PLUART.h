@@ -14,9 +14,12 @@
 #include <stream_buffer.h>
 #include <drivers/generics/UART.h>
 #include "xuartlite.h"
-#include "libs/FixedQueue.h"
 
 // TODO: Remove UartLite dependencies, which is barely used and is just consuming space
+
+/**
+ * A FreeRTOS interrupt based driver for Xilinx UartLite IP core.
+ */
 class PL_UART : public UART {
 public:
 	/**
