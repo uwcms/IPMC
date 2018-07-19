@@ -40,6 +40,7 @@
 #include <services/xvcserver/XVCServer.h>
 
 #include <drivers/pim400/PIM400.h>
+#include <drivers/pl_uart/PLUART.h>
 
 u8 IPMC_HW_REVISION = 1; // TODO: Detect, Update, etc
 
@@ -64,6 +65,8 @@ std::shared_ptr<UARTConsoleSvc> console_service;
 InfluxDBClient *influxdbclient;
 
 TelnetServer *telnet;
+
+PL_UART *uart;
 
 // External static variables
 extern uint8_t mac_address[6]; ///< The MAC address of the board, read by persistent storage statically
@@ -207,6 +210,8 @@ void ipmc_service_init() {
 		new XVCServer(XPAR_AXI_JTAG_0_BASEADDR);
 	});
 	network->register_console_commands(console_command_parser, "network.");
+
+	uart = new PL_UART(XPAR_AXI_UARTLITE_ESM_DEVICE_ID, XPAR_FABRIC_AXI_UARTLITE_ESM_INTERRUPT_INTR);
 }
 
 
@@ -221,11 +226,14 @@ std::string generate_banner() {
 	std::string bannerstr;
 	bannerstr += "********************************************************************************\n";
 	bannerstr += "\n";
-	bannerstr += std::string("University of Wisconsin IPMC ") + GIT_DESCRIBE + "\n";
+	bannerstr += std::string("ZYNQ-IPMC - Open-source IPMC hardware and software framework\n");
+	bannerstr += std::string("HW revision : ") + std::to_string(IPMC_HW_REVISION) + "\n"; // TODO
+	bannerstr += std::string("SW revision : ") + GIT_DESCRIBE + "\n";
+	bannerstr += std::string("Build date  : ") + COMPILE_DATE + "\n";
+	bannerstr += std::string("OS version  : FreeRTOS ") + tskKERNEL_VERSION_NUMBER + "\n";
+
 	if (GIT_STATUS[0] != '\0')
 		bannerstr += std::string("\n") + GIT_STATUS; // contains a trailing \n
-	bannerstr += "\n OS: FreeRTOS ";
-	bannerstr += tskKERNEL_VERSION_NUMBER;
 	bannerstr += "\n";
 	bannerstr += "********************************************************************************\n";
 	return bannerstr;
@@ -238,7 +246,83 @@ static void tracebuffer_log_handler(LogTree &logtree, const std::string &message
 	TRACE.log(logtree.path.data(), logtree.path.size(), level, message.data(), message.size());
 }
 
+#include "xuartlite_l.h"
+
 namespace {
+/// A "esm" console command.
+class ConsoleCommand_esm : public CommandParser::Command {
+public:
+	virtual std::string get_helptext(const std::string &command) const {
+		return stdsprintf(
+				"%s\n"
+				"\n"
+				"Send a command to the ESM and see its output. Use ? to see possible commands.\n", command.c_str());
+	}
+
+	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
+		// Prepare the command
+		int argn = parameters.nargs();
+		std::string command = "", p;
+		for (int i = 1; i < argn; i++) {
+			parameters.parse_parameters(i, true, &p);
+			if (i == (argn-1)) {
+				command += p;
+			} else {
+				command += p + " ";
+			}
+		}
+
+		// Check if there is a command to send
+		if (command == "") {
+			console->write("No command to send.\n");
+			return;
+		}
+
+		// Terminate with '/r' to trigger ESM to respond
+		command += "\r";
+
+		// Clear the receiver buffer
+		uart->clear();
+
+		// Send the command
+		uart->write((const u8*)command.c_str(), command.length(), pdMS_TO_TICKS(1000));
+
+		// Read the incoming response
+		// A single read such as:
+		// size_t count = uart->read((u8*)buf, 2048, pdMS_TO_TICKS(1000));
+		// .. works but reading one character at a time allows us to detect
+		// the end of the response which is '\r\n>'.
+		char inbuf[2048] = "";
+		size_t pos = 0, count = 0;
+		while (pos < 2043) {
+			count = uart->read((u8*)inbuf+pos, 1, pdMS_TO_TICKS(1000));
+			if (count == 0) break; // No character received
+			if ((pos > 3) && (memcmp(inbuf+pos-2, "\r\n>", 3) == 0)) break;
+			pos++;
+		}
+
+		if (pos == 0) {
+			console->write("No response from ESM.\n");
+		} else if (pos == 2043) {
+			console->write("An abnormal number of characters was received.\n");
+		} else {
+			// ESM will send back the command written and a new line.
+			// At the end it will return '\r\n>', we erase this.
+			size_t start = command.length() + 1;
+			size_t end = strlen(inbuf);
+
+			// Force the end of buf to be before '\r\n>'
+			if (end > 3) { // We don't want a data abort here..
+				inbuf[end-3] = '\0';
+			}
+
+			console->write(inbuf + start);
+		}
+	}
+
+	//virtual std::vector<std::string> complete(const CommandParser::CommandParameters &parameters) const { };
+};
+
 /// A "uptime" console command.
 class ConsoleCommand_uptime : public CommandParser::Command {
 public:
@@ -411,6 +495,7 @@ public:
 } // anonymous namespace
 
 static void register_core_console_commands(CommandParser &parser) {
+	console_command_parser.register_command("esm", std::make_shared<ConsoleCommand_esm>());
 	console_command_parser.register_command("uptime", std::make_shared<ConsoleCommand_uptime>());
 	console_command_parser.register_command("version", std::make_shared<ConsoleCommand_version>());
 	console_command_parser.register_command("ps", std::make_shared<ConsoleCommand_ps>());

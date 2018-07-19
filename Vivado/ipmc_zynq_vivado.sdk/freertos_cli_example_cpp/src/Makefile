@@ -126,7 +126,14 @@ endif
 	@mkdir -p "$(dir $@)" "$(dir $(patsubst .obj/$(BUILD_CONFIGURATION)/%,.dep/$(BUILD_CONFIGURATION)/%,$@))"
 	rm -f .obj/$(BUILD_CONFIGURATION)/common/uw-ipmc/version.*.o
 	$(CXX) -c $(CFLAGS) $(WARNING_FLAGS) $(CXXFLAGS) $(LDFLAGS) $(INCLUDE_PATHS) $(LIBRARY_PATHS) \
-		-DD_GIT_SHORT_INT="0x$(shell git rev-parse --short HEAD)" -DD_GIT_SHORT="\"$(shell git rev-parse --short HEAD)\"" -DD_GIT_LONG="\"$(shell git rev-parse HEAD)\"" -DD_GIT_DESCRIBE="\"$$GIT_DESCRIBE\"" -DD_GIT_BRANCH="\"$$GIT_BRANCH\"" -DD_GIT_STATUS="$$GIT_STATUS" -o "$@" "$<" $(LIBS)
+		-DD_GIT_SHORT_INT="0x$(shell git rev-parse --short HEAD)" \
+		-DD_GIT_SHORT="\"$(shell git rev-parse --short HEAD)\"" \
+		-DD_GIT_LONG="\"$(shell git rev-parse HEAD)\"" \
+		-DD_GIT_DESCRIBE="\"$$GIT_DESCRIBE\"" \
+		-DD_GIT_BRANCH="\"$$GIT_BRANCH\"" \
+		-DD_GIT_STATUS="$$GIT_STATUS" \
+		-DD_COMPILE_DATE="\"$(shell date)\"" \
+		-o "$@" "$<" $(LIBS)
 
 .obj/$(BUILD_CONFIGURATION)/%.o: %.cpp | pre-build
 	@mkdir -p "$(dir $@)" "$(dir $(patsubst .obj/$(BUILD_CONFIGURATION)/%,.dep/$(BUILD_CONFIGURATION)/%,$@))"

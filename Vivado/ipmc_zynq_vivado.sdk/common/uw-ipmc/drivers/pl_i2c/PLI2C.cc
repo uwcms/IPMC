@@ -7,7 +7,7 @@
 
 #include <xiic.h>
 #include <drivers/pl_i2c/PLI2C.h>
-#include "IPMC.h"
+#include <xscugic.h>
 
 /*
  * It has been observed that interrupted based IIC takes 5 times
@@ -22,6 +22,8 @@
  * below.
  */
 //#define PLI2C_USE_POOLING
+
+extern XScuGic xInterruptController;
 
 static void DataHandler(PL_I2C *InstancePtr, int ByteCount)
 {

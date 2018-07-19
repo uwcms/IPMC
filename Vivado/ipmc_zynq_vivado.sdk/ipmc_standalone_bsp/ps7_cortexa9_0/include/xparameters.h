@@ -27,6 +27,7 @@
 #define PLATFORM_ZYNQ
  
 /* Definitions for sleep timer configuration */
+#define XSLEEP_TIMER_IS_DEFAULT_TIMER
  
  
 /******************************************************************/
@@ -416,12 +417,14 @@
 #define XPAR_FABRIC_AD7689_1_IRQ_INTR 62U
 #define XPAR_FABRIC_AXI_IIC_EEPROM_0_IIC2INTC_IRPT_INTR 63U
 #define XPAR_FABRIC_AXI_IIC_PIM400_IIC2INTC_IRPT_INTR 64U
+#define XPAR_FABRIC_AXI_UARTLITE_ESM_INTERRUPT_INTR 65U
 
 /******************************************************************/
 
 /* Canonical definitions for Fabric interrupts connected to ps7_scugic_0 */
 #define XPAR_FABRIC_IIC_0_VEC_ID XPAR_FABRIC_AXI_IIC_EEPROM_0_IIC2INTC_IRPT_INTR
 #define XPAR_FABRIC_IIC_1_VEC_ID XPAR_FABRIC_AXI_IIC_PIM400_IIC2INTC_IRPT_INTR
+#define XPAR_FABRIC_UARTLITE_0_VEC_ID XPAR_FABRIC_AXI_UARTLITE_ESM_INTERRUPT_INTR
 
 /******************************************************************/
 
@@ -524,6 +527,33 @@
 #define XPAR_SYSMON_0_BASEADDR 0x43C60000U
 #define XPAR_SYSMON_0_HIGHADDR 0x43C6FFFFU
 #define XPAR_SYSMON_0_INCLUDE_INTR 1U
+
+
+/******************************************************************/
+
+/* Definitions for driver UARTLITE */
+#define XPAR_XUARTLITE_NUM_INSTANCES 1
+
+/* Definitions for peripheral AXI_UARTLITE_ESM */
+#define XPAR_AXI_UARTLITE_ESM_BASEADDR 0x42C00000
+#define XPAR_AXI_UARTLITE_ESM_HIGHADDR 0x42C0FFFF
+#define XPAR_AXI_UARTLITE_ESM_DEVICE_ID 0
+#define XPAR_AXI_UARTLITE_ESM_BAUDRATE 115200
+#define XPAR_AXI_UARTLITE_ESM_USE_PARITY 0
+#define XPAR_AXI_UARTLITE_ESM_ODD_PARITY 0
+#define XPAR_AXI_UARTLITE_ESM_DATA_BITS 8
+
+
+/******************************************************************/
+
+/* Canonical definitions for peripheral AXI_UARTLITE_ESM */
+#define XPAR_UARTLITE_0_DEVICE_ID XPAR_AXI_UARTLITE_ESM_DEVICE_ID
+#define XPAR_UARTLITE_0_BASEADDR 0x42C00000
+#define XPAR_UARTLITE_0_HIGHADDR 0x42C0FFFF
+#define XPAR_UARTLITE_0_BAUDRATE 115200
+#define XPAR_UARTLITE_0_USE_PARITY 0
+#define XPAR_UARTLITE_0_ODD_PARITY 0
+#define XPAR_UARTLITE_0_DATA_BITS 8
 
 
 /******************************************************************/
