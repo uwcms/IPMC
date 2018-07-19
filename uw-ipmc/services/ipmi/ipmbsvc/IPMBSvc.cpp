@@ -7,11 +7,13 @@
 
 #include <services/ipmi/ipmbsvc/IPMBSvc.h>
 #include <services/console/ConsoleSvc.h>
+#include <services/ipmi/RemoteFRUStorage.h>
 #include <IPMC.h>
 #include "xgpiops.h"
 #include <FreeRTOS.h>
 #include "queue.h"
 #include "task.h"
+#include <time.h>
 
 /**
  * Instantiate the IPMB service.
@@ -495,46 +497,6 @@ public:
 	};
 };
 
-static std::vector<uint8_t> read_fru_area(IPMBSvc &ipmb, uint8_t target, uint8_t frudev, uint16_t offset, uint16_t size, std::function<void(uint16_t offset, uint16_t size)> progress_callback=NULL) {
-	std::vector<uint8_t> outbuf;
-	outbuf.reserve(size);
-	while (size) {
-		if (progress_callback)
-			progress_callback(offset, size);
-		uint8_t rd_size = 0x10;
-		if (size < rd_size)
-			rd_size = size;
-
-		std::shared_ptr<IPMI_MSG> rd_rsp;
-		for (int i = 0; i < 3; ++i) {
-			rd_rsp = ipmb.send_sync(
-					std::make_shared<IPMI_MSG>(0, ipmb.ipmb_address, 0, target,
-							(IPMI::Read_FRU_Data >> 8) & 0xff,
-							IPMI::Read_FRU_Data & 0xff,
-							std::vector<uint8_t> {
-									frudev,
-									static_cast<uint8_t>(offset & 0xff),
-									static_cast<uint8_t>((offset >> 8) & 0xff),
-									rd_size
-							}
-					)
-			);
-			if (!rd_rsp || (rd_rsp->data_len && rd_rsp->data[0] == IPMI::Completion::FRU_Device_Busy)) {
-				vTaskDelay(333);
-				continue;
-			}
-			break;
-		}
-		if (!rd_rsp || rd_rsp->data_len < 2 || rd_rsp->data[0] != IPMI::Completion::Success || rd_rsp->data_len != rd_rsp->data[1]+2) {
-			outbuf.clear();
-			return outbuf;
-		}
-		outbuf.insert(outbuf.end(), rd_rsp->data + 2, rd_rsp->data + rd_rsp->data_len);
-		offset += rd_rsp->data[1];
-		size -= rd_rsp->data[1];
-	}
-	return outbuf;
-}
 
 class ConsoleCommand_enumerate_fru_storages : public CommandParser::Command {
 public:
@@ -557,55 +519,18 @@ public:
 		IPMBSvc *ipmb = &this->ipmb;
 		UWTaskCreate("enum_fru_stores", TASK_PRIORITY_INTERACTIVE,
 				[ipmb, console, ipmbtarget]() -> void {
-					class FRUStorage {
-					public:
-						uint8_t id;
-						uint16_t size;
-						bool byte_addressed;
-						std::vector<uint8_t> header;
-						FRUStorage(uint8_t id, uint16_t size, bool byte_addressed, std::vector<uint8_t> header) : id(id), size(size), byte_addressed(byte_addressed), header(header) { };
-					};
-					std::vector<FRUStorage> fru_storages;
+					std::vector<RemoteFRUStorage> fru_storages;
 					for (uint8_t frudev = 0; frudev < 0xff; ++frudev) {
 						if ((frudev % 0x10) == 0)
 							console->write(stdsprintf("Enumerating FRU Storage Device %02hhXh...\n", frudev));
-						std::shared_ptr<IPMI_MSG> probersp;
-						for (int retry = 0; retry < 3; ++retry) {
-							probersp = ipmb->send_sync(std::make_shared<IPMI_MSG>(
-									0, ipmb->ipmb_address,
-									0, ipmbtarget,
-									(IPMI::Get_FRU_Inventory_Area_Info >> 8) & 0xff, IPMI::Get_FRU_Inventory_Area_Info & 0xff,
-									std::vector<uint8_t> {static_cast<uint8_t>(frudev)}));
-							if (!probersp || probersp->data_len != 4 || probersp->data[0] != IPMI::Completion::Success) {
-								vTaskDelay(333);
+						std::shared_ptr<RemoteFRUStorage> storage = RemoteFRUStorage::Probe(ipmb, ipmbtarget, frudev);
+						if (storage) {
+							// Okay we probed one up.  Let's read its header.
+							if (!storage->ReadHeader()) {
+								console->write(stdsprintf("Unable to read FRU storage header for %02hhXh.\n", frudev));
 								continue;
 							}
-							break;
-						}
-						if (probersp && probersp->data_len == 4 && probersp->data[0] == IPMI::Completion::Success) {
-							// Okay we probed one up.  Let's read its header.
-							std::vector<uint8_t> header = read_fru_area(*ipmb, ipmbtarget, frudev, 0, 8);
-							if (header.size()) {
-								fru_storages.emplace_back(
-										frudev,
-										(probersp->data[2]<<8) | probersp->data[1],
-										!(probersp->data[3]&1),
-										header
-										);
-							}
-							else {
-								console->write(stdsprintf("Retries exhausted reading FRU storage header for %02hhXh.\n", frudev));
-							}
-						}
-						else if (probersp && probersp->data_len && probersp->data[0] == IPMI::Completion::Parameter_Out_Of_Range) {
-							// No device present.
-						}
-						else {
-							// We ran out of retries.
-							if (probersp && probersp->data_len >= 1)
-								console->write(stdsprintf("Retries exhausted enumerating FRU storage %02hhXh: Last completion code %02hhXh\n", frudev, probersp->data[0]));
-							else
-								console->write(stdsprintf("Retries exhausted enumerating FRU storage %02hhXh: No response received.\n", frudev));
+							fru_storages.push_back(*storage);
 						}
 					}
 					if (fru_storages.empty()) {
@@ -614,17 +539,17 @@ public:
 					else {
 						std::string out = "Found FRU Storages:\n";
 						for (auto it = fru_storages.begin(), eit = fru_storages.end(); it != eit; ++it) {
-							out += stdsprintf("  %02hhXh: %hu %s (Header Version %2hhu)\n", it->id, it->size, it->byte_addressed?"bytes":"words", it->header[0]);
-							if (it->header[1])
-								out += stdsprintf("       Internal Use Area Offset:  %4hu\n", it->header[1]*8);
-							if (it->header[2])
-								out += stdsprintf("       Chassis Info Area Offset:  %4hu\n", it->header[2]*8);
-							if (it->header[3])
-								out += stdsprintf("       Board Area Offset:         %4hu\n", it->header[3]*8);
-							if (it->header[4])
-								out += stdsprintf("       Product Info Area Offset:  %4hu\n", it->header[4]*8);
-							if (it->header[5])
-								out += stdsprintf("       Multi-Record  Area Offset: %4hu\n", it->header[5]*8);
+							out += stdsprintf("  %02hhXh: %hu %s (Header Version %2hhu)\n", it->fru_device_id, it->size, it->byte_addressed?"bytes":"words", it->header_version);
+							if (it->internal_use_area_offset)
+								out += stdsprintf("       Internal Use Area Offset:  %4hu\n", it->internal_use_area_offset);
+							if (it->chassis_info_area_offset)
+								out += stdsprintf("       Chassis Info Area Offset:  %4hu\n", it->chassis_info_area_offset);
+							if (it->board_area_offset)
+								out += stdsprintf("       Board Area Offset:         %4hu\n", it->board_area_offset);
+							if (it->product_info_area_offset)
+								out += stdsprintf("       Product Info Area Offset:  %4hu\n", it->product_info_area_offset);
+							if (it->multirecord_area_offset)
+								out += stdsprintf("       Multi-Record  Area Offset: %4hu\n", it->multirecord_area_offset);
 						}
 						console->write(out);
 					}
@@ -657,54 +582,138 @@ public:
 		IPMBSvc *ipmb = &this->ipmb;
 		UWTaskCreate("dump_fru_store", TASK_PRIORITY_INTERACTIVE,
 				[ipmb, console, ipmbtarget, frudev]() -> void {
-					std::shared_ptr<IPMI_MSG> probersp = ipmb->send_sync(std::make_shared<IPMI_MSG>(
-									0, ipmb->ipmb_address,
-									0, ipmbtarget,
-									(IPMI::Get_FRU_Inventory_Area_Info >> 8) & 0xff, IPMI::Get_FRU_Inventory_Area_Info & 0xff,
-									std::vector<uint8_t> {static_cast<uint8_t>(frudev)}));
-					if (!probersp || !probersp->data_len) {
+					std::shared_ptr<RemoteFRUStorage> storage = RemoteFRUStorage::Probe(ipmb, ipmbtarget, frudev);
+					if (!storage) {
 						console->write(stdsprintf("Error querying FRU Inventory Area Info for FRU Device %02hhXh at IPMB address %02hhXh.\n", frudev, ipmbtarget));
 						return;
 					}
-					else if (probersp->data[0] == IPMI::Completion::Parameter_Out_Of_Range) {
-						console->write(stdsprintf("No FRU Device %02hhXh found at IPMB address %02hhXh.\n", frudev, ipmbtarget));
-						return;
-					}
-					else if (probersp->data_len != 4 || probersp->data[0] != IPMI::Completion::Success) {
-						console->write(stdsprintf("Error querying FRU Inventory Area Info for FRU Device %02hhXh found at IPMB address %02hhXh. (Completion Code %02hhXh)\n", frudev, ipmbtarget, probersp->data[0]));
-						return;
-					}
 
-					uint16_t ia_size = (probersp->data[2]<<8) | probersp->data[1];
-					bool ia_byteaddressed = !(probersp->data[3]&1);
-					if (!ia_byteaddressed) {
+					if (!storage->byte_addressed) {
 						console->write("Unable to dump FRU Storage, word access is not supported.\n");
 						return;
 					}
 
-					std::vector<uint8_t> frubuf = read_fru_area(*ipmb, ipmbtarget, frudev, 0, ia_size,
-							[console, ia_size](uint16_t offset, uint16_t size) {
-						if ((offset % 0x200) == 0)
-							console->write(stdsprintf("Reading FRU Storage... %5hxh/%hxh\n", ia_size-size, ia_size));
-					});
-					if (frubuf.size()) {
-						std::string outbuf = "";
-						for (std::vector<uint8_t>::size_type i = 0; i < frubuf.size(); ++i) {
-							outbuf += stdsprintf("%02x", frubuf.at(i));
-							if (i%16 == 15) {
-								outbuf += "\n";
-							}
-							else if (i%4 == 3) {
-								outbuf += "  ";
+					if (storage->internal_use_area_offset)
+						console->write("Internal Use Area: Present\n");
+					if (storage->header_valid) {
+						if (storage->chassis_info_area_offset) {
+							std::shared_ptr<RemoteFRUStorage::ChassisInfo> chassis = storage->ReadChassisInfoArea();
+							std::string outbuf = "Chassis Information Area:\n";
+							if (!chassis) {
+								outbuf += "  Unreadable.\n";
 							}
 							else {
-								outbuf += " ";
+								outbuf += stdsprintf("  Info Area Version:  %hhu\n", chassis->info_area_version);
+								if (RemoteFRUStorage::ChassisInfo::chassis_type_descriptions.count(chassis->type))
+									outbuf += stdsprintf("  Chassis Type:       0x%02hhx \"%s\"\n", chassis->type, RemoteFRUStorage::ChassisInfo::chassis_type_descriptions.at(chassis->type).c_str());
+								else
+									outbuf += stdsprintf("  Chassis Type:       0x%02hhx\n", chassis->type);
+								outbuf += stdsprintf("  Part Number:        \"%s\"\n", chassis->part_number.c_str());
+								outbuf += stdsprintf("  Serial Number:      \"%s\"\n", chassis->serial_number.c_str());
+								if (chassis->custom_info.size()) {
+									outbuf += "  Custom Info:\n";
+									for (auto it = chassis->custom_info.begin(), eit = chassis->custom_info.end(); it != eit; ++it)
+										outbuf += std::string("    \"") + *it + "\"\n";
+								}
 							}
+							console->write(outbuf);
 						}
-						console->write(outbuf+"\n");
+						if (storage->board_area_offset) {
+							std::shared_ptr<RemoteFRUStorage::BoardArea> board = storage->ReadBoardArea();
+							std::string outbuf = "Board Area:\n";
+							if (!board) {
+								outbuf += "  Unreadable.\n";
+							}
+							else {
+								outbuf += stdsprintf("  Board Area Version: %hhu\n", board->board_area_version);
+								if (RemoteFRUStorage::language_codes.count(board->language_code))
+									outbuf += stdsprintf("  Language Code:      0x%02hhx \"%s\"\n", board->language_code, RemoteFRUStorage::language_codes.at(board->language_code).c_str());
+								else
+									outbuf += stdsprintf("  Language Code:      0x%02hhx\n", board->language_code);
+
+								if (board->mfg_timestamp) {
+									time_t mfgt = board->mfg_timestamp;
+									struct tm mfgtm;
+									gmtime_r(&mfgt, &mfgtm);
+									char mfgts[24];
+									strftime(mfgts, 24, "%Y-%m-%d %H:%M:%S", &mfgtm);
+									outbuf += stdsprintf("  Mfg. Date:          %s\n", mfgts);
+								}
+								else {
+									outbuf += "  Mfg. Date:          Unspecified\n";
+								}
+
+								outbuf += stdsprintf("  Manufacturer:       \"%s\"\n", board->manufacturer.c_str());
+								outbuf += stdsprintf("  Product Name:       \"%s\"\n", board->product_name.c_str());
+								outbuf += stdsprintf("  Serial Number:      \"%s\"\n", board->serial_number.c_str());
+								outbuf += stdsprintf("  Part Number:        \"%s\"\n", board->part_number.c_str());
+								outbuf += stdsprintf("  FRU File ID:        \"%s\"\n", board->fru_file_id.c_str());
+								if (board->custom_info.size()) {
+									outbuf += "  Custom Info:\n";
+									for (auto it = board->custom_info.begin(), eit = board->custom_info.end(); it != eit; ++it)
+										outbuf += std::string("    \"") + *it + "\"\n";
+								}
+							}
+							console->write(outbuf);
+						}
+						if (storage->product_info_area_offset) {
+							std::shared_ptr<RemoteFRUStorage::ProductInfoArea> product = storage->ReadProductInfoArea();
+							std::string outbuf = "Product Info Area:\n";
+							if (!product) {
+								outbuf += "  Unreadable.\n";
+							}
+							else {
+								outbuf += stdsprintf("  Product Info Area Version: %hhu\n", product->info_area_version);
+								if (RemoteFRUStorage::language_codes.count(product->language_code))
+									outbuf += stdsprintf("  Language Code:      0x%02hhx \"%s\"\n", product->language_code, RemoteFRUStorage::language_codes.at(product->language_code).c_str());
+								else
+									outbuf += stdsprintf("  Language Code:      0x%02hhx\n", product->language_code);
+
+								outbuf += stdsprintf("  Manufacturer:       \"%s\"\n", product->manufacturer.c_str());
+								outbuf += stdsprintf("  Product Name:       \"%s\"\n", product->product_name.c_str());
+								outbuf += stdsprintf("  Product Part/Model: \"%s\"\n", product->product_partmodel_number.c_str());
+								outbuf += stdsprintf("  Product Version:    \"%s\"\n", product->product_version.c_str());
+								outbuf += stdsprintf("  Serial Number:      \"%s\"\n", product->serial_number.c_str());
+								outbuf += stdsprintf("  Asset Tag:          \"%s\"\n", product->asset_tag.c_str());
+								outbuf += stdsprintf("  FRU File ID:        \"%s\"\n", product->fru_file_id.c_str());
+								if (product->custom_info.size()) {
+									outbuf += "  Custom Info:\n";
+									for (auto it = product->custom_info.begin(), eit = product->custom_info.end(); it != eit; ++it)
+										outbuf += std::string("    \"") + *it + "\"\n";
+								}
+							}
+							console->write(outbuf);
+						}
+						if (storage->multirecord_area_offset)
+							console->write("Multi-Record Area: Present\n");
 					}
 					else {
-						console->write("Attempts to read FRU storage failed.\n");
+						// Invalid Header
+
+						std::vector<uint8_t> frubuf = storage->ReadData(0, storage->size,
+								[console, storage](uint16_t offset, uint16_t size) {
+							if ((offset % 0x200) == 0)
+								console->write(stdsprintf("Reading FRU Storage... %5hxh/%hxh\n", storage->size-size, storage->size));
+						});
+						if (frubuf.size()) {
+							std::string outbuf = "";
+							for (std::vector<uint8_t>::size_type i = 0; i < frubuf.size(); ++i) {
+								outbuf += stdsprintf("%02x", frubuf.at(i));
+								if (i%16 == 15) {
+									outbuf += "\n";
+								}
+								else if (i%4 == 3) {
+									outbuf += "  ";
+								}
+								else {
+									outbuf += " ";
+								}
+							}
+							console->write(outbuf+"\n");
+						}
+						else {
+							console->write("Attempts to read FRU storage failed.\n");
+						}
 					}
 				});
 	}
