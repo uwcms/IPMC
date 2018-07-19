@@ -8,9 +8,8 @@
 #ifndef SRC_COMMON_UW_IPMC_DRIVERS_GENERICS_I2C_H_
 #define SRC_COMMON_UW_IPMC_DRIVERS_GENERICS_I2C_H_
 
-#include "FreeRTOS.h"
-#include <xil_types.h>
-#include "semphr.h"
+#include <FreeRTOS.h>
+#include <semphr.h>
 #include <functional>
 
 /**

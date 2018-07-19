@@ -77,5 +77,6 @@ extern const char *GIT_LONG;
 extern const char *GIT_DESCRIBE;
 extern const char *GIT_BRANCH;
 extern const char *GIT_STATUS;
+extern const char *COMPILE_DATE;
 
 #endif /* SRC_IPMC_H_ */
