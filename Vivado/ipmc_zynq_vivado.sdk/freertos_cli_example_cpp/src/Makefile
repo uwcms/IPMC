@@ -9,9 +9,6 @@ export GIT_STATUS   := "$(shell git status --porcelain | perl -pe 's/\n/\\n/g;s/
 export PROJECT_ROOT := $(realpath ..)
 export PROJECT_NAME := $(notdir $(PROJECT_ROOT))
 
-SHELLMD5 = $(shell echo -n "$(1)" | md5sum | cut -d\  -f1)
-export GIT_SETTINGS_MD5 := $(call SHELLMD5,$(call SHELLMD5,$(GIT_DESCRIBE)) $(call SHELLMD5,$(GIT_BRANCH)) $(call SHELLMD5,$(GIT_STATUS)))
-
 export CC := arm-none-eabi-gcc
 export CXX := arm-none-eabi-g++ 
 
@@ -83,7 +80,7 @@ export WARNING_FLAGS = -Wall
 OBJS := \
 	$(patsubst ./%.c,.obj/$(BUILD_CONFIGURATION)/%.o,$(shell find -L . -type f -name '*.c')) \
 	$(patsubst ./%.c,.obj/$(BUILD_CONFIGURATION)/%.o,$(shell find -L . -type f -name '*.c')) \
-	$(patsubst ./%.cc,.obj/$(BUILD_CONFIGURATION)/%.o,$(shell find -L . -type f -name '*.cc' ! -path './common/uw-ipmc/version.cc')) \
+	$(patsubst ./%.cc,.obj/$(BUILD_CONFIGURATION)/%.o,$(shell find -L . -type f -name '*.cc')) \
 	$(patsubst ./%.cpp,.obj/$(BUILD_CONFIGURATION)/%.o,$(shell find -L . -type f -name '*.cpp')) \
 	$(patsubst ./%.S,.obj/$(BUILD_CONFIGURATION)/%.o,$(shell find -L . -type f -name '*.S')) \
 
@@ -101,7 +98,7 @@ pre-build: .dep/.lwip-patch
 
 build: pre-build bin/$(BUILD_CONFIGURATION)/freertos_cli_example_cpp.elf
 
-bin/$(BUILD_CONFIGURATION)/freertos_cli_example_cpp.elf: $(OBJS) .obj/$(BUILD_CONFIGURATION)/common/uw-ipmc/version.$(GIT_SETTINGS_MD5).o | pre-build
+bin/$(BUILD_CONFIGURATION)/freertos_cli_example_cpp.elf: $(OBJS) | pre-build
 	@mkdir -p "$(dir $@)"
 	$(CXX) $(CFLAGS) $(LDFLAGS) $(INCLUDE_PATHS) $(LIBRARY_PATHS) -o "$@" $^ $(LIBS)
 	arm-none-eabi-size "$@" | tee "$@.size"
@@ -122,9 +119,8 @@ else
 	$(CXX) -c $(CFLAGS) $(WARNING_FLAGS) $(CXXFLAGS) $(LDFLAGS) $(INCLUDE_PATHS) $(LIBRARY_PATHS) -o "$@" "$<" $(LIBS)
 endif
 
-.obj/$(BUILD_CONFIGURATION)/common/uw-ipmc/version.$(GIT_SETTINGS_MD5).o: common/uw-ipmc/version.cc | pre-build
+.obj/$(BUILD_CONFIGURATION)/common/uw-ipmc/version.o: common/uw-ipmc/version.cc | pre-build
 	@mkdir -p "$(dir $@)" "$(dir $(patsubst .obj/$(BUILD_CONFIGURATION)/%,.dep/$(BUILD_CONFIGURATION)/%,$@))"
-	rm -f .obj/$(BUILD_CONFIGURATION)/common/uw-ipmc/version.*.o
 	$(CXX) -c $(CFLAGS) $(WARNING_FLAGS) $(CXXFLAGS) $(LDFLAGS) $(INCLUDE_PATHS) $(LIBRARY_PATHS) \
 		-DD_GIT_SHORT_INT="0x$(shell git rev-parse --short HEAD)" \
 		-DD_GIT_SHORT="\"$(shell git rev-parse --short HEAD)\"" \
@@ -133,7 +129,9 @@ endif
 		-DD_GIT_BRANCH="\"$$GIT_BRANCH\"" \
 		-DD_GIT_STATUS="$$GIT_STATUS" \
 		-DD_COMPILE_DATE="\"$(shell date)\"" \
+		-DD_COMPILE_HOST="\"$(USER)@$(shell hostname --fqdn)\"" \
 		-o "$@" "$<" $(LIBS)
+.PHONY: .obj/$(BUILD_CONFIGURATION)/common/uw-ipmc/version.o
 
 .obj/$(BUILD_CONFIGURATION)/%.o: %.cpp | pre-build
 	@mkdir -p "$(dir $@)" "$(dir $(patsubst .obj/$(BUILD_CONFIGURATION)/%,.dep/$(BUILD_CONFIGURATION)/%,$@))"
