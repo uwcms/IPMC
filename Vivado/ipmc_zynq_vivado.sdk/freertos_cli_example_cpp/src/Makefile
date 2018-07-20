@@ -129,7 +129,7 @@ endif
 		-DD_GIT_BRANCH="\"$$GIT_BRANCH\"" \
 		-DD_GIT_STATUS="$$GIT_STATUS" \
 		-DD_COMPILE_DATE="\"$(shell date)\"" \
-		-DD_COMPILE_HOST="\"$(USER)@$(shell hostname --fqdn)\"" \
+		-DD_COMPILE_HOST="\"$(shell getent passwd `id -u` | cut -d: -f1)@$(shell hostname --fqdn)\"" \
 		-o "$@" "$<" $(LIBS)
 .PHONY: .obj/$(BUILD_CONFIGURATION)/common/uw-ipmc/version.o
 
