@@ -230,6 +230,7 @@ std::string generate_banner() {
 	bannerstr += std::string("HW revision : ") + std::to_string(IPMC_HW_REVISION) + "\n"; // TODO
 	bannerstr += std::string("SW revision : ") + GIT_DESCRIBE + "\n";
 	bannerstr += std::string("Build date  : ") + COMPILE_DATE + "\n";
+	bannerstr += std::string("Build host  : ") + COMPILE_HOST + "\n";
 	bannerstr += std::string("OS version  : FreeRTOS ") + tskKERNEL_VERSION_NUMBER + "\n";
 
 	if (GIT_STATUS[0] != '\0')
