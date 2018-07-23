@@ -287,7 +287,20 @@ void IPMBSvc::run_thread() {
 				// We don't want to hold the mutex while waiting on the bus.
 				std::shared_ptr<IPMI_MSG> wireout_msg = it->msg;
 				xSemaphoreGive(this->sendq_mutex);
-				bool success = this->ipmb[ipmb_choice]->send_message(*wireout_msg);
+				bool success;
+				if (wireout_msg->rsSA == this->ipmb_address && wireout_msg->rsLUN == 0) {
+					// TODO: Support an understanding of what LUN is local to us. (Also in general rqLUN.)
+					/* This is a loopback message, destined for us.
+					 * Deliver it to our incoming queue.
+					 *
+					 * We can't listen on the bus, and send to it, at the same time.
+					 */
+					success = (pdTRUE == xQueueSend(this->recvq, &*wireout_msg, 0));
+				}
+				else {
+					// This is a normal outgoing message, deliver it.
+					success = this->ipmb[ipmb_choice]->send_message(*wireout_msg);
+				}
 				xSemaphoreTake(this->sendq_mutex, portMAX_DELAY);
 
 				if (success && (it->msg->netFn & 1) /* response message */) {
