@@ -75,7 +75,7 @@ export LDFLAGS := \
 	-Wl,-T -Wl,lscript.ld \
 	$(FUNCTION_WRAPPERS) \
 
-export WARNING_FLAGS = -Wall
+export WARNING_FLAGS = -Wall -Wno-psabi
 
 OBJS := \
 	$(patsubst ./%.c,.obj/$(BUILD_CONFIGURATION)/%.o,$(shell find -L . -type f -name '*.c')) \
