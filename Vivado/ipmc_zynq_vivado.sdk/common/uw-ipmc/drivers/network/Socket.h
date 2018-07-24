@@ -98,7 +98,7 @@ public:
 	 * Gets the socket file descriptor
 	 * @return the socket file descriptor
 	 */
-	virtual int get_socket() {
+	virtual inline int get_socket() {
 		return socketfd;
 	}
 

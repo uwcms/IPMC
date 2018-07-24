@@ -39,9 +39,11 @@ private:
 	static FTPCommandFunc CommandUSER;
 	static FTPCommandFunc CommandPASS;
 	static FTPCommandFunc CommandQUIT;
+	static FTPCommandFunc CommandPORT;
 
 private:
 	std::shared_ptr<Socket> socket;
+	std::shared_ptr<Socket> data;
 	FTPState state;
 
 	static std::map<uint16_t, std::string> FTPCodes;
