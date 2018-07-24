@@ -29,21 +29,21 @@ void TelnetServer::thread_telnetd() {
 	}
 
 	while (true) {
-		Socket *client = server->accept();
+		std::shared_ptr<Socket> client = server->accept();
 
 		if (!client->valid()) {
-			delete client;
 			continue;
 		}
 
 		// Launch a new telnet instance if client is valid
-		TelnetClient *c = new TelnetClient(client);
+		new TelnetClient(client);
 	}
 }
 
-TelnetClient::TelnetClient(Socket *s) :
+TelnetClient::TelnetClient(std::shared_ptr<Socket> s) :
 socket(s) {
-	configASSERT(UWTaskCreate("telnetc", TASK_PRIORITY_INTERACTIVE, [this]() -> void { this->thread_telnetc(); }));
+	const std::string name = std::string("telnetc:") + std::to_string(socket->get_socketaddress()->get_port());
+	configASSERT(UWTaskCreate(name, TASK_PRIORITY_INTERACTIVE, [this]() -> void { this->thread_telnetc(); }));
 }
 
 void TelnetClient::thread_telnetc() {
@@ -64,7 +64,6 @@ void TelnetClient::thread_telnetc() {
 		}
 	}
 
-	delete socket;
 	//printf("Client disconnected\n");
 
 	// TODO: I am not sure if this is correct or not, goal

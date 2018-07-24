@@ -11,6 +11,7 @@
 #include <drivers/ps_uart/PSUART.h>
 #include <drivers/ps_ipmb/PSIPMB.h>
 #include <drivers/mgmt_zone/MGMTZone.h>
+#include <drivers/ps_isfqspi/PSISFQSPI.h>
 #include <services/ipmi/ipmbsvc/IPMBSvc.h>
 #include <services/ipmi/ipmbsvc/IPMICommandParser.h>
 #include <services/ipmi/commands/IPMICmd_Index.h>
@@ -42,11 +43,15 @@
 #include <drivers/pim400/PIM400.h>
 #include <drivers/pl_uart/PLUART.h>
 
+#include <services/tftp/Tftp.h>
+#include <services/ftp/FTPServer.h>
+
 u8 IPMC_HW_REVISION = 1; // TODO: Detect, Update, etc
 
 PS_WDT *SWDT;
 PS_UART *uart_ps0;
 MGMT_Zone *mgmt_zones[XPAR_MGMT_ZONE_CTRL_0_MZ_CNT];
+PS_ISFQSPI *isfqspi;
 IPMBSvc *ipmb0;
 Network *network;
 IPMICommandParser *ipmi_command_parser;
@@ -109,6 +114,8 @@ void driver_init(bool use_pl) {
 	console_log_filter->register_console_commands(console_command_parser);
 	LOG["console_log_command"].register_console_commands(console_command_parser);
 	register_core_console_commands(console_command_parser);
+
+	isfqspi = new PS_ISFQSPI(XPAR_PS7_QSPI_0_DEVICE_ID, XPAR_PS7_QSPI_0_INTR);
 
 	PS_SPI *ps_spi0 = new PS_SPI(XPAR_PS7_SPI_0_DEVICE_ID, XPAR_PS7_SPI_0_INTR);
 	eeprom_data = new SPI_EEPROM(*ps_spi0, 0, 0x8000, 64);
@@ -208,6 +215,8 @@ void ipmc_service_init() {
 		// TODO: Can be removed when not needed
 		new Lwiperf(5001);
 		new XVCServer(XPAR_AXI_JTAG_0_BASEADDR);
+		//new Tftp();
+		new FTPServer();
 	});
 	network->register_console_commands(console_command_parser, "network.");
 
@@ -493,6 +502,147 @@ public:
 
 	//virtual std::vector<std::string> complete(const CommandParser::CommandParameters &parameters) const { };
 };
+
+class ConsoleCommand_flash_info : public CommandParser::Command {
+public:
+	virtual std::string get_helptext(const std::string &command) const {
+		return stdsprintf(
+				"%s\n"
+				"\n"
+				"info about the flash.\n", command.c_str());
+	}
+
+	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
+		std::string info = "Flash is a " +
+				isfqspi->GetManufacturerName() +
+				" IC with a total of " +
+				std::to_string(isfqspi->GetTotalSize() / 1024 / 1024) +
+				"MBytes.";
+
+		console->write(info);
+	}
+
+	//virtual std::vector<std::string> complete(const CommandParser::CommandParameters &parameters) const { };
+};
+
+class ConsoleCommand_flash_readpage : public CommandParser::Command {
+public:
+	virtual std::string get_helptext(const std::string &command) const {
+		return stdsprintf(
+				"%s\n"
+				"\n"
+				"Read a page from flash.\n", command.c_str());
+	}
+
+	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
+		std::string out;
+
+		u32 size = isfqspi->GetPageSize();
+		u8* page = isfqspi->ReadPage(0x00000000);
+
+		if (!page) {
+			console->write("Failed");
+			return;
+		}
+
+		char ascii[17];
+		size_t i, j;
+		ascii[16] = '\0';
+		for (i = 0; i < size; ++i) {
+			out += stdsprintf("%02X ", ((unsigned char*)page)[i]);
+			if (((unsigned char*)page)[i] >= ' ' && ((unsigned char*)page)[i] <= '~') {
+				ascii[i % 16] = ((unsigned char*)page)[i];
+			} else {
+				ascii[i % 16] = '.';
+			}
+			if ((i+1) % 8 == 0 || i+1 == size) {
+				out += " ";
+				if ((i+1) % 16 == 0) {
+					out += stdsprintf("|  %s \n", ascii);
+				} else if (i+1 == size) {
+					ascii[(i+1) % 16] = '\0';
+					if ((i+1) % 16 <= 8) {
+						out += " ";
+					}
+					for (j = (i+1) % 16; j < 16; ++j) {
+						out += "   ";
+					}
+					out += stdsprintf("|  %s \n", ascii);
+				}
+			}
+		}
+
+		console->write(out);
+	}
+
+	//virtual std::vector<std::string> complete(const CommandParser::CommandParameters &parameters) const { };
+};
+
+class ConsoleCommand_flash_writepage : public CommandParser::Command {
+public:
+	virtual std::string get_helptext(const std::string &command) const {
+		return stdsprintf(
+				"%s\n"
+				"\n"
+				"write to the flash.\n", command.c_str());
+	}
+
+	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
+		int size = isfqspi->GetPageSize();
+		u8 buffer[size];
+
+		for (int i = 0; i < size; i++) {
+			buffer[i] = i;
+		}
+
+		if (isfqspi->WritePage(0,buffer) == false) {
+			console->write("Failed");
+		}
+
+
+	}
+
+	//virtual std::vector<std::string> complete(const CommandParser::CommandParameters &parameters) const { };
+};
+
+class ConsoleCommand_flash_bulkerase : public CommandParser::Command {
+public:
+	virtual std::string get_helptext(const std::string &command) const {
+		return stdsprintf(
+				"%s\n"
+				"\n"
+				"bulk erase the flash.\n", command.c_str());
+	}
+
+	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
+
+		if (isfqspi->BulkErase() == false) {
+			console->write("Failed");
+		}
+	}
+
+	//virtual std::vector<std::string> complete(const CommandParser::CommandParameters &parameters) const { };
+};
+
+class ConsoleCommand_flash_sectorerase : public CommandParser::Command {
+public:
+	virtual std::string get_helptext(const std::string &command) const {
+		return stdsprintf(
+				"%s\n"
+				"\n"
+				"sector erase the flash.\n", command.c_str());
+	}
+
+	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
+
+		if (isfqspi->SectorErase(0x0) == false) {
+			console->write("Failed");
+		}
+	}
+
+	//virtual std::vector<std::string> complete(const CommandParser::CommandParameters &parameters) const { };
+};
+
 } // anonymous namespace
 
 static void register_core_console_commands(CommandParser &parser) {
@@ -501,6 +651,11 @@ static void register_core_console_commands(CommandParser &parser) {
 	console_command_parser.register_command("version", std::make_shared<ConsoleCommand_version>());
 	console_command_parser.register_command("ps", std::make_shared<ConsoleCommand_ps>());
 	console_command_parser.register_command("backend_power", std::make_shared<ConsoleCommand_backend_power>());
+	console_command_parser.register_command("flash_info", std::make_shared<ConsoleCommand_flash_info>());
+	console_command_parser.register_command("flash_readpage", std::make_shared<ConsoleCommand_flash_readpage>());
+	console_command_parser.register_command("flash_writepage", std::make_shared<ConsoleCommand_flash_writepage>());
+	console_command_parser.register_command("flash_bulkerase", std::make_shared<ConsoleCommand_flash_bulkerase>());
+	console_command_parser.register_command("flash_sectorerase", std::make_shared<ConsoleCommand_flash_sectorerase>());
 }
 
 static void console_log_handler(LogTree &logtree, const std::string &message, enum LogTree::LogLevel level) {

@@ -29,10 +29,9 @@ baseAddr(baseAddr), port(port), verbose(false) {
 		}
 
 		while (true) {
-			Socket *client = server.accept();
+			std::shared_ptr<Socket> client = server.accept();
 
 			if (!client->valid()) {
-				delete client;
 				continue;
 			}
 
@@ -40,14 +39,12 @@ baseAddr(baseAddr), port(port), verbose(false) {
 			client->setTCPNoDelay();
 
 			this->HandleClient(client);
-
-			delete client;
 		}
 	}));
 }
 
 
-bool XVCServer::HandleClient(Socket *s) {
+bool XVCServer::HandleClient(std::shared_ptr<Socket> s) {
 	const char xvcInfo[] = "xvcServer_v1.0:2048\n";
 	volatile jtag_t *jtag = (volatile jtag_t*)baseAddr;
 
