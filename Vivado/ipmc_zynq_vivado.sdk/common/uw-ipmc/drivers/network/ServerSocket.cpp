@@ -41,10 +41,27 @@ int ServerSocket::listen() {
 	return 0;
 }
 
-Socket* ServerSocket::accept() {
+int ServerSocket::bind() {
+	struct sockaddr_in addr = sockaddr->get_struct();
+
+	socketfd = lwip_socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+
+	if (socketfd == -1) {
+		return errno;
+	}
+
+	if (lwip_bind(socketfd, (struct sockaddr*)&addr, sizeof(struct sockaddr)) != 0) {
+		close();
+		return errno;
+	};
+
+	return 0;
+}
+
+std::shared_ptr<Socket> ServerSocket::accept() {
 	struct sockaddr_in from;
 	socklen_t l = sizeof(from);
 	int clientfd = lwip_accept(socketfd, (struct sockaddr*)&from, &l);
 
-	return new Socket(clientfd, from);
+	return std::shared_ptr<Socket>(new Socket(clientfd, from));
 }

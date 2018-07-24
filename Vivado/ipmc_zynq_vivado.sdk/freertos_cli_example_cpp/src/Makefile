@@ -23,6 +23,7 @@ export INCLUDE_PATHS = \
 	-I"$(WORKSPACE)/freertos_cli_example_cpp/src/common/lwIP/src/lwip-1.4.1/src/include" \
 	-I"$(WORKSPACE)/freertos_cli_example_cpp/src/common/FreeRTOS/portable/GCC/ARM_CA9" \
 	-I"$(WORKSPACE)/freertos_cli_example_cpp/src/common/FreeRTOS/include" \
+	-I"$(WORKSPACE)/freertos_cli_example_cpp/src/common/xilisf/include" \
 	-I"$(WORKSPACE)/ipmc_standalone_bsp/ps7_cortexa9_0/include" \
 
 export FUNCTION_WRAPPERS = \
@@ -63,6 +64,7 @@ export CFLAGS = \
 	-mfpu=vfpv3 \
 	-mfloat-abi=hard \
 	-MMD -MP -MF"$(patsubst .obj/$(BUILD_CONFIGURATION)/%,.dep/$(BUILD_CONFIGURATION)/%,$@)" \
+	-D XPAR_XISF_FLASH_FAMILY=5 -D XPAR_XISF_INTERFACE_PSQSPI \
 
 # -MT"$@" 
 

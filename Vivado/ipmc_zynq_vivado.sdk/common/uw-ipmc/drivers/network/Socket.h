@@ -68,6 +68,9 @@ public:
 	 */
 	virtual void setUnblocking();
 
+	/**
+	 * Sets the socket to have no delay on TCP reads
+	 */
 	virtual void setTCPNoDelay();
 
 	/**
@@ -79,6 +82,8 @@ public:
 		}
 
 		lwip_close(socketfd);
+
+		socketfd = -1;
 	}
 
 	/**

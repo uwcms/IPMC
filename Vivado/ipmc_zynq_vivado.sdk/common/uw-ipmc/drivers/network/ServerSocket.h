@@ -9,6 +9,7 @@
 #define SRC_COMMON_UW_IPMC_DRIVERS_NETWORK_SERVERSOCKET_H_
 
 #include "Socket.h"
+#include <memory>
 
 class ServerSocket {
 protected:
@@ -59,11 +60,13 @@ public:
 	 */
 	int listen();
 
+	int bind();
+
 	/**
 	 * Accepts a new incoming client (blocking call).
 	 * @return A client socket instance
 	 */
-	Socket* accept();
+	std::shared_ptr<Socket> accept();
 
 	/**
 	 * Closes the listening socket

@@ -9,6 +9,7 @@
 #define SRC_COMMON_UW_IPMC_SERVICES_XVCSERVER_XVCSERVER_H_
 
 #include <drivers/network/Socket.h>
+#include <memory>
 
 /**
  * Xilinx Virtual Cable (XVC) TCP/IP server app based on XAPP1251:
@@ -35,7 +36,7 @@ private:
 		uint32_t  ctrl_offset;
 	} jtag_t;
 
-	bool HandleClient(Socket *s);
+	bool HandleClient(std::shared_ptr<Socket> s);
 
 	bool verbose;
 	uint32_t baseAddr;

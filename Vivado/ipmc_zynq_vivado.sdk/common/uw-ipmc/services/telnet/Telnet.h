@@ -9,6 +9,7 @@
 #define SRC_COMMON_UW_IPMC_SERVICES_TELNET_TELNET_H_
 
 #include "drivers/network/Socket.h"
+#include <memory>
 
 class TelnetServer {
 	const unsigned int TELNET_MAX_INSTANCES = 1;
@@ -22,10 +23,10 @@ public:
 
 class TelnetClient {
 public:
-	TelnetClient(Socket *s);
+	TelnetClient(std::shared_ptr<Socket> s);
 
 private:
-	Socket *socket;
+	std::shared_ptr<Socket> socket;
 
 public:
 	void thread_telnetc();

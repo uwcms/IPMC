@@ -25,10 +25,9 @@ port(port) {
 		}
 
 		while (true) {
-			Socket *client = server.accept();
+			std::shared_ptr<Socket> client = server.accept();
 
 			if (!client->valid()) {
-				delete client;
 				continue;
 			}
 
@@ -38,8 +37,6 @@ port(port) {
 				if (client->read(recv_buf, 1460) <= 0)
 					break;
 			}
-
-			delete client;
 		}
 	}));
 }
