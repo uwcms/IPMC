@@ -43,7 +43,7 @@ public:
 	bool match_reply(const IPMI_MSG &response) const;
 	std::string format() const;
 
-	IPMI_MSG() { };
+	IPMI_MSG();
 	IPMI_MSG(uint8_t rqLUN, uint8_t rqSA, uint8_t rsLUN, uint8_t rsSA, uint8_t netFn, uint8_t cmd, const std::vector<uint8_t> &data);
 };
 
