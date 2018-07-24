@@ -31,6 +31,26 @@
  
  
 /******************************************************************/
+/* Definitions for driver AD7689_S */
+#define XPAR_AD7689_S_NUM_INSTANCES 2
+
+/* Definitions for peripheral AD7689_S_0 */
+#define XPAR_AD7689_S_0_DEVICE_ID 0
+#define XPAR_AD7689_S_0_S_AXI_BASEADDR 0x43C00000
+#define XPAR_AD7689_S_0_S_AXI_HIGHADDR 0x43C0FFFF
+
+
+/* Definitions for peripheral AD7689_S_1 */
+#define XPAR_AD7689_S_1_DEVICE_ID 1
+#define XPAR_AD7689_S_1_S_AXI_BASEADDR 0x43C10000
+#define XPAR_AD7689_S_1_S_AXI_HIGHADDR 0x43C1FFFF
+
+
+/******************************************************************/
+
+
+/******************************************************************/
+
 
 /* Definitions for peripheral PS7_DDR_0 */
 #define XPAR_PS7_DDR_0_S_AXI_BASEADDR 0x00100000
@@ -123,16 +143,6 @@
 
 
 /******************************************************************/
-
-
-/* Definitions for peripheral AD7689_0 */
-#define XPAR_AD7689_0_S_AXI_BASEADDR 0x43C00000
-#define XPAR_AD7689_0_S_AXI_HIGHADDR 0x43C0FFFF
-
-
-/* Definitions for peripheral AD7689_1 */
-#define XPAR_AD7689_1_S_AXI_BASEADDR 0x43C10000
-#define XPAR_AD7689_1_S_AXI_HIGHADDR 0x43C1FFFF
 
 
 /* Definitions for peripheral AXI_JTAG_0 */
@@ -413,18 +423,16 @@
 /******************************************************************/
 
 /* Definitions for Fabric interrupts connected to ps7_scugic_0 */
-#define XPAR_FABRIC_AD7689_0_IRQ_INTR 61U
-#define XPAR_FABRIC_AD7689_1_IRQ_INTR 62U
+#define XPAR_FABRIC_AXI_IIC_PIM400_IIC2INTC_IRPT_INTR 61U
+#define XPAR_FABRIC_AXI_UARTLITE_ESM_INTERRUPT_INTR 62U
 #define XPAR_FABRIC_AXI_IIC_EEPROM_0_IIC2INTC_IRPT_INTR 63U
-#define XPAR_FABRIC_AXI_IIC_PIM400_IIC2INTC_IRPT_INTR 64U
-#define XPAR_FABRIC_AXI_UARTLITE_ESM_INTERRUPT_INTR 65U
 
 /******************************************************************/
 
 /* Canonical definitions for Fabric interrupts connected to ps7_scugic_0 */
-#define XPAR_FABRIC_IIC_0_VEC_ID XPAR_FABRIC_AXI_IIC_EEPROM_0_IIC2INTC_IRPT_INTR
 #define XPAR_FABRIC_IIC_1_VEC_ID XPAR_FABRIC_AXI_IIC_PIM400_IIC2INTC_IRPT_INTR
 #define XPAR_FABRIC_UARTLITE_0_VEC_ID XPAR_FABRIC_AXI_UARTLITE_ESM_INTERRUPT_INTR
+#define XPAR_FABRIC_IIC_0_VEC_ID XPAR_FABRIC_AXI_IIC_EEPROM_0_IIC2INTC_IRPT_INTR
 
 /******************************************************************/
 

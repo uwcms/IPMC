@@ -54,8 +54,158 @@
 
 #include "led_controller.h"
 #include "mgmt_zone_ctrl.h"
+#include "ad7689_s.h"
+
 
 #define TEST_MIN_PE_CNT 12
+
+
+void ad7689_s_freq_demo(AD7689_S * ad7689_s_list, u16 freq_req)
+{
+	int ADC, freq_meas;
+	for (ADC = 0 ; ADC<XPAR_AD7689_S_NUM_INSTANCES; ADC++)
+	{
+		xil_printf("ADC %d: requested conv frequency  = %5d\n\r", ADC, freq_req);
+		AD7689_S_Set_Conv_Freq(&(ad7689_s_list[ADC]), freq_req);
+
+		sleep(2); // it takes 1 second for FW to fully refresh frequency measurement
+
+		freq_meas = AD7689_S_Measure_Conv_Freq(&(ad7689_s_list[ADC]));
+		xil_printf("ADC %d: measured conv frequency  = %5d\n\r", ADC, freq_meas);
+	}
+}
+
+void ad7689_s_reading_demo(AD7689_S * ad7689_s_list )
+{
+	int ADC;
+    u16 reading;
+
+
+	for (ADC = 0 ; ADC<XPAR_AD7689_S_NUM_INSTANCES; ADC++)
+	{
+		u32 ch;
+		xil_printf("\n\r");
+
+		xil_printf("ADC_%d (mV readings)\n\r", ADC);
+		xil_printf(" Ch0    Ch1    Ch2    Ch3    Ch4    Ch5    Ch6    Ch7    Ch8(temp)\n\r");
+		xil_printf("------------------------------------------------------------------\n\r");
+
+		for (ch=0; ch<9; ch++)
+		{
+			XStatus rc;
+			rc = AD7689_S_Get_Reading(&(ad7689_s_list[ADC]), ch, &reading);
+			if (rc != XST_SUCCESS)
+			{
+				continue;
+			}
+
+			// 2500 -> 2.5V reference voltage
+			// 65536 -> 16-bit ADC
+			xil_printf("%4d   ", reading * 2500 / 65536);
+		}
+		xil_printf("\n\r");
+	}
+}
+
+int ad7689_s_demo(int demo)
+{
+
+	int i, Status;
+
+	int ADC ;
+	int freq_meas, freq_req;
+
+	AD7689_S ad7689_s_list[XPAR_AD7689_S_NUM_INSTANCES];
+
+	/* Initialize the LED Controller drivers */
+	for (i = 0; i < XPAR_AD7689_S_NUM_INSTANCES; i++) {
+		Status = AD7689_S_Initialize(&(ad7689_s_list[i]), i);
+		if (Status != XST_SUCCESS) {
+			xil_printf("AD7689_S Initialization Failed\n\r");
+			return XST_FAILURE;
+		}
+	}
+
+	xil_printf("\n\r");
+
+	freq_req = 12345; // requested AD conversion frequency
+
+	// set and read back AD conv freq
+	ad7689_s_freq_demo(ad7689_s_list, freq_req);
+
+	xil_printf("\n\r");
+
+	freq_req = 3000; // requested AD conversion frequency
+
+	// set and read back AD conv freq
+	ad7689_s_freq_demo(ad7689_s_list, freq_req);
+	xil_printf("\n\r");
+
+	// read and print AD conversion results
+	ad7689_s_reading_demo(ad7689_s_list);
+
+	xil_printf("\n\r#############################################\n\r");
+	xil_printf("Enable override mode - test 1\n\r");
+
+	// Per channel override enables
+	xil_printf("Enable override mode for all channels\n\r");
+
+	AD7689_S_Set_Ch_Ovrrd_Enables(&(ad7689_s_list[0]), 0x1FF);
+	AD7689_S_Set_Ch_Ovrrd_Enables(&(ad7689_s_list[1]), 0x1FF);
+
+	// Master Override Enable
+	AD7689_S_Set_Master_Ovrrd_Enable(&(ad7689_s_list[0]), 1);
+	AD7689_S_Set_Master_Ovrrd_Enable(&(ad7689_s_list[1]), 1);
+
+	{
+		int ch, val;
+		for (ch=0; ch<9; ch++)
+		{
+			val= 1234 * 65536 / 2500; // in 16-bit raw ADC scale
+			AD7689_S_Set_Ovrrd_Val(&(ad7689_s_list[0]), ch, val); //ADC_0
+			AD7689_S_Set_Ovrrd_Val(&(ad7689_s_list[1]), ch, val); //ADC_1
+		}
+	}
+
+	ad7689_s_reading_demo(ad7689_s_list);
+
+	xil_printf("\n\r#############################################\n\r");
+	xil_printf("Enable override mode - test 2\n\r");
+
+	// Per channel override enables
+	xil_printf("Enable override mode for every 2nd channel\n\r");
+
+	AD7689_S_Set_Ch_Ovrrd_Enables(&(ad7689_s_list[0]), 0x155);
+	AD7689_S_Set_Ch_Ovrrd_Enables(&(ad7689_s_list[1]), 0x0AA);
+
+	// Master Override Enable
+	AD7689_S_Set_Master_Ovrrd_Enable(&(ad7689_s_list[0]), 1);
+	AD7689_S_Set_Master_Ovrrd_Enable(&(ad7689_s_list[1]), 1);
+
+	{
+		int ch, val;
+		for (ch=0; ch<9; ch++)
+		{
+			val= 1234 * 65536 / 2500; // in 16-bit raw ADC scale
+			AD7689_S_Set_Ovrrd_Val(&(ad7689_s_list[0]), ch, val); //ADC_0
+			AD7689_S_Set_Ovrrd_Val(&(ad7689_s_list[1]), ch, val); //ADC_1
+		}
+	}
+
+	ad7689_s_reading_demo(ad7689_s_list);
+
+	xil_printf("\n\r#############################################\n\r");
+	xil_printf("Disable override mode\n\r");
+	// Master Override disable
+	AD7689_S_Set_Master_Ovrrd_Enable(&(ad7689_s_list[0]), 0);
+	AD7689_S_Set_Master_Ovrrd_Enable(&(ad7689_s_list[1]), 0);
+
+	ad7689_s_reading_demo(ad7689_s_list);
+
+
+	return 0;
+}
+
 
 /* Three different demos, 0-On/Off, 1-Pulse, 2-Dim */
 int LED_Controller_demo(int demo) {
@@ -87,7 +237,7 @@ int LED_Controller_demo(int demo) {
 		for (i = 0; i < XPAR_LED_CONTROLLER_NUM_INSTANCES; i++) {
 			for (k = 0; k < led_controller_list[i].InterfaceCount; k++) {
 				LED_Controller_Pulse(&(led_controller_list[i]), k,
-				LED_PULSE_NORMAL);
+						LED_PULSE_NORMAL);
 			}
 		}
 		break;
@@ -131,18 +281,18 @@ int mgmt_zone_ctrl_demo(void) {
 		cfg.pwren_cfg[i] = 0;
 	}
 
-/*
- * /**
- *  from mgmt_zone_ctrl.h
- *
- * Power_Enable Config
- *
- * Bit [15:0] up/down timer cfg (in miliseconds)
- * Bit   [16] active_level; set to 0 for active low outputs, set to 1 for active high outputs
- * Bit   [17] drive_enable; set to 0 to tri-state the output, set to 1 to enable the outputs
- * typedef u32 PWREN_cfg_t;
- *
- */
+	/*
+	 * /**
+	 *  from mgmt_zone_ctrl.h
+	 *
+	 * Power_Enable Config
+	 *
+	 * Bit [15:0] up/down timer cfg (in miliseconds)
+	 * Bit   [16] active_level; set to 0 for active low outputs, set to 1 for active high outputs
+	 * Bit   [17] drive_enable; set to 0 to tri-state the output, set to 1 to enable the outputs
+	 * typedef u32 PWREN_cfg_t;
+	 *
+	 */
 
 	cfg.pwren_cfg[0] = (1 << 17) | (1 << 16) | 1000;
 	cfg.pwren_cfg[1] = (1 << 17) | (1 << 16) | 2000;
@@ -161,14 +311,14 @@ int mgmt_zone_ctrl_demo(void) {
 	//Read back MZ configuration
 	Mgmt_Zone_Ctrl_Get_MZ_Cfg(&Mgmt_Zone_Ctrl_inst,  MZ,  &cfg_rb);
 
-    s32 rb_valid = memcmp(&cfg, &cfg_rb, sizeof(cfg));
+	s32 rb_valid = memcmp(&cfg, &cfg_rb, sizeof(cfg));
 
-    if (rb_valid != 0)
-    {
-    	xil_printf("MZ_cfg readback validation failure");
-    	xil_printf("\n\rMgmt_Zone_Ctrl test failed.\n\r");
-    	return XST_FAILURE;
-    }
+	if (rb_valid != 0)
+	{
+		xil_printf("MZ_cfg readback validation failure");
+		xil_printf("\n\rMgmt_Zone_Ctrl test failed.\n\r");
+		return XST_FAILURE;
+	}
 
 	// Initiate power ON sequence
 	Mgmt_Zone_Ctrl_Pwr_ON_Seq(&Mgmt_Zone_Ctrl_inst, MZ);
@@ -236,7 +386,9 @@ int main() {
 
 	xil_printf("ZYNQ-IPMC low-level driver testbench\n\r");
 
-	mgmt_zone_ctrl_demo();
+	//mgmt_zone_ctrl_demo();
+
+	ad7689_s_demo(0);
 
 	// LED demo
 	while (1) {
