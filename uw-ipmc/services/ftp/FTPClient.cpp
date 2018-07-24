@@ -13,9 +13,14 @@
 #include "drivers/network/ServerSocket.h"
 #include <libs/ThreadingPrimitives.h>
 
+#include "lwip/sockets.h"
+#include "lwip/sys.h"
+
 #include "FTPServer.h"
 
-#ifndef DEBUG
+#define FTP_DEBUG
+
+#ifdef FTP_DEBUG
 #define FTP_DBG_PRINTF(...) printf(__VA_ARGS__)
 #else
 #define FTP_DBG_PRINTF(...)
@@ -104,60 +109,87 @@ bool FTPServer_SplitCommandString(char* str, char** cmd, char** args) {
 
 FTPClient::FTPClient(std::shared_ptr<Socket> socket)
 : socket(socket), state(FTP_ST_LOGIN_USER) {
+	int r = 0;
 	char *buf = new char[1500];
-	char *cmd, *args;
+
+	fd_set fds;
+	struct timeval timeout = {10, 0}; // 10 seconds
+
+	FD_ZERO(&fds);
+	FD_SET(this->socket->get_socket(), &fds);
 
 	FTP_DBG_PRINTF("New FTP client, sending 220\n");
-	socket->send(buildReply(220));
+	this->socket->send(buildReply(220));
 
 	while (1) {
-		int r = socket->read(buf, 1500);
-		if (r <= 0) {
-			FTP_DBG_PRINTF("Client disconnected or error, exiting\n");
+		// Reset the timeout
+		timeout.tv_sec = 30;
+		timeout.tv_usec = 0;
+
+		r = lwip_select(this->socket->get_socket()+1, &fds, NULL, NULL, &timeout);
+
+		if (r > 0) {
+			if (FD_ISSET(this->socket->get_socket(), &fds)) {
+				// Command socket
+				char *cmd, *args;
+				int rbytes = socket->read(buf, 1500);
+
+				if (rbytes <= 0) {
+					FTP_DBG_PRINTF("Client disconnected or error, exiting\n");
+					break;
+				}
+
+				// Parse the command
+				if (!FTPServer_TerminateCommandString(buf, rbytes) ||
+					!FTPServer_SplitCommandString(buf, &cmd, &args)) {
+					FTP_DBG_PRINTF("Strange command format, not EOL\n");
+					this->socket->send(buildReply(500)); // Command not recognized
+					break;
+				}
+
+				// Convert cmd to uppercase, just in case
+				for (size_t i = 0; cmd[i] != '\0'; i++) cmd[i] = toupper(cmd[i]);
+
+				// Check if the command is supported
+				FTPCommand ftpcmd;
+				try {
+					ftpcmd = FTPCommands.at(cmd);
+				} catch (std::out_of_range const& exc) {
+					// Invalid or command not implemented
+					FTP_DBG_PRINTF("Command unrecognized (%s)\n", cmd);
+					socket->send(buildReply(500)); // Command unrecognized
+					continue;
+				}
+
+				// Check if the command can run on the current state
+				if (!((ftpcmd.second.size()) != 0 && (ftpcmd.second[0] == FTP_ST_ANY)) &&
+					(std::find(ftpcmd.second.begin(), ftpcmd.second.end(), state) == ftpcmd.second.end())) {
+					// Command cannot run in this state
+					FTP_DBG_PRINTF("Command cannot run in this state (%s, %d)\n", cmd, state);
+					socket->send(buildReply(503)); // Bad sequence
+					continue;
+				}
+
+				// Finally, run the command
+				if (!ftpcmd.first(*this, cmd, args)) {
+					// Something went wrong with the command, terminate
+					break;
+				}
+			}
+		} else if (r == 0) {
+			// Timeout, terminate the service
+			FTP_DBG_PRINTF("Timeout, disconnecting\n");
+			this->socket->send(buildReply(221));
 			break;
-		}
-
-		// Parse the command
-		if (!FTPServer_TerminateCommandString(buf, r) ||
-			!FTPServer_SplitCommandString(buf, &cmd, &args)) {
-			FTP_DBG_PRINTF("Strange command format, not EOL\n");
-			socket->send(buildReply(500)); // Command not recognized
-			break;
-		}
-
-		// Convert cmd to uppercase, just in case
-		for (size_t i = 0; cmd[i] != '\0'; i++) cmd[i] = toupper(cmd[i]);
-
-		// Check if the command is supported
-		FTPCommand ftpcmd;
-		try {
-			ftpcmd = FTPCommands.at(cmd);
-		} catch (std::out_of_range const& exc) {
-			// Invalid or command not implemented
-			FTP_DBG_PRINTF("Command unrecognized (%s)\n", cmd);
-			socket->send(buildReply(500)); // Command unrecognized
-			continue;
-		}
-
-		// Check if the command can run on the current state
-		if (!((ftpcmd.second.size()) != 0 && (ftpcmd.second[0] == FTP_ST_ANY)) &&
-			(std::find(ftpcmd.second.begin(), ftpcmd.second.end(), state) == ftpcmd.second.end())) {
-			// Command cannot run in this state
-			FTP_DBG_PRINTF("Command cannot run in this state (%s, %d)\n", cmd, state);
-			socket->send(buildReply(503)); // Bad sequence
-			continue;
-		}
-
-		// Finally, run the command
-		if (!ftpcmd.first(*this, cmd, args)) {
-			// Something went wrong with the command, terminate
+		} else {
+			// Error
+			FTP_DBG_PRINTF("Error (errno=%d)\n", errno);
 			break;
 		}
 
 	};
 
 	FTP_DBG_PRINTF("Closing connection\n");
-	//client->close();
 	delete buf;
 }
 
@@ -173,6 +205,7 @@ bool FTPClient::CommandNotImplemented(FTPClient &client, char *cmd, char *args) 
 }
 
 bool FTPClient::CommandUSER(FTPClient &client, char *cmd, char* user) {
+	// Possible replies: 120->220, 220, 421
 	FTP_DBG_PRINTF("User is %s\n", user);
 	client.socket->send(buildReply(331)); // Password required
 	client.state = FTP_ST_LOGIN_PASS;
@@ -180,6 +213,7 @@ bool FTPClient::CommandUSER(FTPClient &client, char *cmd, char* user) {
 }
 
 bool FTPClient::CommandPASS(FTPClient &client, char *cmd, char* pass) {
+	// Possible replies: 230, 530, 500, 501, 421, 331, 332
 	FTP_DBG_PRINTF("Pass is %s\n", pass);
 	client.socket->send(buildReply(230)); // Logged in
 	client.state = FTP_ST_IDLE;
@@ -187,18 +221,34 @@ bool FTPClient::CommandPASS(FTPClient &client, char *cmd, char* pass) {
 }
 
 bool FTPClient::CommandQUIT(FTPClient &client, char *cmd, char* args) {
+	// Possible replies: 221, 500
 	FTP_DBG_PRINTF("Quitting\n");
 	client.socket->send(buildReply(221)); // Closing connection
 	client.state = FTP_ST_IDLE;
 	return false;
 }
 
+bool FTPClient::CommandPORT(FTPClient &client, char *cmd, char* args) {
+	// Possible replies: 200, 500, 501, 421, 530
+	FTP_DBG_PRINTF("Setting port to %s\n", args);
+	uint8_t addr[4], port[2];
+	if (sscanf(args, "%hhu,%hhu,%hhu,%hhu,%hhu,%hhu",
+			&(addr[3]), &(addr[2]), &(addr[1]), &(addr[0]),
+			&(port[1]), &(port[0])) != 6) {
+		// Incorrect arguments
+		client.socket->send(buildReply(501)); // Invalid parameters
+	} else {
+		client.socket->send(buildReply(200)); // Okay
+	}
+	return true;
+}
 
 std::map<std::string, FTPClient::FTPCommand> FTPClient::FTPCommands = {
+	// Minimal implementation
 	{"USER", {FTPClient::CommandUSER, {FTP_ST_LOGIN_USER}}},
 	{"PASS", {FTPClient::CommandPASS, {FTP_ST_LOGIN_PASS}}},
 	{"QUIT", {FTPClient::CommandQUIT, {FTP_ST_IDLE}}},
-	{"PORT", {FTPClient::CommandNotImplemented, {FTP_ST_ANY}}},
+	{"PORT", {FTPClient::CommandPORT, {FTP_ST_IDLE}}},
 	{"TYPE", {FTPClient::CommandNotImplemented, {FTP_ST_ANY}}},
 	{"MODE", {FTPClient::CommandNotImplemented, {FTP_ST_ANY}}},
 	{"STRU", {FTPClient::CommandNotImplemented, {FTP_ST_ANY}}},
@@ -206,10 +256,8 @@ std::map<std::string, FTPClient::FTPCommand> FTPClient::FTPCommands = {
 	{"STOR", {FTPClient::CommandNotImplemented, {FTP_ST_ANY}}},
 	{"NOOP", {FTPClient::CommandNotImplemented, {FTP_ST_ANY}}},
 
-
-	//{"SYST", {FTPServer_CommandNotImplemented, {FTP_ST_ANY}}},
-	//{"PASV", {FTPServer_CommandNotImplemented, {FTP_ST_ANY}}},
-
-	//PORT, TYPE, MODE, STRU,RETR, STOR, NOOP
+	// Extended implementation
+	{"SYST", {FTPClient::CommandNotImplemented, {FTP_ST_ANY}}},
+	{"PASV", {FTPClient::CommandNotImplemented, {FTP_ST_ANY}}},
 };
 
