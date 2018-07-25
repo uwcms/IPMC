@@ -27,7 +27,7 @@ FTPServer::~FTPServer() {
 }
 
 void FTPServer::thread_ftpserverd() {
-	std::unique_ptr<ServerSocket> server (new ServerSocket(21, FTP_MAX_INSTANCES));
+	std::unique_ptr<ServerSocket> server (new ServerSocket(21));
 
 	int err = server->listen();
 
@@ -39,7 +39,7 @@ void FTPServer::thread_ftpserverd() {
 	while (true) {
 		std::shared_ptr<Socket> client = server->accept();
 
-		if (!client->valid()) {
+		if (!client->isValid()) {
 			continue;
 		}
 

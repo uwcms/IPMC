@@ -16,7 +16,7 @@
 
 class SocketAddress {
 protected:
-	int port;
+	unsigned short port;
 	std::string address;
 
 public:
@@ -38,7 +38,7 @@ public:
 	 * @param address The address of the socket
 	 * @param port The port
 	 */
-	SocketAddress(std::string address, int port) {
+	SocketAddress(std::string address, unsigned short port) {
 		this->address = address;
 		this->port = port;
 	}
@@ -47,7 +47,7 @@ public:
 	 * Returns a sockaddr_in structure based on the information of the socketaddress instance
 	 * @return sockaddr_in structure
 	 */
-	struct sockaddr_in get_struct() const {
+	struct sockaddr_in getStruct() const {
 		struct sockaddr_in addr;
 		memset(&addr, 0, sizeof(struct sockaddr_in));
 
@@ -63,26 +63,19 @@ public:
 	 * Gets the port of the socket
 	 * @return the port number
 	 */
-	int get_port() const {
-		return port;
-	}
+	inline int getPort() const { return port; }
 
 	/**
 	 * Gets the address of the socket
 	 * @return the address
 	 */
-	std::string get_address() const {
-		return address;
-	}
+	inline std::string getAddress() const { return address; }
 
 	/**
 	 * Gets the address of the socket
 	 * @return the address
 	 */
-	uint32_t get_address_binary() const {
-		struct sockaddr_in addr = this->get_struct();
-		return addr.sin_addr.s_addr;
-	}
+	inline uint32_t getAddressBinary() const { return this->getStruct().sin_addr.s_addr; }
 };
 
 #endif /* SRC_COMMON_UW_IPMC_DRIVERS_NETWORK_SOCKETADDRESS_H_ */

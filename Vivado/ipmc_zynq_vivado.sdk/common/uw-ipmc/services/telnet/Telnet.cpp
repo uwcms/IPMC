@@ -19,7 +19,7 @@ TelnetServer::TelnetServer() {
 }
 
 void TelnetServer::thread_telnetd() {
-	ServerSocket *server = new ServerSocket(23, TELNET_MAX_INSTANCES);
+	ServerSocket *server = new ServerSocket(23);
 
 	int err = server->listen();
 
@@ -31,7 +31,7 @@ void TelnetServer::thread_telnetd() {
 	while (true) {
 		std::shared_ptr<Socket> client = server->accept();
 
-		if (!client->valid()) {
+		if (!client->isValid()) {
 			continue;
 		}
 
@@ -42,7 +42,7 @@ void TelnetServer::thread_telnetd() {
 
 TelnetClient::TelnetClient(std::shared_ptr<Socket> s) :
 socket(s) {
-	const std::string name = std::string("telnetc:") + std::to_string(socket->get_socketaddress()->get_port());
+	const std::string name = std::string("telnetc:") + std::to_string(socket->getSocketAddress()->getPort());
 	configASSERT(UWTaskCreate(name, TASK_PRIORITY_INTERACTIVE, [this]() -> void { this->thread_telnetc(); }));
 }
 
