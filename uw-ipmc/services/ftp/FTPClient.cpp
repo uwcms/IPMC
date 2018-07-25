@@ -116,7 +116,7 @@ FTPClient::FTPClient(std::shared_ptr<Socket> socket)
 	struct timeval timeout = {10, 0}; // 10 seconds
 
 	FD_ZERO(&fds);
-	FD_SET(this->socket->get_socket(), &fds);
+	FD_SET(*this->socket, &fds);
 
 	FTP_DBG_PRINTF("New FTP client, sending 220\n");
 	this->socket->send(buildReply(220));
@@ -126,10 +126,10 @@ FTPClient::FTPClient(std::shared_ptr<Socket> socket)
 		timeout.tv_sec = 30;
 		timeout.tv_usec = 0;
 
-		r = lwip_select(this->socket->get_socket()+1, &fds, NULL, NULL, &timeout);
+		r = lwip_select(*this->socket+1, &fds, NULL, NULL, &timeout);
 
 		if (r > 0) {
-			if (FD_ISSET(this->socket->get_socket(), &fds)) {
+			if (FD_ISSET(*this->socket, &fds)) {
 				// Command socket
 				char *cmd, *args;
 				int rbytes = socket->read(buf, 1500);

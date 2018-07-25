@@ -20,7 +20,7 @@ baseAddr(baseAddr), port(port), verbose(false) {
 	// Start the XVC server thread
 	configASSERT(UWTaskCreate(threadName, TASK_PRIORITY_BACKGROUND, [this]() {
 		// Just allow one connection at a time
-		ServerSocket server(this->port, 1);
+		ServerSocket server(this->port);
 
 		int err = server.listen();
 		if (err != 0) {
@@ -31,7 +31,7 @@ baseAddr(baseAddr), port(port), verbose(false) {
 		while (true) {
 			std::shared_ptr<Socket> client = server.accept();
 
-			if (!client->valid()) {
+			if (!client->isValid()) {
 				continue;
 			}
 
@@ -53,11 +53,11 @@ bool XVCServer::HandleClient(std::shared_ptr<Socket> s) {
 		unsigned char buffer[2048], result[1024];
 		memset(cmd, 0, 16);
 
-		if (s->sread(cmd, 2) != 1)
+		if (s->readn(cmd, 2) != 1)
 			return true;
 
 		if (memcmp(cmd, "ge", 2) == 0) {
-			if (s->sread(cmd, 6) != 1)
+			if (s->readn(cmd, 6) != 1)
 				return 1;
 			memcpy(result, xvcInfo, strlen(xvcInfo));
 			if (s->send((char*)result, strlen(xvcInfo)) != strlen(xvcInfo)) {
@@ -69,7 +69,7 @@ bool XVCServer::HandleClient(std::shared_ptr<Socket> s) {
 				printf("\t Replied with %s\n", xvcInfo);
 			}
 		} else if (memcmp(cmd, "se", 2) == 0) {
-			if (s->sread(cmd, 9) != 1)
+			if (s->readn(cmd, 9) != 1)
 				return 1;
 			memcpy(result, cmd + 5, 4);
 			if (s->send((char*)result, 4) != 4) {
@@ -81,14 +81,14 @@ bool XVCServer::HandleClient(std::shared_ptr<Socket> s) {
 				printf("\t Replied with '%.*s'\n\n", 4, cmd + 5);
 			}
 		} else if (memcmp(cmd, "sh", 2) == 0) {
-			if (s->sread(cmd, 4) != 1)
+			if (s->readn(cmd, 4) != 1)
 				return 1;
 			if (verbose) {
 				printf("Received command: 'shift'\n");
 			}
 
 			int len;
-			if (s->sread((char*)&len, 4) != 1) {
+			if (s->readn((char*)&len, 4) != 1) {
 				fprintf(stderr, "reading length failed\n");
 				return 1;
 			}
@@ -99,7 +99,7 @@ bool XVCServer::HandleClient(std::shared_ptr<Socket> s) {
 				return 1;
 			}
 
-			if (s->sread((char*)buffer, nr_bytes * 2) != 1) {
+			if (s->readn((char*)buffer, nr_bytes * 2) != 1) {
 				fprintf(stderr, "reading data failed\n");
 				return 1;
 			}

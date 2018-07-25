@@ -19,12 +19,18 @@
  * TODO
  */
 class Socket {
-protected:
-	int socketfd;
-	SocketAddress* sockaddr;
-
 public:
-	Socket(int socket, struct sockaddr_in addr);
+	/**
+	 * Creates a socket instance based upon an already existing
+	 * socket file descriptor and sockaddr_in structure.
+	 * Used for example after a call to ::accept()
+	 * @param the socket file descriptor
+	 * @param the address structure
+	 */
+	Socket(int socket, struct sockaddr_in sockaddr);
+
+	Socket(int socket, std::string address, unsigned short port);
+
 	virtual ~Socket();
 
 	/**
@@ -33,7 +39,7 @@ public:
 	 * @param len the length of the buffer in buffer
 	 * @return The total number of read bytes
 	 */
-	virtual int read(void *ptr, int len);
+	int read(void *ptr, int len);
 
 	/**
 	 * Will read the number of requested bytes
@@ -42,74 +48,66 @@ public:
 	 *            quantity to read
 	 * @return 1 if read successful
 	 */
-	virtual int sread(void *ptr, int len);
+	int readn(void *ptr, int len);
 
 	/**
 	 * Sends a string to the client
-	 * @param the string to send
+	 * @param str the string to send
 	 */
-	virtual int send(std::string);
+	int send(std::string str);
 
 	/**
-	 * Sends an array of charactes to the client, with a specified start and end index
-	 * @param the character buffer
-	 * @param the starting position
-	 * @param the length
+	 * Sends an array of charactes to the client
+	 * @param buf the character buffer
+	 * @param len the starting position
+	 * @param flags TODO
 	 */
-	virtual int send(const void* buf, int len, int flags=0);
+	int send(const void* buf, int len, int flags=0);
 
 	/**
 	 * Sets the socket in blocking mode
 	 */
-	virtual void setBlocking();
+	void setBlocking();
 
 	/**
 	 * Sets the socket in non-blocking mode
 	 */
-	virtual void setUnblocking();
+	void setUnblocking();
 
 	/**
 	 * Sets the socket to have no delay on TCP reads
 	 */
-	virtual void setTCPNoDelay();
+	void setTCPNoDelay();
 
 	/**
 	 * Closes the socket connection
 	 */
-	virtual void close() {
-		if (socketfd == -1) {
-			return;
-		}
-
-		lwip_close(socketfd);
-
-		socketfd = -1;
-	}
+	void close();
 
 	/**
 	 * Checks whether the socket is valid
 	 * @return true of the socket is valid, false otherwise
 	 */
-	virtual bool valid() {
-		return socketfd != -1;
-	}
+	inline bool isValid() { return socketfd != -1; }
 
 	/**
 	 * Gets the socket file descriptor
 	 * @return the socket file descriptor
 	 */
-	virtual inline int get_socket() {
-		return socketfd;
-	}
+	inline int getSocket() { return socketfd; }
 
 	/**
 	 * Gets the socketaddress instance of the socket, which contains
 	 * information about the socket's address and port
 	 * @return the socketaddress instance
 	 */
-	virtual SocketAddress* get_socketaddress() {
-		return sockaddr;
-	}
+	inline SocketAddress* getSocketAddress() { return sockaddr; }
+
+	inline operator int() { return this->getSocket(); }
+
+protected:
+	int socketfd;
+	SocketAddress* sockaddr;
 };
 
 #endif /* SRC_COMMON_UW_IPMC_DRIVERS_NETWORK_SOCKET_H_ */

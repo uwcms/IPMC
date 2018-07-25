@@ -11,21 +11,43 @@
 
 #define DEFAULT_SOCKET_BUFFER 128
 
-/**
- * Creates a socket instance based upon an already existing
- * socket file descriptor and sockaddr_in structure.
- * Used for example after a call to ::accept()
- * @param the socket file descriptor
- * @param the address structure
- */
-Socket::Socket(int socket, struct sockaddr_in addr) {
-	socketfd = socket;
-	sockaddr = new SocketAddress(addr);
+Socket::Socket(int socket, struct sockaddr_in sockaddr)
+: socketfd(socket) {
+	this->sockaddr = new SocketAddress(sockaddr);
+}
+
+Socket::Socket(int socket, std::string address, unsigned short port)
+: socketfd(socket) {
+	this->sockaddr = new SocketAddress(address, port);
 }
 
 Socket::~Socket() {
-	delete sockaddr;
 	close();
+	delete sockaddr;
+}
+
+int Socket::read(void* buf, int len) {
+	return lwip_recv(this->socketfd, buf, len, 0);
+}
+
+int Socket::readn(void* buf, int len) {
+	uint8_t *t = (uint8_t*)buf;
+	while (len) {
+		int r = lwip_recv(this->socketfd, buf, len, 0);
+		if (r <= 0)
+			return r;
+		t += r;
+		len -= r;
+	}
+	return 1;
+}
+
+int Socket::send(std::string data) {
+	return this->send((const uint8_t*)data.c_str(), data.length(), 0);
+}
+
+int Socket::send(const void* buf, int len, int flags) {
+	return lwip_send(this->socketfd, buf, len, flags);
 }
 
 void Socket::setBlocking() {
@@ -43,6 +65,16 @@ void Socket::setUnblocking() {
 void Socket::setTCPNoDelay() {
 	int flag = 1;
 	lwip_setsockopt(socketfd, IPPROTO_TCP, TCP_NODELAY, (char*)&flag, sizeof(int));
+}
+
+void Socket::close() {
+	if (socketfd == -1) {
+		return;
+	}
+
+	lwip_close(socketfd);
+
+	socketfd = -1;
 }
 
 /*int Socket::read(std::string& msg) {
@@ -78,27 +110,3 @@ void Socket::setTCPNoDelay() {
 
 	return bytes_total;
 }*/
-
-int Socket::read(void* buf, int len) {
-	return lwip_recv(socketfd, buf, len, 0);
-}
-
-int Socket::sread(void* buf, int len) {
-	uint8_t *t = (uint8_t*)buf;
-	while (len) {
-		int r = lwip_recv(socketfd, buf, len, 0);
-		if (r <= 0)
-			return r;
-		t += r;
-		len -= r;
-	}
-	return 1;
-}
-
-int Socket::send(std::string data) {
-	return this->send((const uint8_t*)data.c_str(), data.length(), 0);
-}
-
-int Socket::send(const void* buf, int len, int flags) {
-	return lwip_send(socketfd, buf, len, flags);
-}

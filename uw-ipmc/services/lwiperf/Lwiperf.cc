@@ -16,7 +16,7 @@
 Lwiperf::Lwiperf(unsigned short port) :
 port(port) {
 	configASSERT(UWTaskCreate("lwiperfd", TCPIP_THREAD_HIGH_PRIO, [this]() -> void {
-		ServerSocket server(this->port, 1);
+		ServerSocket server(this->port);
 
 		int err = server.listen();
 		if (err != 0) {
@@ -27,7 +27,7 @@ port(port) {
 		while (true) {
 			std::shared_ptr<Socket> client = server.accept();
 
-			if (!client->valid()) {
+			if (!client->isValid()) {
 				continue;
 			}
 
