@@ -27,10 +27,11 @@
  * \param wdt            The watchdog instance to register & service.
  */
 IPMBSvc::IPMBSvc(IPMB *ipmbA, IPMB *ipmbB, uint8_t ipmb_address, IPMICommandParser *command_parser, LogTree &logtree, const std::string name, PS_WDT *wdt) :
+		ipmb{ipmbA, ipmbB},
 		name(name),
 		command_parser(command_parser),
 		logroot(logtree),
-		ipmb{ipmbA, ipmbB}, ipmb_address(ipmb_address),
+		ipmb_address(ipmb_address),
 		stat_recvq_highwater(name+".recvq_highwater"),
 		stat_sendq_highwater(name+".sendq_highwater"),
 		stat_messages_received(name+".messages.received"),
