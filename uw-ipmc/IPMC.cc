@@ -147,6 +147,7 @@ void driver_init(bool use_pl) {
 			| (1<<2) // PGOOD_3V3PYLD
 			| (1<<3) // PGOOD_5V0PYLD
 			| (1<<4);// PGOOD_1V2PHY
+#warning "Hardfault Safety is Disabled (Hacked out)"
 	hf_mask = 0; // XXX Disable Hardfault Safety
 	mgmt_zones[0]->set_hardfault_mask(hf_mask, 140);
 	mgmt_zones[0]->get_pen_config(pen_config);
@@ -176,6 +177,7 @@ void driver_init(bool use_pl) {
 
 	hf_mask = 0
 			| (1<<5);// ELM_PFAIL
+#warning "Hardfault Safety is Disabled (Hacked out)"
 	hf_mask = 0; // XXX Disable Hardfault Safety
 	mgmt_zones[1]->set_hardfault_mask(hf_mask, 150);
 	mgmt_zones[1]->get_pen_config(pen_config);
