@@ -150,7 +150,6 @@ void ConsoleSvc::_run_thread() {
 			'\0', // String Terminator
 	};
 	ANSICode ansi_code;
-	uint64_t last_ansi_tick = 0;
 	CommandHistory history(50);
 	char prevchar = '\0';
 	bool history_browse = false;
