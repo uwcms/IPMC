@@ -74,10 +74,7 @@ void MGMT_Zone::set_pen_config(const std::vector<OutputConfig> &pen_config) {
 	configASSERT(pen_config.size() == this->get_pen_count());
 	MZ_config config;
 	Mgmt_Zone_Ctrl_Get_MZ_Cfg(&this->zone, this->MZNo, &config);
-	for (int i = 0; i < this->get_pen_count(); ++i) {
-		volatile auto de = pen_config[i].drive_enabled;
-		volatile auto ah = pen_config[i].active_high;
-		volatile auto ed = pen_config[i].enable_delay;
+	for (uint32_t i = 0; i < this->get_pen_count(); ++i) {
 		config.pwren_cfg[i] =
 				((pen_config[i].drive_enabled)<<17) |
 				((pen_config[i].active_high  )<<16) |
@@ -95,7 +92,7 @@ void MGMT_Zone::get_pen_config(std::vector<OutputConfig> &pen_config) {
 	pen_config.clear();
 	MZ_config config;
 	Mgmt_Zone_Ctrl_Get_MZ_Cfg(&this->zone, this->MZNo, &config);
-	for (int i = 0; i < this->get_pen_count(); ++i)
+	for (uint32_t i = 0; i < this->get_pen_count(); ++i)
 		pen_config.emplace_back(config.pwren_cfg[i] & (1<<16), config.pwren_cfg[i] & (1<<17), config.pwren_cfg[i]&0xffff);
 }
 
@@ -111,7 +108,7 @@ u32 MGMT_Zone::get_pen_status(bool apply_mask) {
 		std::vector<OutputConfig> pencfg;
 		this->get_pen_config(pencfg);
 		mask = 0;
-		for (int i = 0; i < this->get_pen_count(); ++i)
+		for (uint32_t i = 0; i < this->get_pen_count(); ++i)
 			if (pencfg[i].drive_enabled)
 				mask |= (1 << i);
 	}
