@@ -10,6 +10,7 @@
 #include <drivers/watchdog/PSWDT.h>
 #include <drivers/ps_uart/PSUART.h>
 #include <drivers/ps_ipmb/PSIPMB.h>
+#include <drivers/ipmbpair/IPMBPair.h>
 #include <drivers/mgmt_zone/MGMTZone.h>
 #include <services/ipmi/ipmbsvc/IPMBSvc.h>
 #include <services/ipmi/ipmbsvc/IPMICommandParser.h>
@@ -129,8 +130,9 @@ void driver_init(bool use_pl) {
 	PS_IPMB *ps_ipmb[2];
 	ps_ipmb[0] = new PS_IPMB(XPAR_PS7_I2C_0_DEVICE_ID, XPAR_PS7_I2C_0_INTR, ipmbaddr);
 	ps_ipmb[1] = new PS_IPMB(XPAR_PS7_I2C_1_DEVICE_ID, XPAR_PS7_I2C_1_INTR, ipmbaddr);
+	IPMBPair *ipmb0pair = new IPMBPair(ps_ipmb[0], ps_ipmb[1], &(log_ipmb0["outgoing_messages"]));
 	ipmi_command_parser = new IPMICommandParser(ipmicmd_default, *ipmicmd_index);
-	ipmb0 = new IPMBSvc(ps_ipmb[0], ps_ipmb[1], ipmbaddr, ipmi_command_parser, log_ipmb0, "ipmb0", SWDT);
+	ipmb0 = new IPMBSvc(ipmb0pair, ipmbaddr, ipmi_command_parser, log_ipmb0, "ipmb0", SWDT);
 	ipmb0->register_console_commands(console_command_parser, "ipmb0.");
 
 	// TODO: Clean up this part

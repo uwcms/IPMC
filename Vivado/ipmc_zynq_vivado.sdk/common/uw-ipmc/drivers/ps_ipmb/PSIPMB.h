@@ -32,7 +32,7 @@ public:
 	virtual ~PS_IPMB();
 	virtual void _HandleInterrupt(u32 StatusEvent); ///< \protected Internal.
 
-	virtual bool send_message(IPMI_MSG &msg);
+	virtual bool send_message(IPMI_MSG &msg, uint32_t retry=0);
 
 	StatCounter messages_received;         ///< The number of messages received on this IPMB.
 	StatCounter invalid_messages_received; ///< The number of received messages on this IPMB that are discarded as invalid.

@@ -106,10 +106,11 @@ void PS_IPMB::setup_master() {
 /**
  * This function will send a message out on the IPMB in a blocking manner.
  *
- * \param msg  The IPMI_MSG to deliver.
- * \return     true if message was delivered else false
+ * \param msg   The IPMI_MSG to deliver.
+ * \param retry The retry counter for this message.
+ * \return      true if message was delivered else false
  */
-bool PS_IPMB::send_message(IPMI_MSG &msg) {
+bool PS_IPMB::send_message(IPMI_MSG &msg, uint32_t retry) {
 	uint8_t msgbuf[this->i2c_bufsize];
 	int msglen = msg.unparse_message(msgbuf, this->i2c_bufsize);
 
