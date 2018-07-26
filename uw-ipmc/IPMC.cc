@@ -9,8 +9,7 @@
 #include <IPMC.h>
 #include <drivers/watchdog/PSWDT.h>
 #include <drivers/ps_uart/PSUART.h>
-#include <drivers/ps_ipmb/PSIPMB.h>
-#include <drivers/ipmbpair/IPMBPair.h>
+#include <drivers/ipmb/PSIPMB.h>
 #include <drivers/mgmt_zone/MGMTZone.h>
 #include <services/ipmi/ipmbsvc/IPMBSvc.h>
 #include <services/ipmi/ipmbsvc/IPMICommandParser.h>
@@ -36,6 +35,7 @@
 
 #include <services/telnet/Telnet.h>
 #include <alloca.h>
+#include <drivers/ipmb/IPMBPair.h>
 
 #include <services/lwiperf/Lwiperf.h>
 #include <services/xvcserver/XVCServer.h>

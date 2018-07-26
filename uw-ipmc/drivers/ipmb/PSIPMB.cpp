@@ -5,7 +5,7 @@
  *      Author: jtikalsky
  */
 
-#include <drivers/ps_ipmb/PSIPMB.h>
+#include <drivers/ipmb/PSIPMB.h>
 
 #include "PSIPMB.h"
 #include "IPMC.h"
