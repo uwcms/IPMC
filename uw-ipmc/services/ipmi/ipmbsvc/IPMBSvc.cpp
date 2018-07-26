@@ -18,20 +18,19 @@
 /**
  * Instantiate the IPMB service.
  *
- * \param ipmbA          The underlying IPMB_A
- * \param ipmbB          The underlying IPMB_B (or NULL)
+ * \param ipmb           The underlying IPMB
  * \param ipmb_address   The IPMB address of this node.
  * \param command_parser The command parser for incoming commands.
  * \param logtree        The logtree for messages from the IPMBSvc.
  * \param name           Used for StatCounter, Messenger and thread name.
  * \param wdt            The watchdog instance to register & service.
  */
-IPMBSvc::IPMBSvc(IPMB *ipmbA, IPMB *ipmbB, uint8_t ipmb_address, IPMICommandParser *command_parser, LogTree &logtree, const std::string name, PS_WDT *wdt) :
-		ipmb{ipmbA, ipmbB},
+IPMBSvc::IPMBSvc(IPMB *ipmb, uint8_t ipmb_address, IPMICommandParser *command_parser, LogTree &logtree, const std::string name, PS_WDT *wdt) :
+		ipmb_address(ipmb_address),
 		name(name),
 		command_parser(command_parser),
 		logroot(logtree),
-		ipmb_address(ipmb_address),
+		ipmb(ipmb),
 		stat_recvq_highwater(name+".recvq_highwater"),
 		stat_sendq_highwater(name+".sendq_highwater"),
 		stat_messages_received(name+".messages.received"),
@@ -44,7 +43,7 @@ IPMBSvc::IPMBSvc(IPMB *ipmbA, IPMB *ipmbB, uint8_t ipmb_address, IPMICommandPars
 		log_messages_out(logtree["outgoing_messages"]),
 		wdt(wdt) {
 
-	configASSERT(ipmbA); // One physical IPMB is required, but not two.
+	configASSERT(ipmb); // An IPMB is required.
 
 	this->recvq = xQueueCreate(this->recvq_size, sizeof(IPMI_MSG));
 	configASSERT(this->recvq);
@@ -61,9 +60,7 @@ IPMBSvc::IPMBSvc(IPMB *ipmbA, IPMB *ipmbB, uint8_t ipmb_address, IPMICommandPars
 	configASSERT(pdPASS == xQueueAddToSet(this->sendq_notify_sem, this->qset));
 	configASSERT(pdPASS == xQueueAddToSet(this->recvq, this->qset));
 
-	ipmbA->incoming_message_queue = this->recvq;
-	if (ipmbB)
-		ipmbB->incoming_message_queue = this->recvq;
+	ipmb->set_incoming_message_queue(this->recvq);
 
 	if (this->wdt) {
 		this->wdt_slot = this->wdt->register_slot(configTICK_RATE_HZ*10);
@@ -76,9 +73,7 @@ IPMBSvc::IPMBSvc(IPMB *ipmbA, IPMB *ipmbB, uint8_t ipmb_address, IPMICommandPars
 
 IPMBSvc::~IPMBSvc() {
 	configASSERT(!this->task); // Clean up the task first.  We can't just TaskDelete as it might be holding a lock at the particular instant.
-	this->ipmb[0]->incoming_message_queue = NULL;
-	if (this->ipmb[1])
-		this->ipmb[1]->incoming_message_queue = NULL;
+	this->ipmb->set_incoming_message_queue(NULL);
 	configASSERT(0); // Destruction is not supported, as QueueSets don't have a good delete functionality.
 	vSemaphoreDelete(this->sendq_mutex);
 	vSemaphoreDelete(this->sendq_notify_sem);
@@ -281,9 +276,6 @@ void IPMBSvc::run_thread() {
 				}
 
 				this->stat_send_attempts.increment();
-				uint8_t ipmb_choice = (it->retry_count + it->msg->rqSeq) % 2;
-				if (!this->ipmb[1])
-					ipmb_choice = 0;
 
 				// We don't want to hold the mutex while waiting on the bus.
 				std::shared_ptr<IPMI_MSG> wireout_msg = it->msg;
@@ -300,7 +292,7 @@ void IPMBSvc::run_thread() {
 				}
 				else {
 					// This is a normal outgoing message, deliver it.
-					success = this->ipmb[ipmb_choice]->send_message(*wireout_msg);
+					success = this->ipmb->send_message(*wireout_msg, it->retry_count);
 				}
 				xSemaphoreTake(this->sendq_mutex, portMAX_DELAY);
 

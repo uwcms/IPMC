@@ -36,7 +36,7 @@ public:
 	const std::string name; ///< The name used for this IPMB in StatCounter or Task names, as well as log messages.
 	IPMICommandParser *command_parser; ///< The command parser used for incoming messages.
 
-	IPMBSvc(IPMB *ipmbA, IPMB *ipmbB, uint8_t ipmb_address, IPMICommandParser *command_parser, LogTree &logtree, const std::string name, PS_WDT *wdt);
+	IPMBSvc(IPMB *ipmb, uint8_t ipmb_address, IPMICommandParser *command_parser, LogTree &logtree, const std::string name, PS_WDT *wdt);
 	virtual ~IPMBSvc();
 
 	static uint8_t lookup_ipmb_address(const int gpios[8]);
@@ -75,7 +75,7 @@ protected:
 		IPMB_MsgRec(std::shared_ptr<IPMI_MSG> &msg, response_cb_t response_cb = NULL) : msg(msg), response_cb(response_cb), retry_count(0), next_retry(0ul) { };
 	};
 
-	IPMB *ipmb[2]; ///< The subordinate IPMBs.
+	IPMB *ipmb; ///< The underlying IPMB.
 	const size_t recvq_size = 32; ///< The length of the receive queue.
 	QueueHandle_t recvq; ///< A queue for received messages from both interfaces.
 	SemaphoreHandle_t sendq_mutex; ///< A mutex protecting the sendq.
