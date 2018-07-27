@@ -56,8 +56,6 @@ public:
 
 	std::vector<uint8_t> ReadData(uint16_t offset, uint16_t size, std::function<void(uint16_t offset, uint16_t size)> progress_callback=NULL, BaseType_t retry_delay=333) const;
 
-	static std::string RenderTypeLengthField(std::vector<uint8_t> &data);
-
 	/**
 	 * A structure representing the Chassis Area Info data.
 	 */
