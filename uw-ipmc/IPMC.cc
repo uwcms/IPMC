@@ -202,6 +202,7 @@ void driver_init(bool use_pl) {
  *
  * \note This function is called before the FreeRTOS scheduler has been started.
  */
+uint32_t *fakefile = NULL;
 void ipmc_service_init() {
 	console_service = UARTConsoleSvc::create(*uart_ps0, console_command_parser, "console", LOG["console"]["uart"], true);
 
@@ -216,6 +217,90 @@ void ipmc_service_init() {
 		new Lwiperf(5001);
 		new XVCServer(XPAR_AXI_JTAG_0_BASEADDR);
 		//new Tftp();
+
+		fakefile = new uint32_t [16*1024*1024/4];
+		for (int i = 0; i < 16*1024*256; i++)
+			fakefile[i] = htonl(i);
+
+
+		//memset(fakefile, 0xFFFFFFFF, 16*1024*1024);
+
+		FTPServer::setFiles({
+			{"virtual", {0, NULL, NULL, true, {
+				{"flash.bin", {16*1024*1024, [](uint8_t *buf) -> size_t {
+					size_t totalsize = isfqspi->GetTotalSize();
+					size_t pagesize = isfqspi->GetPageSize();
+					int pagecount = totalsize / pagesize;
+
+					for (int i = 0; i < pagecount; i++) {
+						size_t addr = i * pagesize;
+						uint8_t* ptr = isfqspi->ReadPage(addr);
+						memcpy(buf + addr, ptr, pagesize);
+					}
+
+					return totalsize;
+				}, [](uint8_t *buf, size_t len) -> size_t {
+					// Write the buffer to flash
+					const size_t baseaddr = 0x0;
+
+					size_t rem = len % isfqspi->GetPageSize();
+					size_t pages = len / isfqspi->GetPageSize() + (rem? 1 : 0);
+
+					for (size_t i = 0; i < pages; i++) {
+						size_t addr = i * isfqspi->GetPageSize();
+						if (addr % isfqspi->GetSectorSize() == 0) {
+							// This is the first page of a new sector, so erase the sector
+							printf("Erasing 0x%08x", addr + baseaddr);
+							if (!isfqspi->SectorErase(addr + baseaddr)) {
+								// Failed to erase
+								printf("Failed to erase 0x%08x", addr + baseaddr);
+								return addr;
+							}
+						}
+
+						//printf("Writing 0x%08x", addr);
+
+						if ((i == (pages-1)) && (rem != 0)) {
+							// Last page, avoid a memory leak
+							uint8_t tmpbuf[isfqspi->GetPageSize()];
+							memset(tmpbuf, 0xFFFFFFFF, isfqspi->GetPageSize());
+
+							memcpy(tmpbuf, buf + addr, rem);
+
+							if (!isfqspi->WritePage(addr + baseaddr, tmpbuf)) {
+								// Failed to write page
+								printf("Failed to write page 0x%08x", addr + baseaddr);
+								return addr;
+							}
+						} else {
+							if (!isfqspi->WritePage(addr + baseaddr, buf + addr)) {
+								// Failed to write page
+								printf("Failed to write page 0x%08x", addr + baseaddr);
+								return addr;
+							}
+						}
+					}
+
+					for (int i = 0; i < pages; i++) {
+						size_t addr = i * isfqspi->GetPageSize();
+						uint8_t* ptr = isfqspi->ReadPage(addr + baseaddr);
+						if (memcmp(ptr, buf + addr, isfqspi->GetPageSize()) != 0)
+							printf("Page 0x%08x is different", addr + baseaddr);
+					}
+
+					return len;
+				}, false, {}}},
+			}},
+		},
+		{"fake", {16*1024*1024, [](uint8_t *buf) -> size_t {
+			memcpy(buf, fakefile, 16*1024*1024);
+			return 16*1024*1024;
+		}, [](uint8_t *buf, size_t len) -> size_t {
+			memcpy(fakefile, buf, len);
+			return len;
+		}, false, {}}},
+		});
+
 		new FTPServer();
 	});
 	network->register_console_commands(console_command_parser, "network.");
@@ -503,6 +588,28 @@ public:
 	//virtual std::vector<std::string> complete(const CommandParser::CommandParameters &parameters) const { };
 };
 
+/// A temporary "restart" command
+class ConsoleCommand_restart : public CommandParser::Command {
+public:
+	virtual std::string get_helptext(const std::string &command) const {
+		return stdsprintf(
+				"%s\n"
+				"\n"
+				"Do a complete restart to the IPMC, loading firmware and software from flash.\n", command.c_str());
+	}
+
+	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
+		// See section 26.2.3 in UG585 - System Software Reset
+		volatile uint32_t* slcr_unlock_reg = (uint32_t*)(0xF8000000 + 0x008); // SLCR is at 0xF8000000
+		volatile uint32_t* pss_rst_ctrl_reg = (uint32_t*)(0xF8000000 + 0x200);
+
+		*slcr_unlock_reg = 0xDF0D; // Unlock key
+		*pss_rst_ctrl_reg = 1;
+	}
+
+	//virtual std::vector<std::string> complete(const CommandParser::CommandParameters &parameters) const { };
+};
+
 class ConsoleCommand_flash_info : public CommandParser::Command {
 public:
 	virtual std::string get_helptext(const std::string &command) const {
@@ -517,7 +624,10 @@ public:
 				isfqspi->GetManufacturerName() +
 				" IC with a total of " +
 				std::to_string(isfqspi->GetTotalSize() / 1024 / 1024) +
-				"MBytes.";
+				"MBytes.\n";
+
+		info += "Sector size: " + std::to_string(isfqspi->GetSectorSize()) + "\n";
+		info += "Page size: " + std::to_string(isfqspi->GetPageSize()) + "\n";
 
 		console->write(info);
 	}
@@ -651,6 +761,7 @@ static void register_core_console_commands(CommandParser &parser) {
 	console_command_parser.register_command("version", std::make_shared<ConsoleCommand_version>());
 	console_command_parser.register_command("ps", std::make_shared<ConsoleCommand_ps>());
 	console_command_parser.register_command("backend_power", std::make_shared<ConsoleCommand_backend_power>());
+	console_command_parser.register_command("restart", std::make_shared<ConsoleCommand_restart>());
 	console_command_parser.register_command("flash_info", std::make_shared<ConsoleCommand_flash_info>());
 	console_command_parser.register_command("flash_readpage", std::make_shared<ConsoleCommand_flash_readpage>());
 	console_command_parser.register_command("flash_writepage", std::make_shared<ConsoleCommand_flash_writepage>());

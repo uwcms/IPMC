@@ -16,9 +16,12 @@ Socket::Socket(int socket, struct sockaddr_in sockaddr)
 	this->sockaddr = new SocketAddress(sockaddr);
 }
 
-Socket::Socket(int socket, std::string address, unsigned short port)
-: socketfd(socket) {
+Socket::Socket(std::string address, unsigned short port, bool useTCP) {
 	this->sockaddr = new SocketAddress(address, port);
+
+	this->socketfd = lwip_socket(AF_INET, useTCP?SOCK_STREAM:SOCK_DGRAM, 0);
+
+	// TODO: Shouldn't this also throw in case the socket fails to create?
 }
 
 Socket::~Socket() {
@@ -75,6 +78,15 @@ void Socket::close() {
 	lwip_close(socketfd);
 
 	socketfd = -1;
+}
+
+bool Socket::isTCP() {
+	// TODO: This can be a performance hog if used a lot I think,
+	// consider changed it to a class variable
+	int type;
+	socklen_t length = sizeof(int);
+	lwip_getsockopt(this->socketfd, SOL_SOCKET, SO_TYPE, &type, &length);
+	return (type == SOCK_STREAM);
 }
 
 /*int Socket::read(std::string& msg) {

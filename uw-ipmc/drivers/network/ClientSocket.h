@@ -13,7 +13,7 @@
 class ClientSocket : public Socket {
 public:
 	ClientSocket(std::string address, unsigned short port);
-	virtual ~ClientSocket();
+	~ClientSocket();
 
 	int connect();
 };

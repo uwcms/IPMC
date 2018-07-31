@@ -23,13 +23,13 @@ public:
 	/**
 	 * Creates a socket instance based upon an already existing
 	 * socket file descriptor and sockaddr_in structure.
-	 * Used for example after a call to ::accept()
-	 * @param the socket file descriptor
-	 * @param the address structure
+	 * Used for example after a call to ServerSocket::accept()
+	 * @param socket socket file descriptor
+	 * @param sockaddr address structure
 	 */
 	Socket(int socket, struct sockaddr_in sockaddr);
 
-	Socket(int socket, std::string address, unsigned short port);
+	Socket(std::string address, unsigned short port, bool useTCP = true);
 
 	virtual ~Socket();
 
@@ -91,6 +91,13 @@ public:
 	inline bool isValid() { return socketfd != -1; }
 
 	/**
+	 * Checks if the socket is configured for TCP/IP operation,
+	 * if false it means it is UDP
+	 * @return true if TCP/IP socket, UDP/IP otherwise
+	 */
+	bool isTCP();
+
+	/**
 	 * Gets the socket file descriptor
 	 * @return the socket file descriptor
 	 */
@@ -103,6 +110,7 @@ public:
 	 */
 	inline SocketAddress* getSocketAddress() { return sockaddr; }
 
+	///! Operator overload for int assignment, returns socketfd
 	inline operator int() { return this->getSocket(); }
 
 protected:
