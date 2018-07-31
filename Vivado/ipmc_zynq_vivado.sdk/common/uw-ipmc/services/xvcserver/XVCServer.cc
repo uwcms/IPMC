@@ -5,6 +5,7 @@
  *      Author: mpv
  */
 
+#include <IPMC.h>
 #include <services/xvcserver/XVCServer.h>
 #include <drivers/network/ServerSocket.h>
 #include <libs/ThreadingPrimitives.h>

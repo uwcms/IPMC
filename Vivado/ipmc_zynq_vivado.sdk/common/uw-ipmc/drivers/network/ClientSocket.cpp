@@ -8,7 +8,7 @@
 #include <drivers/network/ClientSocket.h>
 
 ClientSocket::ClientSocket(std::string address, unsigned short port)
-: Socket(-1, address, port) {
+: Socket(address, port) {
 	// TODO Auto-generated constructor stub
 
 }
@@ -18,5 +18,5 @@ ClientSocket::~ClientSocket() {
 }
 
 int ClientSocket::connect() {
-
+	return lwip_connect(this->socketfd, *this->sockaddr, sizeof(struct sockaddr));
 }
