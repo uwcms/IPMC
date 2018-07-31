@@ -27,38 +27,7 @@
 #include "lwip/init.h"
 #include "lwip/stats.h"
 
-void _thread_netifsd(void *p) {
-	struct netif *netif = (struct netif*)p;
-	struct xemac_s *xemac = (struct xemac_s*)netif->state;
-	xemacpsif_s *xemacpsif = (xemacpsif_s*)xemac->state;
-	XEmacPs *xemacpsp = (XEmacPs*)&(xemacpsif->emacps);
-	u32 phy_addr = 7; // TODO: Find a way not to have this hard coded
-	u16 status = 0;
-
-	// Check if link is up
-	while (1) {
-		// Check special register in PHY for real-time monitoring of UP/DOWN
-		XEmacPs_PhyRead(xemacpsp, phy_addr, 0x11, &status);
-		bool linkUp = (status & (1 << 10))? true : false;
-
-		// TODO: netif_ functions might need a MUTEX with other DHCP services
-		if (linkUp) {
-			// Link is up
-			if (!netif_is_link_up(netif)) {
-				netif_set_link_up(netif);
-			}
-			vTaskDelay(Network::LINK_POOLING_PERIOD_WHEN_UP_MS / portTICK_PERIOD_MS);
-		} else {
-			// Link is down
-			if (netif_is_link_up(netif)) {
-				netif_set_link_down(netif);
-			}
-			vTaskDelay(Network::LINK_POOLING_PERIOD_WHEN_DOWN_MS / portTICK_PERIOD_MS);
-		}
-	}
-}
-
-std::string Network::ipaddr_to_string(struct ip_addr &ip) {
+std::string Network::ipaddr_to_string(ip_addr_t &ip) {
 	std::string s = "";
 	s += std::to_string(ip4_addr1(&ip)) + ".";
 	s += std::to_string(ip4_addr2(&ip)) + ".";
@@ -88,7 +57,7 @@ logtree(logtree) {
 }
 
 void Network::thread_network_start() {
-	struct ip_addr ipaddr, netmask, gw;
+	ip_addr_t ipaddr, netmask, gw;
 
 #if LWIP_DHCP==0
 	// TODO: Initialize IP addresses to be used
@@ -127,42 +96,11 @@ void Network::thread_network_start() {
 		}
 	});
 
-	// Specify that the network if is up (This will be set by the DHCP server)
-	//netif_set_up(&(this->netif));
-
-	configASSERT(UWTaskCreate("_netifsd", TCPIP_THREAD_XEMACIFD_PRIO, [this]() -> void {
-		struct netif *netif = &this->netif;
-		struct xemac_s *xemac = (struct xemac_s*)netif->state;
-		xemacpsif_s *xemacpsif = (xemacpsif_s*)xemac->state;
-		XEmacPs *xemacpsp = (XEmacPs*)&(xemacpsif->emacps);
-		u32 phy_addr = 7; // TODO: Find a way not to have this hard coded
-		u16 status = 0;
-
-		// Check if link is up
-		while (1) {
-			// Check special register in PHY for real-time monitoring of UP/DOWN
-			XEmacPs_PhyRead(xemacpsp, phy_addr, 0x11, &status);
-			bool linkUp = (status & (1 << 10))? true : false;
-
-			// TODO: netif_ functions might need a MUTEX with other DHCP services
-			if (linkUp) {
-				// Link is up
-				if (!netif_is_link_up(netif)) {
-					netif_set_link_up(netif);
-				}
-				vTaskDelay(LINK_POOLING_PERIOD_WHEN_UP_MS / portTICK_PERIOD_MS);
-			} else {
-				// Link is down
-				if (netif_is_link_up(netif)) {
-					netif_set_link_down(netif);
-				}
-				vTaskDelay(LINK_POOLING_PERIOD_WHEN_DOWN_MS / portTICK_PERIOD_MS);
-			}
-		}
-	}));
+	// Specify that the network if is up
+	netif_set_up(&(this->netif));
 
 	// Start packet receive thread, required for lwIP operation
-	configASSERT(UWTaskCreate("_xemacifd", TCPIP_THREAD_XEMACIFD_PRIO, [this]() -> void { xemacif_input_thread(&this->netif); }));
+	configASSERT(UWTaskCreate("xemacifd", TCPIP_THREAD_XEMACIFD_PRIO, [this]() -> void { xemacif_input_thread(&this->netif); }));
 
 #if LWIP_DHCP==1
 	// If DHCP is enabled then start it

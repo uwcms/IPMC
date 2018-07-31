@@ -62,14 +62,15 @@
 #define LWIP_TIMEVAL_PRIVATE 0
 #include <sys/time.h>
 
-#define LWIP_PROVIDE_ERRNO
-
-
 #ifdef PROCESSOR_LITTLE_ENDIAN
 #define BYTE_ORDER LITTLE_ENDIAN
 #else
 #define BYTE_ORDER BIG_ENDIAN
 #endif
+
+/* As per new design of lwip-2.0.2,
+ * LWIP_NO_STDINT_H should be defined as 1 in cc.h */
+#define LWIP_NO_STDINT_H 1
 
 typedef unsigned   char    u8_t;
 typedef signed     char    s8_t;
@@ -98,6 +99,6 @@ typedef unsigned long mem_ptr_t;
 #define PACK_STRUCT_END
 
 #define LWIP_PLATFORM_ASSERT(x)
-#define LWIP_PLATFORM_DIAG(x) do { ipmc_lwip_printf x; } while(0)
+#define LWIP_PLATFORM_DIAG(x) do { xil_printf x; } while(0)
 
 #endif /* __ARCH_CC_H__ */

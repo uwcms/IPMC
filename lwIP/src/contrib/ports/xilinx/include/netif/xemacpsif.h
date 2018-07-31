@@ -18,8 +18,8 @@
 *
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* XILINX CONSORTIUM BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+* XILINX BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
 * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF
 * OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
@@ -53,7 +53,7 @@ extern "C" {
 #include "xil_exception.h"
 #include "xpseudo_asm.h"
 #include "xil_cache.h"
-
+#include "xil_printf.h"
 #include "xuartps.h"
 #include "xscugic.h"
 #include "xemacps.h"		/* defines XEmacPs API */
@@ -79,8 +79,10 @@ extern "C" {
 #define CRL_APB_GEM_DIV1_MASK	0x003F0000
 #define CRL_APB_GEM_DIV1_SHIFT	16
 
-#if !defined (__arm__) && defined (USE_JUMBO_FRAMES)
+#if defined (ARMR5) || (__aarch64__) || (ARMA53_32) || (__MICROBLAZE__)
+#if defined (USE_JUMBO_FRAMES)
 #define ZYNQMP_USE_JUMBO
+#endif
 #endif
 
 #define MAX_FRAME_SIZE_JUMBO (XEMACPS_MTU_JUMBO + XEMACPS_HDR_SIZE + XEMACPS_TRL_SIZE)
@@ -118,7 +120,7 @@ s32_t	is_tx_space_available(xemacpsif_s *emac);
 /* xemacpsif_dma.c */
 
 void  process_sent_bds(xemacpsif_s *xemacpsif, XEmacPs_BdRing *txring);
-u32_t phy_setup (XEmacPs *xemacpsp, u32_t phy_addr);
+u32_t phy_setup_emacps (XEmacPs *xemacpsp, u32_t phy_addr);
 void detect_phy(XEmacPs *xemacpsp);
 void emacps_send_handler(void *arg);
 XStatus emacps_sgsend(xemacpsif_s *xemacpsif, struct pbuf *p);
@@ -137,6 +139,7 @@ void free_onlytx_pbufs(xemacpsif_s *xemacpsif);
 void init_emacps_on_error (xemacpsif_s *xemacps, struct netif *netif);
 void clean_dma_txdescs(struct xemac_s *xemac);
 void resetrx_on_no_rxdata(xemacpsif_s *xemacpsif);
+void reset_dma(struct xemac_s *xemac);
 
 #ifdef __cplusplus
 }

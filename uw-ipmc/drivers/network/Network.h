@@ -49,14 +49,12 @@ public:
 	 * Converts a standard ip_addr structure to a readable string
 	 * @param ip The structure to convert
 	 */
-	static std::string ipaddr_to_string(struct ip_addr &ip);
+	static std::string ipaddr_to_string(ip_addr_t &ip);
 
 	void register_console_commands(CommandParser &parser, const std::string &prefix="");
 	void deregister_console_commands(CommandParser &parser, const std::string &prefix="");
 
 	const unsigned int DHCP_TIMEOUT_SEC = 20; ///< DHCP timeout in seconds
-	static const unsigned int LINK_POOLING_PERIOD_WHEN_DOWN_MS = 200; ///< Pooling milliseconds when link is down
-	static const unsigned int LINK_POOLING_PERIOD_WHEN_UP_MS = 1000; ///< Pooling milliseconds when link is up
 
 private:
 	uint8_t mac[6]; ///< The MAC address used to configure lwIP
