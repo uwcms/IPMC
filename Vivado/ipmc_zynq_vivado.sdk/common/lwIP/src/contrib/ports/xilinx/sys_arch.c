@@ -24,8 +24,8 @@
 *
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* XILINX CONSORTIUM BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+* XILINX BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
 * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF
 * OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
@@ -36,6 +36,8 @@
 *
 ******************************************************************************/
 #include "lwipopts.h"
+#include "xil_printf.h"
+
 #ifdef OS_IS_XILKERNEL
 #include "xmk.h"
 #include "sys/timer.h"
@@ -594,7 +596,7 @@ portBASE_TYPE xHigherPriorityTaskWoken = pdFALSE;
 	}
 	else
 	{
-		ipmc_lwip_printf("Queue is full\r\n");
+		xil_printf("Queue is full\r\n");
 		/* The queue was already full. */
 		xReturn = ERR_MEM;
 		SYS_STATS_INC( mbox.err );
@@ -776,7 +778,7 @@ err_t xReturn = ERR_MEM;
 	}
 	else
 	{
-		ipmc_lwip_printf("Sem creation error\r\n");
+		xil_printf("Sem creation error\r\n");
 		SYS_STATS_INC( sem.err );
 	}
 
@@ -883,7 +885,7 @@ err_t xReturn = ERR_MEM;
 	}
 	else
 	{
-		ipmc_lwip_printf("Mutex creation error\r\n");
+		xil_printf("Mutex creation error\r\n");
 		SYS_STATS_INC( mutex.err );
 	}
 

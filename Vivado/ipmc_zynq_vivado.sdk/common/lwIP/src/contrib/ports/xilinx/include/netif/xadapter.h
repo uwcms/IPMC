@@ -18,8 +18,8 @@
 *
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* XILINX CONSORTIUM BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+* XILINX BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
 * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF
 * OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
@@ -63,11 +63,19 @@ struct xemac_s {
 #endif
 };
 
+enum ethernet_link_status {
+	ETH_LINK_UNDEFINED = 0,
+	ETH_LINK_UP,
+	ETH_LINK_DOWN,
+	ETH_LINK_NEGOTIATING
+};
+
+void eth_link_detect(struct netif *netif);
 void 		lwip_raw_init();
 int 		xemacif_input(struct netif *netif);
 void 		xemacif_input_thread(struct netif *netif);
 struct netif *	xemac_add(struct netif *netif,
-	struct ip_addr *ipaddr, struct ip_addr *netmask, struct ip_addr *gw,
+	ip_addr_t *ipaddr, ip_addr_t *netmask, ip_addr_t *gw,
 	unsigned char *mac_ethernet_address,
 	unsigned mac_baseaddr);
 #if defined (__arm__) || defined (__aarch64__)
