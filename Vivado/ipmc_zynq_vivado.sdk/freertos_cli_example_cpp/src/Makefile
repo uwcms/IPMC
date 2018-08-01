@@ -19,8 +19,7 @@ export INCLUDE_PATHS = \
 	-I"$(WORKSPACE)/freertos_cli_example_cpp/src/config" \
 	-I"$(WORKSPACE)/freertos_cli_example_cpp/src/components" \
 	-I"$(WORKSPACE)/freertos_cli_example_cpp/src/common/lwIP/src/contrib/ports/xilinx/include" \
-	-I"$(WORKSPACE)/freertos_cli_example_cpp/src/common/lwIP/src/lwip-1.4.1/src/include/ipv4" \
-	-I"$(WORKSPACE)/freertos_cli_example_cpp/src/common/lwIP/src/lwip-1.4.1/src/include" \
+	-I"$(WORKSPACE)/freertos_cli_example_cpp/src/common/lwIP/src/lwip-2.0.2/src/include" \
 	-I"$(WORKSPACE)/freertos_cli_example_cpp/src/common/FreeRTOS/portable/GCC/ARM_CA9" \
 	-I"$(WORKSPACE)/freertos_cli_example_cpp/src/common/FreeRTOS/include" \
 	-I"$(WORKSPACE)/freertos_cli_example_cpp/src/common/xilisf/include" \
@@ -95,7 +94,7 @@ pre-build: .dep/.lwip-patch
 	@mkdir -p .dep/
 	touch "$@"
 	find common/lwIP/src/contrib/ports/xilinx -type f -exec sed -i -re 's/#include .xil_printf\.h.//;s/xil_printf/ipmc_lwip_printf/g;s/\<printf/ipmc_lwip_printf/g;s/\<print\(/ipmc_lwip_printf("%s",/g' '{}' +
-	sed -i -r -e '/^#undef /d;s/(#define\s+)(E\w+)(\s)/#undef \2\n\1\2\3/' common/lwIP/src/lwip-1.4.1/src/include/lwip/arch.h
+	sed -i -r -e '/^#undef /d;s/(#define\s+)(E\w+)(\s)/#undef \2\n\1\2\3/' common/lwIP/src/lwip-2.0.2/src/include/lwip/arch.h
 	find common/lwIP/src -type f -name '*.h' -exec sed -i -e 's!"U16_F!" U16_F!g;s!U16_F"!U16_F "!g' '{}' +
 
 build: pre-build bin/$(BUILD_CONFIGURATION)/freertos_cli_example_cpp.elf

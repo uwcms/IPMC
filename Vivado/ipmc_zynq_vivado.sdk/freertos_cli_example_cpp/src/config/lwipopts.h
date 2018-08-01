@@ -73,11 +73,9 @@ void ipmc_lwip_printf(const char *ctrl1, ...);
 #define CHECKSUM_GEN_TCP 	0
 #define CHECKSUM_GEN_UDP 	0
 #define CHECKSUM_GEN_IP  	0
-#define CHECKSUM_CHECK_TCP  0
-#define CHECKSUM_CHECK_UDP  0
-#define CHECKSUM_CHECK_IP 	0
-#define LWIP_FULL_CSUM_OFFLOAD_RX  1
-#define LWIP_FULL_CSUM_OFFLOAD_TX  1
+#define CHECKSUM_CHECK_TCP  1
+#define CHECKSUM_CHECK_UDP  1
+#define CHECKSUM_CHECK_IP 	1
 
 #define MEMP_SEPARATE_POOLS		1
 #define MEMP_NUM_FRAG_PBUF		256
@@ -253,8 +251,8 @@ a lot of data that needs to be copied, this should be set high. */
 /* IP reassembly and segmentation.These are orthogonal even
  * if they both deal with IP fragments */
 #define IP_REASSEMBLY			1
-#define IP_REASS_MAX_PBUFS		10 // If problems, change to 5760
-#define MEMP_NUM_REASSDATA		10
+#define IP_REASS_MAX_PBUFS		50 // If problems, change to 5760
+#define MEMP_NUM_REASSDATA		15
 #define IP_FRAG					1
 #define IP_FRAG_MAX_MTU			1500
 #define LWIP_CHKSUM_ALGORITHM	3
@@ -286,21 +284,21 @@ a lot of data that needs to be copied, this should be set high. */
 
 
 /* ---------- Statistics options ---------- */
-#define LWIP_STATS				0
+#define LWIP_STATS				1
 #define LWIP_STATS_DISPLAY		0
 
 #if LWIP_STATS
-	#define LINK_STATS				1
-	#define IP_STATS				1
-	#define ICMP_STATS				1
+	#define LINK_STATS				0
+	#define IP_STATS				0
+	#define ICMP_STATS				0
 	#define IGMP_STATS				0
 	#define IPFRAG_STATS			0
 	#define UDP_STATS				1
 	#define TCP_STATS				1
-	#define MEM_STATS				1
-	#define MEMP_STATS				1
-	#define PBUF_STATS				1
-	#define SYS_STATS				1
+	#define MEM_STATS				0
+	#define MEMP_STATS				0
+	#define PBUF_STATS				0
+	#define SYS_STATS				0
 #endif /* LWIP_STATS */
 
 

@@ -1,7 +1,7 @@
 --Copyright 1986-2018 Xilinx, Inc. All Rights Reserved.
 ----------------------------------------------------------------------------------
 --Tool Version: Vivado v.2018.2 (lin64) Build 2258646 Thu Jun 14 20:02:38 MDT 2018
---Date        : Thu Jul 19 11:28:49 2018
+--Date        : Tue Jul 31 16:49:07 2018
 --Host        : beck.hep.wisc.edu running 64-bit CentOS Linux release 7.5.1804 (Core)
 --Command     : generate_target ipmc_bd.bd
 --Design      : ipmc_bd
@@ -3521,7 +3521,7 @@ entity ipmc_bd is
     pwr_status : in STD_LOGIC_VECTOR ( 5 downto 0 )
   );
   attribute CORE_GENERATION_INFO : string;
-  attribute CORE_GENERATION_INFO of ipmc_bd : entity is "ipmc_bd,IP_Integrator,{x_ipVendor=xilinx.com,x_ipLibrary=BlockDiagram,x_ipName=ipmc_bd,x_ipVersion=1.00.a,x_ipLanguage=VHDL,numBlks=33,numReposBlks=19,numNonXlnxBlks=6,numHierBlks=14,maxHierDepth=1,numSysgenBlks=0,numHlsBlks=0,numHdlrefBlks=0,numPkgbdBlks=0,bdsource=USER,da_axi4_cnt=2,synth_mode=OOC_per_IP}";
+  attribute CORE_GENERATION_INFO of ipmc_bd : entity is "ipmc_bd,IP_Integrator,{x_ipVendor=xilinx.com,x_ipLibrary=BlockDiagram,x_ipName=ipmc_bd,x_ipVersion=1.00.a,x_ipLanguage=VHDL,numBlks=33,numReposBlks=19,numNonXlnxBlks=6,numHierBlks=14,maxHierDepth=1,numSysgenBlks=0,numHlsBlks=0,numHdlrefBlks=0,numPkgbdBlks=0,bdsource=USER,synth_mode=OOC_per_IP}";
   attribute HW_HANDOFF : string;
   attribute HW_HANDOFF of ipmc_bd : entity is "ipmc_bd.hwdef";
 end ipmc_bd;
@@ -3685,7 +3685,7 @@ architecture STRUCTURE of ipmc_bd is
     TDO : in STD_LOGIC
   );
   end component ipmc_bd_axi_jtag_0_0;
-  component ipmc_bd_axi_uartlite_0_0 is
+  component ipmc_bd_axi_uartlite_esm_0 is
   port (
     s_axi_aclk : in STD_LOGIC;
     s_axi_aresetn : in STD_LOGIC;
@@ -3710,7 +3710,7 @@ architecture STRUCTURE of ipmc_bd is
     rx : in STD_LOGIC;
     tx : out STD_LOGIC
   );
-  end component ipmc_bd_axi_uartlite_0_0;
+  end component ipmc_bd_axi_uartlite_esm_0;
   component ipmc_bd_axi_iic_eeprom_0_0 is
   port (
     s_axi_aclk : in STD_LOGIC;
@@ -4262,8 +4262,8 @@ architecture STRUCTURE of ipmc_bd is
   attribute X_INTERFACE_INFO of EEPROM_I2C_0_sda_i : signal is "xilinx.com:interface:iic:1.0 EEPROM_I2C_0 SDA_I";
   attribute X_INTERFACE_INFO of EEPROM_I2C_0_sda_o : signal is "xilinx.com:interface:iic:1.0 EEPROM_I2C_0 SDA_O";
   attribute X_INTERFACE_INFO of EEPROM_I2C_0_sda_t : signal is "xilinx.com:interface:iic:1.0 EEPROM_I2C_0 SDA_T";
-  attribute X_INTERFACE_INFO of ESM_UART_rxd : signal is "xilinx.com:interface:uart:1.0 ESM_UART ";
-  attribute X_INTERFACE_INFO of ESM_UART_txd : signal is "xilinx.com:interface:uart:1.0 ESM_UART ";
+  attribute X_INTERFACE_INFO of ESM_UART_rxd : signal is "xilinx.com:interface:uart:1.0 ESM_UART RxD";
+  attribute X_INTERFACE_INFO of ESM_UART_txd : signal is "xilinx.com:interface:uart:1.0 ESM_UART TxD";
   attribute X_INTERFACE_INFO of PIM400_I2C_scl_i : signal is "xilinx.com:interface:iic:1.0 PIM400_I2C SCL_I";
   attribute X_INTERFACE_INFO of PIM400_I2C_scl_o : signal is "xilinx.com:interface:iic:1.0 PIM400_I2C SCL_O";
   attribute X_INTERFACE_INFO of PIM400_I2C_scl_t : signal is "xilinx.com:interface:iic:1.0 PIM400_I2C SCL_T";
@@ -4721,7 +4721,7 @@ axi_jtag_0: component ipmc_bd_axi_jtag_0_0
       s_axi_wstrb(3 downto 0) => axi_interconnect_0_M07_AXI_WSTRB(3 downto 0),
       s_axi_wvalid => axi_interconnect_0_M07_AXI_WVALID(0)
     );
-axi_uartlite_esm: component ipmc_bd_axi_uartlite_0_0
+axi_uartlite_esm: component ipmc_bd_axi_uartlite_esm_0
      port map (
       interrupt => axi_uartlite_0_interrupt,
       rx => axi_uartlite_esm_UART_RxD,
