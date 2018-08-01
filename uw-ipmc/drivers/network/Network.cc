@@ -163,6 +163,12 @@ namespace {
 			console->write(std::string("IP Address: ") + pNetworkInstance->getIP() + "\n");
 			console->write(std::string("Netmask: ") + pNetworkInstance->getNetmask() + "\n");
 			console->write(std::string("Gateway: ") + pNetworkInstance->getGateway() + "\n");
+			uint64_t bytes_received = Xil_In32(XPAR_XEMACPS_0_BASEADDR + XEMACPS_OCTRXL_OFFSET);
+			bytes_received |= ((uint64_t)Xil_In32(XPAR_XEMACPS_0_BASEADDR + XEMACPS_OCTRXH_OFFSET) << 32);
+			uint32_t tcp_cksum_err = Xil_In32(XPAR_XEMACPS_0_BASEADDR + XEMACPS_RXTCPCCNT_OFFSET);
+			console->write(std::string("Bytes recv: ") + std::to_string(bytes_received) + "\n");
+			console->write(std::string("Checksum Err (emac): ") + std::to_string(tcp_cksum_err) + "\n");
+			console->write(std::string("Checksum Err (lwip): ") + std::to_string(lwip_stats.tcp.chkerr) + "\n");
 		}
 	};
 };

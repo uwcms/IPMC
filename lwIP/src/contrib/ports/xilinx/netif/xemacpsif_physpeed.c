@@ -684,11 +684,47 @@ static u32_t get_Realtek_phy_speed(XEmacPs *xemacpsp, u32_t phy_addr)
 static u32_t get_Atheros_phy_speed(XEmacPs *xemacpsp, u32_t phy_addr)
 {
 	// The way xilinx EMAC code is written this in fact an init function, so do that
-	LONG r;
 	u16_t regval = 0;
+	u16_t control;
+	u16_t status;
+	u16_t status_speed;
+	u32_t timeout_counter = 0;
+	u32_t temp_speed;
 
-	r = XEmacPs_PhyRead(xemacpsp, phy_addr, IEEE_CONTROL_REG_OFFSET, &regval);
-	if (r != XST_SUCCESS) return XST_FAILURE;
+	if (XEmacPs_PhyRead(xemacpsp, phy_addr, IEEE_CONTROL_REG_OFFSET, &regval) != XST_SUCCESS)
+		return XST_FAILURE;
+
+	xil_printf("Start PHY autonegotiation \r\n");
+
+	XEmacPs_PhyRead(xemacpsp, phy_addr, IEEE_AUTONEGO_ADVERTISE_REG, &control);
+	control |= IEEE_ASYMMETRIC_PAUSE_MASK;
+	control |= IEEE_PAUSE_MASK;
+	control |= ADVERTISE_100;
+	control |= ADVERTISE_10;
+	XEmacPs_PhyWrite(xemacpsp, phy_addr, IEEE_AUTONEGO_ADVERTISE_REG, control);
+
+	XEmacPs_PhyRead(xemacpsp, phy_addr, IEEE_1000_ADVERTISE_REG_OFFSET,
+					&control);
+	control |= ADVERTISE_1000;
+	XEmacPs_PhyWrite(xemacpsp, phy_addr, IEEE_1000_ADVERTISE_REG_OFFSET,
+					control);
+
+	XEmacPs_PhyRead(xemacpsp, phy_addr, IEEE_CONTROL_REG_OFFSET, &control);
+	control |= IEEE_CTRL_AUTONEGOTIATE_ENABLE;
+	control |= IEEE_STAT_AUTONEGOTIATE_RESTART;
+	XEmacPs_PhyWrite(xemacpsp, phy_addr, IEEE_CONTROL_REG_OFFSET, control);
+
+	XEmacPs_PhyRead(xemacpsp, phy_addr, IEEE_CONTROL_REG_OFFSET, &control);
+	control |= IEEE_CTRL_RESET_MASK;
+	XEmacPs_PhyWrite(xemacpsp, phy_addr, IEEE_CONTROL_REG_OFFSET, control);
+
+	while (1) {
+		XEmacPs_PhyRead(xemacpsp, phy_addr, IEEE_CONTROL_REG_OFFSET, &control);
+		if (control & IEEE_CTRL_RESET_MASK)
+			continue;
+		else
+			break;
+	}
 
 	// Set TX/RX internal clock delay
 	XEmacPs_PhyWrite(xemacpsp, phy_addr, 0x1d, 0x05);
@@ -697,30 +733,36 @@ static u32_t get_Atheros_phy_speed(XEmacPs *xemacpsp, u32_t phy_addr)
 	XEmacPs_PhyWrite(xemacpsp, phy_addr, 0x1d, 0x05);
 	XEmacPs_PhyWrite(xemacpsp, phy_addr, 0x1e, (regval|0x0100));
 
-	// Initialization code similar to Marvell', so use Marvell'
-	return get_Realtek_phy_speed(xemacpsp, phy_addr);
+	XEmacPs_PhyRead(xemacpsp, phy_addr, IEEE_STATUS_REG_OFFSET, &status);
 
-	/*// 10/100 auto-negotiation
-	XEmacPs_PhyRead(xemacpsp, phy_addr, IEEE_AUTONEGO_ADVERTISE_REG, &regval);
-	regval |= IEEE_ASYMMETRIC_PAUSE_MASK;
-	regval |= IEEE_PAUSE_MASK;
-	regval |= ADVERTISE_100;
-	regval |= ADVERTISE_10;
-	XEmacPs_PhyWrite(xemacpsp, phy_addr, IEEE_AUTONEGO_ADVERTISE_REG, regval);
+	xil_printf("Waiting for PHY to complete autonegotiation.\r\n");
 
-	// 1000 auto-negotiation
-	XEmacPs_PhyRead(xemacpsp, phy_addr, IEEE_1000_ADVERTISE_REG_OFFSET, &regval);
-	regval |= ADVERTISE_1000;
-	XEmacPs_PhyWrite(xemacpsp, phy_addr, IEEE_1000_ADVERTISE_REG_OFFSET, regval);
+	while ( !(status & IEEE_STAT_AUTONEGOTIATE_COMPLETE) ) {
+		sleep(1);
+		timeout_counter++;
 
-	// Start/restart auto-negotiation
-	XEmacPs_PhyRead(xemacpsp, phy_addr, IEEE_CONTROL_REG_OFFSET, &regval);
-	regval |= IEEE_CTRL_AUTONEGOTIATE_ENABLE;
-	regval |= IEEE_STAT_AUTONEGOTIATE_RESTART;
-	XEmacPs_PhyWrite(xemacpsp, phy_addr, IEEE_CONTROL_REG_OFFSET, regval);
+		if (timeout_counter == 30) {
+			xil_printf("Auto negotiation error \r\n");
+			return XST_FAILURE;
+		}
+		XEmacPs_PhyRead(xemacpsp, phy_addr, IEEE_STATUS_REG_OFFSET, &status);
+	}
+	xil_printf("autonegotiation complete \r\n");
 
-	// TODO: Returning 1000 for now, ESM will be plugged to IPMC but this should change!
-	return 1000;*/
+	XEmacPs_PhyRead(xemacpsp, phy_addr,IEEE_SPECIFIC_STATUS_REG,
+					&status_speed);
+	if (status_speed & 0x400) {
+		temp_speed = status_speed & IEEE_SPEED_MASK;
+
+		if (temp_speed == IEEE_SPEED_1000)
+			return 1000;
+		else if(temp_speed == IEEE_SPEED_100)
+			return 100;
+		else
+			return 10;
+	}
+
+	return XST_FAILURE;
 }
 
 static u32_t get_IEEE_phy_speed(XEmacPs *xemacpsp, u32_t phy_addr)
