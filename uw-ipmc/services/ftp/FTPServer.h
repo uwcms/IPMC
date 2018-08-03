@@ -8,6 +8,10 @@
 #ifndef SRC_COMMON_UW_IPMC_SERVICES_FTP_FTPSERVER_H_
 #define SRC_COMMON_UW_IPMC_SERVICES_FTP_FTPSERVER_H_
 
+#include <string>
+#include <drivers/network/Socket.h>
+#include <drivers/network/ServerSocket.h>
+#include <drivers/network/ClientSocket.h>
 
 struct FTPFile {
 	//std::string filename;
@@ -22,8 +26,10 @@ struct FTPFile {
 };
 
 class FTPServer {
-	const uint16_t FTP_PORT = 21;
-	const unsigned int FTP_MAX_INSTANCES = 1;
+	static const uint16_t FTP_COM_PORT = 21;
+	static const uint16_t FTP_DATA_PORT = 20;
+	static const unsigned int FTP_MAX_INSTANCES = 1;
+	static const unsigned int FTP_TIMEOUT_SEC = 60;
 
 public:
 	FTPServer();
@@ -53,6 +59,7 @@ public:
 		FTP_ST_LOGIN_PASS,
 		FTP_ST_IDLE,
 		FTP_ST_STOR,
+		FTP_ST_RETR,
 		FTP_ST_ANY, // Special case: command can run in any state
 		// TODO: Maybe delete FTP_ST_ANY
 	} FTPState;
@@ -64,6 +71,7 @@ private:
 	static FTPCommandFunc CommandUSER;
 	static FTPCommandFunc CommandQUIT;
 	static FTPCommandFunc CommandPORT;
+	static FTPCommandFunc CommandPASV;
 	static FTPCommandFunc CommandTYPE;
 	static FTPCommandFunc CommandMODE;
 	static FTPCommandFunc CommandSTRU;
@@ -75,16 +83,23 @@ private:
 	static FTPCommandFunc CommandLIST;
 	static FTPCommandFunc CommandCWD;
 
+	bool sendData();
+
 private:
-	std::shared_ptr<Socket> socket;
-	std::shared_ptr<Socket> data;
+	std::shared_ptr<Socket> socket;				// Command socket
+	std::shared_ptr<ServerSocket> dataserver;	// Data server socket (passive mode)
+	std::shared_ptr<Socket> data;				// Data socket (passive and active mode)
 	FTPState state;
+	enum { FTP_MODE_ACTIVE, FTP_MODE_PASSIVE } mode;
+
 	std::string path;
+	FTPFile* file;
 	FTPFile::FTPDirContents *dir; // TODO: Can be a memory leak
 
-	FTPFile* file;
-	std::unique_ptr<uint8_t> filebuf;
-	size_t filebuf_len;
+	struct {
+		std::unique_ptr<uint8_t> ptr;
+		size_t len;
+	} buffer;
 
 	static std::map<uint16_t, std::string> FTPCodes;
 	static std::string buildReply(uint16_t code);

@@ -9,7 +9,7 @@
 
 #include <drivers/network/ServerSocket.h>
 
-ServerSocket::ServerSocket(unsigned short port, std::string address, int backlog) :
+ServerSocket::ServerSocket(unsigned short port, int backlog, std::string address) :
 Socket(address, port) {
 	this->backlog = backlog;
 }
@@ -19,24 +19,25 @@ ServerSocket::~ServerSocket() {}
 int ServerSocket::listen() {
 	if (!isValid()) return -1;
 
-	//struct sockaddr_in addr = *sockaddr;
-
-	/*if (lwip_setsockopt(socketfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) != 0) {
-		close();
-		return errno;
-	}*/
-
 	if (lwip_bind(this->socketfd, *sockaddr, sizeof(struct sockaddr)) != 0) {
 		close();
-		return errno;
+		return -errno;
 	}
 
 	if (lwip_listen(this->socketfd, backlog) != 0) {
 		close();
-		return errno;
+		return -errno;
 	}
 
 	return 0;
+}
+
+int ServerSocket::reuse() {
+	int yes = 1;
+	if (lwip_setsockopt(this->socketfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) != 0) {
+		close();
+		return -errno;
+	}
 }
 
 int ServerSocket::bind() {

@@ -6,6 +6,7 @@
  */
 
 #include <IPMC.h>
+#include "libs/Utils.h"
 #include <string.h>
 #include <stdio.h>
 #include "xparameters.h"
@@ -37,7 +38,7 @@ std::string Network::ipaddr_to_string(ip_addr_t &ip) {
 	return s;
 }
 
-static Network *pNetworkInstance = NULL;
+Network *pNetworkInstance = NULL;
 
 Network::Network(LogTree &logtree, uint8_t mac[6], std::function<void(Network*)> net_ready_cb) :
 logtree(logtree) {
@@ -141,7 +142,6 @@ void Network::thread_network_start() {
 #endif
 }
 
-
 namespace {
 	/// A "status" console command.
 	class Network_status : public CommandParser::Command {
@@ -159,15 +159,27 @@ namespace {
 		}
 
 		virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
+			// See http://www.ieee802.org/3/cf/public/jan17/wilton_3cf_03_0117.pdf to added better statistics
+			static uint64_t rxbytes = 0, txbytes = 0;
+			static uint32_t emac_cksum_err = 0;
+
+			emac_cksum_err += Xil_In32(XPAR_XEMACPS_0_BASEADDR + XEMACPS_RXTCPCCNT_OFFSET);
+
+			uint64_t rxbytes_h = Xil_In32(XPAR_XEMACPS_0_BASEADDR + XEMACPS_OCTRXH_OFFSET);
+			uint64_t rxbytes_l = Xil_In32(XPAR_XEMACPS_0_BASEADDR + XEMACPS_OCTRXL_OFFSET);
+			rxbytes += (rxbytes_h << 32) | rxbytes_l;
+
+			uint64_t txbytes_h = Xil_In32(XPAR_XEMACPS_0_BASEADDR + XEMACPS_OCTTXH_OFFSET);
+			uint64_t txbytes_l = Xil_In32(XPAR_XEMACPS_0_BASEADDR + XEMACPS_OCTTXL_OFFSET);
+			txbytes += (txbytes_h << 32) | txbytes_l;
+
 			console->write(std::string("Network status: Link is ") + (pNetworkInstance->isLinkUp()?"UP":"DOWN")+ ", interface is " + (pNetworkInstance->isInterfaceUp()?"UP":"DOWN") + "\n");
-			console->write(std::string("IP Address: ") + pNetworkInstance->getIP() + "\n");
-			console->write(std::string("Netmask: ") + pNetworkInstance->getNetmask() + "\n");
-			console->write(std::string("Gateway: ") + pNetworkInstance->getGateway() + "\n");
-			uint64_t bytes_received = Xil_In32(XPAR_XEMACPS_0_BASEADDR + XEMACPS_OCTRXL_OFFSET);
-			bytes_received |= ((uint64_t)Xil_In32(XPAR_XEMACPS_0_BASEADDR + XEMACPS_OCTRXH_OFFSET) << 32);
-			uint32_t tcp_cksum_err = Xil_In32(XPAR_XEMACPS_0_BASEADDR + XEMACPS_RXTCPCCNT_OFFSET);
-			console->write(std::string("Bytes recv: ") + std::to_string(bytes_received) + "\n");
-			console->write(std::string("Checksum Err (emac): ") + std::to_string(tcp_cksum_err) + "\n");
+			console->write(std::string("IP Address: ") + pNetworkInstance->getIPString() + "\n");
+			console->write(std::string("Netmask: ") + pNetworkInstance->getNetmaskString() + "\n");
+			console->write(std::string("Gateway: ") + pNetworkInstance->getGatewayString() + "\n");
+			console->write(std::string("TX bytes: ") + std::to_string(txbytes) + " (" + bytesToString(txbytes) + ")\n");
+			console->write(std::string("RX bytes: ") + std::to_string(rxbytes) + " (" + bytesToString(rxbytes) + ")\n");
+			console->write(std::string("Checksum Err (emac): ") + std::to_string(emac_cksum_err) + "\n");
 			console->write(std::string("Checksum Err (lwip): ") + std::to_string(lwip_stats.tcp.chkerr) + "\n");
 		}
 	};

@@ -25,7 +25,7 @@ Socket::Socket(std::string address, unsigned short port, bool useTCP) {
 }
 
 Socket::~Socket() {
-	close();
+	this->close();
 	delete sockaddr;
 }
 
