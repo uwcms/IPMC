@@ -38,12 +38,14 @@ public:
 	inline const bool isLinkUp() {return netif_is_link_up(&netif);};
 	/// Get interface status
 	inline const bool isInterfaceUp() {return netif_is_up(&netif);};
+	/// Get the raw IP address
+	inline const uint32_t getIP() {return ntohl(netif.ip_addr.addr);};
 	/// Get the current IP address
-	inline const std::string getIP() {return Network::ipaddr_to_string(netif.ip_addr);};
+	inline const std::string getIPString() {return Network::ipaddr_to_string(netif.ip_addr);};
 	/// Get the current Netmask address
-	inline const std::string getNetmask() {return Network::ipaddr_to_string(netif.netmask);};
+	inline const std::string getNetmaskString() {return Network::ipaddr_to_string(netif.netmask);};
 	/// Get the current Gateway address
-	inline const std::string getGateway() {return Network::ipaddr_to_string(netif.gw);};
+	inline const std::string getGatewayString() {return Network::ipaddr_to_string(netif.gw);};
 
 	/**
 	 * Converts a standard ip_addr structure to a readable string

@@ -16,20 +16,26 @@ public:
 
 	/**
 	 * Constructs a listening socket on the specified port and address
-	 * The default address is 0.0.0.0 and the default backlog is 5.
+	 * The default address is 0.0.0.0 and the default backlog is 3.
 	 * @param address address to bind to
 	 * @param port port to listen to
 	 * @param backlog number of backlogs
 	 */
-	ServerSocket(unsigned short port, std::string address = "0.0.0.0", int backlog = 5);
+	ServerSocket(unsigned short port, int backlog = 3, std::string address = "0.0.0.0");
 
 	~ServerSocket();
 
 	/**
 	 * Creates the listening socket and binds to the current port and address
-	 * @return error code if there was a problem
+	 * @return negative error code if there was a problem
 	 */
 	int listen();
+
+	/**
+	 * Reuse the port, should be called before ServerSocket::listen.
+	 * @return negative error code if there was a problem
+	 */
+	int reuse();
 
 	int bind();
 

@@ -16,7 +16,7 @@
 #include "FTPServer.h"
 
 FTPServer::FTPServer() {
-	configASSERT(UWTaskCreate("ftpserverd:" + std::to_string(FTP_PORT), TASK_PRIORITY_SERVICE, [this]() -> void {
+	configASSERT(UWTaskCreate("ftpserverd:" + std::to_string(FTP_COM_PORT), TASK_PRIORITY_SERVICE, [this]() -> void {
 		this->thread_ftpserverd();
 	}));
 
@@ -27,7 +27,7 @@ FTPServer::~FTPServer() {
 }
 
 void FTPServer::thread_ftpserverd() {
-	std::unique_ptr<ServerSocket> server (new ServerSocket(21));
+	std::unique_ptr<ServerSocket> server (new ServerSocket(FTP_COM_PORT, FTP_MAX_INSTANCES));
 
 	int err = server->listen();
 

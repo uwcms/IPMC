@@ -99,6 +99,8 @@ void ipmc_lwip_printf(const char *ctrl1, ...);
 #define LWIP_ICMP						1
 #define LWIP_DNS						1
 
+#define SO_REUSE						1
+
 /* -------- Debugging options -------- */
 #ifdef LWIP_DEBUG
 #define LWIP_DBG_MIN_LEVEL        LWIP_DBG_LEVEL_ALL // LWIP_DBG_LEVEL_SERIOUS
