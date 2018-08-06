@@ -6,6 +6,7 @@
  */
 
 #include <IPMC.h>
+#include "libs/Utils.h"
 #include <string.h>
 #include <stdio.h>
 #include "xparameters.h"
@@ -27,38 +28,7 @@
 #include "lwip/init.h"
 #include "lwip/stats.h"
 
-void _thread_netifsd(void *p) {
-	struct netif *netif = (struct netif*)p;
-	struct xemac_s *xemac = (struct xemac_s*)netif->state;
-	xemacpsif_s *xemacpsif = (xemacpsif_s*)xemac->state;
-	XEmacPs *xemacpsp = (XEmacPs*)&(xemacpsif->emacps);
-	u32 phy_addr = 7; // TODO: Find a way not to have this hard coded
-	u16 status = 0;
-
-	// Check if link is up
-	while (1) {
-		// Check special register in PHY for real-time monitoring of UP/DOWN
-		XEmacPs_PhyRead(xemacpsp, phy_addr, 0x11, &status);
-		bool linkUp = (status & (1 << 10))? true : false;
-
-		// TODO: netif_ functions might need a MUTEX with other DHCP services
-		if (linkUp) {
-			// Link is up
-			if (!netif_is_link_up(netif)) {
-				netif_set_link_up(netif);
-			}
-			vTaskDelay(Network::LINK_POOLING_PERIOD_WHEN_UP_MS / portTICK_PERIOD_MS);
-		} else {
-			// Link is down
-			if (netif_is_link_up(netif)) {
-				netif_set_link_down(netif);
-			}
-			vTaskDelay(Network::LINK_POOLING_PERIOD_WHEN_DOWN_MS / portTICK_PERIOD_MS);
-		}
-	}
-}
-
-std::string Network::ipaddr_to_string(struct ip_addr &ip) {
+std::string Network::ipaddr_to_string(ip_addr_t &ip) {
 	std::string s = "";
 	s += std::to_string(ip4_addr1(&ip)) + ".";
 	s += std::to_string(ip4_addr2(&ip)) + ".";
@@ -68,7 +38,7 @@ std::string Network::ipaddr_to_string(struct ip_addr &ip) {
 	return s;
 }
 
-static Network *pNetworkInstance = NULL;
+Network *pNetworkInstance = NULL;
 
 Network::Network(LogTree &logtree, uint8_t mac[6], std::function<void(Network*)> net_ready_cb) :
 logtree(logtree) {
@@ -88,7 +58,7 @@ logtree(logtree) {
 }
 
 void Network::thread_network_start() {
-	struct ip_addr ipaddr, netmask, gw;
+	ip_addr_t ipaddr, netmask, gw;
 
 #if LWIP_DHCP==0
 	// TODO: Initialize IP addresses to be used
@@ -127,42 +97,11 @@ void Network::thread_network_start() {
 		}
 	});
 
-	// Specify that the network if is up (This will be set by the DHCP server)
-	//netif_set_up(&(this->netif));
-
-	configASSERT(UWTaskCreate("_netifsd", TCPIP_THREAD_XEMACIFD_PRIO, [this]() -> void {
-		struct netif *netif = &this->netif;
-		struct xemac_s *xemac = (struct xemac_s*)netif->state;
-		xemacpsif_s *xemacpsif = (xemacpsif_s*)xemac->state;
-		XEmacPs *xemacpsp = (XEmacPs*)&(xemacpsif->emacps);
-		u32 phy_addr = 7; // TODO: Find a way not to have this hard coded
-		u16 status = 0;
-
-		// Check if link is up
-		while (1) {
-			// Check special register in PHY for real-time monitoring of UP/DOWN
-			XEmacPs_PhyRead(xemacpsp, phy_addr, 0x11, &status);
-			bool linkUp = (status & (1 << 10))? true : false;
-
-			// TODO: netif_ functions might need a MUTEX with other DHCP services
-			if (linkUp) {
-				// Link is up
-				if (!netif_is_link_up(netif)) {
-					netif_set_link_up(netif);
-				}
-				vTaskDelay(LINK_POOLING_PERIOD_WHEN_UP_MS / portTICK_PERIOD_MS);
-			} else {
-				// Link is down
-				if (netif_is_link_up(netif)) {
-					netif_set_link_down(netif);
-				}
-				vTaskDelay(LINK_POOLING_PERIOD_WHEN_DOWN_MS / portTICK_PERIOD_MS);
-			}
-		}
-	}));
+	// Specify that the network if is up
+	netif_set_up(&(this->netif));
 
 	// Start packet receive thread, required for lwIP operation
-	configASSERT(UWTaskCreate("_xemacifd", TCPIP_THREAD_XEMACIFD_PRIO, [this]() -> void { xemacif_input_thread(&this->netif); }));
+	configASSERT(UWTaskCreate("xemacifd", TCPIP_THREAD_XEMACIFD_PRIO, [this]() -> void { xemacif_input_thread(&this->netif); }));
 
 #if LWIP_DHCP==1
 	// If DHCP is enabled then start it
@@ -203,7 +142,6 @@ void Network::thread_network_start() {
 #endif
 }
 
-
 namespace {
 	/// A "status" console command.
 	class Network_status : public CommandParser::Command {
@@ -221,10 +159,28 @@ namespace {
 		}
 
 		virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
+			// See http://www.ieee802.org/3/cf/public/jan17/wilton_3cf_03_0117.pdf to added better statistics
+			static uint64_t rxbytes = 0, txbytes = 0;
+			static uint32_t emac_cksum_err = 0;
+
+			emac_cksum_err += Xil_In32(XPAR_XEMACPS_0_BASEADDR + XEMACPS_RXTCPCCNT_OFFSET);
+
+			uint64_t rxbytes_h = Xil_In32(XPAR_XEMACPS_0_BASEADDR + XEMACPS_OCTRXH_OFFSET);
+			uint64_t rxbytes_l = Xil_In32(XPAR_XEMACPS_0_BASEADDR + XEMACPS_OCTRXL_OFFSET);
+			rxbytes += (rxbytes_h << 32) | rxbytes_l;
+
+			uint64_t txbytes_h = Xil_In32(XPAR_XEMACPS_0_BASEADDR + XEMACPS_OCTTXH_OFFSET);
+			uint64_t txbytes_l = Xil_In32(XPAR_XEMACPS_0_BASEADDR + XEMACPS_OCTTXL_OFFSET);
+			txbytes += (txbytes_h << 32) | txbytes_l;
+
 			console->write(std::string("Network status: Link is ") + (pNetworkInstance->isLinkUp()?"UP":"DOWN")+ ", interface is " + (pNetworkInstance->isInterfaceUp()?"UP":"DOWN") + "\n");
-			console->write(std::string("IP Address: ") + pNetworkInstance->getIP() + "\n");
-			console->write(std::string("Netmask: ") + pNetworkInstance->getNetmask() + "\n");
-			console->write(std::string("Gateway: ") + pNetworkInstance->getGateway() + "\n");
+			console->write(std::string("IP Address: ") + pNetworkInstance->getIPString() + "\n");
+			console->write(std::string("Netmask: ") + pNetworkInstance->getNetmaskString() + "\n");
+			console->write(std::string("Gateway: ") + pNetworkInstance->getGatewayString() + "\n");
+			console->write(std::string("TX bytes: ") + std::to_string(txbytes) + " (" + bytesToString(txbytes) + ")\n");
+			console->write(std::string("RX bytes: ") + std::to_string(rxbytes) + " (" + bytesToString(rxbytes) + ")\n");
+			console->write(std::string("Checksum Err (emac): ") + std::to_string(emac_cksum_err) + "\n");
+			console->write(std::string("Checksum Err (lwip): ") + std::to_string(lwip_stats.tcp.chkerr) + "\n");
 		}
 	};
 };

@@ -19,7 +19,7 @@
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* XILINX CONSORTIUM BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+* XILINX BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
 * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF
 * OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
@@ -311,10 +311,9 @@ XStatus emacps_sgsend(xemacpsif_s *xemacpsif, struct pbuf *p)
 		/* Send the data from the pbuf to the interface, one pbuf at a
 		   time. The size of the data in each pbuf is kept in the ->len
 		   variable. */
-		// TODO: For when Vivado gets update to 2017.4
-		//if (xemacpsif->emacps.Config.IsCacheCoherent == 0) {
+		if (xemacpsif->emacps.Config.IsCacheCoherent == 0) {
 			Xil_DCacheFlushRange((UINTPTR)q->payload, (UINTPTR)q->len);
-		//}
+		}
 
 		XEmacPs_BdSetAddressTx(txbd, (UINTPTR)q->payload);
 
@@ -421,10 +420,9 @@ void setup_rx_bds(xemacpsif_s *xemacpsif, XEmacPs_BdRing *rxring)
 			Xil_DCacheInvalidateRange((UINTPTR)p->payload, (UINTPTR)MAX_FRAME_SIZE_JUMBO);
 		}
 #else
-		// TODO: For when Vivado gets update to 2017.4
-		//if (xemacpsif->emacps.Config.IsCacheCoherent == 0) {
+		if (xemacpsif->emacps.Config.IsCacheCoherent == 0) {
 			Xil_DCacheInvalidateRange((UINTPTR)p->payload, (UINTPTR)XEMACPS_MAX_FRAME_SIZE);
-		//}
+		}
 #endif
 		bdindex = XEMACPS_BD_TO_INDEX(rxring, rxbd);
 		temp = (u32 *)rxbd;
@@ -556,20 +554,20 @@ XStatus init_dma(struct xemac_s *xemac)
 	volatile UINTPTR tempaddress;
 	u32_t index;
 	u32_t gigeversion;
-	XEmacPs_Bd *bdtxterminate = NULL;
-	XEmacPs_Bd *bdrxterminate = NULL;
+	XEmacPs_Bd *bdtxterminate;
+	XEmacPs_Bd *bdrxterminate;
 	u32 *temp;
 
 	/*
 	 * Disable L1 prefetch if the processor type is Cortex A53. It is
 	 * observed that the L1 prefetching for ARMv8 can cause issues while
-     * dealing with cache memory on Rx path. On Rx path, the lwIP adapter
+	 * dealing with cache memory on Rx path. On Rx path, the lwIP adapter
 	 * does a clean and invalidation of buffers (pbuf payload) before
-     * allocating them to Rx BDs. However, there are chances that the
+	 * allocating them to Rx BDs. However, there are chances that the
 	 * the same cache line may get prefetched by the time Rx data is
-     * DMAed to the same buffer. In such cases, CPU fetches stale data from
-     * cache memory instead of getting them from memory. To avoid such
-     * scenarios L1 prefetch is being disabled for ARMv8. That can cause
+	 * DMAed to the same buffer. In such cases, CPU fetches stale data from
+	 * cache memory instead of getting them from memory. To avoid such
+	 * scenarios L1 prefetch is being disabled for ARMv8. That can cause
 	 * a performance degaradation in the range of 3-5%. In tests, it is
 	 * generally observed that this performance degaradation is quite
 	 * insignificant to be really visible.
@@ -725,10 +723,9 @@ XStatus init_dma(struct xemac_s *xemac)
 			Xil_DCacheInvalidateRange((UINTPTR)p->payload, (UINTPTR)MAX_FRAME_SIZE_JUMBO);
 		}
 #else
-		// TODO: For when Vivado gets update to 2017.4
-		//if (xemacpsif->emacps.Config.IsCacheCoherent == 0) {
+		if (xemacpsif->emacps.Config.IsCacheCoherent == 0) {
 			Xil_DCacheInvalidateRange((UINTPTR)p->payload, (UINTPTR)XEMACPS_MAX_FRAME_SIZE);
-		//}
+		}
 #endif
 		XEmacPs_BdSetAddressRx(rxbd, (UINTPTR)p->payload);
 
@@ -853,6 +850,29 @@ void free_onlytx_pbufs(xemacpsif_s *xemacpsif)
 			tx_pbufs_storage[index] = 0;
 		}
 	}
+}
+
+/* reset Tx and Rx DMA pointers after XEmacPs_Stop */
+void reset_dma(struct xemac_s *xemac)
+{
+	u8 txqueuenum;
+	u32_t gigeversion;
+	xemacpsif_s *xemacpsif = (xemacpsif_s *)(xemac->state);
+	XEmacPs_BdRing *txringptr = &XEmacPs_GetTxRing(&xemacpsif->emacps);
+	XEmacPs_BdRing *rxringptr = &XEmacPs_GetRxRing(&xemacpsif->emacps);
+
+	XEmacPs_BdRingPtrReset(txringptr, xemacpsif->tx_bdspace);
+	XEmacPs_BdRingPtrReset(rxringptr, xemacpsif->rx_bdspace);
+
+	gigeversion = ((Xil_In32(xemacpsif->emacps.Config.BaseAddress + 0xFC)) >> 16) & 0xFFF;
+	if (gigeversion > 2) {
+		txqueuenum = 1;
+	} else {
+		txqueuenum = 0;
+	}
+
+	XEmacPs_SetQueuePtr(&(xemacpsif->emacps), xemacpsif->emacps.RxBdRing.BaseBdAddr, 0, XEMACPS_RECV);
+	XEmacPs_SetQueuePtr(&(xemacpsif->emacps), xemacpsif->emacps.TxBdRing.BaseBdAddr, txqueuenum, XEMACPS_SEND);
 }
 
 void emac_disable_intr(void)

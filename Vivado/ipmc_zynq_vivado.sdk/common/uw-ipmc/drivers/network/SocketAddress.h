@@ -8,81 +8,58 @@
 #ifndef SRC_COMMON_UW_IPMC_DRIVERS_NETWORK_SOCKETADDRESS_H_
 #define SRC_COMMON_UW_IPMC_DRIVERS_NETWORK_SOCKETADDRESS_H_
 
-#include <IPMC.h>
+#include <string>
 #include <lwip/inet.h>
 #include <lwip/sockets.h>
-#include <string.h>
-#include <string>
 
+/**
+ * Defines a IP address with IP and port.
+ */
 class SocketAddress {
+public:
+	struct HostNotFound : public std::exception {};
+
 protected:
-	int port;
-	std::string address;
+	struct sockaddr_in sockaddr;
 
 public:
 	/**
-	 * Creates a new socketaddress instance based on a sockaddr_in structure
-	 * @param the sockaddr_in structure
+	 * Creates a new socketaddress instance based on a sockaddr_in structure.
+	 * @param sockaddr The sockaddr_in structure.
 	 */
-	SocketAddress(struct sockaddr_in addr) {
-		port = addr.sin_port;
-
-		address += std::to_string(ip4_addr1(&(addr.sin_addr))) + ".";
-		address += std::to_string(ip4_addr2(&(addr.sin_addr))) + ".";
-		address += std::to_string(ip4_addr3(&(addr.sin_addr))) + ".";
-		address += std::to_string(ip4_addr4(&(addr.sin_addr)));
-	}
+	SocketAddress(struct sockaddr_in sockaddr) : sockaddr(sockaddr) {}
 
 	/**
 	 * Creates a new socketaddress instance with a specified address and port
-	 * @param address The address of the socket
-	 * @param port The port
+	 * @param address The address of the socket.
+	 * @param port The port.
+	 * @throws HostNotFound
 	 */
-	SocketAddress(std::string address, int port) {
-		this->address = address;
-		this->port = port;
-	}
-
-	/**
-	 * Returns a sockaddr_in structure based on the information of the socketaddress instance
-	 * @return sockaddr_in structure
-	 */
-	struct sockaddr_in get_struct() const {
-		struct sockaddr_in addr;
-		memset(&addr, 0, sizeof(struct sockaddr_in));
-
-		addr.sin_family = AF_INET;
-		addr.sin_port = htons(port);
-
-		inet_aton(address.c_str(), &addr.sin_addr);
-
-		return addr;
-	}
+	SocketAddress(std::string address, unsigned short port);
 
 	/**
 	 * Gets the port of the socket
 	 * @return the port number
 	 */
-	int get_port() const {
-		return port;
-	}
+	inline const int getPort() { return ntohs(this->sockaddr.sin_port); }
 
 	/**
 	 * Gets the address of the socket
 	 * @return the address
 	 */
-	std::string get_address() const {
-		return address;
-	}
+	const std::string getAddress();
 
 	/**
 	 * Gets the address of the socket
 	 * @return the address
 	 */
-	uint32_t get_address_binary() const {
-		struct sockaddr_in addr = this->get_struct();
-		return addr.sin_addr.s_addr;
-	}
+	inline const uint32_t getAddressBinary() { return this->sockaddr.sin_addr.s_addr; }
+
+	///! Operator overload for struct sockaddr_in assignment, returns sockaddr
+	inline operator struct sockaddr_in() { return this->sockaddr; }
+
+	///! Operator overload for struct sockaddr* assignment, returns sockaddr*
+	inline operator struct sockaddr*() { return (struct sockaddr*)&(this->sockaddr); }
 };
 
 #endif /* SRC_COMMON_UW_IPMC_DRIVERS_NETWORK_SOCKETADDRESS_H_ */
