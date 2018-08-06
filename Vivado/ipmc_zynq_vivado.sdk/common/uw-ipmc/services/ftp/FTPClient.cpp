@@ -21,74 +21,11 @@
 
 #include "FTPServer.h"
 
-#define FTP_DEBUG
-
-#ifdef FTP_DEBUG
+#ifdef FTPSERVER_DEBUG
 #define FTP_DBG_PRINTF(...) printf(__VA_ARGS__)
 #else
 #define FTP_DBG_PRINTF(...)
 #endif
-
-// TODO: I believe there is a problem with keeping client.dir because if a directory
-// gets removed and there is a client pointing to the position it can cause a segfault.
-// Maybe just use paths with strings all the time? FTPServer::get(..)
-
-FTPFile::FTPDirContents* FTPServer::getDirContentsFromPath(std::string path, FTPFile::FTPDirContents *curDir) {
-	// If first character is '/' then we are in root
-	if (path[0] == '/') {
-		curDir = &(FTPServer::files);
-		path = path.substr(1);
-	}
-
-	std::vector<std::string> pathtree = stringSplit(path, '/');
-
-	for (auto it : pathtree) {
-		try {
-			FTPFile& f = curDir->at(it);
-
-			if (f.isDirectory) curDir = &(f.contents);
-			else return NULL; // Not a directory
-		} catch (std::out_of_range& e) {
-			// Doesn't exist
-			return NULL;
-		}
-	}
-
-	return curDir;
-}
-
-FTPFile* FTPServer::getFileFromPath(std::string filepath, FTPFile::FTPDirContents *curDir) {
-	if (filepath[0] == '/') {
-		// File path is pointing to root
-		curDir = &(FTPServer::files);
-		filepath = filepath.substr(1);
-	}
-
-	std::vector<std::string> pathtree = stringSplit(filepath, '/');
-	size_t treesize = pathtree.size();
-	if (treesize == 0) return NULL;
-
-	for (size_t i = 0; i < treesize; i++) {
-		try {
-			FTPFile* f = &(curDir->at(pathtree[i]));
-
-			if (i == (treesize - 1)) {
-				// If this is the last item on the list then it must be the file
-				if (f->isDirectory) return NULL;
-				else return f;
-			} else {
-				if (f->isDirectory) curDir = &(f->contents);
-				else return NULL;
-			}
-		} catch (std::out_of_range& e) {
-			// Doesn't exist
-			return NULL;
-		}
-	}
-
-	return NULL;
-}
-
 
 // TODO: Welcome message?
 
@@ -138,50 +75,16 @@ std::map<uint16_t, std::string> FTPClient::FTPCodes = {
 	{553, "Requested action not taken. File name not allowed."},
 };
 
-
-bool FTPServer_TerminateCommandString(char* str, size_t length) {
-	// Detect EOL and terminate string with \0
-	const size_t eol_size = sizeof(EOL) - 1; // Ignore last \0
-
-	if (length >= eol_size) {
-		if (strncmp(str + length - eol_size, EOL, eol_size) != 0) {
-			return false; // EOL not detected
-		}
-		str[length - eol_size] = '\0'; // Terminate string
-		return true; // EOL detected
-	}
-
-	return false; // String too short
-}
-
-bool FTPServer_SplitCommandString(char* str, char** cmd, char** args) {
-	size_t i = 0;
-
-	while (1) {
-		if (str[i] == ' ') {
-			str[i] = '\0';
-			*args = str + i + 1;
-			break;
-		} else if (str[i] == '\0') {
-			*args = NULL;
-			break;
-		}
-
-		i++;
-	}
-
-	*cmd = str;
-	return true; // Never fails
-}
-
-FTPClient::FTPClient(std::shared_ptr<Socket> socket)
-: socket(socket), dataserver(nullptr), data(nullptr),
+FTPClient::FTPClient(const FTPServer &ftpserver, std::shared_ptr<Socket> socket)
+: ftpserver(ftpserver), username(""),
+  socket(socket), dataserver(nullptr), data(nullptr),
   state(FTP_ST_LOGIN_USER), mode(FTP_MODE_PASSIVE),
-  path("/"), file(NULL), dir(&(FTPServer::files)),
+  curpath("/"), curfile(""),
   buffer({nullptr, 0}) {
-	const size_t max_pkt_size = TCP_MSS;
 	int r = 0;
+	const size_t max_pkt_size = TCP_MSS;
 	char *buf = new char[max_pkt_size];
+	size_t buflen = 0;
 
 	fd_set fds;
 	struct timeval timeout;
@@ -192,7 +95,7 @@ FTPClient::FTPClient(std::shared_ptr<Socket> socket)
 
 	while (1) {
 		// Reset the timeout
-		timeout.tv_sec = FTPServer::FTP_TIMEOUT_SEC;
+		timeout.tv_sec = FTP_TIMEOUT_SEC;
 		timeout.tv_usec = 0;
 
 		// FD bits get reset every time, reinitialize
@@ -218,20 +121,23 @@ FTPClient::FTPClient(std::shared_ptr<Socket> socket)
 			if (FD_ISSET(*this->socket, &fds)) {
 				// Command socket
 				char *cmd, *args;
-				int rbytes = this->socket->read(buf, max_pkt_size);
+				int rbytes = this->socket->read(buf + buflen, max_pkt_size - buflen);
 
 				if (rbytes <= 0) {
 					FTP_DBG_PRINTF("Client disconnected or error (%d), exiting\n", rbytes);
 					break;
 				}
 
+				buflen += rbytes;
+
+				// Do a few checks
+				if (buflen < 3) continue; // Not enough data to actually do something
+				if (buflen == max_pkt_size) break; // Buffer overflow, terminate
+				if (!detectEndOfCommand(buf, buflen)) continue; // Detect and terminate end of command
+				buflen = 0;
+
 				// Parse the command
-				if (!FTPServer_TerminateCommandString(buf, rbytes) ||
-					!FTPServer_SplitCommandString(buf, &cmd, &args)) {
-					FTP_DBG_PRINTF("Strange command format, not EOL\n");
-					this->socket->send(buildReply(500)); // Command not recognized
-					break;
-				}
+				splitCommandString(buf, &cmd, &args);
 
 				// Convert cmd to uppercase, just in case
 				for (size_t i = 0; cmd[i] != '\0'; i++) cmd[i] = toupper(cmd[i]);
@@ -303,7 +209,10 @@ FTPClient::FTPClient(std::shared_ptr<Socket> socket)
 					FTP_DBG_PRINTF("Received %u bytes\n", this->buffer.len);
 					this->data = nullptr;
 
-					if (this->file->writefile(this->buffer.ptr.get(), this->buffer.len) != this->buffer.len) {
+					FTPFile* file = FTPServer::getFileFromPath(this->curfile);
+
+					if (file && file->writefile &&
+						(file->writefile(this->buffer.ptr.get(), this->buffer.len) != this->buffer.len)) {
 						// Fail to apply file
 						this->socket->send(buildReply(450, "Unable to fully write file")); // Failed
 					} else {
@@ -350,14 +259,51 @@ FTPClient::FTPClient(std::shared_ptr<Socket> socket)
 	delete buf;
 }
 
+bool FTPClient::detectEndOfCommand(char* str, size_t length) {
+	// Detect EOL and terminate string with \0
+	const size_t eol_size = sizeof(EOL) - 1; // Ignore last \0
+
+	if (length >= eol_size) {
+		if (strncmp(str + length - eol_size, EOL, eol_size) != 0) {
+			return false; // EOL not detected
+		}
+		str[length - eol_size] = '\0'; // Terminate string
+		return true; // EOL detected
+	}
+
+	return false; // String too short
+}
+
+void FTPClient::splitCommandString(char* str, char** cmd, char** args) {
+	size_t i = 0;
+
+	while (1) {
+		if (str[i] == ' ') {
+			str[i] = '\0';
+			*args = str + i + 1;
+			break;
+		} else if (str[i] == '\0') {
+			*args = NULL;
+			break;
+		}
+
+		i++;
+	}
+
+	*cmd = str;
+}
+
 std::string FTPClient::buildReply(uint16_t code) {
 	return std::to_string(code) + " " + FTPCodes[code] + EOL;
 }
 
-std::string FTPClient::buildReply(uint16_t code, std::string msg) {
+std::string FTPClient::buildReply(uint16_t code, const std::string &msg) {
 	return std::to_string(code) + " " + msg + EOL;
 }
 
+/*std::string FTPClient::buildMultilineReply(uint16_t code, const std::vector<std::string> &msg) {
+	// TODO: For welcome message at some point
+}*/
 
 bool FTPClient::CommandNotImplemented(FTPClient &client, char *cmd, char *args) {
 	FTP_DBG_PRINTF("Command not implemented (cmd=%s, args=%s)\n", cmd, args);
@@ -368,6 +314,7 @@ bool FTPClient::CommandNotImplemented(FTPClient &client, char *cmd, char *args) 
 bool FTPClient::CommandUSER(FTPClient &client, char *cmd, char* user) {
 	// Possible replies: 120->220, 220, 421
 	FTP_DBG_PRINTF("User is %s\n", user);
+	client.username = user; // User will be used later for authentication
 	client.socket->send(buildReply(331)); // Password required
 	client.state = FTP_ST_LOGIN_PASS;
 	return true;
@@ -418,9 +365,10 @@ bool FTPClient::CommandPORT(FTPClient &client, char *cmd, char* args) {
 bool FTPClient::CommandPASV(FTPClient &client, char *cmd, char* args) {
 	// Possible replies: 227, 500, 501, 502, 421, 530
 	FTP_DBG_PRINTF("Setting passive mode\n");
+	const uint16_t dataport = client.ftpserver.getDataPort();
 
 	if (!client.dataserver.get()) {
-		client.dataserver = std::shared_ptr<ServerSocket>(new ServerSocket(FTPServer::FTP_DATA_PORT, 1));
+		client.dataserver = std::shared_ptr<ServerSocket>(new ServerSocket(dataport, 1));
 		client.dataserver->reuse(); // Reuse the port, otherwise binding might fail
 		if (client.dataserver->listen() < 0) {
 			// Couldn't bind to socket, this is a critical issue
@@ -443,8 +391,8 @@ bool FTPClient::CommandPASV(FTPClient &client, char *cmd, char* args) {
 	reply += std::to_string(((uint8_t*)(&ip))[2]) + ",";
 	reply += std::to_string(((uint8_t*)(&ip))[1]) + ",";
 	reply += std::to_string(((uint8_t*)(&ip))[0]) + ",";
-	reply += std::to_string((uint8_t)(FTPServer::FTP_DATA_PORT >> 8)) + ",";
-	reply += std::to_string((uint8_t)(FTPServer::FTP_DATA_PORT & 0xFF)) + ").";
+	reply += std::to_string((uint8_t)(dataport >> 8)) + ",";
+	reply += std::to_string((uint8_t)(dataport & 0xFF)) + ").";
 
 	client.socket->send(buildReply(227, reply)); // Passive mode
 
@@ -522,8 +470,10 @@ bool FTPClient::CommandSTOR(FTPClient &client, char *cmd, char* filename) {
 		return true;
 	}
 
+	std::string filepath = FTPServer::modifyPath(client.curpath, filename, true);
+
 	// Check if file exists
-	FTPFile *file = FTPServer::getFileFromPath(filename, client.dir);
+	FTPFile *file = FTPServer::getFileFromPath(filepath);
 	if (!file) {
 		client.socket->send(buildReply(450, "File does not exist."));
 		return true;
@@ -542,7 +492,7 @@ bool FTPClient::CommandSTOR(FTPClient &client, char *cmd, char* filename) {
 		return true;
 	}
 	client.buffer.len = 0;
-	client.file = file;
+	client.curfile = filepath;
 
 	client.socket->send(buildReply(150)); // Establishing connection
 
@@ -568,8 +518,10 @@ bool FTPClient::CommandRETR(FTPClient &client, char *cmd, char* filename) {
 		return true;
 	}
 
+	std::string filepath = FTPServer::modifyPath(client.curpath, filename, true);
+
 	// Check if file exists
-	FTPFile *file = FTPServer::getFileFromPath(filename, client.dir);
+	FTPFile *file = FTPServer::getFileFromPath(filepath);
 	if (!file) {
 		client.socket->send(buildReply(450, "File does not exist."));
 		return true;
@@ -594,6 +546,7 @@ bool FTPClient::CommandRETR(FTPClient &client, char *cmd, char* filename) {
 		return true;
 	}
 	client.buffer.len = file->size;
+	client.curfile = filepath;
 
 	client.socket->send(buildReply(150)); // Establishing connection
 
@@ -637,6 +590,15 @@ bool FTPClient::CommandNOOP(FTPClient &client, char *cmd, char* args) {
 bool FTPClient::CommandPASS(FTPClient &client, char *cmd, char* pass) {
 	// Possible replies: 230, 530, 500, 501, 421, 331, 332
 	FTP_DBG_PRINTF("Pass is %s\n", pass);
+
+	// Attempt to authenticate user with server authenticate callback
+	if (!client.ftpserver.authenticateUser(client.username, pass)) {
+		// Authentication failed
+		client.socket->send(buildReply(530)); // Not logged in
+		return false;
+	}
+
+	// User authenticated successfully
 	client.socket->send(buildReply(230)); // Logged in
 	client.state = FTP_ST_IDLE;
 	return true;
@@ -644,7 +606,7 @@ bool FTPClient::CommandPASS(FTPClient &client, char *cmd, char* pass) {
 
 bool FTPClient::CommandPWD(FTPClient &client, char *cmd, char* args) {
 	// Possible replies: 257, 500, 501, 502, 421, 550
-	client.socket->send(buildReply(257, client.path));
+	client.socket->send(buildReply(257, client.curpath));
 	return true;
 }
 
@@ -655,10 +617,11 @@ bool FTPClient::CommandLIST(FTPClient &client, char *cmd, char* path) {
 	FTPFile::FTPDirContents *contents = NULL;
 
 	if (path) {
-		contents = FTPServer::getDirContentsFromPath(path, client.dir);
+		std::string dirpath = FTPServer::modifyPath(client.curpath, path);
+		contents = FTPServer::getDirContentsFromPath(dirpath);
 	} else {
 		// No path provided
-		contents = client.dir;
+		contents = FTPServer::getDirContentsFromPath(client.curpath);
 	}
 
 	if (contents == NULL) {
@@ -743,24 +706,70 @@ bool FTPClient::CommandCWD(FTPClient &client, char *cmd, char* path) {
 
 	}
 
-	// Check if directory exists
-	FTPFile::FTPDirContents *contents = FTPServer::getDirContentsFromPath(path, client.dir);
+	FTPFile::FTPDirContents *contents = NULL;
+	std::string dirpath = "";
+
+	// Check if the goal is to go one directory up or down
+	if (std::string("..").compare(path) == 0) {
+		// Split the current path
+		std::vector<std::string> vpath = stringSplit(client.curpath, '/');
+
+		// Generate the new path by ignoring the last entry
+		if (vpath.size() > 1) {
+			for (unsigned int i = 0; i < vpath.size()-1; i++) {
+				dirpath += "/" + vpath[i];
+			}
+		} else {
+			dirpath = "/";
+		}
+	} else {
+		// Check if directory exists
+		dirpath = FTPServer::modifyPath(client.curpath, path);
+	}
+
+	// Check if the directory exists
+	contents = FTPServer::getDirContentsFromPath(dirpath);
 
 	if (contents == NULL) {
 		// Directory doesn't exist
-		client.socket->send(buildReply(501)); // Wrong parameters
+		client.socket->send(buildReply(550));
 		return true;
 	}
 
-	if (path[0] == '/') client.path = path;
-	else {
-		if (client.path.back() != '/')
-			client.path += std::string("/") + path;
-		else
-			client.path += path;
+	client.curpath = dirpath;
+	client.socket->send(buildReply(250, "Changed to directory " + client.curpath)); // Okay
+
+	return true;
+}
+
+bool FTPClient::CommandCDUP(FTPClient &client, char *cmd, char* args) {
+	// Possible replies: 200, 500, 501, 502, 421, 530, 550
+	FTP_DBG_PRINTF("CDUP\n");
+
+	// Split the current path
+	std::vector<std::string> vpath = stringSplit(client.curpath, '/');
+
+	// Generate the new path by ignoring the last entry
+	std::string dirpath = "";
+	if (vpath.size() > 1) {
+		for (unsigned int i = 0; i < vpath.size()-1; i++) {
+			dirpath += "/" + vpath[i];
+		}
+	} else {
+		dirpath = "/";
 	}
-	client.dir = contents;
-	client.socket->send(buildReply(200, "Changed to directory " + client.path)); // Okay
+
+	// Check if directory exists
+	FTPFile::FTPDirContents *contents = FTPServer::getDirContentsFromPath(dirpath);
+
+	if (contents == NULL) {
+		// Directory doesn't exist
+		client.socket->send(buildReply(550));
+		return true;
+	}
+
+	client.curpath = dirpath;
+	client.socket->send(buildReply(200, "Changed to directory " + client.curpath)); // Okay
 
 	return true;
 }
@@ -793,7 +802,7 @@ std::map<std::string, FTPClient::FTPCommand> FTPClient::FTPCommands = {
 	{"PASS", {FTPClient::CommandPASS, {FTP_ST_LOGIN_PASS}}},
 	{"ACCT", {FTPClient::CommandNotImplemented, {FTP_ST_IDLE}}},
 	{"CWD",  {FTPClient::CommandCWD,  {FTP_ST_IDLE}}},
-	{"CDUP", {FTPClient::CommandNotImplemented, {FTP_ST_IDLE}}},
+	{"CDUP", {FTPClient::CommandCDUP, {FTP_ST_IDLE}}},
 	{"SMNT", {FTPClient::CommandNotImplemented, {FTP_ST_IDLE}}},
 	{"QUIT", {FTPClient::CommandQUIT, {FTP_ST_IDLE}}},
 	{"REIN", {FTPClient::CommandNotImplemented, {FTP_ST_IDLE}}},
@@ -822,6 +831,6 @@ std::map<std::string, FTPClient::FTPCommand> FTPClient::FTPCommands = {
 	{"SYST", {FTPClient::CommandNotImplemented, {FTP_ST_IDLE}}},
 	{"STAT", {FTPClient::CommandNotImplemented, {FTP_ST_IDLE}}},
 	{"HELP", {FTPClient::CommandNotImplemented, {FTP_ST_IDLE}}},
-	{"NOOP", {FTPClient::CommandNOOP, {FTP_ST_IDLE}}}, // TODO: Should this be allowed before login? Don't think so
+	{"NOOP", {FTPClient::CommandNOOP, {FTP_ST_IDLE}}}, // Should this be allowed before login? Don't think so
 };
 

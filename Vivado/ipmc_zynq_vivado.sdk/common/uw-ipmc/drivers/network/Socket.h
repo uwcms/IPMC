@@ -29,6 +29,12 @@ public:
 	 */
 	Socket(int socket, struct sockaddr_in sockaddr);
 
+	/**
+	 * Creates a new socket based on an address, port and TCP or UDP
+	 * @param address The target address.
+	 * @param port The port to use.
+	 * @param useTCP true if TCP/IP, false if UDP/IP.
+	 */
 	Socket(std::string address, unsigned short port, bool useTCP = true);
 
 	virtual ~Socket();
@@ -114,8 +120,8 @@ public:
 	inline operator int() { return this->getSocket(); }
 
 protected:
-	int socketfd;
-	SocketAddress* sockaddr;
+	int socketfd;				///< The socket file descriptor number.
+	SocketAddress* sockaddr;	///< The socket address and port.
 };
 
 #endif /* SRC_COMMON_UW_IPMC_DRIVERS_NETWORK_SOCKET_H_ */

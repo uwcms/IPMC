@@ -8,13 +8,25 @@
 #ifndef SRC_COMMON_UW_IPMC_DRIVERS_NETWORK_CLIENTSOCKET_H_
 #define SRC_COMMON_UW_IPMC_DRIVERS_NETWORK_CLIENTSOCKET_H_
 
-#import "Socket.h"
+#include "Socket.h"
 
+/**
+ * A client socket implementation practical to establish a connection to a server.
+ */
 class ClientSocket : public Socket {
 public:
+	/**
+	 * Create a new socket by proving an address or a port
+	 * @param address The target address.
+	 * @param port The desired port.
+	 */
 	ClientSocket(std::string address, unsigned short port);
 	~ClientSocket();
 
+	/**
+	 * Connect to the target server.
+	 * @return -1 if failed to connect.
+	 */
 	int connect();
 };
 

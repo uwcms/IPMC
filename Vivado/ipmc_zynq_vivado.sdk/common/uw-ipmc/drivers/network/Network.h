@@ -22,16 +22,16 @@ class Network {
 public:
 	/**
 	 * Starts the network interfaces and lwIP, required for ethernet
-	 * @param logtree Logging interface
-	 * @param mac The MAC address to uniquely identify the device
+	 * @param logtree Logging interface.
+	 * @param mac The MAC address to uniquely identify the device.
+	 * @param net_ready_cb The callback function that will get called when network is up.
 	 * \note Network can only be instantiated ONCE, trying it will cause an assert
 	 */
-	Network(LogTree &logtree, uint8_t mac[6], std::function<void(Network*)> net_ready_cb=NULL);
+	Network(LogTree &logtree, uint8_t mac[6], std::function<void(Network*)> net_ready_cb = NULL);
 	virtual ~Network() {};
 
-	// Not copyable or assignable
-	Network(Network const&) = delete;
-	void operator=(Network const&) = delete;
+	Network(Network const&) = delete;			///< No copy.
+	void operator=(Network const&) = delete;	///< No assignment.
 
 	// Getters
 	/// Get link status
