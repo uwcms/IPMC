@@ -12,6 +12,9 @@
 #include <lwip/inet.h>
 #include <lwip/sockets.h>
 
+/**
+ * Defines a IP address with IP and port.
+ */
 class SocketAddress {
 public:
 	struct HostNotFound : public std::exception {};
@@ -21,15 +24,15 @@ protected:
 
 public:
 	/**
-	 * Creates a new socketaddress instance based on a sockaddr_in structure
-	 * @param the sockaddr_in structure
+	 * Creates a new socketaddress instance based on a sockaddr_in structure.
+	 * @param sockaddr The sockaddr_in structure.
 	 */
 	SocketAddress(struct sockaddr_in sockaddr) : sockaddr(sockaddr) {}
 
 	/**
 	 * Creates a new socketaddress instance with a specified address and port
-	 * @param address The address of the socket
-	 * @param port The port
+	 * @param address The address of the socket.
+	 * @param port The port.
 	 * @throws HostNotFound
 	 */
 	SocketAddress(std::string address, unsigned short port);

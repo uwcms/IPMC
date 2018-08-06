@@ -38,11 +38,13 @@ int ServerSocket::reuse() {
 		close();
 		return -errno;
 	}
+
+	return 0;
 }
 
-int ServerSocket::bind() {
+/*int ServerSocket::bind() {
 	// TODO: TCP/UDP
-	/*struct sockaddr_in addr = sockaddr->getStruct();
+	struct sockaddr_in addr = sockaddr->getStruct();
 
 	this->socketfd = lwip_socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
@@ -53,10 +55,10 @@ int ServerSocket::bind() {
 	if (lwip_bind(this->socketfd, (struct sockaddr*)&addr, sizeof(struct sockaddr)) != 0) {
 		close();
 		return errno;
-	};*/
+	};
 
 	return 0;
-}
+}*/
 
 std::shared_ptr<Socket> ServerSocket::accept() {
 	if (!isValid()) return std::shared_ptr<Socket>(NULL);

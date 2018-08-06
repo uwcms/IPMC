@@ -26,14 +26,14 @@ std::string bytesToString(uint64_t bytes) {
 	return buf;
 }
 
-std::vector<std::string> stringSplit(std::string str, char delimiter) {
+std::vector<std::string> stringSplit(const std::string &str, char delimiter) {
 	std::vector<std::string> v;
 
 	size_t pos = 0, end;
 
 	do {
 		end = str.find(delimiter, pos);
-		std::string ss = str.substr(pos, end);
+		std::string ss = str.substr(pos, end - pos);
 		pos = end + 1; // Skip the delimiter
 
 		if (ss.length() > 0) v.push_back(ss);

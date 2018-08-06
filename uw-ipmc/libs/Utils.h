@@ -24,6 +24,6 @@ std::string bytesToString(uint64_t bytes);
  * @param delimiter A single character delimiter
  * @return A vector with all the substrings in it
  */
-std::vector<std::string> stringSplit(std::string str, char delimiter);
+std::vector<std::string> stringSplit(const std::string& str, char delimiter);
 
 #endif /* SRC_COMMON_UW_IPMC_LIBS_UTILS_H_ */

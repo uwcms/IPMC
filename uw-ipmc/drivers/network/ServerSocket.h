@@ -11,6 +11,9 @@
 #include "Socket.h"
 #include <memory>
 
+/**
+ * Extends Socket and provides an interface to bind and listen to ports.
+ */
 class ServerSocket : public Socket {
 public:
 
@@ -37,7 +40,7 @@ public:
 	 */
 	int reuse();
 
-	int bind();
+	//int bind();
 
 	/**
 	 * Accepts a new incoming client (blocking call).
@@ -46,7 +49,7 @@ public:
 	std::shared_ptr<Socket> accept();
 
 protected:
-	int backlog;
+	int backlog;	///< Backlog.
 };
 
 #endif /* SRC_COMMON_UW_IPMC_DRIVERS_NETWORK_SERVERSOCKET_H_ */

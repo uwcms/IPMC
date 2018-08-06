@@ -301,7 +301,12 @@ void ipmc_service_init() {
 		}, false, {}}},
 		});
 
-		new FTPServer();
+		new FTPServer([](const std::string &user, const std::string &pass) -> bool {
+			// TODO: For now, accept only ipmc/ipmc
+			if (!user.compare("ipmc") && !pass.compare("ipmc")) return true;
+			return false;
+		});
+
 	});
 	network->register_console_commands(console_command_parser, "network.");
 
