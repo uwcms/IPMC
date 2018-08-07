@@ -7,6 +7,8 @@
 #include <FreeRTOS.h>
 #include <task.h>
 #include <IPMC.h>
+#include "libs/Utils.h"
+#include "libs/XilinxImage.h"
 #include <drivers/watchdog/PSWDT.h>
 #include <drivers/ps_uart/PSUART.h>
 #include <drivers/ipmb/PSIPMB.h>
@@ -236,6 +238,13 @@ void ipmc_service_init() {
 
 					return totalsize;
 				}, [](uint8_t *buf, size_t len) -> size_t {
+					// Validate the bin file before writing
+					if (!validateBootFile(buf, len)) {
+						// File is invalid!
+						printf("Received bin file has errors, aborting firmware update\n");
+						return 0;
+					}
+
 					// Write the buffer to flash
 					const size_t baseaddr = 0x0;
 
