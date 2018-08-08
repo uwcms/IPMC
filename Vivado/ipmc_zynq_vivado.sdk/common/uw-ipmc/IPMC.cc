@@ -241,7 +241,7 @@ void ipmc_service_init() {
 					// Validate the bin file before writing
 					if (!validateBootFile(buf, len)) {
 						// File is invalid!
-						printf("Received bin file has errors, aborting firmware update\n");
+						printf("Received bin file has errors, aborting firmware update.\n");
 						return 0;
 					}
 

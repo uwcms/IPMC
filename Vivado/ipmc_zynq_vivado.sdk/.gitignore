@@ -27,5 +27,5 @@ libxil.a
 # This is needed to keep the project structure inside XSDK
 .metadata/
 
-zfsbl/
-zfsbl_bsp/
+# Don't include bootimages
+bootimages/
