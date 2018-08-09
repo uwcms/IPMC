@@ -1,7 +1,7 @@
 --Copyright 1986-2018 Xilinx, Inc. All Rights Reserved.
 ----------------------------------------------------------------------------------
 --Tool Version: Vivado v.2018.2 (lin64) Build 2258646 Thu Jun 14 20:02:38 MDT 2018
---Date        : Tue Jul 24 11:54:35 2018
+--Date        : Thu Aug  9 16:16:18 2018
 --Host        : beck.hep.wisc.edu running 64-bit CentOS Linux release 7.5.1804 (Core)
 --Command     : generate_target ipmc_bd_wrapper.bd
 --Design      : ipmc_bd_wrapper
@@ -41,6 +41,7 @@ entity ipmc_bd_wrapper is
     EEPROM_I2C_0_sda_io : inout STD_LOGIC;
     ESM_UART_rxd : in STD_LOGIC;
     ESM_UART_txd : out STD_LOGIC;
+    HNDL_SW : in STD_LOGIC;
     PIM400_I2C_scl_io : inout STD_LOGIC;
     PIM400_I2C_sda_io : inout STD_LOGIC;
     PL_LEDS : out STD_LOGIC_VECTOR ( 1 downto 0 );
@@ -100,7 +101,8 @@ architecture STRUCTURE of ipmc_bd_wrapper is
     TCK : out STD_LOGIC;
     TDI : out STD_LOGIC;
     TDO : in STD_LOGIC;
-    TMS : out STD_LOGIC
+    TMS : out STD_LOGIC;
+    HNDL_SW : in STD_LOGIC
   );
   end component ipmc_bd;
   component IOBUF is
@@ -186,6 +188,7 @@ ipmc_bd_i: component ipmc_bd
       EEPROM_I2C_0_sda_t => EEPROM_I2C_0_sda_t,
       ESM_UART_rxd => ESM_UART_rxd,
       ESM_UART_txd => ESM_UART_txd,
+      HNDL_SW => HNDL_SW,
       PIM400_I2C_scl_i => PIM400_I2C_scl_i,
       PIM400_I2C_scl_o => PIM400_I2C_scl_o,
       PIM400_I2C_scl_t => PIM400_I2C_scl_t,
