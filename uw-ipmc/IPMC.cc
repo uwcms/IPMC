@@ -4,49 +4,56 @@
  * functions.
  */
 
+/* Include system related */
 #include <FreeRTOS.h>
-#include <task.h>
 #include <IPMC.h>
-#include "libs/Utils.h"
-#include "libs/XilinxImage.h"
-#include <drivers/watchdog/PSWDT.h>
-#include <drivers/ps_uart/PSUART.h>
-#include <drivers/ipmb/PSIPMB.h>
-#include <drivers/mgmt_zone/MGMTZone.h>
-#include <drivers/ps_isfqspi/PSISFQSPI.h>
-#include <services/ipmi/ipmbsvc/IPMBSvc.h>
-#include <services/ipmi/ipmbsvc/IPMICommandParser.h>
-#include <services/ipmi/commands/IPMICmd_Index.h>
-#include <drivers/ps_spi/PSSPI.h>
-#include <drivers/spi_eeprom/SPIEEPROM.h>
-#include <drivers/network/Network.h>
-#include <services/persistentstorage/PersistentStorage.h>
-#include <drivers/tracebuffer/TraceBuffer.h>
-#include <services/console/UARTConsoleSvc.h>
-#include <services/influxdb/InfluxDBClient.h>
-#include <libs/LogTree.h>
-
+#include <task.h>
 #include <algorithm>
 #include <functional>
+#include <alloca.h>
 
-/* Xilinx includes. */
+/* Include Xilinx related */
 #include "xparameters.h"
 #include "xscutimer.h"
 #include "xscugic.h"
 #include "xil_exception.h"
 #include "xgpiops.h"
 
-#include <services/telnet/Telnet.h>
-#include <alloca.h>
-#include <drivers/ipmb/IPMBPair.h>
+/* Include libs */
+#include <libs/LogTree.h>
+#include "libs/Utils.h"
+#include "libs/XilinxImage.h"
 
+/* Include drivers */
+#include <drivers/ps_uart/PSUART.h>
+#include <drivers/ps_spi/PSSPI.h>
+#include <drivers/ps_isfqspi/PSISFQSPI.h>
+#include <drivers/pl_uart/PLUART.h>
+#include <drivers/pl_gpio/PLGPIO.h>
+#include <drivers/watchdog/PSWDT.h>
+#include <drivers/network/Network.h>
+#include <drivers/spi_eeprom/SPIEEPROM.h>
+#include <drivers/tracebuffer/TraceBuffer.h>
+#include <drivers/ipmb/IPMBPair.h>
+#include <drivers/ipmb/PSIPMB.h>
+#include <drivers/mgmt_zone/MGMTZone.h>
+#include <drivers/pim400/PIM400.h>
+extern "C" {
+#include "led_controller.h"
+}
+
+/* Include services */
+#include <services/ipmi/ipmbsvc/IPMBSvc.h>
+#include <services/ipmi/ipmbsvc/IPMICommandParser.h>
+#include <services/ipmi/commands/IPMICmd_Index.h>
+#include <services/persistentstorage/PersistentStorage.h>
+#include <services/console/UARTConsoleSvc.h>
+#include <services/influxdb/InfluxDBClient.h>
+#include <services/telnet/Telnet.h>
 #include <services/lwiperf/Lwiperf.h>
 #include <services/xvcserver/XVCServer.h>
-
-#include <drivers/pim400/PIM400.h>
-#include <drivers/pl_uart/PLUART.h>
-
 #include <services/ftp/FTPServer.h>
+
 
 u8 IPMC_HW_REVISION = 1; // TODO: Detect, Update, etc
 
@@ -74,6 +81,8 @@ InfluxDBClient *influxdbclient;
 TelnetServer *telnet;
 
 PL_UART *uart;
+PL_GPIO *handle_gpio;
+LED_Controller atcaLEDs;
 
 // External static variables
 extern uint8_t mac_address[6]; ///< The MAC address of the board, read by persistent storage statically
@@ -147,6 +156,8 @@ void driver_init(bool use_pl) {
 	PL_I2C *i2c = new PL_I2C(XPAR_AXI_IIC_PIM400_DEVICE_ID, XPAR_FABRIC_AXI_IIC_PIM400_IIC2INTC_IRPT_INTR);
 	(new PIM400(*i2c, 0x5E))->register_console_commands(console_command_parser, "pim400");
 
+	LED_Controller_Initialize(&atcaLEDs, XPAR_AXI_ATCA_LED_CTRL_DEVICE_ID);
+
 	for (int i = 0; i < XPAR_MGMT_ZONE_CTRL_0_MZ_CNT; ++i)
 		mgmt_zones[i] = new MGMT_Zone(XPAR_MGMT_ZONE_CTRL_0_DEVICE_ID, i);
 
@@ -207,7 +218,6 @@ void driver_init(bool use_pl) {
  *
  * \note This function is called before the FreeRTOS scheduler has been started.
  */
-uint32_t *fakefile = NULL;
 void ipmc_service_init() {
 	console_service = UARTConsoleSvc::create(*uart_ps0, console_command_parser, "console", LOG["console"]["uart"], true);
 
@@ -315,6 +325,19 @@ void ipmc_service_init() {
 	network->register_console_commands(console_command_parser, "network.");
 
 	uart = new PL_UART(XPAR_AXI_UARTLITE_ESM_DEVICE_ID, XPAR_FABRIC_AXI_UARTLITE_ESM_INTERRUPT_INTR);
+
+	handle_gpio = new PL_GPIO(XPAR_AXI_GPIO_0_DEVICE_ID, XPAR_FABRIC_AXI_GPIO_0_IP2INTC_IRPT_INTR);
+	handle_gpio->setIRQCallback([](uint32_t pin) -> void {
+		// This is an IRQ, so act fast!
+		bool isPressed = handle_gpio->isPinSet(0);
+
+		LED_Controller_SetOnOff(&atcaLEDs, 0, isPressed);
+
+		xTimerPendFunctionCallFromISR([]( void *ptr, uint32_t x) -> void {
+			if (x) printf("Handle is pressed!");
+			else printf("Handle is released!");
+		}, NULL, isPressed, NULL);
+	});
 }
 
 
@@ -334,6 +357,7 @@ std::string generate_banner() {
 	bannerstr += std::string("SW revision : ") + GIT_DESCRIBE + "\n";
 	bannerstr += std::string("Build date  : ") + COMPILE_DATE + "\n";
 	bannerstr += std::string("Build host  : ") + COMPILE_HOST + "\n";
+	bannerstr += std::string("Build conf  : ") + BUILD_CONFIGURATION + "\n";
 	bannerstr += std::string("OS version  : FreeRTOS ") + tskKERNEL_VERSION_NUMBER + "\n";
 
 	if (GIT_STATUS[0] != '\0')
