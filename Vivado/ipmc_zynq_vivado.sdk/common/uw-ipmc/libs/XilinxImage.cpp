@@ -3,16 +3,23 @@
  *
  *  Created on: Aug 7, 2018
  *      Author: mpv
+ *
+ * Based on Xilinx FSBL code.
  */
 
 #include "XilinxImage.h"
 #include <stdio.h>
+#include <string>
+#include "md5.h"
 
 #ifdef XILINXIMAGE_DEBUG
 #define XILIMG_DBG_PRINTF(...) printf(__VA_ARGS__)
 #else
 #define XILIMG_DBG_PRINTF(...)
 #endif
+
+#define MD5_CHECKSUM_SIZE 16
+#define MAX_IMAGE_NAME_SIZE 256
 
 ///! Boot ROM header
 typedef struct {
@@ -63,8 +70,8 @@ typedef struct {
 				};
 			};
 			uint32_t sectionCount;
-			uint32_t checkSumOffset;
-			uint32_t _padding1[1];
+			uint32_t partitionCheckSumOffset;
+			uint32_t imageHeaderOffset;
 			uint32_t acOffset;
 			uint32_t _padding2[4];
 			uint32_t checksum;
@@ -72,6 +79,47 @@ typedef struct {
 		uint32_t fields[16];
 	};
 } PartHeader;
+
+///! Image Header
+typedef struct {
+	uint32_t nextImageOffset;
+	uint32_t firstPartitionOffset;
+	uint32_t partitionCount; // Always zero
+	uint32_t imageNameLength;
+	// image name follows
+} ImageHeader;
+
+const char* getBootFileValidationErrorString(BootFileValidationReturn r) {
+	switch (r) {
+	case BFV_VALID: return "Valid";
+	case BFV_INVALID_BOOTROM: "Invalid BootROM header";
+	case BFV_INVALID_SIZE: return "Internal reference goes outside size boundaries";
+	case BFV_NOT_ENOUGH_PARTITIONS: return "Not enough partitions";
+	case BFV_INVALID_PARTITION: return "Invalid partition header";
+	case BFV_UNKNOWN_PARTITION_TYPE: return "Unknown partition type";
+	case BFV_MD5_CHECK_FAILED: return "md5 check failed in one of the partitions";
+	case BFV_UNEXPECTED_ORDER: return "Partitions are out of order";
+	}
+
+	return "";
+}
+
+std::string getImageNameFromHeader(ImageHeader *header) {
+	if (header->imageNameLength > MAX_IMAGE_NAME_SIZE) return "?";
+	char *imageName = (char*)header + sizeof(ImageHeader);
+
+	std::string name = "";
+	for (size_t i = 0; i < 64; i++) {
+		for (size_t k = 0; k < 4; k++) {
+			char c = imageName[i * 4 + (3 - k)];
+			if (c == 0x00 || c == 0xFF) goto ret; // break nested loop
+			name.push_back(c);
+		}
+	}
+
+ret:
+	return name;
+}
 
 uint32_t calculateChecksum(uint32_t *array, size_t wordcount)
 {
@@ -90,7 +138,7 @@ uint32_t calculateChecksum(uint32_t *array, size_t wordcount)
 
 #define MAX_NUM_PARTITIONS 10
 
-size_t countPartitionsFromTable(PartHeader *partitionTable){
+size_t countPartitionsFromTable(PartHeader *partitionTable) {
 	size_t count = 0;
 
 	for (count = 0; count < MAX_NUM_PARTITIONS; count++) {
@@ -105,15 +153,12 @@ size_t countPartitionsFromTable(PartHeader *partitionTable){
 	return count;
 }
 
-// TODO: Added md5 checks to partiations that have it
-// TODO: Check bitfile CRC
-// TODO: Check orderer
-// TODO: Check partition size vs file size
-bool validateBootFile(uint8_t *binfile, size_t size) {
+BootFileValidationReturn validateBootFile(uint8_t *binfile, size_t size) {
 	// An IPMC image must have 3 partition (FSBL, PL, PS) in this order
-	size_t plCount = 0, psCount = 0;
+	const uint8_t expected_order[3] = {1, 2, 1};
 
-	if (size < sizeof(BootROMHeader)) return false;
+	if (size < sizeof(BootROMHeader))
+		return BFV_INVALID_SIZE;
 
 	BootROMHeader *bootROMheader = (BootROMHeader*)binfile;
 	uint32_t bootROMChecksum = calculateChecksum(bootROMheader->fields+8, 10);
@@ -122,44 +167,66 @@ bool validateBootFile(uint8_t *binfile, size_t size) {
 	if ((bootROMheader->widthDetection      != 0xaa995566) ||
 		(bootROMheader->imageIdentification != 0x584c4e58) ||
 		(bootROMheader->checksum            != bootROMChecksum))
-		return false;
+		return BFV_INVALID_BOOTROM;
 
 	// BootROM seems fine, goes to first partition
-	if (size < (bootROMheader->partionTable + sizeof(PartHeader)*MAX_NUM_PARTITIONS)) return false;
+	if (size < (bootROMheader->partionTable + sizeof(PartHeader)*MAX_NUM_PARTITIONS))
+		return BFV_INVALID_SIZE;
+
 	PartHeader *partitionTable = (PartHeader*)(binfile + bootROMheader->partionTable);
 	size_t partitionCount = countPartitionsFromTable(partitionTable);
 
-	if (partitionCount != 3) return false; // Only accept bitfiles with 3 images
+	if (partitionCount != 3)
+		return BFV_NOT_ENOUGH_PARTITIONS; // Only accept bitfiles with 3 images
 
 	for (size_t i = 0; i < partitionCount; i++) {
 		PartHeader *partitionHeader = &(partitionTable[i]);
 
-		uint32_t partChecksum = calculateChecksum(partitionHeader->fields,
-							sizeof(PartHeader)/4 - 1);
+		uint32_t partChecksum = calculateChecksum(partitionHeader->fields, sizeof(PartHeader)/4 - 1);
 
-		if ((partitionHeader->imageWordLen > size) ||
-			(partitionHeader->checksum != partChecksum))
-			return false;
+		if (partitionHeader->checksum != partChecksum)
+			return BFV_INVALID_PARTITION;
+
+#ifdef XILINXIMAGE_DEBUG
+		// Retrieve image name
+		std::string imageName = getImageNameFromHeader((ImageHeader*)(binfile + (partitionHeader->imageHeaderOffset << 2)));
+		XILIMG_DBG_PRINTF("Image %d: %s\n", i+1, imageName.c_str());
+#endif
+
+		if (size < ((partitionHeader->partitionStart + partitionHeader->partitionWordLen) << 2))
+			return BFV_INVALID_SIZE;
+
+		// Check the type of partition
+		if (partitionHeader->device != 1 && partitionHeader->device != 2)
+			return BFV_UNKNOWN_PARTITION_TYPE; // Invalid/unsupported type
+
+		// Check if the partitions are in the correct order
+		if (partitionHeader->device != expected_order[i])
+			return BFV_UNEXPECTED_ORDER;
 
 		if (partitionHeader->checksumType > 0) {
-			// TODO: Validate md5 checksum
+			// Validate md5 checksum
+			uint8_t *partitionStart = binfile + (partitionHeader->partitionStart << 2); // Words to bytes
+			size_t partitionSize = partitionHeader->partitionWordLen << 2; // Words to bytes
+			uint8_t *partitionChecksum = binfile + (partitionHeader->partitionCheckSumOffset << 2); // Words to bytes
+
+			if (size < (partitionHeader->partitionCheckSumOffset << 2) + MD5_CHECKSUM_SIZE)
+				return BFV_INVALID_SIZE;
+
+			// Calculate the md5 checksum
+			uint8_t md5checksum[MD5_CHECKSUM_SIZE];
+			md5(partitionStart, partitionSize, md5checksum, 0);
+
+			// Compare md5 checksums
+			for (size_t k = 0; k < MD5_CHECKSUM_SIZE; k++) {
+				if (partitionChecksum[k] != md5checksum[k])
+					return BFV_MD5_CHECK_FAILED; // md5 checksum failed
+			}
+
 		} else {
 			XILIMG_DBG_PRINTF("WARNING: Partition %d has no checksum!\n", i);
 		}
-
-		switch (partitionHeader->device) {
-		case 1: // PS
-			psCount++;
-			break;
-		case 2: // PL
-			plCount++;
-			break;
-		default:
-			return false; // Invalid/unsupported type
-		}
 	}
 
-	if ((plCount != 1) || (psCount != 2)) return false;
-
-	return true; // Valid
+	return BFV_VALID; // Valid
 }
