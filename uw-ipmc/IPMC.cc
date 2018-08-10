@@ -84,6 +84,8 @@ PL_UART *uart;
 PL_GPIO *handle_gpio;
 LED_Controller atcaLEDs;
 
+bool firmwareUpdateFailed = false;
+
 // External static variables
 extern uint8_t mac_address[6]; ///< The MAC address of the board, read by persistent storage statically
 
@@ -249,10 +251,14 @@ void ipmc_service_init() {
 					return totalsize;
 				}, [](uint8_t *buf, size_t len) -> size_t {
 					// Validate the bin file before writing
-					if (!validateBootFile(buf, len)) {
+					BootFileValidationReturn r = validateBootFile(buf, len);
+					if (r != BFV_VALID) {
 						// File is invalid!
-						printf("Received bin file has errors, aborting firmware update.\n");
+						printf("Received bin file has errors: %s. Aborting firmware update.\n",
+								getBootFileValidationErrorString(r));
 						return 0;
+					} else {
+						printf("Bin file is valid, proceeding with update.\n");
 					}
 
 					// Write the buffer to flash
@@ -265,10 +271,11 @@ void ipmc_service_init() {
 						size_t addr = i * isfqspi->GetPageSize();
 						if (addr % isfqspi->GetSectorSize() == 0) {
 							// This is the first page of a new sector, so erase the sector
-							printf("Erasing 0x%08x", addr + baseaddr);
+							printf("Erasing sector 0x%08x..", addr + baseaddr);
 							if (!isfqspi->SectorErase(addr + baseaddr)) {
 								// Failed to erase
-								printf("Failed to erase 0x%08x", addr + baseaddr);
+								printf("Failed to erase 0x%08x. Write to flash failed.\n", addr + baseaddr);
+								firmwareUpdateFailed = true;
 								return addr;
 							}
 						}
@@ -282,13 +289,15 @@ void ipmc_service_init() {
 
 							if (!isfqspi->WritePage(addr + baseaddr, tmpbuf)) {
 								// Failed to write page
-								printf("Failed to write page 0x%08x", addr + baseaddr);
+								printf("Failed to write page 0x%08x. Write to flash failed.\n", addr + baseaddr);
+								firmwareUpdateFailed = true;
 								return addr;
 							}
 						} else {
 							if (!isfqspi->WritePage(addr + baseaddr, buf + addr)) {
 								// Failed to write page
-								printf("Failed to write page 0x%08x", addr + baseaddr);
+								printf("Failed to write page 0x%08x. Write to flash failed.\n", addr + baseaddr);
+								firmwareUpdateFailed = true;
 								return addr;
 							}
 						}
@@ -305,10 +314,15 @@ void ipmc_service_init() {
 						} else {
 							ret = memcmp(ptr, buf + addr, isfqspi->GetPageSize());
 						}
-						if (ret != 0)
-							printf("Page 0x%08x is different", addr + baseaddr);
+						if (ret != 0) {
+							printf("Page 0x%08x is different. Verification failed.", addr + baseaddr);
+							firmwareUpdateFailed = true;
+							return addr;
+						}
 					}
 
+					printf("Flash image updated and verified successfully.\n");
+					firmwareUpdateFailed = false;
 					return len;
 				}, false, {}}},
 			}},
@@ -633,11 +647,16 @@ public:
 
 	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
 		// See section 26.2.3 in UG585 - System Software Reset
-		volatile uint32_t* slcr_unlock_reg = (uint32_t*)(0xF8000000 + 0x008); // SLCR is at 0xF8000000
-		volatile uint32_t* pss_rst_ctrl_reg = (uint32_t*)(0xF8000000 + 0x200);
 
-		*slcr_unlock_reg = 0xDF0D; // Unlock key
-		*pss_rst_ctrl_reg = 1;
+		if (firmwareUpdateFailed == false) {
+			volatile uint32_t* slcr_unlock_reg = (uint32_t*)(0xF8000000 + 0x008); // SLCR is at 0xF8000000
+			volatile uint32_t* pss_rst_ctrl_reg = (uint32_t*)(0xF8000000 + 0x200);
+
+			*slcr_unlock_reg = 0xDF0D; // Unlock key
+			*pss_rst_ctrl_reg = 1;
+		} else {
+			console->write("Restart is disabled due to a failed firmware attempt (flash may be corrupted).\n");
+		}
 	}
 
 	//virtual std::vector<std::string> complete(const CommandParser::CommandParameters &parameters) const { };
