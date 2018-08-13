@@ -23,6 +23,7 @@
 #include <libs/LogTree.h>
 #include "libs/Utils.h"
 #include "libs/XilinxImage.h"
+#include "libs/Authentication.h"
 
 /* Include drivers */
 #include <drivers/ps_uart/PSUART.h>
@@ -228,7 +229,7 @@ void ipmc_service_init() {
 
 		influxdbclient = new InfluxDBClient(LOG["influxdb"]);
 		influxdbclient->register_console_commands(console_command_parser, "influxdb.");
-		telnet = new TelnetServer();
+		telnet = new TelnetServer(LOG["telnetd"]);
 
 		// TODO: Can be removed when not needed
 		new Lwiperf(5001);
@@ -329,11 +330,7 @@ void ipmc_service_init() {
 		},
 		});
 
-		new FTPServer([](const std::string &user, const std::string &pass) -> bool {
-			// TODO: For now, accept only ipmc/ipmc
-			if (!user.compare("ipmc") && !pass.compare("ipmc")) return true;
-			return false;
-		});
+		new FTPServer(Auth::ValidateCredentials);
 
 	});
 	network->register_console_commands(console_command_parser, "network.");
@@ -687,6 +684,34 @@ public:
 	//virtual std::vector<std::string> complete(const CommandParser::CommandParameters &parameters) const { };
 };
 
+/// A "setauth" console command.
+class ConsoleCommand_setauth: public CommandParser::Command {
+public:
+	virtual std::string get_helptext(const std::string &command) const {
+		return stdsprintf(
+				"%s $username $password\n"
+				"\n"
+				"Change network access username and password.\n", command.c_str());
+	}
+
+	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
+		std::string user, pass;
+		if (parameters.nargs() != 2) {
+			console->write("Invalid parameters, see help.\n");
+			return;
+		}
+
+		parameters.parse_parameters(1, true, &user);
+		parameters.parse_parameters(2, true, &pass);
+
+		Auth::ChangeCredentials(user, pass);
+
+		console->write("Password updated.\n");
+	}
+
+	//virtual std::vector<std::string> complete(const CommandParser::CommandParameters &parameters) const { };
+};
+
 } // anonymous namespace
 
 static void register_core_console_commands(CommandParser &parser) {
@@ -697,6 +722,7 @@ static void register_core_console_commands(CommandParser &parser) {
 	console_command_parser.register_command("backend_power", std::make_shared<ConsoleCommand_backend_power>());
 	console_command_parser.register_command("restart", std::make_shared<ConsoleCommand_restart>());
 	console_command_parser.register_command("flash_info", std::make_shared<ConsoleCommand_flash_info>());
+	console_command_parser.register_command("setauth", std::make_shared<ConsoleCommand_setauth>());
 }
 
 static void console_log_handler(LogTree &logtree, const std::string &message, enum LogTree::LogLevel level) {

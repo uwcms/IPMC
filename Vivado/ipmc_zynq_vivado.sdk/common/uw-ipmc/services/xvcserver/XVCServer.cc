@@ -54,11 +54,11 @@ bool XVCServer::HandleClient(std::shared_ptr<Socket> s) {
 		unsigned char buffer[2048], result[1024];
 		memset(cmd, 0, 16);
 
-		if (s->readn(cmd, 2) != 1)
+		if (s->recvn(cmd, 2) != 1)
 			return true;
 
 		if (memcmp(cmd, "ge", 2) == 0) {
-			if (s->readn(cmd, 6) != 1)
+			if (s->recvn(cmd, 6) != 1)
 				return 1;
 			memcpy(result, xvcInfo, strlen(xvcInfo));
 			if (s->send((char*)result, strlen(xvcInfo)) != strlen(xvcInfo)) {
@@ -70,7 +70,7 @@ bool XVCServer::HandleClient(std::shared_ptr<Socket> s) {
 				printf("\t Replied with %s\n", xvcInfo);
 			}
 		} else if (memcmp(cmd, "se", 2) == 0) {
-			if (s->readn(cmd, 9) != 1)
+			if (s->recvn(cmd, 9) != 1)
 				return 1;
 			memcpy(result, cmd + 5, 4);
 			if (s->send((char*)result, 4) != 4) {
@@ -82,14 +82,14 @@ bool XVCServer::HandleClient(std::shared_ptr<Socket> s) {
 				printf("\t Replied with '%.*s'\n\n", 4, cmd + 5);
 			}
 		} else if (memcmp(cmd, "sh", 2) == 0) {
-			if (s->readn(cmd, 4) != 1)
+			if (s->recvn(cmd, 4) != 1)
 				return 1;
 			if (verbose) {
 				printf("Received command: 'shift'\n");
 			}
 
 			int len;
-			if (s->readn((char*)&len, 4) != 1) {
+			if (s->recvn((char*)&len, 4) != 1) {
 				fprintf(stderr, "reading length failed\n");
 				return 1;
 			}
@@ -100,7 +100,7 @@ bool XVCServer::HandleClient(std::shared_ptr<Socket> s) {
 				return 1;
 			}
 
-			if (s->readn((char*)buffer, nr_bytes * 2) != 1) {
+			if (s->recvn((char*)buffer, nr_bytes * 2) != 1) {
 				fprintf(stderr, "reading data failed\n");
 				return 1;
 			}

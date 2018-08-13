@@ -127,7 +127,7 @@ namespace PersistentStorageAllocations {
 	/* Vendor 1: University of Wisconsin */
 	PERSISTENT_STORAGE_ALLOCATE(0x0101, WISC_SDR_REPOSITORY); ///< The SDR repository.
 	PERSISTENT_STORAGE_ALLOCATE(0x0102, WISC_INFLUXDBCLIENT_CONFIG); ///< InfluxDB configuration
-	PERSISTENT_STORAGE_ALLOCATE(0x0103, WISC_NETWORK_CONSOLE_AUTH); ///< Telnet auth configuration
+	PERSISTENT_STORAGE_ALLOCATE(0x0103, WISC_NETWORK_AUTH); ///< Auth configuration for network services
 };
 
 #undef PERSISTENT_STORAGE_ALLOCATE

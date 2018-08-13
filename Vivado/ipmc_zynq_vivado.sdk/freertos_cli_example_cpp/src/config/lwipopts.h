@@ -100,6 +100,8 @@ void ipmc_lwip_printf(const char *ctrl1, ...);
 #define LWIP_DNS						1
 
 #define SO_REUSE						1
+#define LWIP_SO_RCVTIMEO				1	// Enable receive timeouts
+#define LWIP_SO_SNDTIMEO				1	// Enable transmit timeouts
 
 /* -------- Debugging options -------- */
 #ifdef LWIP_DEBUG

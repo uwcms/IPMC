@@ -12,12 +12,12 @@
 #define DEFAULT_SOCKET_BUFFER 128
 
 Socket::Socket(int socket, struct sockaddr_in sockaddr)
-: socketfd(socket) {
-	this->sockaddr = new SocketAddress(sockaddr);
+: socketfd(socket), sockaddr(sockaddr),
+  recvTimeout(0), sendTimeout(0) {
 }
 
-Socket::Socket(std::string address, unsigned short port, bool useTCP) {
-	this->sockaddr = new SocketAddress(address, port);
+Socket::Socket(std::string address, unsigned short port, bool useTCP)
+: sockaddr(address, port), recvTimeout(0), sendTimeout(0) {
 
 	this->socketfd = lwip_socket(AF_INET, useTCP?SOCK_STREAM:SOCK_DGRAM, 0);
 
@@ -26,14 +26,27 @@ Socket::Socket(std::string address, unsigned short port, bool useTCP) {
 
 Socket::~Socket() {
 	this->close();
-	delete sockaddr;
 }
 
-int Socket::read(void* buf, int len) {
+int Socket::recv(void* buf, int len) {
 	return lwip_recv(this->socketfd, buf, len, 0);
 }
 
-int Socket::readn(void* buf, int len) {
+int Socket::recv(void* buf, int len, unsigned int timeout_ms) {
+	uint32_t old_timeout = getRecvTimeout();
+	setRecvTimeout(timeout_ms); // Temporarily set the timeout
+
+	int r = this->recv(buf, len);
+
+	setRecvTimeout(old_timeout); // Recover to previous timeout
+	if (r < 0 && ((errno == EAGAIN) || (errno == EWOULDBLOCK))) {
+		throw Timeout();
+	}
+
+	return r;
+}
+
+int Socket::recvn(void* buf, int len) {
 	uint8_t *t = (uint8_t*)buf;
 	while (len) {
 		int r = lwip_recv(this->socketfd, buf, len, 0);
@@ -45,39 +58,78 @@ int Socket::readn(void* buf, int len) {
 	return 1;
 }
 
-int Socket::send(std::string data) {
-	return this->send((const uint8_t*)data.c_str(), data.length(), 0);
+int Socket::send(const void* buf, int len) {
+	return lwip_send(this->socketfd, buf, len, 0);
 }
 
-int Socket::send(const void* buf, int len, int flags) {
-	return lwip_send(this->socketfd, buf, len, flags);
+int Socket::send(const void* buf, int len, unsigned int timeout_ms) {
+	uint32_t old_timeout = getRecvTimeout();
+	setSendTimeout(timeout_ms); // Temporarily set the timeout
+
+	int r = this->send(buf, len);
+
+	setSendTimeout(old_timeout); // Recover to previous timeout
+	if (r < 0 && ((errno == EAGAIN) || (errno == EWOULDBLOCK))) {
+		throw Timeout();
+	}
+
+	return r;
+}
+
+int Socket::send(std::string str) {
+	return this->send((const uint8_t*)str.c_str(), str.length());
+}
+
+int Socket::send(std::string str, unsigned int timeout_ms) {
+	return this->send((const uint8_t*)str.c_str(), str.length(), timeout_ms);
 }
 
 void Socket::setBlocking() {
-	int opts = lwip_fcntl(socketfd, F_GETFL, 0);
+	int opts = lwip_fcntl(this->socketfd, F_GETFL, 0);
 	opts = opts & (~O_NONBLOCK);
-	lwip_fcntl(socketfd, F_SETFL, opts);
+	lwip_fcntl(this->socketfd, F_SETFL, opts);
 }
 
-void Socket::setUnblocking() {
-	int opts = lwip_fcntl(socketfd, F_GETFL, 0);
+void Socket::setNonblocking() {
+	int opts = lwip_fcntl(this->socketfd, F_GETFL, 0);
 	opts |= O_NONBLOCK;
-	lwip_fcntl(socketfd, F_SETFL, opts);
+	lwip_fcntl(this->socketfd, F_SETFL, opts);
+}
+
+void Socket::setRecvTimeout(uint32_t ms) {
+	struct timeval tv;
+	tv.tv_sec = ms / 1000;
+	tv.tv_usec = (ms % 1000) * 1000;
+
+	lwip_setsockopt(this->socketfd, SOL_SOCKET, SO_RCVTIMEO, (char*)&tv, sizeof(struct timeval));
+
+	this->recvTimeout = ms;
+}
+
+
+void Socket::setSendTimeout(uint32_t ms) {
+	struct timeval tv;
+	tv.tv_sec = ms / 1000;
+	tv.tv_usec = (ms % 1000) * 1000;
+
+	lwip_setsockopt(this->socketfd, SOL_SOCKET, SO_SNDTIMEO, (char*)&tv, sizeof(struct timeval));
+
+	this->sendTimeout = ms;
 }
 
 void Socket::setTCPNoDelay() {
 	int flag = 1;
-	lwip_setsockopt(socketfd, IPPROTO_TCP, TCP_NODELAY, (char*)&flag, sizeof(int));
+	lwip_setsockopt(this->socketfd, IPPROTO_TCP, TCP_NODELAY, (char*)&flag, sizeof(int));
 }
 
 void Socket::close() {
-	if (socketfd == -1) {
+	if (this->socketfd == -1) {
 		return;
 	}
 
-	lwip_close(socketfd);
+	lwip_close(this->socketfd);
 
-	socketfd = -1;
+	this->socketfd = -1;
 }
 
 bool Socket::isTCP() {

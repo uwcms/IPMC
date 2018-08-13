@@ -18,5 +18,5 @@ ClientSocket::~ClientSocket() {
 }
 
 int ClientSocket::connect() {
-	return lwip_connect(this->socketfd, *this->sockaddr, sizeof(struct sockaddr));
+	return lwip_connect(this->socketfd, this->sockaddr, sizeof(struct sockaddr));
 }

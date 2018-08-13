@@ -41,19 +41,19 @@ public:
 	 * Gets the port of the socket
 	 * @return the port number
 	 */
-	inline const int getPort() { return ntohs(this->sockaddr.sin_port); }
+	inline const int getPort() const { return ntohs(this->sockaddr.sin_port); }
 
 	/**
 	 * Gets the address of the socket
 	 * @return the address
 	 */
-	const std::string getAddress();
+	const std::string getAddress() const;
 
 	/**
 	 * Gets the address of the socket
 	 * @return the address
 	 */
-	inline const uint32_t getAddressBinary() { return this->sockaddr.sin_addr.s_addr; }
+	inline const uint32_t getAddressBinary() const { return this->sockaddr.sin_addr.s_addr; }
 
 	///! Operator overload for struct sockaddr_in assignment, returns sockaddr
 	inline operator struct sockaddr_in() { return this->sockaddr; }
