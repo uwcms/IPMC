@@ -19,7 +19,7 @@ ServerSocket::~ServerSocket() {}
 int ServerSocket::listen() {
 	if (!isValid()) return -1;
 
-	if (lwip_bind(this->socketfd, *sockaddr, sizeof(struct sockaddr)) != 0) {
+	if (lwip_bind(this->socketfd, this->sockaddr, sizeof(struct sockaddr)) != 0) {
 		close();
 		return -errno;
 	}

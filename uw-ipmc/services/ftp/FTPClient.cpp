@@ -121,7 +121,7 @@ FTPClient::FTPClient(const FTPServer &ftpserver, std::shared_ptr<Socket> socket)
 			if (FD_ISSET(*this->socket, &fds)) {
 				// Command socket
 				char *cmd, *args;
-				int rbytes = this->socket->read(buf + buflen, max_pkt_size - buflen);
+				int rbytes = this->socket->recv(buf + buflen, max_pkt_size - buflen);
 
 				if (rbytes <= 0) {
 					FTP_DBG_PRINTF("Client disconnected or error (%d), exiting\n", rbytes);
@@ -203,7 +203,7 @@ FTPClient::FTPClient(const FTPServer &ftpserver, std::shared_ptr<Socket> socket)
 					break;
 				}
 
-				int rbytes = this->data->read(buf, max_pkt_size);
+				int rbytes = this->data->recv(buf, max_pkt_size);
 				if (rbytes == 0) {
 					// Connection gracefully closed, end of file transfer
 					FTP_DBG_PRINTF("Received %u bytes\n", this->buffer.len);

@@ -29,7 +29,7 @@ SocketAddress::SocketAddress(std::string address, unsigned short port)
 	}
 }
 
-const std::string SocketAddress::getAddress() {
+const std::string SocketAddress::getAddress() const {
 	char str[IP4ADDR_STRLEN_MAX];
 
 	ip4addr_ntoa_r((ip_addr_t*)&(this->sockaddr.sin_addr), str, IP4ADDR_STRLEN_MAX);
