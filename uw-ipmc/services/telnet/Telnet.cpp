@@ -57,6 +57,8 @@ void TelnetServer::thread_telnetd() {
 			continue;
 		}
 
+		client->enableNoDelay();
+
 		// Launch a new telnet instance if client is valid
 
 		TelnetClient *c = new TelnetClient(client, this->logtree, this->connection_pool_limiter);

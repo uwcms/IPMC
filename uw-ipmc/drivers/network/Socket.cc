@@ -12,8 +12,15 @@
 #define DEFAULT_SOCKET_BUFFER 128
 
 Socket::Socket(int socket, struct sockaddr_in sockaddr)
-: socketfd(socket), sockaddr(sockaddr),
-  recvTimeout(0), sendTimeout(0) {
+: socketfd(socket), sockaddr(sockaddr), recvTimeout(0), sendTimeout(0) {
+
+	if (this->isValid()) {
+#ifdef SOCKET_DEFAULT_KEEPALIVE
+	this->enableKeepAlive();
+#endif
+	} else {
+		// TODO: Shouldn't this also throw in case the socket fails to create?
+	}
 }
 
 Socket::Socket(std::string address, unsigned short port, bool useTCP)
@@ -21,7 +28,13 @@ Socket::Socket(std::string address, unsigned short port, bool useTCP)
 
 	this->socketfd = lwip_socket(AF_INET, useTCP?SOCK_STREAM:SOCK_DGRAM, 0);
 
-	// TODO: Shouldn't this also throw in case the socket fails to create?
+	if (this->isValid()) {
+#ifdef SOCKET_DEFAULT_KEEPALIVE
+	this->enableKeepAlive();
+#endif
+	} else {
+		// TODO: Shouldn't this also throw in case the socket fails to create?
+	}
 }
 
 Socket::~Socket() {
@@ -117,9 +130,24 @@ void Socket::setSendTimeout(uint32_t ms) {
 	this->sendTimeout = ms;
 }
 
-void Socket::setTCPNoDelay() {
-	int flag = 1;
-	lwip_setsockopt(this->socketfd, IPPROTO_TCP, TCP_NODELAY, (char*)&flag, sizeof(int));
+void Socket::enableNoDelay() {
+	int optval = 1;
+	lwip_setsockopt(this->socketfd, IPPROTO_TCP, TCP_NODELAY, &optval, sizeof(optval));
+}
+
+void Socket::disableNoDelay() {
+	int optval = 0;
+	lwip_setsockopt(this->socketfd, IPPROTO_TCP, TCP_NODELAY, &optval, sizeof(optval));
+}
+
+void Socket::enableKeepAlive() {
+	int optval = 1;
+	lwip_setsockopt(this->socketfd, SOL_SOCKET, SO_KEEPALIVE, &optval, sizeof(optval));
+}
+
+void Socket::disableKeepAlive() {
+	int optval = 0;
+	lwip_setsockopt(this->socketfd, SOL_SOCKET, SO_KEEPALIVE, &optval, sizeof(optval));
 }
 
 void Socket::close() {

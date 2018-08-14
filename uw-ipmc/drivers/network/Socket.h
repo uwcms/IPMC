@@ -13,6 +13,8 @@
 
 #include "SocketAddress.h"
 
+#define SOCKET_DEFAULT_KEEPALIVE ///< All new sockets start with keep alive enabeld by default
+
 /**
  * C++ socket wrapper and automatic cleanup
  *
@@ -109,18 +111,30 @@ public:
 	///! Sets the receiving timeout in milliseconds.
 	void setRecvTimeout(uint32_t ms);
 	///! Disables receiving timeout.
-	inline void setNoRecvTimeout() { setRecvTimeout(0); };
+	inline void disableRecvTimeout() { setRecvTimeout(0); };
 	///! Retrieve the current receive timeout configuration.
 	inline uint32_t getRecvTimeout() { return this->recvTimeout; };
 
 	///! Sets the transmitting timeout in milliseconds.
 	void setSendTimeout(uint32_t ms);
 	///! Disables transmitting timeout.
-	inline void setNoSendTimeout() { setRecvTimeout(0); };
+	inline void disableSendTimeout() { setRecvTimeout(0); };
 	///! Retrieve the current transmit timeout configuration.
 	inline uint32_t getSendTimeout() { return this->sendTimeout; };
 
-	void setTCPNoDelay(); ///< Sets the socket to have no delay on TCP reads.
+	/**
+	 * Enables no delay on TCP incoming packets.
+	 * Useful when all incoming packets will be likely small in size.
+	 */
+	void enableNoDelay();
+	void disableNoDelay(); ///< Disable no delay on TCP incoming packets.
+
+	/**
+	 * Enable keep alive packets.
+	 * Allows detection of dropped connections and permits long lasting inactive connections.
+	 */
+	void enableKeepAlive();
+	void disableKeepAlive(); ///< Disable keep alive packets.
 
 	/**
 	 * Closes the socket connection
