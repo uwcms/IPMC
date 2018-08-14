@@ -37,7 +37,7 @@ baseAddr(baseAddr), port(port), verbose(false) {
 			}
 
 			// Set TCP_NODELAY to socket
-			client->setTCPNoDelay();
+			client->enableNoDelay();
 
 			this->HandleClient(client);
 		}

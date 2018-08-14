@@ -66,6 +66,9 @@ void ipmc_lwip_printf(const char *ctrl1, ...);
 #define LWIP_ALLOW_MEM_FREE_FROM_OTHER_CONTEXT 1
 
 #define LWIP_TCP_KEEPALIVE			1
+#define TCP_KEEPIDLE_DEFAULT		300000UL	// Idle time in ms to start sending keep alive packets
+#define TCP_KEEPINTVL_DEFAULT		60000UL		// Interval in ms between keep alive packets
+#define TCP_KEEPCNT_DEFAULT			9U			// Number of missing keep alive packets to disconnect
 
 #define LWIP_PROVIDE_ERRNO
 
