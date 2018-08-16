@@ -35,7 +35,7 @@ public:
 	 * @param port The port.
 	 * @throws HostNotFound
 	 */
-	SocketAddress(std::string address, unsigned short port);
+	SocketAddress(const std::string& address, unsigned short port);
 
 	/**
 	 * Gets the port of the socket

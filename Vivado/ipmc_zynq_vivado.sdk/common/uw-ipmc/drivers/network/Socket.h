@@ -39,8 +39,9 @@ public:
 	 * @param address The target address.
 	 * @param port The port to use.
 	 * @param useTCP true if TCP/IP, false if UDP/IP.
+	 * @throws SocketAddress::HostNotFound if DNS fails for an address that is an URL.
 	 */
-	Socket(std::string address, unsigned short port, bool useTCP = true);
+	Socket(const std::string& address, unsigned short port, bool useTCP = true);
 
 	virtual ~Socket();
 
@@ -63,6 +64,8 @@ public:
 	 * @throws Socket::Timeout if there was a timeout.
 	 */
 	int recv(void* buf, int len, unsigned int timeout_ms);
+
+	int recv(std::string& str);
 
 	/**
 	 * Will receive the number of requested bytes.
@@ -94,7 +97,7 @@ public:
 	 * Sends a string to the client.
 	 * @param str The string to send.
 	 */
-	int send(std::string str);
+	int send(const std::string& str);
 
 	/**
 	 * Sends a string to the client with a timeout. This
@@ -103,7 +106,7 @@ public:
 	 * @param timeout_ms Timeout in milliseconds.
 	 * @throws Socket::Timeout if there was a timeout.
 	 */
-	int send(std::string str, unsigned int timeout_ms);
+	int send(const std::string& str, unsigned int timeout_ms);
 
 	void setBlocking(); ///< Sets the socket in blocking mode.
 	void setNonblocking(); ///< Sets the socket in non-blocking mode.

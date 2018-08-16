@@ -19,9 +19,10 @@ public:
 	 * Create a new socket by proving an address or a port
 	 * @param address The target address.
 	 * @param port The desired port.
+	 * @throws SocketAddress::HostNotFound if DNS fails for an address that is an URL.
 	 */
-	ClientSocket(std::string address, unsigned short port);
-	~ClientSocket();
+	ClientSocket(const std::string& address, unsigned short port);
+	virtual ~ClientSocket() {};
 
 	/**
 	 * Connect to the target server.

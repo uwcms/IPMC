@@ -10,7 +10,7 @@
 #include <string.h>
 #include <lwip/netdb.h>
 
-SocketAddress::SocketAddress(std::string address, unsigned short port)
+SocketAddress::SocketAddress(const std::string& address, unsigned short port)
 : sockaddr({0}) {
 	this->sockaddr.sin_port = htons(port);
 	this->sockaddr.sin_family = AF_INET;
