@@ -23,7 +23,7 @@ Socket::Socket(int socket, struct sockaddr_in sockaddr)
 	}
 }
 
-Socket::Socket(std::string address, unsigned short port, bool useTCP)
+Socket::Socket(const std::string& address, unsigned short port, bool useTCP)
 : sockaddr(address, port), recvTimeout(0), sendTimeout(0) {
 
 	this->socketfd = lwip_socket(AF_INET, useTCP?SOCK_STREAM:SOCK_DGRAM, 0);
@@ -89,11 +89,11 @@ int Socket::send(const void* buf, int len, unsigned int timeout_ms) {
 	return r;
 }
 
-int Socket::send(std::string str) {
+int Socket::send(const std::string& str) {
 	return this->send((const uint8_t*)str.c_str(), str.length());
 }
 
-int Socket::send(std::string str, unsigned int timeout_ms) {
+int Socket::send(const std::string& str, unsigned int timeout_ms) {
 	return this->send((const uint8_t*)str.c_str(), str.length(), timeout_ms);
 }
 
