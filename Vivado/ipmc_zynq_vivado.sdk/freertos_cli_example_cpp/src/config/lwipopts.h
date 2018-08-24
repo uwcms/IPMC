@@ -76,9 +76,9 @@ void ipmc_lwip_printf(const char *ctrl1, ...);
 #define CHECKSUM_GEN_TCP 	0
 #define CHECKSUM_GEN_UDP 	0
 #define CHECKSUM_GEN_IP  	0
-#define CHECKSUM_CHECK_TCP  1
-#define CHECKSUM_CHECK_UDP  1
-#define CHECKSUM_CHECK_IP 	1
+#define CHECKSUM_CHECK_TCP  0
+#define CHECKSUM_CHECK_UDP  0
+#define CHECKSUM_CHECK_IP 	0
 
 #define MEMP_SEPARATE_POOLS		1
 #define MEMP_NUM_FRAG_PBUF		256
