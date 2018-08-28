@@ -23,11 +23,11 @@
 class PL_UART : public UART {
 public:
 	/**
-	 * Create a PL based UART interface
-	 * @param DeviceId The device ID, normally AXI_UARTLITE_<>
-	 * @param IntrId The device interrupt ID from GIC, normally XPAR_FABRIC_AXI_UARTLITE_<>
-	 * @param ibufsize The input buffer size
-	 * @param obufsize The output buffer size
+	 * Create a PL based UART interface.
+	 * @param DeviceId The device ID, normally AXI_UARTLITE_<>.
+	 * @param IntrId The device interrupt ID from GIC, normally XPAR_FABRIC_AXI_UARTLITE_<>.
+	 * @param ibufsize The input buffer size.
+	 * @param obufsize The output buffer size.
 	 */
 	PL_UART(uint16_t DeviceId, uint32_t IntrId, size_t ibufsize=4096, size_t obufsize=4096);
 	virtual ~PL_UART();
@@ -36,18 +36,19 @@ public:
 	size_t write(const u8 *buf, size_t len, TickType_t timeout=portMAX_DELAY);
 
 	/**
-	 * Clear the receiver buffer
-	 * @return false if there is a thread waiting for data
+	 * Clear the receiver buffer.
+	 * @return false if there is a thread waiting for data.
 	 */
 	bool clear();
 
-	//FILE* getFileDesc();
-//private:
-	 XUartLite UartLite; ///< Internal use only.
-	 uint32_t IntrId; ///< Internal use only.
+private:
+	static void _InterruptHandler(PL_UART *uart);
 
-	 StreamBufferHandle_t recvstream; ///< Internal use only.
-	 StreamBufferHandle_t sendstream; ///< Internal use only.
+	XUartLite UartLite; ///< Internal use only.
+	uint32_t IntrId; ///< Internal use only.
+
+	StreamBufferHandle_t recvstream; ///< Internal use only.
+	StreamBufferHandle_t sendstream; ///< Internal use only.
 };
 
 #endif /* SRC_COMMON_UW_IPMC_DRIVERS_PL_UART_PLUART_H_ */

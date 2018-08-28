@@ -291,7 +291,7 @@ a lot of data that needs to be copied, this should be set high. */
 
 
 /* ---------- Statistics options ---------- */
-#define LWIP_STATS				1
+#define LWIP_STATS				0
 #define LWIP_STATS_DISPLAY		0
 
 #if LWIP_STATS

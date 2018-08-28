@@ -19,20 +19,24 @@
 /**
  * An interrupt-based driver for the PS SPI.
  */
-class PS_SPI : public SPI {
+class PS_SPI : public SPIMaster {
 public:
 	PS_SPI(u16 DeviceId, u32 IntrId);
 	virtual ~PS_SPI();
 
-	virtual bool transfer(u8 chip, u8 *sendbuf, u8 *recvbuf, size_t bytes);
+	bool transfer(u8 chip, const u8 *sendbuf, u8 *recvbuf, size_t bytes, TickType_t timeout);
+	bool transfer_unsafe(const u8 *sendbuf, u8 *recvbuf, size_t bytes, TickType_t timeout);
+
+	void select(uint32_t cs);
+	void deselect();
+
 	void _HandleInterrupt(u32 Event, u32 EventData); ///< \protected Internal.
 	PS_SPI(PS_SPI const &) = delete;               ///< Class is not assignable.
     void operator=(PS_SPI const &x) = delete;       ///< Class is not copyable.
 protected:
 	u32 error_not_done;             ///< Error containing accumulated errors of non completed transfers. TODO: allow read.
 	u32 error_byte_count;           ///< Error containing accumulated errors of byte count mismatches. TODO: allow read.
-	XSpiPs SpiInst;                 ///< The XSpiPs handle of the driven device..
-	SemaphoreHandle_t mutex;        ///< A mutex serializing bus access requests.
+	XSpiPs SpiInst;                 ///< The XSpiPs handle of the driven device.
 	QueueHandle_t irq_sync_q;       ///< IRQ-task syncronization queue
 	volatile bool transfer_running; ///< Indicates whether an interrupt-driven transfer is in progress.
 	u32 IntrId;                     ///< Interrupt ID, used to disable interrupts in the destructor.

@@ -52,7 +52,7 @@ public:
 	 * \param retry The retry counter for this message.
 	 * \return      true if message was delivered else false
 	 */
-	virtual bool send_message(IPMI_MSG &msg, uint32_t retry=0) { configASSERT(0); return false; };
+	virtual bool send_message(IPMI_MSG &msg, uint32_t retry=0) = 0;
 };
 
 #endif /* SRC_COMMON_UW_IPMC_DRIVERS_GENERICS_IPMB_H_ */

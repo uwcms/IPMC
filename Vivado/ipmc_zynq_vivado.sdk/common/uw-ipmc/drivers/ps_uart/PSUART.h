@@ -23,6 +23,7 @@ public:
 	virtual size_t write(const u8 *buf, size_t len, TickType_t timeout);
 	/// \overload
 	virtual size_t write(const char *buf, size_t len, TickType_t timeout) { return this->write(reinterpret_cast<const u8*>(buf), len, timeout); }
+	virtual bool clear();
 	virtual ~PS_UART();
 	virtual void _HandleInterrupt(u32 Event, u32 EventData); ///< \protected Internal.
     PS_UART(PS_UART const &) = delete;               ///< Class is not assignable.

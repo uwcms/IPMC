@@ -10,6 +10,27 @@
 #include <functional>
 
 /**
+ * Given a pre-existing mutex, the MutexLock class automatically locks when created and releases it
+ * when scope is lost.
+ */
+class MutexLock {
+public:
+	/**
+	 * Lock the desired mutex.
+	 * @param m Pre-initialized mutex that will be locked.
+	 * @param t Timeout if required, default is portMAX_DELAY, which will wait forever.
+	 * @note If a timeout is defined then isLocked should be used after construction.
+	 */
+	inline MutexLock(SemaphoreHandle_t &m, const TickType_t t = portMAX_DELAY) : mutex(m) { locked = xSemaphoreTake(this->mutex, t); };
+	inline ~MutexLock() { xSemaphoreGive(this->mutex); };
+	///! Returns true if the mutex successfully locked, only required when timeout is set.
+	inline bool isLocked() { return locked; };
+private:
+	SemaphoreHandle_t mutex;
+	bool locked;
+};
+
+/**
  * A class which allows for absolute timeout tracking in a wraparound-aware manner.
  *
  * \warning This class is not ISR safe and contains no internal locking.

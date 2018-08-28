@@ -33,12 +33,15 @@
 #include <drivers/pl_gpio/PLGPIO.h>
 #include <drivers/watchdog/PSWDT.h>
 #include <drivers/network/Network.h>
+#include <drivers/spi_flash/SPIFLASH.h>
 #include <drivers/spi_eeprom/SPIEEPROM.h>
 #include <drivers/tracebuffer/TraceBuffer.h>
 #include <drivers/ipmb/IPMBPair.h>
 #include <drivers/ipmb/PSIPMB.h>
 #include <drivers/mgmt_zone/MGMTZone.h>
 #include <drivers/pim400/PIM400.h>
+#include <drivers/esm/ESM.h>
+#include <drivers/pl_spi/PLSPI.h>
 extern "C" {
 #include "led_controller.h"
 }
@@ -81,7 +84,7 @@ InfluxDBClient *influxdbclient;
 
 TelnetServer *telnet;
 
-PL_UART *uart;
+ESM *esm;
 PL_GPIO *handle_gpio;
 LED_Controller atcaLEDs;
 
@@ -212,6 +215,99 @@ void driver_init(bool use_pl) {
 	mgmt_zones[1]->set_pen_config(pen_config);
 }
 
+// TODO: Will be moved
+size_t flash_read(uint8_t *buf, size_t size) {
+	size_t totalsize = isfqspi->GetTotalSize();
+	size_t pagesize = isfqspi->GetPageSize();
+	int pagecount = totalsize / pagesize;
+
+	for (int i = 0; i < pagecount; i++) {
+		size_t addr = i * pagesize;
+		uint8_t* ptr = isfqspi->ReadPage(addr);
+		memcpy(buf + addr, ptr, pagesize);
+	}
+
+	return totalsize;
+}
+
+// TODO: Will be moved
+size_t flash_write(uint8_t *buf, size_t size) {
+	// Validate the bin file before writing
+	BootFileValidationReturn r = validateBootFile(buf, size);
+	if (r != BFV_VALID) {
+		// File is invalid!
+		printf("Received bin file has errors: %s. Aborting firmware update.\n",
+				getBootFileValidationErrorString(r));
+		return 0;
+	} else {
+		printf("Bin file is valid, proceeding with update.\n");
+	}
+
+	// Write the buffer to flash
+	const size_t baseaddr = 0x0;
+
+	size_t rem = size % isfqspi->GetPageSize();
+	size_t pages = size / isfqspi->GetPageSize() + (size? 1 : 0);
+
+	for (size_t i = 0; i < pages; i++) {
+		size_t addr = i * isfqspi->GetPageSize();
+		if (addr % isfqspi->GetSectorSize() == 0) {
+			// This is the first page of a new sector, so erase the sector
+			printf("Erasing sector 0x%08x..", addr + baseaddr);
+			if (!isfqspi->SectorErase(addr + baseaddr)) {
+				// Failed to erase
+				printf("Failed to erase 0x%08x. Write to flash failed.\n", addr + baseaddr);
+				firmwareUpdateFailed = true;
+				return addr;
+			}
+		}
+
+		if ((i == (pages-1)) && (rem != 0)) {
+			// Last page, avoid a memory leak
+			uint8_t tmpbuf[isfqspi->GetPageSize()];
+			memset(tmpbuf, 0xFFFFFFFF, isfqspi->GetPageSize());
+
+			memcpy(tmpbuf, buf + addr, rem);
+
+			if (!isfqspi->WritePage(addr + baseaddr, tmpbuf)) {
+				// Failed to write page
+				printf("Failed to write page 0x%08x. Write to flash failed.\n", addr + baseaddr);
+				firmwareUpdateFailed = true;
+				return addr;
+			}
+		} else {
+			if (!isfqspi->WritePage(addr + baseaddr, buf + addr)) {
+				// Failed to write page
+				printf("Failed to write page 0x%08x. Write to flash failed.\n", addr + baseaddr);
+				firmwareUpdateFailed = true;
+				return addr;
+			}
+		}
+	}
+
+	// Verify
+	for (int i = 0; i < pages; i++) {
+		size_t addr = i * isfqspi->GetPageSize();
+		uint8_t* ptr = isfqspi->ReadPage(addr + baseaddr);
+		int ret = 0;
+		if ((i == (pages-1)) && (rem != 0)) {
+			// Last page
+			ret = memcmp(ptr, buf + addr, rem);
+		} else {
+			ret = memcmp(ptr, buf + addr, isfqspi->GetPageSize());
+		}
+		if (ret != 0) {
+			printf("Page 0x%08x is different. Verification failed.", addr + baseaddr);
+			firmwareUpdateFailed = true;
+			return addr;
+		}
+	}
+
+	printf("Flash image updated and verified successfully.\n");
+	firmwareUpdateFailed = false;
+	return size;
+}
+
 /** IPMC service initialization.
  *
  * This function contains the initialization for IPMC services, and is
@@ -224,118 +320,16 @@ void driver_init(bool use_pl) {
 void ipmc_service_init() {
 	console_service = UARTConsoleSvc::create(*uart_ps0, console_command_parser, "console", LOG["console"]["uart"], true);
 
-	network = new Network(LOG["network"], mac_address, [](Network *network) {
-		// Network Ready callback.
+	UART* esm_uart = new PL_UART(XPAR_ESM_AXI_UARTLITE_ESM_DEVICE_ID, XPAR_FABRIC_ESM_AXI_UARTLITE_ESM_INTERRUPT_INTR);
+	PL_GPIO* esm_gpio = new PL_GPIO(XPAR_ESM_AXI_GPIO_ESM_DEVICE_ID);
+	NegResetPin* esm_reset = new NegResetPin(*esm_gpio, 0);
 
-		influxdbclient = new InfluxDBClient(LOG["influxdb"]);
-		influxdbclient->register_console_commands(console_command_parser, "influxdb.");
-		telnet = new TelnetServer(LOG["telnetd"]);
+	PL_SPI* esm_spi = new PL_SPI(XPAR_ESM_AXI_QUAD_SPI_ESM_DEVICE_ID, XPAR_FABRIC_ESM_AXI_QUAD_SPI_ESM_IP2INTC_IRPT_INTR);
+	SPIFlash* esm_flash = new SPIFlash(*esm_spi, 0);
+	NegResetPin* esm_flash_reset = new NegResetPin(*esm_gpio, 1);
 
-		// TODO: Can be removed when not needed
-		new Lwiperf(5001);
-		new XVCServer(XPAR_AXI_JTAG_0_BASEADDR);
-
-		// TODO: This can be moved elsewhere
-		FTPServer::setFiles({
-			{"virtual", {0, NULL, NULL, true, {
-				{"flash.bin", {16*1024*1024, [](uint8_t *buf) -> size_t {
-					size_t totalsize = isfqspi->GetTotalSize();
-					size_t pagesize = isfqspi->GetPageSize();
-					int pagecount = totalsize / pagesize;
-
-					for (int i = 0; i < pagecount; i++) {
-						size_t addr = i * pagesize;
-						uint8_t* ptr = isfqspi->ReadPage(addr);
-						memcpy(buf + addr, ptr, pagesize);
-					}
-
-					return totalsize;
-				}, [](uint8_t *buf, size_t len) -> size_t {
-					// Validate the bin file before writing
-					BootFileValidationReturn r = validateBootFile(buf, len);
-					if (r != BFV_VALID) {
-						// File is invalid!
-						printf("Received bin file has errors: %s. Aborting firmware update.\n",
-								getBootFileValidationErrorString(r));
-						return 0;
-					} else {
-						printf("Bin file is valid, proceeding with update.\n");
-					}
-
-					// Write the buffer to flash
-					const size_t baseaddr = 0x0;
-
-					size_t rem = len % isfqspi->GetPageSize();
-					size_t pages = len / isfqspi->GetPageSize() + (rem? 1 : 0);
-
-					for (size_t i = 0; i < pages; i++) {
-						size_t addr = i * isfqspi->GetPageSize();
-						if (addr % isfqspi->GetSectorSize() == 0) {
-							// This is the first page of a new sector, so erase the sector
-							printf("Erasing sector 0x%08x..", addr + baseaddr);
-							if (!isfqspi->SectorErase(addr + baseaddr)) {
-								// Failed to erase
-								printf("Failed to erase 0x%08x. Write to flash failed.\n", addr + baseaddr);
-								firmwareUpdateFailed = true;
-								return addr;
-							}
-						}
-
-						if ((i == (pages-1)) && (rem != 0)) {
-							// Last page, avoid a memory leak
-							uint8_t tmpbuf[isfqspi->GetPageSize()];
-							memset(tmpbuf, 0xFFFFFFFF, isfqspi->GetPageSize());
-
-							memcpy(tmpbuf, buf + addr, rem);
-
-							if (!isfqspi->WritePage(addr + baseaddr, tmpbuf)) {
-								// Failed to write page
-								printf("Failed to write page 0x%08x. Write to flash failed.\n", addr + baseaddr);
-								firmwareUpdateFailed = true;
-								return addr;
-							}
-						} else {
-							if (!isfqspi->WritePage(addr + baseaddr, buf + addr)) {
-								// Failed to write page
-								printf("Failed to write page 0x%08x. Write to flash failed.\n", addr + baseaddr);
-								firmwareUpdateFailed = true;
-								return addr;
-							}
-						}
-					}
-
-					// Verify
-					for (int i = 0; i < pages; i++) {
-						size_t addr = i * isfqspi->GetPageSize();
-						uint8_t* ptr = isfqspi->ReadPage(addr + baseaddr);
-						int ret = 0;
-						if ((i == (pages-1)) && (rem != 0)) {
-							// Last page
-							ret = memcmp(ptr, buf + addr, rem);
-						} else {
-							ret = memcmp(ptr, buf + addr, isfqspi->GetPageSize());
-						}
-						if (ret != 0) {
-							printf("Page 0x%08x is different. Verification failed.", addr + baseaddr);
-							firmwareUpdateFailed = true;
-							return addr;
-						}
-					}
-
-					printf("Flash image updated and verified successfully.\n");
-					firmwareUpdateFailed = false;
-					return len;
-				}, false, {}}},
-			}},
-		},
-		});
-
-		new FTPServer(Auth::ValidateCredentials);
-
-	});
-	network->register_console_commands(console_command_parser, "network.");
-
-	uart = new PL_UART(XPAR_AXI_UARTLITE_ESM_DEVICE_ID, XPAR_FABRIC_AXI_UARTLITE_ESM_INTERRUPT_INTR);
+	esm = new ESM(esm_uart, esm_reset, esm_flash, esm_flash_reset);
+	esm->register_console_commands(console_command_parser, "esm.");
 
 	handle_gpio = new PL_GPIO(XPAR_AXI_GPIO_0_DEVICE_ID, XPAR_FABRIC_AXI_GPIO_0_IP2INTC_IRPT_INTR);
 	handle_gpio->setIRQCallback([](uint32_t pin) -> void {
@@ -349,6 +343,27 @@ void ipmc_service_init() {
 			else printf("Handle is released!");
 		}, NULL, isPressed, NULL);
 	});
+
+	// Last services should be network related
+	network = new Network(LOG["network"], mac_address, [](Network *network) {
+		// Network Ready callback.
+
+		/*influxdbclient = new InfluxDBClient(LOG["influxdb"]);
+		influxdbclient->register_console_commands(console_command_parser, "influxdb.");*/
+		telnet = new TelnetServer(LOG["telnetd"]);
+
+		// TODO: Can be removed when not needed
+		new Lwiperf(5001);
+		new XVCServer(XPAR_AXI_JTAG_0_BASEADDR);
+
+		// Start FTP server
+		FTPServer::addFile("virtual/flash.bin", FTPFile(flash_read, flash_write, 16 * 1024 * 1024));
+		if (esm->isFlashPresent())
+			FTPServer::addFile("virtual/esm.bin", esm->createFlashFile());
+		new FTPServer(Auth::ValidateCredentials);
+
+	});
+	network->register_console_commands(console_command_parser, "network.");
 }
 
 
@@ -388,80 +403,6 @@ static void tracebuffer_log_handler(LogTree &logtree, const std::string &message
 #include "xuartlite_l.h"
 
 namespace {
-/// A "esm" console command.
-class ConsoleCommand_esm : public CommandParser::Command {
-public:
-	virtual std::string get_helptext(const std::string &command) const {
-		return stdsprintf(
-				"%s\n"
-				"\n"
-				"Send a command to the ESM and see its output. Use ? to see possible commands.\n", command.c_str());
-	}
-
-	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
-		// Prepare the command
-		int argn = parameters.nargs();
-		std::string command = "", p;
-		for (int i = 1; i < argn; i++) {
-			parameters.parse_parameters(i, true, &p);
-			if (i == (argn-1)) {
-				command += p;
-			} else {
-				command += p + " ";
-			}
-		}
-
-		// Check if there is a command to send
-		if (command == "") {
-			console->write("No command to send.\n");
-			return;
-		}
-
-		// Terminate with '/r' to trigger ESM to respond
-		command += "\r";
-
-		// Clear the receiver buffer
-		uart->clear();
-
-		// Send the command
-		uart->write((const u8*)command.c_str(), command.length(), pdMS_TO_TICKS(1000));
-
-		// Read the incoming response
-		// A single read such as:
-		// size_t count = uart->read((u8*)buf, 2048, pdMS_TO_TICKS(1000));
-		// .. works but reading one character at a time allows us to detect
-		// the end of the response which is '\r\n>'.
-		char inbuf[2048] = "";
-		size_t pos = 0, count = 0;
-		while (pos < 2043) {
-			count = uart->read((u8*)inbuf+pos, 1, pdMS_TO_TICKS(1000));
-			if (count == 0) break; // No character received
-			if ((pos > 3) && (memcmp(inbuf+pos-2, "\r\n>", 3) == 0)) break;
-			pos++;
-		}
-
-		if (pos == 0) {
-			console->write("No response from ESM.\n");
-		} else if (pos == 2043) {
-			console->write("An abnormal number of characters was received.\n");
-		} else {
-			// ESM will send back the command written and a new line.
-			// At the end it will return '\r\n>', we erase this.
-			size_t start = command.length() + 1;
-			size_t end = strlen(inbuf);
-
-			// Force the end of buf to be before '\r\n>'
-			if (end > 3) { // We don't want a data abort here..
-				inbuf[end-3] = '\0';
-			}
-
-			console->write(inbuf + start);
-		}
-	}
-
-	//virtual std::vector<std::string> complete(const CommandParser::CommandParameters &parameters) const { };
-};
-
 /// A "uptime" console command.
 class ConsoleCommand_uptime : public CommandParser::Command {
 public:
@@ -715,7 +656,6 @@ public:
 } // anonymous namespace
 
 static void register_core_console_commands(CommandParser &parser) {
-	console_command_parser.register_command("esm", std::make_shared<ConsoleCommand_esm>());
 	console_command_parser.register_command("uptime", std::make_shared<ConsoleCommand_uptime>());
 	console_command_parser.register_command("version", std::make_shared<ConsoleCommand_version>());
 	console_command_parser.register_command("ps", std::make_shared<ConsoleCommand_ps>());

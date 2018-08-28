@@ -1,7 +1,7 @@
 --Copyright 1986-2018 Xilinx, Inc. All Rights Reserved.
 ----------------------------------------------------------------------------------
 --Tool Version: Vivado v.2018.2 (lin64) Build 2258646 Thu Jun 14 20:02:38 MDT 2018
---Date        : Thu Aug  9 16:16:18 2018
+--Date        : Mon Aug 20 11:15:46 2018
 --Host        : beck.hep.wisc.edu running 64-bit CentOS Linux release 7.5.1804 (Core)
 --Command     : generate_target ipmc_bd_wrapper.bd
 --Design      : ipmc_bd_wrapper
@@ -39,6 +39,11 @@ entity ipmc_bd_wrapper is
     DDR_we_n : inout STD_LOGIC;
     EEPROM_I2C_0_scl_io : inout STD_LOGIC;
     EEPROM_I2C_0_sda_io : inout STD_LOGIC;
+    ESM_FLASH_SPI_io0_io : inout STD_LOGIC;
+    ESM_FLASH_SPI_io1_io : inout STD_LOGIC;
+    ESM_FLASH_SPI_sck_io : inout STD_LOGIC;
+    ESM_FLASH_SPI_ss_io : inout STD_LOGIC_VECTOR ( 0 to 0 );
+    ESM_RESET_tri_io : inout STD_LOGIC_VECTOR ( 1 downto 0 );
     ESM_UART_rxd : in STD_LOGIC;
     ESM_UART_txd : out STD_LOGIC;
     HNDL_SW : in STD_LOGIC;
@@ -102,7 +107,22 @@ architecture STRUCTURE of ipmc_bd_wrapper is
     TDI : out STD_LOGIC;
     TDO : in STD_LOGIC;
     TMS : out STD_LOGIC;
-    HNDL_SW : in STD_LOGIC
+    HNDL_SW : in STD_LOGIC;
+    ESM_RESET_tri_o : out STD_LOGIC_VECTOR ( 1 downto 0 );
+    ESM_FLASH_SPI_io0_i : in STD_LOGIC;
+    ESM_FLASH_SPI_io0_o : out STD_LOGIC;
+    ESM_FLASH_SPI_io0_t : out STD_LOGIC;
+    ESM_FLASH_SPI_io1_i : in STD_LOGIC;
+    ESM_FLASH_SPI_io1_o : out STD_LOGIC;
+    ESM_FLASH_SPI_io1_t : out STD_LOGIC;
+    ESM_FLASH_SPI_sck_i : in STD_LOGIC;
+    ESM_FLASH_SPI_sck_o : out STD_LOGIC;
+    ESM_FLASH_SPI_sck_t : out STD_LOGIC;
+    ESM_FLASH_SPI_ss_i : in STD_LOGIC_VECTOR ( 0 to 0 );
+    ESM_FLASH_SPI_ss_o : out STD_LOGIC_VECTOR ( 0 to 0 );
+    ESM_FLASH_SPI_ss_t : out STD_LOGIC;
+    ESM_RESET_tri_i : in STD_LOGIC_VECTOR ( 1 downto 0 );
+    ESM_RESET_tri_t : out STD_LOGIC_VECTOR ( 1 downto 0 )
   );
   end component ipmc_bd;
   component IOBUF is
@@ -119,6 +139,27 @@ architecture STRUCTURE of ipmc_bd_wrapper is
   signal EEPROM_I2C_0_sda_i : STD_LOGIC;
   signal EEPROM_I2C_0_sda_o : STD_LOGIC;
   signal EEPROM_I2C_0_sda_t : STD_LOGIC;
+  signal ESM_FLASH_SPI_io0_i : STD_LOGIC;
+  signal ESM_FLASH_SPI_io0_o : STD_LOGIC;
+  signal ESM_FLASH_SPI_io0_t : STD_LOGIC;
+  signal ESM_FLASH_SPI_io1_i : STD_LOGIC;
+  signal ESM_FLASH_SPI_io1_o : STD_LOGIC;
+  signal ESM_FLASH_SPI_io1_t : STD_LOGIC;
+  signal ESM_FLASH_SPI_sck_i : STD_LOGIC;
+  signal ESM_FLASH_SPI_sck_o : STD_LOGIC;
+  signal ESM_FLASH_SPI_sck_t : STD_LOGIC;
+  signal ESM_FLASH_SPI_ss_i_0 : STD_LOGIC_VECTOR ( 0 to 0 );
+  signal ESM_FLASH_SPI_ss_io_0 : STD_LOGIC_VECTOR ( 0 to 0 );
+  signal ESM_FLASH_SPI_ss_o_0 : STD_LOGIC_VECTOR ( 0 to 0 );
+  signal ESM_FLASH_SPI_ss_t : STD_LOGIC;
+  signal ESM_RESET_tri_i_0 : STD_LOGIC_VECTOR ( 0 to 0 );
+  signal ESM_RESET_tri_i_1 : STD_LOGIC_VECTOR ( 1 to 1 );
+  signal ESM_RESET_tri_io_0 : STD_LOGIC_VECTOR ( 0 to 0 );
+  signal ESM_RESET_tri_io_1 : STD_LOGIC_VECTOR ( 1 to 1 );
+  signal ESM_RESET_tri_o_0 : STD_LOGIC_VECTOR ( 0 to 0 );
+  signal ESM_RESET_tri_o_1 : STD_LOGIC_VECTOR ( 1 to 1 );
+  signal ESM_RESET_tri_t_0 : STD_LOGIC_VECTOR ( 0 to 0 );
+  signal ESM_RESET_tri_t_1 : STD_LOGIC_VECTOR ( 1 to 1 );
   signal PIM400_I2C_scl_i : STD_LOGIC;
   signal PIM400_I2C_scl_o : STD_LOGIC;
   signal PIM400_I2C_scl_t : STD_LOGIC;
@@ -139,6 +180,48 @@ EEPROM_I2C_0_sda_iobuf: component IOBUF
       IO => EEPROM_I2C_0_sda_io,
       O => EEPROM_I2C_0_sda_i,
       T => EEPROM_I2C_0_sda_t
+    );
+ESM_FLASH_SPI_io0_iobuf: component IOBUF
+     port map (
+      I => ESM_FLASH_SPI_io0_o,
+      IO => ESM_FLASH_SPI_io0_io,
+      O => ESM_FLASH_SPI_io0_i,
+      T => ESM_FLASH_SPI_io0_t
+    );
+ESM_FLASH_SPI_io1_iobuf: component IOBUF
+     port map (
+      I => ESM_FLASH_SPI_io1_o,
+      IO => ESM_FLASH_SPI_io1_io,
+      O => ESM_FLASH_SPI_io1_i,
+      T => ESM_FLASH_SPI_io1_t
+    );
+ESM_FLASH_SPI_sck_iobuf: component IOBUF
+     port map (
+      I => ESM_FLASH_SPI_sck_o,
+      IO => ESM_FLASH_SPI_sck_io,
+      O => ESM_FLASH_SPI_sck_i,
+      T => ESM_FLASH_SPI_sck_t
+    );
+ESM_FLASH_SPI_ss_iobuf_0: component IOBUF
+     port map (
+      I => ESM_FLASH_SPI_ss_o_0(0),
+      IO => ESM_FLASH_SPI_ss_io(0),
+      O => ESM_FLASH_SPI_ss_i_0(0),
+      T => ESM_FLASH_SPI_ss_t
+    );
+ESM_RESET_tri_iobuf_0: component IOBUF
+     port map (
+      I => ESM_RESET_tri_o_0(0),
+      IO => ESM_RESET_tri_io(0),
+      O => ESM_RESET_tri_i_0(0),
+      T => ESM_RESET_tri_t_0(0)
+    );
+ESM_RESET_tri_iobuf_1: component IOBUF
+     port map (
+      I => ESM_RESET_tri_o_1(1),
+      IO => ESM_RESET_tri_io(1),
+      O => ESM_RESET_tri_i_1(1),
+      T => ESM_RESET_tri_t_1(1)
     );
 PIM400_I2C_scl_iobuf: component IOBUF
      port map (
@@ -186,6 +269,24 @@ ipmc_bd_i: component ipmc_bd
       EEPROM_I2C_0_sda_i => EEPROM_I2C_0_sda_i,
       EEPROM_I2C_0_sda_o => EEPROM_I2C_0_sda_o,
       EEPROM_I2C_0_sda_t => EEPROM_I2C_0_sda_t,
+      ESM_FLASH_SPI_io0_i => ESM_FLASH_SPI_io0_i,
+      ESM_FLASH_SPI_io0_o => ESM_FLASH_SPI_io0_o,
+      ESM_FLASH_SPI_io0_t => ESM_FLASH_SPI_io0_t,
+      ESM_FLASH_SPI_io1_i => ESM_FLASH_SPI_io1_i,
+      ESM_FLASH_SPI_io1_o => ESM_FLASH_SPI_io1_o,
+      ESM_FLASH_SPI_io1_t => ESM_FLASH_SPI_io1_t,
+      ESM_FLASH_SPI_sck_i => ESM_FLASH_SPI_sck_i,
+      ESM_FLASH_SPI_sck_o => ESM_FLASH_SPI_sck_o,
+      ESM_FLASH_SPI_sck_t => ESM_FLASH_SPI_sck_t,
+      ESM_FLASH_SPI_ss_i(0) => ESM_FLASH_SPI_ss_i_0(0),
+      ESM_FLASH_SPI_ss_o(0) => ESM_FLASH_SPI_ss_o_0(0),
+      ESM_FLASH_SPI_ss_t => ESM_FLASH_SPI_ss_t,
+      ESM_RESET_tri_i(1) => ESM_RESET_tri_i_1(1),
+      ESM_RESET_tri_i(0) => ESM_RESET_tri_i_0(0),
+      ESM_RESET_tri_o(1) => ESM_RESET_tri_o_1(1),
+      ESM_RESET_tri_o(0) => ESM_RESET_tri_o_0(0),
+      ESM_RESET_tri_t(1) => ESM_RESET_tri_t_1(1),
+      ESM_RESET_tri_t(0) => ESM_RESET_tri_t_0(0),
       ESM_UART_rxd => ESM_UART_rxd,
       ESM_UART_txd => ESM_UART_txd,
       HNDL_SW => HNDL_SW,

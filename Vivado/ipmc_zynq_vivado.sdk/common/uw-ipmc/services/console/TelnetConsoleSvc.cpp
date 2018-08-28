@@ -99,7 +99,7 @@ ssize_t Telnet::TelnetConsoleSvc::raw_read(char *buf, size_t len, TickType_t tim
 ssize_t Telnet::TelnetConsoleSvc::raw_write(const char *buf, size_t len, TickType_t timeout) {
 	std::string inattempt(this->log_input["out"]["att"].path);
 	TRACE.log(inattempt.data(), inattempt.size(), LogTree::LOG_TRACE, "A", 1, false);
-	ssize_t rv = this->socket->send(buf, len);
+	ssize_t rv = this->socket->send((void*)buf, len);
 	if (rv < 0) {
 		if (errno != EAGAIN)
 			this->close(); // Not a timeout.  Terminate.

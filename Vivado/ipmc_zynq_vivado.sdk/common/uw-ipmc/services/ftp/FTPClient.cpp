@@ -29,7 +29,7 @@
 
 // TODO: Welcome message?
 
-FTPFile::FTPDirContents FTPServer::files = {};
+FTPFile::DirectoryContents FTPServer::files = {};
 
 #define EOL "\r\n"
 
@@ -211,8 +211,8 @@ FTPClient::FTPClient(const FTPServer &ftpserver, std::shared_ptr<Socket> socket)
 
 					FTPFile* file = FTPServer::getFileFromPath(this->curfile);
 
-					if (file && file->writefile &&
-						(file->writefile(this->buffer.ptr.get(), this->buffer.len) != this->buffer.len)) {
+					if (file && file->write &&
+						(file->write(this->buffer.ptr.get(), this->buffer.len) != this->buffer.len)) {
 						// Fail to apply file
 						this->socket->send(buildReply(450, "Unable to fully write file")); // Failed
 					} else {
@@ -480,7 +480,7 @@ bool FTPClient::CommandSTOR(FTPClient &client, char *cmd, char* filename) {
 	}
 
 	// Check permissions
-	if (!file->writefile) {
+	if (!file->write) {
 		client.socket->send(buildReply(450, "File has no write permissions."));
 		return true;
 	}
@@ -528,7 +528,7 @@ bool FTPClient::CommandRETR(FTPClient &client, char *cmd, char* filename) {
 	}
 
 	// Check permissions
-	if (!file->readfile) {
+	if (!file->read) {
 		client.socket->send(buildReply(450, "File has no read permissions."));
 		return true;
 	}
@@ -541,7 +541,7 @@ bool FTPClient::CommandRETR(FTPClient &client, char *cmd, char* filename) {
 	}
 
 	// Copy the file to memory
-	if (file->readfile(client.buffer.ptr.get()) != file->size) {
+	if (file->read(client.buffer.ptr.get(), file->size) != file->size) {
 		client.socket->send(buildReply(450, "Cannot read file."));
 		return true;
 	}
@@ -614,14 +614,14 @@ bool FTPClient::CommandLIST(FTPClient &client, char *cmd, char* path) {
 	// Possible replies: (125, 150) -> (226, 250, 425, 426, 451), 450, 500, 501, 502, 421, 530
 	FTP_DBG_PRINTF("List %s\n", path);
 
-	FTPFile::FTPDirContents *contents = NULL;
+	FTPFile::DirectoryContents *contents = NULL;
 
 	if (path) {
 		std::string dirpath = FTPServer::modifyPath(client.curpath, path);
-		contents = FTPServer::getDirContentsFromPath(dirpath);
+		contents = FTPServer::getContentsFromPath(dirpath);
 	} else {
 		// No path provided
-		contents = FTPServer::getDirContentsFromPath(client.curpath);
+		contents = FTPServer::getContentsFromPath(client.curpath);
 	}
 
 	if (contents == NULL) {
@@ -636,10 +636,10 @@ bool FTPClient::CommandLIST(FTPClient &client, char *cmd, char* path) {
 		if (stats.isDirectory) str += "d";
 		else str += "-";
 
-		if (stats.readfile) str += "r";
+		if (stats.read) str += "r";
 		else str += "-";
 
-		if (stats.writefile) str += "w";
+		if (stats.write) str += "w";
 		else str += "-";
 
 		str += "------- 1 ipmc ipmc ";
@@ -706,7 +706,7 @@ bool FTPClient::CommandCWD(FTPClient &client, char *cmd, char* path) {
 
 	}
 
-	FTPFile::FTPDirContents *contents = NULL;
+	FTPFile::DirectoryContents *contents = NULL;
 	std::string dirpath = "";
 
 	// Check if the goal is to go one directory up or down
@@ -728,7 +728,7 @@ bool FTPClient::CommandCWD(FTPClient &client, char *cmd, char* path) {
 	}
 
 	// Check if the directory exists
-	contents = FTPServer::getDirContentsFromPath(dirpath);
+	contents = FTPServer::getContentsFromPath(dirpath);
 
 	if (contents == NULL) {
 		// Directory doesn't exist
@@ -760,7 +760,7 @@ bool FTPClient::CommandCDUP(FTPClient &client, char *cmd, char* args) {
 	}
 
 	// Check if directory exists
-	FTPFile::FTPDirContents *contents = FTPServer::getDirContentsFromPath(dirpath);
+	FTPFile::DirectoryContents *contents = FTPServer::getContentsFromPath(dirpath);
 
 	if (contents == NULL) {
 		// Directory doesn't exist

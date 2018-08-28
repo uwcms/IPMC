@@ -51,6 +51,70 @@ void FTPServer::thread_ftpserverd() {
 	}
 }
 
+bool FTPServer::addFile(const std::string& filename, FTPFile file) {
+	FTPFile::DirectoryContents* curdir = &FTPServer::files;
+
+	std::vector<std::string> vpath = stringSplit(filename, '/');
+	size_t nitems = vpath.size();
+	size_t i = 0;
+
+	for (;i < (nitems - 1); i++) {
+		// Add the necessary directories if they don't exist
+		bool change = false;
+		try {
+			FTPFile* f = &curdir->at(vpath[i]);
+
+			if (f->isDirectory) curdir = &(f->contents);
+			else change = true; // Not a directory, but we will replace it
+		} catch (std::out_of_range& e) {
+			// Doesn't exist, create empty directory
+			change = true;
+		}
+
+		if (change) {
+			(*curdir)[vpath[i]] = FTPFile();
+			curdir = &(curdir->at(vpath[i]).contents);
+		}
+	}
+
+	// Create the file
+	(*curdir)[vpath[i]] = file;
+
+	return true;
+}
+
+bool FTPServer::removeFile(const std::string& filename) {
+	FTPFile::DirectoryContents *dir = &(FTPServer::files);
+
+	std::vector<std::string> vpath = stringSplit(filename, '/');
+	size_t nitems = vpath.size();
+	if (nitems == 0) return NULL;
+
+	for (size_t i = 0; i < nitems; i++) {
+		try {
+			FTPFile* f = &(dir->at(vpath[i]));
+
+			if (i == (nitems - 1)) {
+				// If this is the last item on the list then it must be the file
+				if (f->isDirectory) return false;
+				else {
+					// Remove the file
+					dir->erase(vpath[i]);
+					return true;
+				}
+			} else {
+				if (f->isDirectory) dir = &(f->contents);
+				else return false;
+			}
+		} catch (std::out_of_range& e) {
+			// Doesn't exist
+			return false;
+		}
+	}
+
+	return false;
+}
+
 std::string FTPServer::modifyPath(const std::string& curpath, const std::string& addition, bool isfile) {
 	std::string newpath = "";
 
@@ -70,8 +134,8 @@ std::string FTPServer::modifyPath(const std::string& curpath, const std::string&
 	return newpath;
 }
 
-FTPFile::FTPDirContents* FTPServer::getDirContentsFromPath(const std::string &dirpath) {
-	FTPFile::FTPDirContents *dir = &(FTPServer::files);
+FTPFile::DirectoryContents* FTPServer::getContentsFromPath(const std::string &dirpath) {
+	FTPFile::DirectoryContents *dir = &(FTPServer::files);
 
 	std::vector<std::string> vpath = stringSplit(dirpath, '/');
 	size_t nitems = vpath.size();
@@ -93,7 +157,7 @@ FTPFile::FTPDirContents* FTPServer::getDirContentsFromPath(const std::string &di
 }
 
 FTPFile* FTPServer::getFileFromPath(const std::string &filepath) {
-	FTPFile::FTPDirContents *dir = &(FTPServer::files);
+	FTPFile::DirectoryContents *dir = &(FTPServer::files);
 
 	std::vector<std::string> vpath = stringSplit(filepath, '/');
 	size_t nitems = vpath.size();

@@ -36,7 +36,7 @@ public:
 	 * \return The total number of bytes read, 0 if an error occurred.
 	 * \note Wrap around I2C::chain if multiple threads have access to the interface.
 	 */
-	virtual size_t read(uint8_t addr, uint8_t *buf, size_t len, TickType_t timeout) { configASSERT(0); return 0; };
+	virtual size_t read(uint8_t addr, uint8_t *buf, size_t len, TickType_t timeout) = 0;
 
 	/**
 	 * Write buffer to the I2C interface
@@ -48,7 +48,7 @@ public:
 	 * \return The total number of bytes written, 0 if an error occurred.
 	 * \note Wrap around I2C::chain if multiple threads have access to the interface.
 	 */
-	virtual size_t write(uint8_t addr, const uint8_t *buf, size_t len, TickType_t timeout) { configASSERT(0); return 0; };
+	virtual size_t write(uint8_t addr, const uint8_t *buf, size_t len, TickType_t timeout) = 0;
 
 	/**
 	 * If I2C interface is used by several devices then several read/write
