@@ -56,6 +56,7 @@ extern "C" {
 #include <services/telnet/Telnet.h>
 #include <services/lwiperf/Lwiperf.h>
 #include <services/xvcserver/XVCServer.h>
+#include <services/sntp/sntp.h>
 #include <services/ftp/FTPServer.h>
 
 
@@ -362,6 +363,8 @@ void ipmc_service_init() {
 			FTPServer::addFile("virtual/esm.bin", esm->createFlashFile());
 		new FTPServer(Auth::ValidateCredentials);
 
+		sntp_servermode_dhcp(1);
+		sntp_init();
 	});
 	network->register_console_commands(console_command_parser, "network.");
 }
