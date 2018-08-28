@@ -92,7 +92,7 @@ void ipmc_lwip_printf(const char *ctrl1, ...);
 
 
 /* SSI options. */
-//#define LWIP_DEBUG
+#define LWIP_DEBUG
 #define NO_SYS							0
 #define LWIP_SOCKET						(NO_SYS==0)
 #define LWIP_COMPAT_SOCKETS             0
@@ -273,6 +273,8 @@ a lot of data that needs to be copied, this should be set high. */
 /* Define LWIP_DHCP to 1 if you want DHCP configuration of
    interfaces. */
 #define LWIP_DHCP				1
+
+#define LWIP_DHCP_GET_NTP_SRV	1
 
 /* 1 if you want to do an ARP check on the offered address
    (recommended). */
