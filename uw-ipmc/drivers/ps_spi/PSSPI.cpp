@@ -22,9 +22,6 @@ static void PS_SPI_InterruptPassthrough(PS_SPI *ps_spi, u32 event_status, u32 by
 PS_SPI::PS_SPI(u16 DeviceId, u32 IntrId) :
 	IntrId(IntrId) {
 
-	this->mutex = xSemaphoreCreateMutex();
-	configASSERT(this->mutex);
-
 	this->irq_sync_q = xQueueCreate(1, sizeof(trans_st_t));
 	configASSERT(this->irq_sync_q);
 
@@ -70,20 +67,20 @@ PS_SPI::~PS_SPI() {
  * \param bytes    The number of bytes to transfer
  * \return false on error, else true
  */
-bool PS_SPI::transfer(u8 chip, u8 *sendbuf, u8 *recvbuf, size_t bytes) {
-
-	xSemaphoreTake(this->mutex, portMAX_DELAY);
+bool PS_SPI::transfer(u8 chip, const u8 *sendbuf, u8 *recvbuf, size_t bytes, TickType_t timeout) {
+	// TODO: Needs some work
+	MutexLock(this->mutex);
 
 	// Assert the EEPROM chip select
 	XSpiPs_SetSlaveSelect(&this->SpiInst, chip);
 
 	// Start SPI transfer
-	XSpiPs_Transfer(&this->SpiInst, sendbuf, recvbuf, bytes);
+	XSpiPs_Transfer(&this->SpiInst, (u8*)sendbuf, recvbuf, bytes);
 	this->transfer_running = true;
 
 	// Block on the queue, waiting for irq to signal transfer completion
 	trans_st_t trans_st;
-	xQueueReceive(this->irq_sync_q, &(trans_st), portMAX_DELAY);
+	xQueueReceive(this->irq_sync_q, &(trans_st), timeout);
 
 	bool rc = true;
 
@@ -101,9 +98,43 @@ bool PS_SPI::transfer(u8 chip, u8 *sendbuf, u8 *recvbuf, size_t bytes) {
 #endif
 	}
 
-	xSemaphoreGive(this->mutex);
+	return rc;
+}
+
+bool PS_SPI::transfer_unsafe(const u8 *sendbuf, u8 *recvbuf, size_t bytes, TickType_t timeout) {
+	// Start SPI transfer
+	XSpiPs_Transfer(&this->SpiInst, (u8*)sendbuf, recvbuf, bytes);
+	this->transfer_running = true;
+
+	// Block on the queue, waiting for irq to signal transfer completion
+	trans_st_t trans_st;
+	xQueueReceive(this->irq_sync_q, &(trans_st), timeout);
+
+	bool rc = true;
+
+	//If the event was not transfer done, then track it as an error
+	if (trans_st.event_status != XST_SPI_TRANSFER_DONE) {
+		this->error_not_done++;
+		rc = false;
+	}
+
+	//If the last transfer completed with, then track it as an error
+	if (trans_st.event_status != bytes) {
+		this->error_byte_count++;
+#if 0
+		rc = false;  //TODO: not clear yet why xilinx driver reports byte_count = 0 for all successful transfers
+#endif
+	}
 
 	return rc;
+}
+
+void PS_SPI::select(uint32_t cs) {
+	// TODO
+}
+
+void PS_SPI::deselect() {
+	// TODO
 }
 
 void PS_SPI::_HandleInterrupt(u32 event_status, u32 byte_count) {

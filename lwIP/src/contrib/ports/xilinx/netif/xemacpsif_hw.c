@@ -137,16 +137,16 @@ void init_emacps(xemacpsif_s *xemacps, struct netif *netif)
 
 	if (link_speed == XST_FAILURE) {
 		eth_link_status = ETH_LINK_DOWN;
-		ipmc_lwip_printf("Assert due to phy setup failure \n\r",__func__);
+		ipmc_lwip_printf("phy setup failed \n\r",__func__);
 	} else {
 		eth_link_status = ETH_LINK_UP;
-	}
 
-	XEmacPs_SetOperatingSpeed(xemacpsp, link_speed);
-	/* Setting the operating speed of the MAC needs a delay. */
-	{
-		volatile s32_t wait;
-		for (wait=0; wait < 20000; wait++);
+		XEmacPs_SetOperatingSpeed(xemacpsp, link_speed);
+		/* Setting the operating speed of the MAC needs a delay. */
+		{
+			volatile s32_t wait;
+			for (wait=0; wait < 20000; wait++);
+		}
 	}
 }
 

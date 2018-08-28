@@ -202,6 +202,14 @@ size_t PS_UART::write(const u8 *buf, size_t len, TickType_t timeout) {
 	return byteswritten;
 }
 
+bool PS_UART::clear() {
+	while (!this->inbuf.empty()) {
+		u8 tmp;
+		this->inbuf.read(&tmp, 1);
+	}
+	return true;
+}
+
 void PS_UART::_HandleInterrupt(u32 Event, u32 EventData) {
 	//#define XUARTPS_EVENT_RECV_DATA			1U /**< Data receiving done */
 	//#define XUARTPS_EVENT_RECV_TOUT			2U /**< A receive timeout occurred */

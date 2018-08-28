@@ -41,3 +41,53 @@ std::vector<std::string> stringSplit(const std::string &str, char delimiter) {
 
 	return v;
 }
+
+std::string formatedHexString(const void *ptr, size_t bytes, size_t str_offset) {
+#define WORD_BYTES 4
+#define WORDS_PER_LINE 4
+#define BYTES_PER_LINE (WORD_BYTES * WORDS_PER_LINE)
+	std::string r;
+
+	// Pre-allocate the string - it will make it faster
+	const size_t reserve_bytes_per_line = 8 + 2 + BYTES_PER_LINE * 2 + WORDS_PER_LINE + BYTES_PER_LINE + 1;
+	const size_t total_lines = bytes / BYTES_PER_LINE + ((bytes % BYTES_PER_LINE)? 1 : 0);
+	const size_t required_size = reserve_bytes_per_line * total_lines + 1;
+
+	r.reserve(required_size);
+
+	char addr[9], ascii[BYTES_PER_LINE + 1] = "", hex[3];
+
+	for (size_t i = 0; i < total_lines; i++) {
+		size_t line_bytes = bytes - (i * BYTES_PER_LINE);
+		line_bytes = (line_bytes > BYTES_PER_LINE)? BYTES_PER_LINE : line_bytes;
+		size_t empty_bytes = BYTES_PER_LINE - line_bytes;
+
+		snprintf(addr, 9, "%08X", i * BYTES_PER_LINE + str_offset);
+		r += std::string(addr) + ": ";
+
+		for (size_t j = 0; j < line_bytes; j++) {
+			uint8_t v = ((uint8_t*)ptr)[i * BYTES_PER_LINE + j];
+
+			if (v >= ' ' && v <= '~') ascii[j] = v; // Known character
+			else ascii[j] = '.'; // Unknown character
+
+			snprintf(hex, 3, "%02X", v);
+			r += hex;
+
+			if ((j % WORD_BYTES) == (WORD_BYTES - 1)) r += " ";
+		}
+
+		for (size_t j = line_bytes; j < BYTES_PER_LINE; j++) {
+			ascii[j] = ' ';
+
+			r += "  ";
+
+			if ((j % WORD_BYTES) == (WORD_BYTES - 1)) r += " ";
+		}
+
+		r += std::string(ascii) + "\n";
+
+	}
+
+	return r;
+}

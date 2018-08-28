@@ -21,7 +21,7 @@
  */
 class SPI_EEPROM : public EEPROM {
 public:
-	SPI_EEPROM(SPI &spibus, u8 chip_select, u32 size, u8 page_size);
+	SPI_EEPROM(SPIMaster &spibus, u8 chip_select, u32 size, u8 page_size);
 	virtual ~SPI_EEPROM();
 
 	virtual size_t read(u16 address, u8 *buf, size_t bytes);
@@ -29,7 +29,7 @@ public:
 
 protected:
 	SemaphoreHandle_t mutex; ///< A mutex protecting chip access.
-	SPI &spibus; ///< The SPI bus this EEPROM is attached to.
+	SPIMaster &spibus; ///< The SPI bus this EEPROM is attached to.
 	u8 cs; ///< The chip select ID for this EEPROM.
 };
 

@@ -180,7 +180,9 @@ namespace {
 			console->write(std::string("TX bytes: ") + std::to_string(txbytes) + " (" + bytesToString(txbytes) + ")\n");
 			console->write(std::string("RX bytes: ") + std::to_string(rxbytes) + " (" + bytesToString(rxbytes) + ")\n");
 			console->write(std::string("Checksum Err (emac): ") + std::to_string(emac_cksum_err) + "\n");
+#if LWIP_STATS
 			console->write(std::string("Checksum Err (lwip): ") + std::to_string(lwip_stats.tcp.chkerr) + "\n");
+#endif
 		}
 	};
 };

@@ -26,4 +26,6 @@ std::string bytesToString(uint64_t bytes);
  */
 std::vector<std::string> stringSplit(const std::string& str, char delimiter);
 
+std::string formatedHexString(const void *ptr, size_t bytes, size_t str_offset = 0);
+
 #endif /* SRC_COMMON_UW_IPMC_LIBS_UTILS_H_ */

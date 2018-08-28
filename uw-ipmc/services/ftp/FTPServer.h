@@ -25,14 +25,36 @@
  * Defines a single file that can be used by the FTP server
  */
 struct FTPFile {
-	unsigned int size; ///< The size of the file in bytes.
+	size_t size; ///< The size of the file in bytes.
 
-	size_t (*readfile)(uint8_t *buf);  ///< The callback used to fill the read buffer.
-	size_t (*writefile)(uint8_t *buf, size_t size); ///< The callback used write to write the file with the buffer.
+	//typedef size_t (*FileCallback)(uint8_t *buf, size_t size);
+	typedef std::function<size_t(uint8_t*, size_t)> FileCallback;
+	FileCallback read;  ///< The callback used to fill the read buffer.
+	FileCallback write; ///< The callback used write to write the file with the buffer.
 
-	typedef std::map<std::string, FTPFile> FTPDirContents; ///< Defines the contents of a directory.
+	typedef std::map<std::string, FTPFile> DirectoryContents; ///< Defines the contents of a directory.
 	bool isDirectory; ///< true if this particular file is in fact a directory entry.
-	FTPDirContents contents; ///< The contents of the directory if isDirectory is true.
+	DirectoryContents contents; ///< The contents of the directory if isDirectory is true.
+
+	/**
+	 * Creates a new file.
+	 * @param read The read callback function.
+	 * @param write The write callback function.
+	 * @param size The number of bytes the file has.
+	 */
+	FTPFile(FileCallback read, FileCallback write, size_t size) :
+		size(size), read(read), write(write), isDirectory(false), contents({}) {};
+
+	/**
+	 * Creates a directory with some contents.
+	 * @param contents
+	 */
+	FTPFile(DirectoryContents contents) : size(0), read(NULL), write(NULL), isDirectory(true), contents(contents) {};
+
+	/**
+	 * Creates an empty directory with no contents.
+	 */
+	FTPFile() : size(0), read(NULL), write(NULL), isDirectory(true), contents({}) {};
 };
 
 /**
@@ -65,13 +87,28 @@ public:
 	 * Set the root file directory.
 	 * @param files The directory root contents.
 	 */
-	static void setFiles(FTPFile::FTPDirContents files) {FTPServer::files = files;};
+	static void setFiles(FTPFile::DirectoryContents files) {FTPServer::files = files;};
+
+	/**
+	 * Create or add a new file reference.
+	 * @param filename The full path to the file.
+	 * @param file FTPFile structure with information about the file
+	 * @return Always true.
+	 */
+	static bool addFile(const std::string& filename, FTPFile file);
+
+	/**
+	 * Remove a certain file reference.
+	 * @param filename The full path of the file to remove.
+	 * @return true if success, false otherwise.
+	 */
+	static bool removeFile(const std::string& filename);
 
 	///! Generates a new path based on the current path plus an extension.
 	static std::string modifyPath(const std::string& curpath, const std::string& addition, bool isfile = false);
 
 	///! Returns the directory contents (or NULL if invalid) for a given path.
-	static FTPFile::FTPDirContents* getDirContentsFromPath(const std::string &path);
+	static FTPFile::DirectoryContents* getContentsFromPath(const std::string &path);
 
 	///! Returns the file (or NULL if invalid) for a given file path.
 	static FTPFile* getFileFromPath(const std::string &filepath);
@@ -80,10 +117,10 @@ public:
 private:
 	void thread_ftpserverd();
 
-	AuthCallbackFunc *authcallback;			///< Authentication callback function.
-	const uint16_t comport;					///< FTP communication port.
-	const uint16_t dataport;				///< FTP data port.
-	static FTPFile::FTPDirContents files;	///< Virtual file root directory.
+	AuthCallbackFunc *authcallback;				///< Authentication callback function.
+	const uint16_t comport;						///< FTP communication port.
+	const uint16_t dataport;					///< FTP data port.
+	static FTPFile::DirectoryContents files;	///< Virtual file root directory.
 
 protected:
 	///! Returns the server communication port.

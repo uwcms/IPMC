@@ -13,8 +13,7 @@
 
 extern XScuGic xInterruptController;
 
-
-void PL_UART_InterruptHandler(PL_UART *uart)
+void PL_UART::_InterruptHandler(PL_UART *uart)
 {
 	// Note: Interrupts won't be disabled while running this interrupt.
 	// If nesting is enabled that this cause problems.
@@ -40,8 +39,6 @@ void PL_UART_InterruptHandler(PL_UART *uart)
 	// TODO: Do error detection, inc. streambuffer full
 }
 
-static PL_UART* g_pluart = NULL;
-
 PL_UART::PL_UART(uint16_t DeviceId, uint32_t IntrId, size_t ibufsize, size_t obufsize) :
 IntrId(IntrId) {
 	// Initialize the UartLite driver so that it's ready to use.
@@ -57,7 +54,7 @@ IntrId(IntrId) {
 
 	// Connect the driver to the interrupt subsystem.
 	configASSERT(XST_SUCCESS ==
-			XScuGic_Connect(&xInterruptController, this->IntrId, (Xil_InterruptHandler)PL_UART_InterruptHandler, (void*)this));
+			XScuGic_Connect(&xInterruptController, this->IntrId, (Xil_InterruptHandler)PL_UART::_InterruptHandler, (void*)this));
 	XScuGic_Enable(&xInterruptController, this->IntrId);
 
 	this->recvstream = xStreamBufferCreate(ibufsize, 0);
@@ -67,8 +64,6 @@ IntrId(IntrId) {
 
 	// Enable the interrupt of UartLite so that interrupts will occur.
 	XUartLite_EnableInterrupt(&(this->UartLite));
-
-	g_pluart = this;
 }
 
 PL_UART::~PL_UART() {
@@ -120,42 +115,3 @@ bool PL_UART::clear() {
 	return (xStreamBufferReset(this->recvstream) == pdPASS);
 }
 
-
-
-/************************************************************/
-/*
-#include <stdlib.h>
-
-
-int lowread(struct _reent* r, void* p, char* buf, int nbytes) {
-	PL_UART* uart = (PL_UART*)p;
-
-	//while (uart->recvqueue.isEmpty() == true);
-
-	return uart->read((u8*)buf, nbytes, portMAX_DELAY);
-}
-
-int lowwrite(struct _reent* r, void* p, const char* buf, int nbytes) {
-	PL_UART* uart = (PL_UART*)p;
-
-	//while (uart->sendqueue.isFull() == true);
-
-	return uart->write((const u8*)buf, nbytes, portMAX_DELAY);
-}
-
-FILE* PL_UART::getFileDesc() {
-	FILE *s;
-
-	s = new FILE;
-
-	memset(s, 0, sizeof(FILE));
-	s->_flags = __SRD | __SWR | __SNPT;
-
-	s->_cookie = this;
-
-	s->_read = lowread;
-	s->_write = lowwrite;
-
-	return s;
-}
-*/
