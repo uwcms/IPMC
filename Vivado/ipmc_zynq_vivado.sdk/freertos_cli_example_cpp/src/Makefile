@@ -64,6 +64,7 @@ export CFLAGS = \
 	-mfloat-abi=hard \
 	-MMD -MP -MF"$(patsubst .obj/$(BUILD_CONFIGURATION)/%,.dep/$(BUILD_CONFIGURATION)/%,$@)" \
 	-D XPAR_XISF_FLASH_FAMILY=5 -D XPAR_XISF_INTERFACE_PSQSPI \
+	-D _BSD_SOURCE \
 
 # -MT"$@" 
 

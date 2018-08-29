@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <functional>
 #include <alloca.h>
+#include <sys/time.h>
 
 /* Include Xilinx related */
 #include "xparameters.h"
@@ -363,7 +364,7 @@ void ipmc_service_init() {
 			FTPServer::addFile("virtual/esm.bin", esm->createFlashFile());
 		new FTPServer(Auth::ValidateCredentials);
 
-		sntp_servermode_dhcp(1);
+		//sntp_servermode_dhcp(1);
 		sntp_init();
 	});
 	network->register_console_commands(console_command_parser, "network.");
@@ -403,8 +404,6 @@ static void tracebuffer_log_handler(LogTree &logtree, const std::string &message
 	TRACE.log(logtree.path.data(), logtree.path.size(), level, message.data(), message.size());
 }
 
-#include "xuartlite_l.h"
-
 namespace {
 /// A "uptime" console command.
 class ConsoleCommand_uptime : public CommandParser::Command {
@@ -435,6 +434,28 @@ public:
 	}
 
 	//virtual std::vector<std::string> complete(const CommandParser::CommandParameters &parameters) const { };
+};
+
+/// A "time" console command.
+class ConsoleCommand_time : public CommandParser::Command {
+public:
+	virtual std::string get_helptext(const std::string &command) const {
+		return stdsprintf(
+				"%s\n"
+				"\n"
+				"Print the current system time. Updated by SNTP and kept by FreeRTOS.\n", command.c_str());
+	}
+
+	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
+		timeval tv;
+		gettimeofday(&tv, NULL);
+		if (tv.tv_sec == 0) {
+			console->write("Time information unavailable.\n");
+		} else {
+			struct tm *timeinfo = localtime(&tv.tv_sec);
+			console->write(std::string(asctime(timeinfo))); // GMT
+		}
+	}
 };
 
 /// A "version" console command.
@@ -660,6 +681,7 @@ public:
 
 static void register_core_console_commands(CommandParser &parser) {
 	console_command_parser.register_command("uptime", std::make_shared<ConsoleCommand_uptime>());
+	console_command_parser.register_command("time", std::make_shared<ConsoleCommand_time>());
 	console_command_parser.register_command("version", std::make_shared<ConsoleCommand_version>());
 	console_command_parser.register_command("ps", std::make_shared<ConsoleCommand_ps>());
 	console_command_parser.register_command("backend_power", std::make_shared<ConsoleCommand_backend_power>());

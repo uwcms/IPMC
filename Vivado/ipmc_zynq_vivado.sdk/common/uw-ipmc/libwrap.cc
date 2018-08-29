@@ -20,6 +20,9 @@
 #include <algorithm>
 #include <ctype.h>
 
+#include <time.h>
+#include <sys/time.h>
+
 #define WRAP_ATTR __attribute__((externally_visible))
 
 extern "C" {
@@ -45,6 +48,26 @@ void __wrap_xil_printf( const char8 *ctrl1, ...) WRAP_ATTR;
 void __wrap_print( const char8 *ptr) WRAP_ATTR;
 unsigned __wrap_sleep(unsigned int seconds) WRAP_ATTR;
 void __wrap_sha_256(const unsigned char *in, const unsigned int size, unsigned char *out) WRAP_ATTR;
+
+/* The following is to support time functions without a RTC.
+ * timeofday_in_us should be incremented with an internal timer function
+ * and it should be set by NTP.
+ */
+volatile uint32_t _ntp_updates = 0;
+volatile uint64_t _time_in_us = 0;
+
+int _gettimeofday( struct timeval *tv, struct timezone *tz )
+{
+	// Make a non-volatile local copy
+	taskENTER_CRITICAL();
+	uint64_t time_us = _time_in_us;
+	taskEXIT_CRITICAL();
+
+	tv->tv_sec = time_us / 1000000;   // convert to seconds
+	tv->tv_usec = time_us % 1000000;  // get remaining microseconds
+	return 0;  // return non-zero for error
+}
+
 } // extern "C"
 
 volatile SemaphoreHandle_t stdlib_mutex = NULL;
