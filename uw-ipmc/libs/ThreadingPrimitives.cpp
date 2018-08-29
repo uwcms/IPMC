@@ -133,6 +133,10 @@ extern "C" {
  */
 void vApplicationTickHook() {
 	uwipmc_tick64_count++;
+
+	// Also update current time, if previously updated by NTP
+	extern volatile uint64_t _time_in_us;
+	_time_in_us += 1000000 / configTICK_RATE_HZ;
 }
 }; // extern "C"
 

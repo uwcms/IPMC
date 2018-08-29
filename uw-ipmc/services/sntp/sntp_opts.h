@@ -50,7 +50,14 @@
  * if you need the additional precision.
  */
 #if !defined SNTP_SET_SYSTEM_TIME || defined __DOXYGEN__
-#define SNTP_SET_SYSTEM_TIME(sec)   {printf("Time update: %d\n", sec);} // TODO
+#define SNTP_SET_SYSTEM_TIME_US(sec, us) {									\
+	extern volatile uint32_t _ntp_updates;									\
+	extern volatile uint64_t _time_in_us;									\
+	taskENTER_CRITICAL();													\
+	_time_in_us = ((uint64_t)(sec) * 1000000) + (uint64_t)us;				\
+	_ntp_updates++;															\
+	taskEXIT_CRITICAL();													\
+}
 #endif
 
 /** The maximum number of SNTP servers that can be set */
@@ -69,7 +76,7 @@
  * \#define SNTP_SERVER_ADDRESS "pool.ntp.org"
  */
 #if !defined SNTP_SERVER_DNS || defined __DOXYGEN__
-#define SNTP_SERVER_DNS            0
+#define SNTP_SERVER_DNS            1
 #endif
 
 /**
@@ -104,7 +111,7 @@
  *        server whose synchronization source has expired for a very long time.
  */
 #if !defined SNTP_CHECK_RESPONSE || defined __DOXYGEN__
-#define SNTP_CHECK_RESPONSE         0
+#define SNTP_CHECK_RESPONSE         1
 #endif
 
 /** According to the RFC, this shall be a random delay
@@ -133,10 +140,10 @@
 #endif
 
 /** SNTP update delay - in milliseconds
- * Default is 1 hour. Must not be beolw 15 seconds by specification (i.e. 15000)
+ * Default is 1 hour. Must not be below 15 seconds by specification (i.e. 15000)
  */
 #if !defined SNTP_UPDATE_DELAY || defined __DOXYGEN__
-#define SNTP_UPDATE_DELAY           3600000
+#define SNTP_UPDATE_DELAY           60000
 #endif
 
 /** SNTP macro to get system time, used with SNTP_CHECK_RESPONSE >= 2
