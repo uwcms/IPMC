@@ -12,6 +12,7 @@
 #include <string>
 #include <stddef.h>
 
-std::string render_ipmi_type_length_field(std::vector<uint8_t> &data);
+unsigned ipmi_type_length_field_get_length(const std::vector<uint8_t> &data);
+std::string render_ipmi_type_length_field(const std::vector<uint8_t> &data);
 
 #endif /* SRC_COMMON_UW_IPMC_SERVICES_IPMI_IPMIFORMATS_H_ */

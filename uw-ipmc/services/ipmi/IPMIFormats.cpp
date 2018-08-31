@@ -7,6 +7,24 @@
 
 #include <services/ipmi/IPMIFormats.h>
 #include <IPMC.h> // stdsprintf()
+#include <iterator>
+
+/**
+ * Perform basic validation on the provided IPMI Type/Length field, and return
+ * the length in bytes of the full raw field.
+ *
+ * @param data The Type/Length field
+ * @return 0 if invalid, else the length in bytes, including the header
+ */
+unsigned ipmi_type_length_field_get_length(const std::vector<uint8_t> &data) {
+	if (data.empty())
+		return 0;
+	//const uint8_t field_type = data[0] >> 6;
+	const unsigned field_length = data[0] & 0x3f;
+	if (1+field_length > data.size())
+		return 0;
+	return 1+field_length;
+}
 
 /**
  * Unpack and render a field specified in Type/Length byte format, as
@@ -15,15 +33,14 @@
  * @param data The field data including the type/length code byte.
  * @return The rendered data in human readable format.
  */
-std::string render_ipmi_type_length_field(std::vector<uint8_t> &data) {
+std::string render_ipmi_type_length_field(const std::vector<uint8_t> &data) {
 	if (data.empty())
 		return "<Invalid (Short) Type/Length Field>";
 	const uint8_t field_type = data[0] >> 6;
-	const uint8_t field_length = data[0] & 0x3f;
-	data.erase(data.begin());
+	const unsigned field_length = data[0] & 0x3f;
 	if (field_length == 0)
 		return "<NULL>";
-	if (field_length < data.size())
+	if (1+field_length > data.size())
 		return "<Invalid (Short) Type/Length Field>";
 	if (field_type == 0) {
 		// Binary or Unspecified.
@@ -31,7 +48,7 @@ std::string render_ipmi_type_length_field(std::vector<uint8_t> &data) {
 		for (std::vector<uint8_t>::size_type i = 0; i < field_length; ++i) {
 			if (out.size())
 				out += " ";
-			out += stdsprintf("0x%02hhx", data[i]);
+			out += stdsprintf("0x%02hhx", data[1+i]);
 		}
 		return out;
 	}
@@ -40,8 +57,8 @@ std::string render_ipmi_type_length_field(std::vector<uint8_t> &data) {
 		std::string out;
 		for (std::vector<uint8_t>::size_type i = 0; i < field_length; ++i) {
 			static const char *bcd_table = "01234567889 -.???";
-			out += bcd_table[data[i] >> 4];
-			out += bcd_table[data[i] & 0x0f];
+			out += bcd_table[data[1+i] >> 4];
+			out += bcd_table[data[1+i] & 0x0f];
 		}
 		return out;
 	}
@@ -54,7 +71,7 @@ std::string render_ipmi_type_length_field(std::vector<uint8_t> &data) {
 		for (std::vector<uint8_t>::size_type i = 0; i*6 < count6b; ++i) {
 			char c;
 			// Calculate the byte offset in which this char starts.
-			std::vector<uint8_t>::size_type offset = (i*6)/8;
+			std::vector<uint8_t>::size_type offset = 1 /* header*/ + ((i*6)/8);
 			switch (i % 4) {
 			case 0:
 				/* The first char in a cycle is zero aligned.
@@ -92,11 +109,11 @@ std::string render_ipmi_type_length_field(std::vector<uint8_t> &data) {
 	}
 	else if (field_type == 3) {
 		// Raw ASCII or Unicode.
-		return std::string(data.begin(), data.begin()+field_length);
+		return std::string(std::next(data.begin()), std::next(data.begin(),field_length));
 	}
 	else {
 		// We have already iterated over values [0,1,2,3] of a 2 bit field.
 		configASSERT(0);
-		__builtin_unreachable();
+		return "";
 	}
 }
