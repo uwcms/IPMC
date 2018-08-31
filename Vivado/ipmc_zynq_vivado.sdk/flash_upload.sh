@@ -31,7 +31,7 @@ if [ ! -f $FILE ]; then
 fi
 
 ## Do the actual programming via FTP
-ftp -n $HOST <<END_SCRIPT
+ftp -p -n $HOST <<END_SCRIPT
 quote USER $USER
 quote PASS $PASSWD
 bin

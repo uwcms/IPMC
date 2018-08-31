@@ -238,11 +238,11 @@ size_t flash_write(uint8_t *buf, size_t size) {
 	BootFileValidationReturn r = validateBootFile(buf, size);
 	if (r != BFV_VALID) {
 		// File is invalid!
-		printf("Received bin file has errors: %s. Aborting firmware update.\n",
+		printf("Received bin file has errors: %s. Aborting firmware update.",
 				getBootFileValidationErrorString(r));
 		return 0;
 	} else {
-		printf("Bin file is valid, proceeding with update.\n");
+		printf("Bin file is valid, proceeding with update.");
 	}
 
 	// Write the buffer to flash
@@ -258,7 +258,7 @@ size_t flash_write(uint8_t *buf, size_t size) {
 			printf("Erasing sector 0x%08x..", addr + baseaddr);
 			if (!isfqspi->SectorErase(addr + baseaddr)) {
 				// Failed to erase
-				printf("Failed to erase 0x%08x. Write to flash failed.\n", addr + baseaddr);
+				printf("Failed to erase 0x%08x. Write to flash failed.", addr + baseaddr);
 				firmwareUpdateFailed = true;
 				return addr;
 			}
@@ -273,14 +273,14 @@ size_t flash_write(uint8_t *buf, size_t size) {
 
 			if (!isfqspi->WritePage(addr + baseaddr, tmpbuf)) {
 				// Failed to write page
-				printf("Failed to write page 0x%08x. Write to flash failed.\n", addr + baseaddr);
+				printf("Failed to write page 0x%08x. Write to flash failed.", addr + baseaddr);
 				firmwareUpdateFailed = true;
 				return addr;
 			}
 		} else {
 			if (!isfqspi->WritePage(addr + baseaddr, buf + addr)) {
 				// Failed to write page
-				printf("Failed to write page 0x%08x. Write to flash failed.\n", addr + baseaddr);
+				printf("Failed to write page 0x%08x. Write to flash failed.", addr + baseaddr);
 				firmwareUpdateFailed = true;
 				return addr;
 			}
@@ -305,7 +305,7 @@ size_t flash_write(uint8_t *buf, size_t size) {
 		}
 	}
 
-	printf("Flash image updated and verified successfully.\n");
+	printf("Flash image updated and verified successfully.");
 	firmwareUpdateFailed = false;
 	return size;
 }
