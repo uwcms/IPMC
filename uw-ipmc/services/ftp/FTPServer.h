@@ -17,9 +17,9 @@
 #include <drivers/network/ClientSocket.h>
 
 ///! Uncomment to enabled debugging of the FTP server.
-//#define FTPSERVER_DEBUG
+#define FTPSERVER_DEBUG
 #define FTPSERVER_MAX_BACKLOG 1
-#define FTPSERVER_THREAD_NAME "ftpsrvd"
+#define FTPSERVER_THREAD_NAME "ftpd"
 
 /**
  * Defines a single file that can be used by the FTP server
@@ -28,7 +28,7 @@ struct FTPFile {
 	size_t size; ///< The size of the file in bytes.
 
 	//typedef size_t (*FileCallback)(uint8_t *buf, size_t size);
-	typedef std::function<size_t(uint8_t*, size_t)> FileCallback;
+	typedef std::function<size_t(uint8_t*, size_t)> FileCallback; ///< Callback type used in virtual files.
 	FileCallback read;  ///< The callback used to fill the read buffer.
 	FileCallback write; ///< The callback used write to write the file with the buffer.
 

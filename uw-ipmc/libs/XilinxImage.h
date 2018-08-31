@@ -15,6 +15,10 @@
 ///! Uncomment to enabled debugging
 #define XILINXIMAGE_DEBUG
 
+///! Uncomment to fail verification if any partition
+/// (with exception of the FSBL) doesn't have MD5
+#define XILINXIMAGE_MD5_REQUIRED
+
 ///! All possible error codes returned by validateBootFile
 enum BootFileValidationReturn {
 	BFV_VALID = 0,
@@ -23,6 +27,7 @@ enum BootFileValidationReturn {
 	BFV_NOT_ENOUGH_PARTITIONS,
 	BFV_INVALID_PARTITION,
 	BFV_UNKNOWN_PARTITION_TYPE,
+	BFV_MD5_REQUIRED,
 	BFV_MD5_CHECK_FAILED,
 	BFV_UNEXPECTED_ORDER,
 };

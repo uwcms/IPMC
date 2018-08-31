@@ -92,11 +92,12 @@ typedef struct {
 const char* getBootFileValidationErrorString(BootFileValidationReturn r) {
 	switch (r) {
 	case BFV_VALID: return "Valid";
-	case BFV_INVALID_BOOTROM: "Invalid BootROM header";
+	case BFV_INVALID_BOOTROM: return "Invalid BootROM header";
 	case BFV_INVALID_SIZE: return "Internal reference goes outside size boundaries";
 	case BFV_NOT_ENOUGH_PARTITIONS: return "Not enough partitions";
 	case BFV_INVALID_PARTITION: return "Invalid partition header";
 	case BFV_UNKNOWN_PARTITION_TYPE: return "Unknown partition type";
+	case BFV_MD5_REQUIRED: return "Partition missing MD5";
 	case BFV_MD5_CHECK_FAILED: return "md5 check failed in one of the partitions";
 	case BFV_UNEXPECTED_ORDER: return "Partitions are out of order";
 	}
@@ -190,7 +191,7 @@ BootFileValidationReturn validateBootFile(uint8_t *binfile, size_t size) {
 #ifdef XILINXIMAGE_DEBUG
 		// Retrieve image name
 		std::string imageName = getImageNameFromHeader((ImageHeader*)(binfile + (partitionHeader->imageHeaderOffset << 2)));
-		XILIMG_DBG_PRINTF("Image %d: %s\n", i+1, imageName.c_str());
+		XILIMG_DBG_PRINTF("Image %d: %s", i+1, imageName.c_str());
 #endif
 
 		if (size < ((partitionHeader->partitionStart + partitionHeader->partitionWordLen) << 2))
@@ -224,7 +225,14 @@ BootFileValidationReturn validateBootFile(uint8_t *binfile, size_t size) {
 			}
 
 		} else {
-			XILIMG_DBG_PRINTF("WARNING: Partition %d has no checksum!\n", i);
+#ifdef XILINXIMAGE_MD5_REQUIRED
+			if (i > 0) {
+				// If current partition is NOT the FSBL then we require to have MD5 present
+				return BFV_MD5_REQUIRED;
+			}
+#else
+			XILIMG_DBG_PRINTF("WARNING: Partition %d has no checksum!", i);
+#endif
 		}
 	}
 

@@ -22,7 +22,7 @@
 #include "FTPServer.h"
 
 #ifdef FTPSERVER_DEBUG
-#define FTP_DBG_PRINTF(...) printf(__VA_ARGS__)
+#define FTP_DBG_PRINTF(...) printf(FTPSERVER_THREAD_NAME ": " __VA_ARGS__)
 #else
 #define FTP_DBG_PRINTF(...)
 #endif
@@ -90,7 +90,7 @@ FTPClient::FTPClient(const FTPServer &ftpserver, std::shared_ptr<Socket> socket)
 	struct timeval timeout;
 	int maxfdp = -1;
 
-	FTP_DBG_PRINTF("New FTP client, sending 220\n");
+	FTP_DBG_PRINTF("New FTP client, sending 220");
 	this->socket->send(buildReply(220));
 
 	while (1) {
@@ -103,13 +103,13 @@ FTPClient::FTPClient(const FTPServer &ftpserver, std::shared_ptr<Socket> socket)
 		FD_SET(*this->socket, &fds);
 		maxfdp = *this->socket;
 
-		if (this->dataserver.get()) {
+		if (this->dataserver) {
 			FD_SET(*this->dataserver, &fds);
 			if (*this->dataserver > maxfdp)
 				maxfdp = *this->dataserver;
 		}
 
-		if (this->data.get()) {
+		if (this->data) {
 			FD_SET(*this->data, &fds);
 			if (*this->data > maxfdp)
 				maxfdp = *this->data;
@@ -124,7 +124,7 @@ FTPClient::FTPClient(const FTPServer &ftpserver, std::shared_ptr<Socket> socket)
 				int rbytes = this->socket->recv(buf + buflen, max_pkt_size - buflen);
 
 				if (rbytes <= 0) {
-					FTP_DBG_PRINTF("Client disconnected or error (%d), exiting\n", rbytes);
+					FTP_DBG_PRINTF("Client disconnected or error (%d), exiting", rbytes);
 					break;
 				}
 
@@ -148,7 +148,7 @@ FTPClient::FTPClient(const FTPServer &ftpserver, std::shared_ptr<Socket> socket)
 					ftpcmd = FTPCommands.at(cmd);
 				} catch (std::out_of_range const& exc) {
 					// Invalid or command not implemented
-					FTP_DBG_PRINTF("Command unrecognized (%s)\n", cmd);
+					FTP_DBG_PRINTF("Command unrecognized (%s)", cmd);
 					this->socket->send(buildReply(500)); // Command unrecognized
 					continue;
 				}
@@ -157,7 +157,7 @@ FTPClient::FTPClient(const FTPServer &ftpserver, std::shared_ptr<Socket> socket)
 				if (!((ftpcmd.second.size()) != 0 && (ftpcmd.second[0] == FTP_ST_ANY)) &&
 					(std::find(ftpcmd.second.begin(), ftpcmd.second.end(), state) == ftpcmd.second.end())) {
 					// Command cannot run in this state
-					FTP_DBG_PRINTF("Command cannot run in this state (cmd=%s, state=%d)\n", cmd, state);
+					FTP_DBG_PRINTF("Command cannot run in this state (cmd=%s, state=%d)", cmd, state);
 					this->socket->send(buildReply(503)); // Bad sequence
 					continue;
 				}
@@ -168,17 +168,17 @@ FTPClient::FTPClient(const FTPServer &ftpserver, std::shared_ptr<Socket> socket)
 					break;
 				}
 
-			} else if ((*this->dataserver) && FD_ISSET(*this->dataserver, &fds)) {
+			} else if ((this->dataserver) && FD_ISSET((int)(*this->dataserver), &fds)) {
 				// Someone is trying to connect to the data port
-				if (this->data.get()) {
+				if (this->data) {
 					// There is already someone connected to it or not at the correct state hence refuse connection
 					this->dataserver->accept(); // Not assigning it to anything will cause the shared_ptr to be destroyed, C++ magic!
-					FTP_DBG_PRINTF("New data connection refused\n");
+					FTP_DBG_PRINTF("New data connection refused");
 				}
 
 				// Accept connection
 				this->data = this->dataserver->accept();
-				FTP_DBG_PRINTF("Data connection established\n");
+				FTP_DBG_PRINTF("Data connection established");
 
 				if (this->state == FTP_ST_RETR) {
 					// Send the file
@@ -195,9 +195,9 @@ FTPClient::FTPClient(const FTPServer &ftpserver, std::shared_ptr<Socket> socket)
 
 					this->state = FTP_ST_IDLE;
 				}
-			} else if ((*this->data) && FD_ISSET(*this->data, &fds)) {
+			} else if ((this->data) && FD_ISSET((int)(*this->data), &fds)) {
 				// Data being received
-				if ((this->state != FTP_ST_STOR) || (!this->buffer.ptr.get())) {
+				if ((this->state != FTP_ST_STOR) || (!this->buffer.ptr)) {
 					// This is enough reason to terminate FTP, we shouldn't be here!
 					this->socket->send(buildReply(221));
 					break;
@@ -206,7 +206,7 @@ FTPClient::FTPClient(const FTPServer &ftpserver, std::shared_ptr<Socket> socket)
 				int rbytes = this->data->recv(buf, max_pkt_size);
 				if (rbytes == 0) {
 					// Connection gracefully closed, end of file transfer
-					FTP_DBG_PRINTF("Received %u bytes\n", this->buffer.len);
+					FTP_DBG_PRINTF("Received %u bytes", this->buffer.len);
 					this->data = nullptr;
 
 					FTPFile* file = FTPServer::getFileFromPath(this->curfile);
@@ -244,18 +244,18 @@ FTPClient::FTPClient(const FTPServer &ftpserver, std::shared_ptr<Socket> socket)
 			}
 		} else if (r == 0) {
 			// Timeout, terminate the service
-			FTP_DBG_PRINTF("Timeout, disconnecting\n");
+			FTP_DBG_PRINTF("Timeout, disconnecting");
 			this->socket->send(buildReply(221));
 			break;
 		} else {
 			// Error
-			FTP_DBG_PRINTF("Error (errno=%d)\n", errno);
+			FTP_DBG_PRINTF("Error (errno=%d)", errno);
 			break;
 		}
 
 	};
 
-	FTP_DBG_PRINTF("Closing connection\n");
+	FTP_DBG_PRINTF("Closing connection");
 	delete buf;
 }
 
@@ -306,14 +306,14 @@ std::string FTPClient::buildReply(uint16_t code, const std::string &msg) {
 }*/
 
 bool FTPClient::CommandNotImplemented(FTPClient &client, char *cmd, char *args) {
-	FTP_DBG_PRINTF("Command not implemented (cmd=%s, args=%s)\n", cmd, args);
+	FTP_DBG_PRINTF("Command not implemented (cmd=%s, args=%s)", cmd, args);
 	client.socket->send(buildReply(502)); // Not implemented
 	return true;
 }
 
 bool FTPClient::CommandUSER(FTPClient &client, char *cmd, char* user) {
 	// Possible replies: 120->220, 220, 421
-	FTP_DBG_PRINTF("User is %s\n", user);
+	FTP_DBG_PRINTF("User is %s", user);
 	client.username = user; // User will be used later for authentication
 	client.socket->send(buildReply(331)); // Password required
 	client.state = FTP_ST_LOGIN_PASS;
@@ -322,7 +322,7 @@ bool FTPClient::CommandUSER(FTPClient &client, char *cmd, char* user) {
 
 bool FTPClient::CommandQUIT(FTPClient &client, char *cmd, char* args) {
 	// Possible replies: 221, 500
-	FTP_DBG_PRINTF("Quitting\n");
+	FTP_DBG_PRINTF("Quitting");
 	client.socket->send(buildReply(221)); // Closing connection
 	client.state = FTP_ST_IDLE;
 	return false;
@@ -330,7 +330,7 @@ bool FTPClient::CommandQUIT(FTPClient &client, char *cmd, char* args) {
 
 bool FTPClient::CommandPORT(FTPClient &client, char *cmd, char* args) {
 	// Possible replies: 200, 500, 501, 421, 530
-	FTP_DBG_PRINTF("Setting active mode and port to %s\n", args);
+	FTP_DBG_PRINTF("Setting active mode and port to %s", args);
 	uint8_t a[4], p[2];
 	if (sscanf(args, "%hhu,%hhu,%hhu,%hhu,%hhu,%hhu",
 			&(a[3]), &(a[2]), &(a[1]), &(a[0]),
@@ -350,7 +350,7 @@ bool FTPClient::CommandPORT(FTPClient &client, char *cmd, char* args) {
 		try {
 			client.data = std::shared_ptr<ClientSocket>(new ClientSocket(address, port));
 		} catch (SocketAddress::HostNotFound e) {
-			FTP_DBG_PRINTF("Host not found %s:%hu\n", address.c_str(), port);
+			FTP_DBG_PRINTF("Host not found %s:%hu", address.c_str(), port);
 			client.socket->send(buildReply(501)); // Invalid parameters
 		}
 
@@ -364,10 +364,10 @@ bool FTPClient::CommandPORT(FTPClient &client, char *cmd, char* args) {
 
 bool FTPClient::CommandPASV(FTPClient &client, char *cmd, char* args) {
 	// Possible replies: 227, 500, 501, 502, 421, 530
-	FTP_DBG_PRINTF("Setting passive mode\n");
+	FTP_DBG_PRINTF("Setting passive mode");
 	const uint16_t dataport = client.ftpserver.getDataPort();
 
-	if (!client.dataserver.get()) {
+	if (!client.dataserver) {
 		client.dataserver = std::shared_ptr<ServerSocket>(new ServerSocket(dataport, 1));
 		client.dataserver->reuse(); // Reuse the port, otherwise binding might fail
 		if (client.dataserver->listen() < 0) {
@@ -380,7 +380,7 @@ bool FTPClient::CommandPASV(FTPClient &client, char *cmd, char* args) {
 	extern Network *pNetworkInstance;
 	if (!pNetworkInstance) {
 		// Something is terribly wrong, exit
-		FTP_DBG_PRINTF("FATAL: pNetworkInstance was NULL\n");
+		FTP_DBG_PRINTF("FATAL: pNetworkInstance was NULL");
 		return false;
 	}
 
@@ -403,7 +403,7 @@ bool FTPClient::CommandPASV(FTPClient &client, char *cmd, char* args) {
 
 bool FTPClient::CommandTYPE(FTPClient &client, char *cmd, char* args) {
 	// Possible replies: 200, 500, 501, 504, 421, 530
-	FTP_DBG_PRINTF("Setting TYPE to %s\n", args);
+	FTP_DBG_PRINTF("Setting TYPE to %s", args);
 	// Only support ASCII non-print and Image/Binary for the moment
 	if (args) {
 		if (args[0] == 'A') {
@@ -425,7 +425,7 @@ bool FTPClient::CommandTYPE(FTPClient &client, char *cmd, char* args) {
 
 bool FTPClient::CommandMODE(FTPClient &client, char *cmd, char* args) {
 	// Possible replies: 200, 500, 501, 504, 421, 530
-	FTP_DBG_PRINTF("Setting MODE to %s\n", args);
+	FTP_DBG_PRINTF("Setting MODE to %s", args);
 	// Only Stream mode is supported for the moment, maybe block would be interesting too
 	if (args) {
 		if (args[0] == 'F') {
@@ -444,7 +444,7 @@ bool FTPClient::CommandMODE(FTPClient &client, char *cmd, char* args) {
 
 bool FTPClient::CommandSTRU(FTPClient &client, char *cmd, char* args) {
 	// Possible replies: 200, 500, 501, 504, 421, 530
-	FTP_DBG_PRINTF("Setting file structure to %s\n", args);
+	FTP_DBG_PRINTF("Setting file structure to %s", args);
 	// Only File structure is supported for the moment
 	if (args) {
 		if (args[0] == 'F') {
@@ -463,7 +463,7 @@ bool FTPClient::CommandSTRU(FTPClient &client, char *cmd, char* args) {
 
 bool FTPClient::CommandSTOR(FTPClient &client, char *cmd, char* filename) {
 	// Possible replies: (125, 150) -> (110, 226, 250, 425, 426, 451, 551, 552), 532, 450, 452, 553, 500, 501, 421, 530
-	FTP_DBG_PRINTF("Receiving file %s\n", filename);
+	FTP_DBG_PRINTF("Receiving file %s", filename);
 
 	if (!filename) {
 		client.socket->send(buildReply(501)); // Invalid parameters
@@ -487,7 +487,7 @@ bool FTPClient::CommandSTOR(FTPClient &client, char *cmd, char* filename) {
 
 	// Pre-allocate and set read buffer
 	client.buffer.ptr = std::unique_ptr<uint8_t>(new uint8_t[FTP_MAX_PREALLOC]);
-	if (!client.buffer.ptr.get()) {
+	if (!client.buffer.ptr) {
 		client.socket->send(buildReply(450, "Cannot allocate enough memory."));
 		return true;
 	}
@@ -511,7 +511,7 @@ bool FTPClient::CommandSTOR(FTPClient &client, char *cmd, char* filename) {
 
 bool FTPClient::CommandRETR(FTPClient &client, char *cmd, char* filename) {
 	// Possible replies: (125, 150) -> (226, 250, 425, 426, 451), 450, 500, 501, 502, 421, 530
-	FTP_DBG_PRINTF("Sending file %s\n", filename);
+	FTP_DBG_PRINTF("Sending file %s", filename);
 
 	if (!filename) {
 		client.socket->send(buildReply(501)); // Invalid parameters
@@ -535,7 +535,7 @@ bool FTPClient::CommandRETR(FTPClient &client, char *cmd, char* filename) {
 
 	// Pre-allocate read buffer
 	client.buffer.ptr = std::unique_ptr<uint8_t>(new uint8_t[file->size]);
-	if (!client.buffer.ptr.get()) {
+	if (!client.buffer.ptr) {
 		client.socket->send(buildReply(450, "Cannot allocate enough memory."));
 		return true;
 	}
@@ -551,14 +551,14 @@ bool FTPClient::CommandRETR(FTPClient &client, char *cmd, char* filename) {
 	client.socket->send(buildReply(150)); // Establishing connection
 
 	if (client.mode == FTP_MODE_ACTIVE) {
-		if (!(client.data.get()) ||
+		if (!(client.data) ||
 			(dynamic_cast<ClientSocket*>(client.data.get())->connect() != 0)) {
 			client.socket->send(buildReply(425)); // Can't connect
 			return true;
 		}
 	}
 
-	if (client.data.get()) {
+	if (client.data) {
 		// There is a data connection already established
 
 		// Send the file
@@ -582,14 +582,14 @@ bool FTPClient::CommandRETR(FTPClient &client, char *cmd, char* filename) {
 
 bool FTPClient::CommandNOOP(FTPClient &client, char *cmd, char* args) {
 	// Possible replies: 200, 500, 421
-	FTP_DBG_PRINTF("Noop\n");
+	FTP_DBG_PRINTF("Noop");
 	client.socket->send(buildReply(200)); // Okay
 	return true;
 }
 
 bool FTPClient::CommandPASS(FTPClient &client, char *cmd, char* pass) {
 	// Possible replies: 230, 530, 500, 501, 421, 331, 332
-	FTP_DBG_PRINTF("Pass is %s\n", pass);
+	FTP_DBG_PRINTF("Pass is %s", pass);
 
 	// Attempt to authenticate user with server authenticate callback
 	if (!client.ftpserver.authenticateUser(client.username, pass)) {
@@ -606,13 +606,14 @@ bool FTPClient::CommandPASS(FTPClient &client, char *cmd, char* pass) {
 
 bool FTPClient::CommandPWD(FTPClient &client, char *cmd, char* args) {
 	// Possible replies: 257, 500, 501, 502, 421, 550
+	FTP_DBG_PRINTF("PWD, path is %s", client.curpath.c_str());
 	client.socket->send(buildReply(257, client.curpath));
 	return true;
 }
 
 bool FTPClient::CommandLIST(FTPClient &client, char *cmd, char* path) {
 	// Possible replies: (125, 150) -> (226, 250, 425, 426, 451), 450, 500, 501, 502, 421, 530
-	FTP_DBG_PRINTF("List %s\n", path);
+	FTP_DBG_PRINTF("List %s", path);
 
 	FTPFile::DirectoryContents *contents = NULL;
 
@@ -658,7 +659,7 @@ bool FTPClient::CommandLIST(FTPClient &client, char *cmd, char* path) {
 		notsent = (client.data->send(str) != (signed)str.length());
 		client.data = nullptr;
 	} else {
-		if (client.data.get()) {
+		if (client.data) {
 			// There is a data connection established
 			client.socket->send(buildReply(150)); // Establishing connection
 			notsent = (client.data->send(str) != (signed)str.length());
@@ -668,7 +669,7 @@ bool FTPClient::CommandLIST(FTPClient &client, char *cmd, char* path) {
 
 			// Pre-allocate read buffer
 			client.buffer.ptr = std::unique_ptr<uint8_t>(new uint8_t[str.length()]);
-			if (!client.buffer.ptr.get()) {
+			if (!client.buffer.ptr) {
 				client.socket->send(buildReply(450, "Cannot allocate enough memory."));
 				return true;
 			}
@@ -697,7 +698,7 @@ bool FTPClient::CommandLIST(FTPClient &client, char *cmd, char* path) {
 
 bool FTPClient::CommandCWD(FTPClient &client, char *cmd, char* path) {
 	// Possible replies: 250, 500, 501, 502, 421, 530, 550
-	FTP_DBG_PRINTF("CWD %s\n", path);
+	FTP_DBG_PRINTF("CWD %s", path);
 
 	if (path == NULL) {
 		// No path given
@@ -744,7 +745,7 @@ bool FTPClient::CommandCWD(FTPClient &client, char *cmd, char* path) {
 
 bool FTPClient::CommandCDUP(FTPClient &client, char *cmd, char* args) {
 	// Possible replies: 200, 500, 501, 502, 421, 530, 550
-	FTP_DBG_PRINTF("CDUP\n");
+	FTP_DBG_PRINTF("CDUP");
 
 	// Split the current path
 	std::vector<std::string> vpath = stringSplit(client.curpath, '/');
