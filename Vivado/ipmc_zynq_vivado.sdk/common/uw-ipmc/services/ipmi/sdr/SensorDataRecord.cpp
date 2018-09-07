@@ -8,6 +8,11 @@
 #include <services/ipmi/sdr/SensorDataRecord.h>
 #include <IPMC.h>
 
+#include <services/ipmi/sdr/SensorDataRecord01.h>
+#include <services/ipmi/sdr/SensorDataRecord02.h>
+#include <services/ipmi/sdr/SensorDataRecord03.h>
+#include <services/ipmi/sdr/SensorDataRecord12.h>
+
 /**
  * Validate the current Sensor Data Record.
  *
@@ -20,10 +25,10 @@
  *
  * @return true if the record is well-formed, else false
  */
-bool SensorDataRecord::validate() {
+bool SensorDataRecord::validate() const {
 	if (this->sdr_data.size() < 4)
 		return false;
-	if (this->sdr_data.size() != (4U + this->sdr_data[3]))
+	if (this->sdr_data.size() != (5U + this->sdr_data[4]))
 		return false;
 	return true;
 }
@@ -37,40 +42,46 @@ bool SensorDataRecord::validate() {
  *
  * @return A shared_ptr to a subclass if possible, false otherwise.
  */
-std::shared_ptr<SensorDataRecord> SensorDataRecord::interpret() {
+std::shared_ptr<SensorDataRecord> SensorDataRecord::interpret() const {
 	if (!this->validate())
 		return NULL;
-	switch (this->get_record_type()) {
+	SensorDataRecord *rec = NULL;
+	switch (this->record_type()) {
+	case 0x01: rec = new SensorDataRecord01(this->sdr_data); break;
+	case 0x02: rec = new SensorDataRecord02(this->sdr_data); break;
+	case 0x03: rec = new SensorDataRecord03(this->sdr_data); break;
+	case 0x12: rec = new SensorDataRecord12(this->sdr_data); break;
 	default:
 		/* If interpretation fails, return NULL, rather than a copy of *this, so
 		 * that the user knows not to call get_record_key().
 		 */
-		return NULL;
+		rec = NULL;
 	}
+	return std::shared_ptr<SensorDataRecord>(rec);
 }
 
-uint16_t SensorDataRecord::get_record_id() {
+uint16_t SensorDataRecord::record_id() const {
 	configASSERT(this->sdr_data.size() >= 2);
 	return (this->sdr_data[0] << 8) | this->sdr_data[1];
 }
 
-void SensorDataRecord::set_record_id(uint16_t record_id) {
+void SensorDataRecord::record_id(uint16_t record_id) {
 	configASSERT(this->sdr_data.size() >= 2);
 	this->sdr_data[0] = record_id >> 8;
 	this->sdr_data[1] = record_id & 0xff;
 }
 
-uint8_t SensorDataRecord::get_record_version() {
+uint8_t SensorDataRecord::record_version() const {
 	configASSERT(this->sdr_data.size() >= 3);
 	return this->sdr_data[2];
 }
 
-uint8_t SensorDataRecord::get_record_type() {
+uint8_t SensorDataRecord::record_type() const {
 	configASSERT(this->sdr_data.size() >= 4);
 	return this->sdr_data[3];
 }
 
-std::vector<uint8_t> SensorDataRecord::get_record_key() {
+std::vector<uint8_t> SensorDataRecord::record_key() const {
 	configASSERT(0); // Supported only by derived classes.
 	return std::vector<uint8_t>();
 }

@@ -20,6 +20,8 @@ public:
 	/// Instantiate a Type 01 SensorDataRecord
 	SensorDataRecord01(const std::vector<uint8_t> &sdr_data) : SensorDataRecordSensor(sdr_data), SensorDataRecordReadableSensor(sdr_data) { };
 	virtual ~SensorDataRecord01() { };
+	virtual bool validate() const;
+	virtual uint8_t parsed_record_type() const { return 0x01; };
 
 	/**
 	 * SDR Data Accessors
@@ -28,7 +30,7 @@ public:
 	 */
 	///@{
 #define SDR_FIELD(name, type, byte, a, b) \
-	virtual type name(); \
+	virtual type name() const; \
 	virtual void name(type val);
 
 	enum Linearization {
@@ -89,7 +91,7 @@ public:
 	SDR_FIELD(oem, uint8_t, 46, 7, 0)
 
 #undef SDR_FIELD
-	virtual uint8_t _get_id_string_offset() { return 47; };
+	virtual uint8_t _get_id_string_offset() const { return 47; };
 	///@}
 
 };

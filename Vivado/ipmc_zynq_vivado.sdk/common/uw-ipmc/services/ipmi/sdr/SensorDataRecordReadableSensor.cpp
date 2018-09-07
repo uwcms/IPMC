@@ -13,7 +13,7 @@
 
 /// Define a `type` type SDR_FIELD from byte `byte`[a:b].
 #define SDR_FIELD(name, type, byte, a, b) \
-	type SensorDataRecordReadableSensor::name() { \
+	type SensorDataRecordReadableSensor::name() const { \
 		configASSERT(this->validate()); \
 		return static_cast<type>((this->sdr_data[byte] >> (b)) & LOWBITS((a)-(b)+1)); \
 	} \
@@ -42,7 +42,7 @@ SDR_FIELD(sensor_event_message_control_support, uint8_t, 11, 1, 0)
 SDR_FIELD(sensor_type_code, uint8_t, 12, 7, 0)
 SDR_FIELD(event_type_reading_code, uint8_t, 13, 7, 0)
 
-uint16_t SensorDataRecordReadableSensor::assertion_lower_threshold_reading_mask() {
+uint16_t SensorDataRecordReadableSensor::assertion_lower_threshold_reading_mask() const {
 	configASSERT(this->validate());
 	return (this->sdr_data[14]<<8) | this->sdr_data[15];
 }
@@ -52,7 +52,7 @@ void SensorDataRecordReadableSensor::assertion_lower_threshold_reading_mask(uint
 	this->sdr_data[15] = val & 0xff;
 }
 
-uint16_t SensorDataRecordReadableSensor::deassertion_upper_threshold_reading_mask() {
+uint16_t SensorDataRecordReadableSensor::deassertion_upper_threshold_reading_mask() const {
 	configASSERT(this->validate());
 	return (this->sdr_data[16]<<8) | this->sdr_data[17];
 }
@@ -62,7 +62,7 @@ void SensorDataRecordReadableSensor::deassertion_upper_threshold_reading_mask(ui
 	this->sdr_data[17] = val & 0xff;
 }
 
-uint16_t SensorDataRecordReadableSensor::discrete_reading_setable_threshold_reading_mask() {
+uint16_t SensorDataRecordReadableSensor::discrete_reading_setable_threshold_reading_mask() const {
 	configASSERT(this->validate());
 	return (this->sdr_data[18]<<8) | this->sdr_data[19];
 }
@@ -77,7 +77,7 @@ SDR_FIELD(units_rate_unit, enum SensorDataRecordReadableSensor::UnitsRateUnit, 2
 SDR_FIELD(units_modifier_unit, enum SensorDataRecordReadableSensor::UnitsModifierUnit, 20, 2, 1)
 SDR_FIELD(units_percentage, bool, 20, 0, 0)
 
-uint8_t SensorDataRecordReadableSensor::hysteresis_high() {
+uint8_t SensorDataRecordReadableSensor::hysteresis_high() const {
 	configASSERT(0); // How'd you construct this object?  It should be virtual.
 	return 0;
 }
@@ -85,7 +85,7 @@ void SensorDataRecordReadableSensor::hysteresis_high(uint8_t val) {
 	configASSERT(0); // How'd you construct this object?  It should be virtual.
 }
 
-uint8_t SensorDataRecordReadableSensor::hysteresis_low() {
+uint8_t SensorDataRecordReadableSensor::hysteresis_low() const {
 	configASSERT(0); // How'd you construct this object?  It should be virtual.
 	return 0;
 }

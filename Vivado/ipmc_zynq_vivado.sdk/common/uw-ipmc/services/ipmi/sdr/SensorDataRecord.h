@@ -29,9 +29,13 @@ public:
 	SensorDataRecord(const std::vector<uint8_t> &sdr_data) : sdr_data(sdr_data) { };
 	virtual ~SensorDataRecord() { };
 
-	virtual bool validate();
+	virtual bool validate() const;
+	/**
+	 * @return the Record Type supported by the current handler subclass.
+	 */
+	virtual uint8_t parsed_record_type() const { return 0xFF; };
 
-	std::shared_ptr<SensorDataRecord> interpret(); // TODO: Review.
+	std::shared_ptr<SensorDataRecord> interpret() const; // TODO: Review.
 
 	/**
 	 * SDR Data Accessors
@@ -39,10 +43,10 @@ public:
 	 * \warning Do not call any accessors on a record that does not validate().
 	 */
 	///@{
-	virtual uint16_t get_record_id();
-	virtual void set_record_id(uint16_t record_id);
-	virtual uint8_t get_record_version();
-	virtual uint8_t get_record_type();
+	virtual uint16_t record_id() const;
+	virtual void record_id(uint16_t record_id);
+	virtual uint8_t record_version() const;
+	virtual uint8_t record_type() const;
 
 	/**
 	 * Get the record key bytes for this SensorDataRecord subclass.
@@ -50,7 +54,7 @@ public:
 	 * \warning Do not call this on an un-interpreted SensorDataRecord (i.e. non-subclass).
 	 * @return The record key bytes.
 	 */
-	virtual std::vector<uint8_t> get_record_key();
+	virtual std::vector<uint8_t> record_key() const;
 	///@}
 };
 

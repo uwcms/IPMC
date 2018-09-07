@@ -8,12 +8,20 @@
 #include <services/ipmi/sdr/SensorDataRecord01.h>
 #include <IPMC.h>
 
+bool SensorDataRecord01::validate() const {
+	if (!SensorDataRecordReadableSensor::validate())
+		return false;
+	if (this->record_type() != 0x01)
+		return false;
+	return true;
+}
+
 /// Create a bitmask with the lower `nbits` bits set.
 #define LOWBITS(nbits) (0xff >> (8-(nbits)))
 
 /// Define a `type` type SDR_FIELD from byte `byte`[a:b].
 #define SDR_FIELD(name, type, byte, a, b) \
-	type SensorDataRecord01::name() { \
+	type SensorDataRecord01::name() const { \
 		configASSERT(this->validate()); \
 		return static_cast<type>((this->sdr_data[byte] >> (b)) & LOWBITS((a)-(b)+1)); \
 	} \
@@ -26,7 +34,7 @@
 
 SDR_FIELD(linearization, enum SensorDataRecord01::Linearization, 23, 7, 0)
 
-uint16_t SensorDataRecord01::conversion_m() {
+uint16_t SensorDataRecord01::conversion_m() const {
 	configASSERT(this->validate());
 	return this->sdr_data[24] | ((this->sdr_data[25]&0xc0)<<2);
 }
@@ -40,7 +48,7 @@ void SensorDataRecord01::conversion_m(uint16_t val) {
 
 SDR_FIELD(conversion_m_tolerance, uint8_t, 25, 5, 0) // Unit: +/- half raw counts
 
-uint16_t SensorDataRecord01::conversion_b() {
+uint16_t SensorDataRecord01::conversion_b() const {
 	configASSERT(this->validate());
 	return this->sdr_data[26] | ((this->sdr_data[27]&0xc0)<<2);
 }
@@ -52,7 +60,7 @@ void SensorDataRecord01::conversion_b(uint16_t val) {
 	this->sdr_data[27] |= val >> 8;
 }
 
-uint16_t SensorDataRecord01::conversion_b_accuracy() {
+uint16_t SensorDataRecord01::conversion_b_accuracy() const {
 	configASSERT(this->validate());
 	return (this->sdr_data[27] & 0x3f) | ((this->sdr_data[28]&0xf0)<<2);
 }
@@ -69,7 +77,7 @@ SDR_FIELD(conversion_b_accuracy_exp, uint8_t, 28, 3, 2)
 
 SDR_FIELD(sensor_direction, enum SensorDataRecordReadableSensor::Direction, 28, 1, 0)
 
-int8_t SensorDataRecord01::r_exp() {
+int8_t SensorDataRecord01::r_exp() const {
 	configASSERT(this->validate());
 	uint8_t val = this->sdr_data[29] >> 4;
 	if (val & 0x08)
@@ -83,7 +91,7 @@ void SensorDataRecord01::r_exp(int8_t val) {
 	this->sdr_data[29] = (uval<<4) | (this->sdr_data[29] & 0x0f);
 }
 
-int8_t SensorDataRecord01::b_exp() {
+int8_t SensorDataRecord01::b_exp() const {
 	configASSERT(this->validate());
 	uint8_t val = this->sdr_data[29] & 0x0f;
 	if (val & 0x08)
