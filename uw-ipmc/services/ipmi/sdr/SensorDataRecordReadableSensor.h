@@ -24,7 +24,7 @@ public:
 	 */
 	///@{
 #define SDR_FIELD(name, type, byte, a, b) \
-	virtual type name(); \
+	virtual type name() const; \
 	virtual void name(type val);
 
 	SDR_FIELD(sensor_setable, bool, 10, 7, 7)
@@ -46,15 +46,15 @@ public:
 	SDR_FIELD(event_type_reading_code, uint8_t, 13, 7, 0)
 
 	/// Assertion / Lower Threshold Reading Mask
-	virtual uint16_t assertion_lower_threshold_reading_mask();
+	virtual uint16_t assertion_lower_threshold_reading_mask() const;
 	virtual void assertion_lower_threshold_reading_mask(uint16_t val);
 
 	/// Deassertion / Upper Threshold Reading Mask
-	virtual uint16_t deassertion_upper_threshold_reading_mask();
+	virtual uint16_t deassertion_upper_threshold_reading_mask() const;
 	virtual void deassertion_upper_threshold_reading_mask(uint16_t val);
 
 	/// Discrete Reading Mask / Setable Threshold Reading Mask
-	virtual uint16_t discrete_reading_setable_threshold_reading_mask();
+	virtual uint16_t discrete_reading_setable_threshold_reading_mask() const;
 	virtual void discrete_reading_setable_threshold_reading_mask(uint16_t val);
 
 	enum UnitsNumericFormat {

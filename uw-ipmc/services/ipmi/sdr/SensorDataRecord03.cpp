@@ -8,12 +8,20 @@
 #include <services/ipmi/sdr/SensorDataRecord03.h>
 #include <IPMC.h>
 
+bool SensorDataRecord03::validate() const {
+	if (!SensorDataRecordSharedSensor::validate())
+		return false;
+	if (this->record_type() != 0x03)
+		return false;
+	return true;
+}
+
 /// Create a bitmask with the lower `nbits` bits set.
 #define LOWBITS(nbits) (0xff >> (8-(nbits)))
 
 /// Define a `type` type SDR_FIELD from byte `byte`[a:b].
 #define SDR_FIELD(name, type, byte, a, b) \
-	type SensorDataRecord03::name() { \
+	type SensorDataRecord03::name() const { \
 		configASSERT(this->validate()); \
 		return static_cast<type>((this->sdr_data[byte] >> (b)) & LOWBITS((a)-(b)+1)); \
 	} \

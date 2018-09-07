@@ -29,7 +29,7 @@ public:
 	 */
 	///@{
 #define SDR_FIELD(name, type, byte, a, b) \
-	virtual type name(); \
+	virtual type name() const; \
 	virtual void name(type val);
 
 	enum IDStringInstanceModifierType {
