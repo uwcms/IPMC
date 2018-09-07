@@ -150,7 +150,7 @@ else
 export DOXYGEN_GIT_DIRTY := (dirty)
 endif
 doxygen: doxygen.conf $(shell find -L . -type f \( -name '*.c' -o -name '*.cc' -o -name '*.cpp' -o -name '*.S' -o -name '*.h' \) )
-	doxygen doxygen.conf
+	doxygen doxygen.conf 2>&1 | egrep -vi -e '^error: Problems running dot: ' -e 'dot: symbol lookup error: dot: undefined symbol: GvExitOnUsage'
 
 clean:
 	rm -rf .dep/$(BUILD_CONFIGURATION)/ .obj/$(BUILD_CONFIGURATION)/ bin/$(BUILD_CONFIGURATION) doxygen/ Xilinx.spec
