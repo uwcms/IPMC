@@ -103,7 +103,7 @@ uint8_t IPMBSvc::lookup_ipmb_address(const int gpios[8]) {
 	 * We should eventually find a way to do as specified for this, send an
 	 * error report, and at least mention something on the console.
 	 */
-	configASSERT(parity);
+	//configASSERT(parity);
 	return (address & 0x7f)<<1; // The high HA bit on the Zone 1 connector is parity.  IPMB addr is HWaddr<<1
 }
 
