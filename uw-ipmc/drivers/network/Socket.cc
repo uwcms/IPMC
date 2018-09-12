@@ -41,7 +41,7 @@ Socket::~Socket() {
 	this->close();
 }
 
-int Socket::recv(void* buf, int len) {
+int Socket::recv(void* buf, size_t len) {
 	return lwip_recv(this->socketfd, buf, len, 0);
 }
 
@@ -59,23 +59,24 @@ int Socket::recv(void* buf, int len, unsigned int timeout_ms) {
 	return r;
 }
 
-int Socket::recvn(void* buf, int len) {
+int Socket::recvn(void* buf, size_t len) {
 	uint8_t *t = (uint8_t*)buf;
-	while (len) {
-		int r = lwip_recv(this->socketfd, buf, len, 0);
-		if (r <= 0)
-			return r;
+	size_t rem = len;
+	while (rem) {
+		int r = lwip_recv(this->socketfd, buf, rem, 0);
+		if (r == 0) return (len - rem); // bytes received
+		if (r < 0) return r; // error
 		t += r;
-		len -= r;
+		rem -= r;
 	}
-	return 1;
+	return len;
 }
 
-int Socket::send(const void* buf, int len) {
+int Socket::send(const void* buf, size_t len) {
 	return lwip_send(this->socketfd, buf, len, 0);
 }
 
-int Socket::send(const void* buf, int len, unsigned int timeout_ms) {
+int Socket::send(const void* buf, size_t len, unsigned int timeout_ms) {
 	uint32_t old_timeout = getRecvTimeout();
 	setSendTimeout(timeout_ms); // Temporarily set the timeout
 
