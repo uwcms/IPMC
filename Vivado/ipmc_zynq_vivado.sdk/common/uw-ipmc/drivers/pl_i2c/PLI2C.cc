@@ -21,7 +21,7 @@
  * Pooling in the driver can be enabled by uncommenting the #define
  * below.
  */
-//#define PLI2C_USE_POOLING
+#define PLI2C_USE_POOLING
 
 extern XScuGic xInterruptController;
 
@@ -160,7 +160,7 @@ size_t PL_I2C::write(uint8_t addr, const uint8_t *buf, size_t len, TickType_t ti
 	XIic_Start(&(this->IicInst));
 
 	do {
-		if (XIic_DynMasterSend(&(this->IicInst), (u8*)buf, len) != XST_IIC_BUS_BUSY)
+		if (XIic_MasterSend(&(this->IicInst), (u8*)buf, len) != XST_IIC_BUS_BUSY)
 			break;
 
 		// Xilinx driver non-sense, if bus is busy when XIic_MasterRecv is called

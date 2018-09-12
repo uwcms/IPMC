@@ -27,6 +27,7 @@
 #include "libs/Authentication.h"
 
 /* Include drivers */
+#include <drivers/ps_xadc/PSXADC.h>
 #include <drivers/ps_uart/PSUART.h>
 #include <drivers/ps_spi/PSSPI.h>
 #include <drivers/ps_isfqspi/PSISFQSPI.h>
@@ -53,7 +54,7 @@ extern "C" {
 #include <services/ipmi/commands/IPMICmd_Index.h>
 #include <services/persistentstorage/PersistentStorage.h>
 #include <services/console/UARTConsoleSvc.h>
-#include <services/influxdb/InfluxDBClient.h>
+#include <services/influxdb/InfluxDB.h>
 #include <services/telnet/Telnet.h>
 #include <services/lwiperf/Lwiperf.h>
 #include <services/xvcserver/XVCServer.h>
@@ -82,13 +83,15 @@ PersistentStorage *persistent_storage;
 u8 mac_address[6];
 CommandParser console_command_parser;
 std::shared_ptr<UARTConsoleSvc> console_service;
-InfluxDBClient *influxdbclient;
+InfluxDB *influxdbclient;
 
 TelnetServer *telnet;
 
 ESM *esm;
 PL_GPIO *handle_gpio;
 LED_Controller atcaLEDs;
+
+PS_XADC *xadc;
 
 bool firmwareUpdateFailed = false;
 
@@ -165,6 +168,8 @@ void driver_init(bool use_pl) {
 	(new PIM400(*i2c, 0x5E))->register_console_commands(console_command_parser, "pim400");
 
 	LED_Controller_Initialize(&atcaLEDs, XPAR_AXI_ATCA_LED_CTRL_DEVICE_ID);
+
+	xadc = new PS_XADC(XPAR_XADCPS_0_DEVICE_ID);
 
 	for (int i = 0; i < XPAR_MGMT_ZONE_CTRL_0_MZ_CNT; ++i)
 		mgmt_zones[i] = new MGMT_Zone(XPAR_MGMT_ZONE_CTRL_0_DEVICE_ID, i);
@@ -348,14 +353,19 @@ void ipmc_service_init() {
 
 	// Last services should be network related
 	network = new Network(LOG["network"], mac_address, [](Network *network) {
-		// Network Ready callback.
+		// Network Ready callback, start primary services
+		sntp_init();
 
-		/*influxdbclient = new InfluxDBClient(LOG["influxdb"]);
-		influxdbclient->register_console_commands(console_command_parser, "influxdb.");*/
+		// Start secondary services
+		influxdbclient = new InfluxDB(LOG["influxdb"]);
+		influxdbclient->register_console_commands(console_command_parser, "influxdb.");
+
 		telnet = new TelnetServer(LOG["telnetd"]);
 
-		// TODO: Can be removed when not needed
+		// Start iperf server
 		new Lwiperf(5001);
+
+		// Start XVC server
 		new XVCServer(XPAR_AXI_JTAG_0_BASEADDR);
 
 		// Start FTP server
@@ -364,8 +374,33 @@ void ipmc_service_init() {
 			FTPServer::addFile("virtual/esm.bin", esm->createFlashFile());
 		new FTPServer(Auth::ValidateCredentials);
 
-		//sntp_servermode_dhcp(1);
-		sntp_init();
+		// Start the sensor gathering thread
+		// TODO: Move at some point
+		UWTaskCreate("statd", TASK_PRIORITY_BACKGROUND, []() -> void {
+			const std::string id = stdsprintf("%02x:%02x:%02x:%02x:%02x:%02x",
+					mac_address[5], mac_address[4], mac_address[3], mac_address[2], mac_address[1], mac_address[0]);
+
+			const InfluxDB::TagSet tags = {{"id", id}};
+
+			while (1) {
+				vTaskDelay(pdMS_TO_TICKS(10000));
+
+				const long long timestamp = InfluxDB::getCurrentTimestamp();
+
+				const size_t heapBytes = configTOTAL_HEAP_SIZE - xPortGetFreeHeapSize();
+				influxdbclient->write("heap", tags, {{"used", std::to_string(heapBytes)}}, timestamp);
+
+				influxdbclient->write("xadc", tags, {
+					{"temp", std::to_string(xadc->getTemperature())},
+					{"vccint", std::to_string(xadc->getVccInt())},
+					{"vccaux", std::to_string(xadc->getVccAux())},
+					{"vbram", std::to_string(xadc->getVbram())},
+					{"vccpint", std::to_string(xadc->getVccPInt())},
+					{"vccpaux", std::to_string(xadc->getVccPAux())},
+					{"vccpdro", std::to_string(xadc->getVccPdro())},
+				}, timestamp);
+			}
+		});
 	});
 	network->register_console_commands(console_command_parser, "network.");
 }

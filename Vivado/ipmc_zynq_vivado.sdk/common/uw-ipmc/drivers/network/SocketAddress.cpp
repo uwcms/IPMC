@@ -10,12 +10,13 @@
 #include <string.h>
 #include <lwip/netdb.h>
 
-SocketAddress::SocketAddress(const std::string& address, unsigned short port)
-: sockaddr({0}) {
+SocketAddress::SocketAddress(const std::string& address, unsigned short port) {
+	memset(&(this->sockaddr), 0, sizeof(this->sockaddr));
+	this->sockaddr.sin_len = sizeof(this->sockaddr);
 	this->sockaddr.sin_port = htons(port);
 	this->sockaddr.sin_family = AF_INET;
 
-	if (inet_aton(address.c_str(), &this->sockaddr.sin_addr) == 0) {
+	if (inet_aton(address.c_str(), &(this->sockaddr.sin_addr)) == 0) {
 		// Invalid address format
 		// TODO: Use lwip_gethostbyname_r to be threadsafe
 		struct hostent *host = lwip_gethostbyname(address.c_str());

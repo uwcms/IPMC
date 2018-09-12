@@ -51,7 +51,7 @@ public:
 	 * @param len The length of the buffer in buffer.
 	 * @return The Total number of read bytes.
 	 */
-	int recv(void *ptr, int len);
+	int recv(void *ptr, size_t len);
 
 	/**
 	 * Same as Socket::recv but with a custom timeout. For permanent timeout in
@@ -65,22 +65,20 @@ public:
 	 */
 	int recv(void* buf, int len, unsigned int timeout_ms);
 
-	int recv(std::string& str);
-
 	/**
-	 * Will receive the number of requested bytes.
+	 * Will receive the number of requested bytes or until there is a termination.
 	 * @param ptr The data buffer.
 	 * @param len Number of bytes available in buffer and quantity to read.
-	 * @return 1 if read successful.
+	 * @return Number of received bytes if positive or negative if error.
 	 */
-	int recvn(void *ptr, int len);
+	int recvn(void *ptr, size_t len);
 
 	/**
 	 * Sends an array of characters to the client.
 	 * @param buf The character buffer.
 	 * @param len The starting position.
 	 */
-	int send(const void* buf, int len);
+	int send(const void* buf, size_t len);
 
 	/**
 	 * Sends an array of characters to the client with a timeout set. This
@@ -91,7 +89,7 @@ public:
 	 * @return The total number of read bytes.
 	 * @throws Socket::Timeout if there was a timeout.
 	 */
-	int send(const void* buf, int len, unsigned int timeout_ms);
+	int send(const void* buf, size_t len, unsigned int timeout_ms);
 
 	/**
 	 * Sends a string to the client.
