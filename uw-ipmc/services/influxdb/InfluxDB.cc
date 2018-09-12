@@ -89,6 +89,8 @@ bool InfluxDB::write(const std::string& measurement, const TagSet& tags, const F
 
 void InfluxDB::_backgroundTask() {
 	while (1) {
+		vTaskDelay(this->flushTicks);
+
 		std::unique_ptr<MetricSet> metrics = nullptr;
 
 		{ // Mutexed scope, swap the metrics block
@@ -118,8 +120,6 @@ void InfluxDB::_backgroundTask() {
 			this->pushedMeasurements += metrics->size();
 #endif
 		}
-
-		vTaskDelay(this->flushTicks);
 	}
 }
 
