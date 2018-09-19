@@ -31,6 +31,10 @@ class IPMICommandParser;
 extern IPMBSvc *ipmb0;
 extern IPMICommandParser *ipmi_command_parser;
 
+class SensorDataRepository;
+extern SensorDataRepository sdr_repo;
+extern SensorDataRepository device_sdr_repo;
+
 extern LogTree LOG;
 extern LogTree::Filter *console_log_filter;
 class TraceBuffer;
