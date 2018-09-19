@@ -581,13 +581,16 @@ public:
 			const CommandParser::CommandParameters &parameters) {
 		uint8_t ipmbtarget;
 		uint8_t frudev;
-		if (!parameters.parse_parameters(1, true, &ipmbtarget, &frudev)) {
-			console->write("Incorrect parameters.  Try help.\n");
-			return;
+		bool all = false;
+		if (!parameters.parse_parameters(1, true, &ipmbtarget, &frudev, &all)) {
+			if (!parameters.parse_parameters(1, true, &ipmbtarget, &frudev)) {
+				console->write("Incorrect parameters.  Try help.\n");
+				return;
+			}
 		}
 		IPMBSvc *ipmb = &this->ipmb;
 		UWTaskCreate("dump_fru_store", TASK_PRIORITY_INTERACTIVE,
-				[ipmb, console, ipmbtarget, frudev]() -> void {
+				[ipmb, console, ipmbtarget, frudev, all]() -> void {
 					std::shared_ptr<RemoteFRUStorage> storage = RemoteFRUStorage::Probe(ipmb, ipmbtarget, frudev);
 					if (!storage) {
 						console->write(stdsprintf("Error querying FRU Inventory Area Info for FRU Device %02hhXh at IPMB address %02hhXh.\n", frudev, ipmbtarget));
@@ -690,8 +693,26 @@ public:
 							}
 							console->write(outbuf);
 						}
-						if (storage->multirecord_area_offset)
-							console->write("Multi-Record Area: Present\n");
+						if (storage->multirecord_area_offset) {
+							if (!all) {
+								console->write("Multi-Record Area: Present\n");
+							}
+							else {
+								console->write("Multi-Record Area:\n");
+								std::vector< std::vector<uint8_t> > records = storage->ReadMultiRecordArea();
+								if (records.empty()) {
+									console->write("  Read error.\n");
+								}
+								else {
+									for (auto it = records.begin(), eit = records.end(); it != eit; ++it) {
+										std::string recstr = " ";
+										for (auto sit = it->begin(), esit = it->end(); sit != esit; ++sit)
+											recstr += stdsprintf(" %02x", *sit);
+										console->write(recstr + "\n");
+									}
+								}
+							}
+						}
 					}
 					else {
 						// Invalid Header

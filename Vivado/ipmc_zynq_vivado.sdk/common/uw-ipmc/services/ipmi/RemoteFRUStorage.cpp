@@ -321,6 +321,31 @@ std::shared_ptr<RemoteFRUStorage::ProductInfoArea> RemoteFRUStorage::ReadProduct
 	return product;
 }
 
+std::vector< std::vector<uint8_t> > RemoteFRUStorage::ReadMultiRecordArea(BaseType_t retry_delay) {
+	std::vector< std::vector<uint8_t> > records;
+	uint16_t offset = this->multirecord_area_offset;
+	while (true) {
+		std::vector<uint8_t> data = this->ReadData(offset, 5);
+		if (data.size() < 5)
+			return std::vector< std::vector<uint8_t> >(); // Unable to read value.
+		if (ipmi_checksum(data) != 0)
+			return std::vector< std::vector<uint8_t> >(); // Header checksum failure.
+		uint16_t size = 5+data[2];
+		data = this->ReadData(offset, size);
+		if (data.size() != size)
+			return std::vector< std::vector<uint8_t> >(); // Read failure.
+		if (ipmi_checksum(std::vector<uint8_t>(data.begin(), std::next(data.begin(), 5))) != 0)
+			return std::vector< std::vector<uint8_t> >(); // Header checksum failure on full read.
+		if (ipmi_checksum(std::vector<uint8_t>(std::next(data.begin(), 5), data.end())) != data[3])
+			return std::vector< std::vector<uint8_t> >(); // Record checksum failure.
+		records.emplace_back(data);
+		if (data[1] & 0x80 /* EOL */)
+			break; // Last entry.
+		offset += size;
+	}
+	return records;
+}
+
 const std::map<uint8_t, std::string> RemoteFRUStorage::ChassisInfo::chassis_type_descriptions{
 	{ 0x01, "Other"                 },
 	{ 0x02, "Unknown"               },
