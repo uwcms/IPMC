@@ -44,35 +44,34 @@ SDR_FIELD(event_type_reading_code, uint8_t, 13, 7, 0)
 
 uint16_t SensorDataRecordReadableSensor::assertion_lower_threshold_reading_mask() const {
 	configASSERT(this->validate());
-	return (this->sdr_data[14]<<8) | this->sdr_data[15];
+	return (this->sdr_data[15]<<8) | this->sdr_data[14];
 }
 void SensorDataRecordReadableSensor::assertion_lower_threshold_reading_mask(uint16_t val) {
 	configASSERT(this->validate());
-	this->sdr_data[14] = val >> 8;
-	this->sdr_data[15] = val & 0xff;
+	this->sdr_data[15] = val >> 8;
+	this->sdr_data[14] = val & 0xff;
 }
 
 uint16_t SensorDataRecordReadableSensor::deassertion_upper_threshold_reading_mask() const {
 	configASSERT(this->validate());
-	return (this->sdr_data[16]<<8) | this->sdr_data[17];
+	return (this->sdr_data[17]<<8) | this->sdr_data[16];
 }
 void SensorDataRecordReadableSensor::deassertion_upper_threshold_reading_mask(uint16_t val) {
 	configASSERT(this->validate());
-	this->sdr_data[16] = val >> 8;
-	this->sdr_data[17] = val & 0xff;
+	this->sdr_data[17] = val >> 8;
+	this->sdr_data[16] = val & 0xff;
 }
 
 uint16_t SensorDataRecordReadableSensor::discrete_reading_setable_threshold_reading_mask() const {
 	configASSERT(this->validate());
-	return (this->sdr_data[18]<<8) | this->sdr_data[19];
+	return (this->sdr_data[19]<<8) | this->sdr_data[18];
 }
 void SensorDataRecordReadableSensor::discrete_reading_setable_threshold_reading_mask(uint16_t val) {
 	configASSERT(this->validate());
-	this->sdr_data[18] = val >> 8;
-	this->sdr_data[19] = val & 0xff;
+	this->sdr_data[19] = val >> 8;
+	this->sdr_data[18] = val & 0xff;
 }
 
-SDR_FIELD(units_numeric_format, enum SensorDataRecordReadableSensor::UnitsNumericFormat, 20, 7, 6)
 SDR_FIELD(units_rate_unit, enum SensorDataRecordReadableSensor::UnitsRateUnit, 20, 5, 3)
 SDR_FIELD(units_modifier_unit, enum SensorDataRecordReadableSensor::UnitsModifierUnit, 20, 2, 1)
 SDR_FIELD(units_percentage, bool, 20, 0, 0)
