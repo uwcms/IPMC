@@ -26,7 +26,7 @@ public:
 	 * Instantiate a SensorDataRecord object with the provided raw record.
 	 * @param sdr_data The raw SDR record bytes
 	 */
-	SensorDataRecord(const std::vector<uint8_t> &sdr_data) : sdr_data(sdr_data) { };
+	SensorDataRecord(const std::vector<uint8_t> &sdr_data = std::vector<uint8_t>()) : sdr_data(sdr_data) { };
 	virtual ~SensorDataRecord() { };
 
 	virtual bool validate() const;

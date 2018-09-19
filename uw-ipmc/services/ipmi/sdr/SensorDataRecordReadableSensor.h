@@ -13,7 +13,7 @@
 class SensorDataRecordReadableSensor: virtual public SensorDataRecordSensor {
 protected:
 	// Instantiate a Readable Sensor Record
-	SensorDataRecordReadableSensor(const std::vector<uint8_t> &sdr_data) : SensorDataRecordSensor(sdr_data) { };
+	SensorDataRecordReadableSensor(const std::vector<uint8_t> &sdr_data = std::vector<uint8_t>()) : SensorDataRecordSensor(sdr_data) { };
 public:
 	virtual ~SensorDataRecordReadableSensor() { };
 
@@ -56,14 +56,6 @@ public:
 	/// Discrete Reading Mask / Setable Threshold Reading Mask
 	virtual uint16_t discrete_reading_setable_threshold_reading_mask() const;
 	virtual void discrete_reading_setable_threshold_reading_mask(uint16_t val);
-
-	enum UnitsNumericFormat {
-		UNITS_UNSIGNED     = 0,
-		UNITS_1SCOMPLEMENT = 1,
-		UNITS_2SCOMPLEMENT = 2,
-		UNITS_NONNUMERIC   = 3,
-	};
-	SDR_FIELD(units_numeric_format, enum UnitsNumericFormat, 20, 7, 6)
 
 	enum UnitsRateUnit {
 		RATE_UNIT_NONE     = 0,

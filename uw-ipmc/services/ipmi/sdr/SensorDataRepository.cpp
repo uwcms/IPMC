@@ -31,8 +31,11 @@ void SensorDataRepository::add(const SensorDataRecord &record) {
  * @param sdrepository The record to add
  */
 void SensorDataRepository::add(const SensorDataRepository &sdrepository) {
+	auto reservation = this->reservation;
 	for (auto it = sdrepository.records.begin(), eit = sdrepository.records.end(); it != eit; ++it)
 		this->add(**it);
+	this->reservation = this->reservation;
+	this->reserve(); // Increment reservation only once.
 }
 
 /**

@@ -18,6 +18,12 @@ bool SensorDataRecord02::validate() const {
 	return true;
 }
 
+void SensorDataRecord02::initialize_blank(std::string name) {
+	SensorDataRecordSensor::initialize_blank(name);
+	this->sdr_data[20] |= 0xc0; // Reserved, write 11b, by spec.
+	this->share_count(1); // We have at least one, not zero, sensors that we refer to by default.
+}
+
 /// Create a bitmask with the lower `nbits` bits set.
 #define LOWBITS(nbits) (0xff >> (8-(nbits)))
 
