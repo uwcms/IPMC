@@ -21,8 +21,8 @@ public:
 	 * @param t Timeout if required, default is portMAX_DELAY, which will wait forever.
 	 * @note If a timeout is defined then isLocked should be used after construction.
 	 */
-	inline MutexLock(SemaphoreHandle_t &m, const TickType_t t = portMAX_DELAY) : mutex(m) { locked = xSemaphoreTake(this->mutex, t); };
-	inline ~MutexLock() { xSemaphoreGive(this->mutex); };
+	inline MutexLock(SemaphoreHandle_t &m, const TickType_t t = portMAX_DELAY) : mutex(m) { this->locked = xSemaphoreTake(this->mutex, t); };
+	inline ~MutexLock() { if (this->locked) xSemaphoreGive(this->mutex); };
 	///! Returns true if the mutex successfully locked, only required when timeout is set.
 	inline bool isLocked() { return locked; };
 private:
