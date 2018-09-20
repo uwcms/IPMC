@@ -527,8 +527,8 @@ public:
 	//virtual std::vector<std::string> complete(const CommandParser::CommandParameters &parameters) const { };
 };
 
-/// A "time" console command.
-class ConsoleCommand_time : public CommandParser::Command {
+/// A "date" console command.
+class ConsoleCommand_date : public CommandParser::Command {
 public:
 	virtual std::string get_helptext(const std::string &command) const {
 		return stdsprintf(
@@ -772,7 +772,7 @@ public:
 
 static void register_core_console_commands(CommandParser &parser) {
 	console_command_parser.register_command("uptime", std::make_shared<ConsoleCommand_uptime>());
-	console_command_parser.register_command("time", std::make_shared<ConsoleCommand_time>());
+	console_command_parser.register_command("date", std::make_shared<ConsoleCommand_date>());
 	console_command_parser.register_command("version", std::make_shared<ConsoleCommand_version>());
 	console_command_parser.register_command("ps", std::make_shared<ConsoleCommand_ps>());
 	console_command_parser.register_command("backend_power", std::make_shared<ConsoleCommand_backend_power>());
