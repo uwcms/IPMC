@@ -12,7 +12,7 @@
 class SensorDataRecordSensor : public SensorDataRecord {
 protected:
 	/// Protected constructor since our type-code based accessors are technically virtual
-	SensorDataRecordSensor(const std::vector<uint8_t> &sdr_data) : SensorDataRecord(sdr_data) { };
+	SensorDataRecordSensor(const std::vector<uint8_t> &sdr_data = std::vector<uint8_t>()) : SensorDataRecord(sdr_data) { };
 public:
 	virtual ~SensorDataRecordSensor() { };
 

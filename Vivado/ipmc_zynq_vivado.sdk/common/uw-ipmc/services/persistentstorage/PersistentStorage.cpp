@@ -129,7 +129,7 @@ void *PersistentStorage::get_section(u16 section_id, u16 section_version, u16 se
 				xSemaphoreGive(this->index_mutex);
 				return NULL;
 			}
-			if (index[i].pgcount != section_pgcount) {
+			if (index[i].pgcount < section_pgcount) {
 				this->logtree.log(stdsprintf("Size mismatch retrieving persistent storage section 0x%04hx: %hu pages requested, %hu pages present.", section_id, section_pgcount, index[i].pgcount), LogTree::LOG_ERROR);
 				xSemaphoreGive(this->index_mutex);
 				return NULL;

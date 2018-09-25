@@ -53,6 +53,10 @@ extern "C" {
 #include <services/ipmi/ipmbsvc/IPMBSvc.h>
 #include <services/ipmi/ipmbsvc/IPMICommandParser.h>
 #include <services/ipmi/commands/IPMICmd_Index.h>
+#include <services/ipmi/sdr/SensorDataRepository.h>
+#include <services/ipmi/sdr/SensorDataRecord01.h>
+#include <services/ipmi/sdr/SensorDataRecord02.h>
+#include <services/ipmi/sdr/SensorDataRecord12.h>
 #include <services/persistentstorage/PersistentStorage.h>
 #include <services/console/UARTConsoleSvc.h>
 #include <services/influxdb/InfluxDB.h>
@@ -72,6 +76,8 @@ PS_ISFQSPI *isfqspi;
 IPMBSvc *ipmb0;
 Network *network;
 IPMICommandParser *ipmi_command_parser;
+SensorDataRepository sdr_repo;
+SensorDataRepository device_sdr_repo;
 XGpioPs gpiops;
 LogTree LOG("ipmc");
 LogTree::Filter *console_log_filter;
@@ -101,6 +107,7 @@ bool firmwareUpdateFailed = false;
 // External static variables
 extern uint8_t mac_address[6]; ///< The MAC address of the board, read by persistent storage statically
 
+static void init_device_sdrs();
 static void tracebuffer_log_handler(LogTree &logtree, const std::string &message, enum LogTree::LogLevel level);
 static void register_core_console_commands(CommandParser &parser);
 static void console_log_handler(LogTree &logtree, const std::string &message, enum LogTree::LogLevel level);
@@ -430,6 +437,55 @@ void ipmc_service_init() {
 	network->register_console_commands(console_command_parser, "network.");
 }
 
+/**
+ * Initialize Device SDRs for this controller.
+ */
+static void init_device_sdrs() {
+	// Management Controller Device Locator Record for ourself.
+	SensorDataRecord12 mcdlr;
+	mcdlr.initialize_blank("UW ZYNQ IPMC");
+	mcdlr.device_slave_address(ipmb0->ipmb_address);
+	mcdlr.channel(0);
+	mcdlr.acpi_device_power_state_notification_required(false);
+	mcdlr.acpi_system_power_state_notification_required(false);
+	mcdlr.is_static(false);
+	mcdlr.init_agent_logs_errors(false);
+	mcdlr.init_agent_log_errors_accessing_this_controller(false);
+	mcdlr.init_agent_init_type(SensorDataRecord12::INIT_ENABLE_EVENTS);
+	mcdlr.cap_chassis_device(false);
+	mcdlr.cap_bridge(false);
+	mcdlr.cap_ipmb_event_generator(true);
+	mcdlr.cap_ipmb_event_receiver(true); // Possibly not required.  See also Get PICMG Properties code.
+	mcdlr.cap_fru_inventory_device(true);
+	mcdlr.cap_sel_device(false);
+	mcdlr.cap_sdr_repository_device(true);
+	mcdlr.cap_sensor_device(true);
+	mcdlr.entity_id(0xA0);
+	mcdlr.entity_instance(0x60);
+	device_sdr_repo.add(mcdlr);
+
+	// Hotswap Sensor
+	SensorDataRecord02 hotswap;
+	hotswap.initialize_blank("Hotswap");
+	hotswap.entity_id(0xA0);
+	hotswap.entity_instance(0x60);
+	hotswap.events_enabled_default(true);
+	hotswap.scanning_enabled_default(true);
+	hotswap.sensor_auto_rearm(true);
+	hotswap.sensor_hysteresis_support(0);
+	hotswap.sensor_threshold_access_support(0);
+	hotswap.sensor_event_message_control_support(0);
+	hotswap.sensor_type_code(0xf0); // Hotswap
+	hotswap.event_type_reading_code(0x6f); // Sensor-specific discrete
+	hotswap.assertion_lower_threshold_reading_mask(0x00ff); // M7:M0
+	hotswap.deassertion_upper_threshold_reading_mask(0); // M7:M0
+	hotswap.discrete_reading_setable_threshold_reading_mask(0x00ff); // M7:M0
+	// I don't need to specify unit type codes for this sensor.
+	device_sdr_repo.add(hotswap);
+
+	// I think these needta be imported to the main SDR repo too?
+	sdr_repo.add(device_sdr_repo);
+}
 
 void* operator new(std::size_t n) {
 	return pvPortMalloc(n);
@@ -496,8 +552,8 @@ public:
 	//virtual std::vector<std::string> complete(const CommandParser::CommandParameters &parameters) const { };
 };
 
-/// A "time" console command.
-class ConsoleCommand_time : public CommandParser::Command {
+/// A "date" console command.
+class ConsoleCommand_date : public CommandParser::Command {
 public:
 	virtual std::string get_helptext(const std::string &command) const {
 		return stdsprintf(
@@ -741,7 +797,7 @@ public:
 
 static void register_core_console_commands(CommandParser &parser) {
 	console_command_parser.register_command("uptime", std::make_shared<ConsoleCommand_uptime>());
-	console_command_parser.register_command("time", std::make_shared<ConsoleCommand_time>());
+	console_command_parser.register_command("date", std::make_shared<ConsoleCommand_date>());
 	console_command_parser.register_command("version", std::make_shared<ConsoleCommand_version>());
 	console_command_parser.register_command("ps", std::make_shared<ConsoleCommand_ps>());
 	console_command_parser.register_command("backend_power", std::make_shared<ConsoleCommand_backend_power>());
