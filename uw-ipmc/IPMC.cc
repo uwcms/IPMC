@@ -33,6 +33,7 @@
 #include <drivers/ps_isfqspi/PSISFQSPI.h>
 #include <drivers/pl_uart/PLUART.h>
 #include <drivers/pl_gpio/PLGPIO.h>
+#include <drivers/pl_spi/PLSPI.h>
 #include <drivers/watchdog/PSWDT.h>
 #include <drivers/network/Network.h>
 #include <drivers/spi_flash/SPIFLASH.h>
@@ -43,7 +44,7 @@
 #include <drivers/mgmt_zone/MGMTZone.h>
 #include <drivers/pim400/PIM400.h>
 #include <drivers/esm/ESM.h>
-#include <drivers/pl_spi/PLSPI.h>
+#include <drivers/ad7689/AD7689.h>
 extern "C" {
 #include "led_controller.h"
 }
@@ -90,6 +91,8 @@ TelnetServer *telnet;
 ESM *esm;
 PL_GPIO *handle_gpio;
 LED_Controller atcaLEDs;
+
+AD7689 *adc[2];
 
 PS_XADC *xadc;
 
@@ -168,6 +171,10 @@ void driver_init(bool use_pl) {
 	(new PIM400(*i2c, 0x5E))->register_console_commands(console_command_parser, "pim400");
 
 	LED_Controller_Initialize(&atcaLEDs, XPAR_AXI_ATCA_LED_CTRL_DEVICE_ID);
+
+	for (int i = 0; i < 2; i++) {
+		adc[i] = new AD7689(XPAR_AD7689_S_0_DEVICE_ID + 1);
+	}
 
 	xadc = new PS_XADC(XPAR_XADCPS_0_DEVICE_ID);
 
@@ -377,28 +384,46 @@ void ipmc_service_init() {
 		// Start the sensor gathering thread
 		// TODO: Move at some point
 		UWTaskCreate("statd", TASK_PRIORITY_BACKGROUND, []() -> void {
-			const std::string id = stdsprintf("%02x:%02x:%02x:%02x:%02x:%02x",
-					mac_address[5], mac_address[4], mac_address[3], mac_address[2], mac_address[1], mac_address[0]);
+			const std::string ipmc_mac = stdsprintf("%02x:%02x:%02x:%02x:%02x:%02x",
+					mac_address[0], mac_address[1], mac_address[2], mac_address[3], mac_address[4], mac_address[5]);
 
-			const InfluxDB::TagSet tags = {{"id", id}};
+			ADC::Channel::Callback tmp36 = [](float r) -> float  { return (r - 0.5) * 100.0; };
+			ADC::Channel v12pyld  (*adc[0], 0, 5.640);
+			ADC::Channel v5pyld   (*adc[0], 4, 2.400);
+			ADC::Channel v3p3pyld (*adc[0], 6, 1.600);
+			ADC::Channel v3p3mp   (*adc[0], 7, 1.600);
+			ADC::Channel tCDBbot  (*adc[1], 0, tmp36);
+			ADC::Channel v1p0eth  (*adc[1], 2);
+			ADC::Channel v2p5eth  (*adc[1], 4, 1.216);
+			ADC::Channel v1p2phy  (*adc[1], 5);
+			ADC::Channel tCDBtop  (*adc[1], 7, tmp36);
 
 			while (1) {
 				vTaskDelay(pdMS_TO_TICKS(10000));
 
-				const long long timestamp = InfluxDB::getCurrentTimestamp();
+				const InfluxDB::Timestamp timestamp = InfluxDB::getCurrentTimestamp();
 
 				const size_t heapBytes = configTOTAL_HEAP_SIZE - xPortGetFreeHeapSize();
-				influxdbclient->write("heap", tags, {{"used", std::to_string(heapBytes)}}, timestamp);
 
-				influxdbclient->write("xadc", tags, {
-					{"temp", std::to_string(xadc->getTemperature())},
-					{"vccint", std::to_string(xadc->getVccInt())},
-					{"vccaux", std::to_string(xadc->getVccAux())},
-					{"vbram", std::to_string(xadc->getVbram())},
-					{"vccpint", std::to_string(xadc->getVccPInt())},
-					{"vccpaux", std::to_string(xadc->getVccPAux())},
-					{"vccpdro", std::to_string(xadc->getVccPdro())},
-				}, timestamp);
+				influxdbclient->write("ipmc.system", {{"id", ipmc_mac}, {"name", "heap.free"}}, {{"value", std::to_string(heapBytes)}}, timestamp);
+				influxdbclient->write("ipmc.temperature", {{"id", ipmc_mac}, {"name", "xadc"}}, {{"value", std::to_string(xadc->getTemperature())}}, timestamp);
+				influxdbclient->write("ipmc.temperature", {{"id", ipmc_mac}, {"name", "adc0"}}, {{"value", std::to_string(adc[0]->getTemperature())}}, timestamp);
+				influxdbclient->write("ipmc.temperature", {{"id", ipmc_mac}, {"name", "adc1"}}, {{"value", std::to_string(adc[1]->getTemperature())}}, timestamp);
+				influxdbclient->write("ipmc.voltage", {{"id", ipmc_mac}, {"name", "vccaux"}}, {{"value", std::to_string(xadc->getVccAux())}}, timestamp);
+				influxdbclient->write("ipmc.voltage", {{"id", ipmc_mac}, {"name", "vbram"}}, {{"value", std::to_string(xadc->getVbram())}}, timestamp);
+				influxdbclient->write("ipmc.voltage", {{"id", ipmc_mac}, {"name", "vccpint"}}, {{"value", std::to_string(xadc->getVccPInt())}}, timestamp);
+				influxdbclient->write("ipmc.voltage", {{"id", ipmc_mac}, {"name", "vccpaux"}}, {{"value", std::to_string(xadc->getVccPAux())}}, timestamp);
+				influxdbclient->write("ipmc.voltage", {{"id", ipmc_mac}, {"name", "vccpdro"}}, {{"value", std::to_string(xadc->getVccPdro())}}, timestamp);
+
+				influxdbclient->write("cdb.temperature", {{"id", ipmc_mac}, {"name", "top"}}, {{"value", std::to_string((float)tCDBtop)}}, timestamp);
+				influxdbclient->write("cdb.temperature", {{"id", ipmc_mac}, {"name", "bot"}}, {{"value", std::to_string((float)tCDBbot)}}, timestamp);
+				influxdbclient->write("cdb.voltage", {{"id", ipmc_mac}, {"name", "v12pyld"}}, {{"value", std::to_string((float)v12pyld)}}, timestamp);
+				influxdbclient->write("cdb.voltage", {{"id", ipmc_mac}, {"name", "v5pyld"}}, {{"value", std::to_string((float)v5pyld)}}, timestamp);
+				influxdbclient->write("cdb.voltage", {{"id", ipmc_mac}, {"name", "v3p3pyld"}}, {{"value", std::to_string((float)v3p3pyld)}}, timestamp);
+				influxdbclient->write("cdb.voltage", {{"id", ipmc_mac}, {"name", "v3p3mp"}}, {{"value", std::to_string((float)v3p3mp)}}, timestamp);
+				influxdbclient->write("cdb.voltage", {{"id", ipmc_mac}, {"name", "v1p0eth"}}, {{"value", std::to_string((float)v1p0eth)}}, timestamp);
+				influxdbclient->write("cdb.voltage", {{"id", ipmc_mac}, {"name", "v2p5eth"}}, {{"value", std::to_string((float)v2p5eth)}}, timestamp);
+				influxdbclient->write("cdb.voltage", {{"id", ipmc_mac}, {"name", "v1p2phy"}}, {{"value", std::to_string((float)v1p2phy)}}, timestamp);
 			}
 		});
 	});

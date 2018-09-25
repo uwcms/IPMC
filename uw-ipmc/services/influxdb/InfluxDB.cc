@@ -64,7 +64,7 @@ void InfluxDB::setConfig(const Config &config) {
 	this->flushTicks = pdMS_TO_TICKS(this->config->flushInterval * 1000);
 }
 
-long long InfluxDB::getCurrentTimestamp() {
+InfluxDB::Timestamp InfluxDB::getCurrentTimestamp() {
 	const auto now = high_resolution_clock::now();
 	auto ns = duration_cast<nanoseconds>(now.time_since_epoch()).count();
 	// Check if the time is after Jan 1st 2018
