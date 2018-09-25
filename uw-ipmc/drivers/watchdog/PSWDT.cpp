@@ -115,7 +115,10 @@ void PS_WDT::_run_thread() {
 		else {
 			if (this->on_trip)
 				this->on_trip();
-			while (true) ; // Done.
+			volatile bool suspend = true;
+			while (suspend) {
+				// Done.
+			}
 		}
 	}
 }
