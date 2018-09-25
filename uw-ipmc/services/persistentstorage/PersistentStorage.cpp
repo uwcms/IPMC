@@ -5,7 +5,19 @@
  *      Author: jtikalsky
  */
 
-#define __PERSISTENT_STORAGE_CPP
+// This must precede the PersistentStorage.h include to fill the static data.
+#define PERSISTENT_STORAGE_ALLOCATE(id, name) \
+	const u16 name = id; \
+	static void _ps_reg_section_ ## name() __attribute__((constructor(1000))); \
+	static void _ps_reg_section_ ## name() { \
+		if (!name_to_id) \
+			name_to_id = new std::map<std::string, u16>(); \
+		if (!id_to_name) \
+			id_to_name = new std::map<u16, std::string>(); \
+		(*name_to_id)[#name] = id; \
+		(*id_to_name)[id] = #name; \
+	}
+
 #include <services/persistentstorage/PersistentStorage.h>
 #include <FreeRTOS.h>
 #include <semphr.h>
@@ -20,6 +32,10 @@
 #include <string.h>
 
 #define NVREG32(baseptr, offset) (*((uint32_t*)((baseptr)+(offset))))
+
+static inline uint16_t page_count(uint16_t size, uint16_t page_size) {
+	return (size / page_size) + (size % page_size ? 1 : 0);
+}
 
 /**
  * Instantiate a Persistent Storage module backed by the supplied EEPROM.
@@ -120,7 +136,7 @@ void *PersistentStorage::get_section(u16 section_id, u16 section_version, u16 se
 	xSemaphoreTake(this->index_mutex, portMAX_DELAY);
 	struct PersistentStorageIndexRecord *index = reinterpret_cast<struct PersistentStorageIndexRecord *>(this->data + sizeof(struct PersistentStorageHeader));
 
-	u16 section_pgcount = (section_size / this->eeprom.page_size) + (section_size % this->eeprom.page_size ? 1 : 0);
+	u16 section_pgcount = page_count(section_size, this->eeprom.page_size);
 	int i;
 	for (i = 0; index[i].id != PersistentStorageAllocations::RESERVED_END_OF_INDEX; ++i) {
 		if (index[i].id == section_id) {
@@ -149,7 +165,7 @@ void *PersistentStorage::get_section(u16 section_id, u16 section_version, u16 se
 	 * One thing at a time.
 	 */
 	u16 minimum_address = sizeof(struct PersistentStorageHeader) + (i+2)*sizeof(struct PersistentStorageIndexRecord);
-	u16 minimum_page = (minimum_address / this->eeprom.page_size) + (minimum_address % this->eeprom.page_size ? 1 : 0);
+	u16 minimum_page = page_count(minimum_address, this->eeprom.page_size);
 
 	// We start allocations from the end of EEPROM.
 	u16 allocpg = (this->eeprom.size/this->eeprom.page_size)-section_pgcount;
@@ -457,6 +473,69 @@ bool PersistentStorage::do_flush_range(u32 start, u32 end) {
 		}
 	}
 	return changed;
+}
+
+/**
+ * Retrieves the data stored in this allocation.
+ *
+ * @return The stored data
+ */
+std::vector<uint8_t> VariablePersistentAllocation::get_data() {
+	uint16_t version = this->storage.get_section_version(this->id);
+	if (version == 0)
+		return std::vector<uint8_t>(); // No storage.
+	if (version != 1)
+		configASSERT(0); // Unsupported!  We have no valid response to return, and this wasn't written by us.
+
+	// Retrieve two byte length header.
+	uint16_t *data_size = reinterpret_cast<uint16_t*>(this->storage.get_section(this->id, 1, 2));
+	if (!data_size)
+		configASSERT(0); // So there's data, but we can't retrieve our header?
+
+	uint8_t *data = reinterpret_cast<uint8_t*>(this->storage.get_section(this->id, 1, 2+*data_size));
+	return std::vector<uint8_t>(data+2, data+2+*data_size);
+}
+
+/**
+ * Writes the provided data to this allocation.
+ *
+ * @param data The data to store
+ * @param flush_completion_cb A completion callback passed through to storage.flush()
+ * @return true on success, else failure
+ */
+bool VariablePersistentAllocation::set_data(const std::vector<uint8_t> &data, std::function<void(void)> flush_completion_cb) {
+	uint16_t version = this->storage.get_section_version(this->id);
+	if (version == 0 || version == 1) {
+		uint8_t *pdata = NULL;
+		if (version == 1) {
+			// Content exists, let's reuse the allocation if it's the right size.
+			// Retrieve data.  If this fails, it's because our new data is too big and we needta reallocate anyway.
+			pdata = reinterpret_cast<uint8_t*>(this->storage.get_section(this->id, 1, 2 + data.size()));
+			if (pdata) {
+				// An allocation exists that is at least large enough, do we need to shrink it?
+				uint16_t *data_size = reinterpret_cast<uint16_t*>(pdata);
+				if (page_count(*data_size, this->storage.eeprom.page_size) != page_count(data.size(), this->storage.eeprom.page_size))
+					pdata = NULL; // Yep, different pagecount from desired.  Reallocate.
+			}
+		}
+		if (!pdata) {
+			// We need to (re)allocate the persistent storage space.
+			this->storage.delete_section(this->id);
+			pdata = reinterpret_cast<uint8_t*>(this->storage.get_section(this->id, 1, 2 + data.size()));
+			if (!pdata)
+				return false; // Allocation failed?
+		}
+		// Time to actually write the data!
+		*reinterpret_cast<uint16_t*>(pdata) = data.size();
+		uint8_t *pdataptr = pdata + 2;
+		for (auto it = data.begin(), eit = data.end(); it != eit; ++it)
+			*(pdataptr++) = *it;
+		this->storage.flush(pdata, 2+data.size(), flush_completion_cb);
+		return true;
+	}
+	else {
+		return false; // This isn't ours.
+	}
 }
 
 namespace {
