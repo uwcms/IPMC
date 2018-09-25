@@ -91,7 +91,7 @@ bool PS_SPI::transfer(u8 chip, const u8 *sendbuf, u8 *recvbuf, size_t bytes, Tic
 	}
 
 	//If the last transfer completed with, then track it as an error
-	if (trans_st.event_status != bytes) {
+	if (trans_st.byte_count != bytes) {
 		this->error_byte_count++;
 #if 0
 		rc = false;  //TODO: not clear yet why xilinx driver reports byte_count = 0 for all successful transfers
@@ -119,7 +119,7 @@ bool PS_SPI::transfer_unsafe(const u8 *sendbuf, u8 *recvbuf, size_t bytes, TickT
 	}
 
 	//If the last transfer completed with, then track it as an error
-	if (trans_st.event_status != bytes) {
+	if (trans_st.byte_count != bytes) {
 		this->error_byte_count++;
 #if 0
 		rc = false;  //TODO: not clear yet why xilinx driver reports byte_count = 0 for all successful transfers

@@ -323,7 +323,9 @@ void __wrap_sha_256(const unsigned char *in, const unsigned int size, unsigned c
 		if (sem)
 			vSemaphoreDelete(sem);
 	}
+	xSemaphoreTake(librsa_mutex, portMAX_DELAY);
 	__real_sha_256(in, size, out);
+	xSemaphoreGive(librsa_mutex);
 }
 
 /**

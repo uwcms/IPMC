@@ -32,6 +32,8 @@ bool SensorDataRecord01::validate() const {
 		this->sdr_data[byte] |= static_cast<uint8_t>(val)<<(b); /* Set new value */ \
 	}
 
+SDR_FIELD(units_numeric_format, enum SensorDataRecord01::UnitsNumericFormat, 20, 7, 6)
+
 SDR_FIELD(linearization, enum SensorDataRecord01::Linearization, 23, 7, 0)
 
 uint16_t SensorDataRecord01::conversion_m() const {

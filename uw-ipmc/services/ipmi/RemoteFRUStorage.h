@@ -109,6 +109,8 @@ public:
 	};
 
 	std::shared_ptr<ProductInfoArea> ReadProductInfoArea(BaseType_t retry_delay=333);
+
+	std::vector< std::vector<uint8_t> > ReadMultiRecordArea(BaseType_t retry_delay=333);
 };
 
 #endif /* SRC_COMMON_UW_IPMC_SERVICES_IPMI_REMOTEFRUSTORAGE_H_ */
