@@ -52,13 +52,13 @@ FTPFile ESM::createFlashFile() {
 	return FTPFile(
 		[this](uint8_t *buffer, size_t size) -> size_t {
 			// Read
-			MutexLock(this->mutex);
+			MutexLock lock(this->mutex);
 			this->flash->initialize();
 			this->flash->read(0, buffer, size);
 			return size;
 		},
 		[this](uint8_t *buffer, size_t size) -> size_t {
-			MutexLock(this->mutex);
+			MutexLock lock(this->mutex);
 			this->flash->initialize();
 
 			// Write
@@ -92,7 +92,7 @@ ESM::CommandStatus ESM::command(const std::string& command, std::string& respons
 	// Terminate with '/r' to trigger ESM to respond
 	std::string formated_cmd = command + "\r";
 
-	MutexLock(this->mutex);
+	MutexLock lock(this->mutex);
 
 	// Clear the receiver buffer
 	this->uart->clear();
@@ -137,7 +137,7 @@ ESM::CommandStatus ESM::command(const std::string& command, std::string& respons
 
 void ESM::restart() {
 	if (this->esm_reset){
-		MutexLock(this->mutex);
+		MutexLock lock(this->mutex);
 		esm_reset->toggle();
 	} else {
 		std::string resp;
@@ -214,7 +214,7 @@ public:
 	}
 
 	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
-		MutexLock(esm.mutex);
+		MutexLock lock(esm.mutex);
 
 		if (!this->esm.flash->isInitialized()) {
 			this->esm.flash->initialize();

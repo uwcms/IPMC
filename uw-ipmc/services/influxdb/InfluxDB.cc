@@ -56,7 +56,7 @@ InfluxDB::~InfluxDB() {
 }
 
 void InfluxDB::setConfig(const Config &config) {
-	MutexLock(this->flushMutex);
+	MutexLock lock(this->flushMutex);
 	taskENTER_CRITICAL();
 	memcpy(this->config, &config, sizeof(Config));
 	taskEXIT_CRITICAL();
@@ -79,7 +79,7 @@ bool InfluxDB::write(const std::string& measurement, const TagSet& tags, const F
 	// Can potentially be improved to save memory
 	const Metric metric = {measurement, tags, fields, timestamp};
 	{ // Mutexed area
-		MutexLock(this->collectorMutex);
+		MutexLock lock(this->collectorMutex);
 		this->collector->push_back(metric);
 	}
 
@@ -94,7 +94,7 @@ void InfluxDB::_backgroundTask() {
 		std::unique_ptr<MetricSet> metrics = nullptr;
 
 		{ // Mutexed scope, swap the metrics block
-			MutexLock(this->collectorMutex);
+			MutexLock lock(this->collectorMutex);
 
 			if (this->collector->size() > 0) {
 				metrics = std::move(this->collector);
@@ -124,7 +124,7 @@ void InfluxDB::_backgroundTask() {
 }
 
 bool InfluxDB::push(const MetricSet& metrics) {
-	MutexLock(this->flushMutex);
+	MutexLock lock(this->flushMutex);
 
 	// Check inputs
 	if (metrics.size() == 0) return false;
