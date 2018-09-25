@@ -13,6 +13,8 @@
 #include <drivers/network/ClientSocket.h>
 #include <memory>
 
+// TODO: Add a field type that can accept int, float, string and bool. Right now only strings are accepted.
+
 ///! Uncomment to keep track of how many measurements were sent/dropped
 #define INFLUXDB_STATS
 
@@ -22,12 +24,12 @@
 class InfluxDB {
 public:
 	///! Configuration structure.
-	typedef struct {
+	using Config = struct {
 		char host[64];			///< The host name where InfluxDB server resides.
 		uint16_t port;			///< The TCP/IP port to connect to.
 		char database[64];		///< The database name.
 		uint16_t flushInterval; ///< Interval period in second between pushes to server.
-	} Config;
+	};
 	const int ConfigVersion = 2; ///< Configuration version, for persistent storage.
 
 	///! Defaults configurations applied if the record doesn't exist.
@@ -53,6 +55,8 @@ public:
 	///! Get the current configuration.
 	inline const Config* getConfig() { return this->config; };
 
+	///! InfluxDB timestamp
+	using Timestamp = long long;
 	///! Tag set, used to specify the tags of a measurement. Pairs should be <tag_name, tag_value>.
 	using TagSet = std::vector<std::pair<std::string, std::string>>;
 	///! Field set, used to specify the fields in a measurement. Pairs should be <field_name, field_value>.
@@ -62,7 +66,7 @@ public:
 		std::string measurement;	///< Measurement name.
 		TagSet tags;				///< All associated tags.
 		FieldSet fields;			///< All associated fields.
-		long long timestamp;		///< Timestamp, in nano-seconds (ms).
+		Timestamp timestamp;		///< Timestamp, in nano-seconds (ms).
 	};
 	///! A set of measurements, used internally.
 	using MetricSet = std::vector<Metric>;
@@ -71,7 +75,7 @@ public:
 	 * Returns the current timestamp in nano-seconds. Can be used in InfluxDB::write.
 	 * Will return 0 if system time is not set (e.g. by NTP).
 	 */
-	static long long getCurrentTimestamp();
+	static Timestamp getCurrentTimestamp();
 
 	/**
 	 * Write a measurement to the server. Write won't happen until a flush takes place.
