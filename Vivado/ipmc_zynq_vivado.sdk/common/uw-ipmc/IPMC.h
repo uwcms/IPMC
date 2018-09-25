@@ -18,6 +18,7 @@ extern "C" {
 
 const u8 IPMC_FW_REVISION[2] = { 0, 1 }; // 0.1 (Max: 63.100, see Get Device ID)
 extern u8 IPMC_HW_REVISION;
+extern uint16_t IPMC_SERIAL;
 
 class PS_WDT;
 extern PS_WDT *SWDT;

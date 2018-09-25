@@ -68,6 +68,7 @@ extern "C" {
 
 
 u8 IPMC_HW_REVISION = 1; // TODO: Detect, Update, etc
+uint16_t IPMC_SERIAL = 0xffff;
 
 PS_WDT *SWDT;
 PS_UART *uart_ps0;
@@ -157,6 +158,9 @@ void driver_init(bool use_pl) {
 	configASSERT(eeprom_mac->read(250, mac_address, 6));
 	LOG["network"].log(stdsprintf("Our MAC address is %02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx",
 			mac_address[0], mac_address[1], mac_address[2], mac_address[3], mac_address[4], mac_address[5]), LogTree::LOG_NOTICE);
+	configASSERT(eeprom_mac->read(0, reinterpret_cast<uint8_t*>(&IPMC_SERIAL), sizeof(IPMC_SERIAL)));
+
+	init_device_sdrs();
 
 	XGpioPs_Config* gpiops_config = XGpioPs_LookupConfig(XPAR_PS7_GPIO_0_DEVICE_ID);
 	configASSERT(XST_SUCCESS == XGpioPs_CfgInitialize(&gpiops, gpiops_config, gpiops_config->BaseAddr));
@@ -441,6 +445,16 @@ void ipmc_service_init() {
  * Initialize Device SDRs for this controller.
  */
 static void init_device_sdrs() {
+	return;
+	VariablePersistentAllocation sdr_persist(*persistent_storage, PersistentStorageAllocations::WISC_SDR_REPOSITORY);
+	std::vector<uint8_t> sdrdata = sdr_persist.get_data();
+	if (sdrdata.size()) {
+		device_sdr_repo.u8import(sdrdata);
+		// I think these needta be imported to the main SDR repo too?
+		sdr_repo.add(device_sdr_repo);
+		return;
+	}
+
 	// Management Controller Device Locator Record for ourself.
 	SensorDataRecord12 mcdlr;
 	mcdlr.initialize_blank("UW ZYNQ IPMC");
@@ -483,6 +497,9 @@ static void init_device_sdrs() {
 	// I don't need to specify unit type codes for this sensor.
 	device_sdr_repo.add(hotswap);
 
+	// Store the newly initialized Device SDRs
+	sdr_persist.set_data(device_sdr_repo.u8export());
+
 	// I think these needta be imported to the main SDR repo too?
 	sdr_repo.add(device_sdr_repo);
 }
@@ -501,6 +518,10 @@ std::string generate_banner() {
 	bannerstr += std::string("ZYNQ-IPMC - Open-source IPMC hardware and software framework\n");
 	bannerstr += std::string("HW revision : ") + std::to_string(IPMC_HW_REVISION) + "\n"; // TODO
 	bannerstr += std::string("SW revision : ") + GIT_DESCRIBE + "\n";
+	if (IPMC_SERIAL != 0xffff & IPMC_SERIAL != 0)
+		bannerstr += std::string("HW serial   : ") + std::to_string(IPMC_SERIAL) + "\n";
+	else
+		bannerstr += std::string("HW serial   : unset\n");
 	bannerstr += std::string("Build date  : ") + COMPILE_DATE + "\n";
 	bannerstr += std::string("Build host  : ") + COMPILE_HOST + "\n";
 	bannerstr += std::string("Build conf  : ") + BUILD_CONFIGURATION + "\n";

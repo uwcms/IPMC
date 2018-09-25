@@ -25,6 +25,9 @@ public:
 	std::shared_ptr<const SensorDataRecord> get(uint16_t key) const;
 	std::vector< std::shared_ptr<SensorDataRecord> >::size_type size() const;
 
+	std::vector<uint8_t> u8export() const;
+	void u8import(const std::vector<uint8_t> &data);
+
 	/**
 	 * Returns the current reservation id for this repository.
 	 * @return the current reservation id for this repository
