@@ -34,7 +34,7 @@ void SensorDataRepository::add(const SensorDataRepository &sdrepository) {
 	auto reservation = this->reservation;
 	for (auto it = sdrepository.records.begin(), eit = sdrepository.records.end(); it != eit; ++it)
 		this->add(**it);
-	this->reservation = this->reservation;
+	this->reservation = reservation;
 	this->reserve(); // Increment reservation only once.
 }
 
@@ -80,6 +80,50 @@ std::shared_ptr<const SensorDataRecord> SensorDataRepository::get(uint16_t id) c
  */
 std::vector< std::shared_ptr<SensorDataRecord> >::size_type SensorDataRepository::size() const {
 	return this->records.size();
+}
+
+/**
+ * Export the data from this SDR repository as a u8 vector.
+ *
+ * \warning This will potentially discard invalid SDR records from the repository.
+ *
+ * @return The SDR repository contents in binary form
+ */
+std::vector<uint8_t> SensorDataRepository::u8export() const {
+	std::vector<uint8_t> output;
+	for (auto it = this->records.begin(), eit = this->records.end(); it != eit; ++it) {
+		SensorDataRecord &record = **it;
+		if (record.sdr_data.size() < 5U || record.sdr_data.size() != 5U + record.sdr_data[4])
+			continue; // Skip invalid record.
+		output.insert(output.end(), record.sdr_data.begin(), record.sdr_data.end());
+	}
+	return output;
+}
+
+/**
+ * Import the data from the supplied u8 vector, overwriting this SDR repository.
+ *
+ * \warning This will potentially discard invalid SDR records, and any later record.
+ *
+ * @param data The SDR repository contents in binary form
+ */
+void SensorDataRepository::u8import(const std::vector<uint8_t> &data) {
+	auto reservation = this->reservation;
+	this->records.clear();
+	std::vector<uint8_t>::size_type cur = 0;
+	while (cur < data.size()) {
+		if (cur+5 < data.size())
+			break; // No remaining record headers.
+		if (cur+5+data[cur+4] < data.size())
+			break; // No remaining complete records.
+		std::vector<uint8_t> sdr(std::next(data.begin(), cur), std::next(data.begin(), cur+5+data[cur+4]));
+		std::shared_ptr<SensorDataRecord> record = SensorDataRecord(sdr).interpret();
+		if (!record)
+			continue; // Can't be parsed.  We'll at least try for later ones.
+		this->records.push_back(record);
+	}
+	this->reservation = reservation;
+	this->reserve(); // Increment reservation only once.
 }
 
 /**
