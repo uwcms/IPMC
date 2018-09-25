@@ -90,22 +90,36 @@ protected:
 	bool do_flush_range(u32 start, u32 end);
 };
 
-#ifdef __PERSISTENT_STORAGE_CPP
-#define PERSISTENT_STORAGE_ALLOCATE(id, name) \
-	const u16 name = id; \
-	static void _ps_reg_section_ ## name() __attribute__((constructor(1000))); \
-	static void _ps_reg_section_ ## name() { \
-		if (!name_to_id) \
-			name_to_id = new std::map<std::string, u16>(); \
-		if (!id_to_name) \
-			id_to_name = new std::map<u16, std::string>(); \
-		(*name_to_id)[#name] = id; \
-		(*id_to_name)[id] = #name; \
-	}
-#else // __PERSISTENT_STORAGE_CPP
+/**
+ * A helper class allowing the easy management of a single block of un-versioned
+ * variable length data within persistent storage.
+ *
+ * \warning Use of this mechanism may induce fragmentation within the EEPROM
+ *          over time if the data length changes in conjunction with other
+ *          storage changes.  There is presently no defragmentation mechanism
+ *          available for Persistent Storage.
+ */
+class VariablePersistentAllocation {
+public:
+	/**
+	 * Instantiate a copy of this helper class for the given storage allocation and area.
+	 * @param storage The storage area this helper should access.
+	 * @param allocation_id The allocation ID this helper manages.
+	 */
+	VariablePersistentAllocation(PersistentStorage &storage, u16 allocation_id)
+		: storage(storage), id(allocation_id) { };
+	virtual ~VariablePersistentAllocation() { };
+	std::vector<uint8_t> get_data();
+	bool set_data(const std::vector<uint8_t> &data, std::function<void(void)> flush_completion_cb=NULL);
+protected:
+	PersistentStorage &storage; ///< The PersistentStorage containing the allocation.
+	u16 id; ///< The ID of the allocation managed by this mechanism.
+};
+
+#ifndef PERSISTENT_STORAGE_ALLOCATE
 #define PERSISTENT_STORAGE_ALLOCATE(id, name) \
 		const u16 name = id;
-#endif // __PERSISTENT_STORAGE_CPP
+#endif // !defined(PERSISTENT_STORAGE_ALLOCATE)
 
 /**
  * This namespace contains ID allocations for sections of persistent storage.
