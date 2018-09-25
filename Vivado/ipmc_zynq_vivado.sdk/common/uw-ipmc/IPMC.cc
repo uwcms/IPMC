@@ -68,6 +68,7 @@ extern "C" {
 
 
 u8 IPMC_HW_REVISION = 1; // TODO: Detect, Update, etc
+uint16_t IPMC_SERIAL = 0xffff;
 
 PS_WDT *SWDT;
 PS_UART *uart_ps0;
@@ -157,6 +158,7 @@ void driver_init(bool use_pl) {
 	configASSERT(eeprom_mac->read(250, mac_address, 6));
 	LOG["network"].log(stdsprintf("Our MAC address is %02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx",
 			mac_address[0], mac_address[1], mac_address[2], mac_address[3], mac_address[4], mac_address[5]), LogTree::LOG_NOTICE);
+	configASSERT(eeprom_mac->read(0, reinterpret_cast<uint8_t*>(&IPMC_SERIAL), sizeof(IPMC_SERIAL)));
 
 	XGpioPs_Config* gpiops_config = XGpioPs_LookupConfig(XPAR_PS7_GPIO_0_DEVICE_ID);
 	configASSERT(XST_SUCCESS == XGpioPs_CfgInitialize(&gpiops, gpiops_config, gpiops_config->BaseAddr));
@@ -501,6 +503,10 @@ std::string generate_banner() {
 	bannerstr += std::string("ZYNQ-IPMC - Open-source IPMC hardware and software framework\n");
 	bannerstr += std::string("HW revision : ") + std::to_string(IPMC_HW_REVISION) + "\n"; // TODO
 	bannerstr += std::string("SW revision : ") + GIT_DESCRIBE + "\n";
+	if (IPMC_SERIAL != 0xffff & IPMC_SERIAL != 0)
+		bannerstr += std::string("HW serial   : ") + std::to_string(IPMC_SERIAL) + "\n";
+	else
+		bannerstr += std::string("HW serial   : unset\n");
 	bannerstr += std::string("Build date  : ") + COMPILE_DATE + "\n";
 	bannerstr += std::string("Build host  : ") + COMPILE_HOST + "\n";
 	bannerstr += std::string("Build conf  : ") + BUILD_CONFIGURATION + "\n";
