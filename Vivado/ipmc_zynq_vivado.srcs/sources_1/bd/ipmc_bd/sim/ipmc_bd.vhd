@@ -1,7 +1,7 @@
 --Copyright 1986-2018 Xilinx, Inc. All Rights Reserved.
 ----------------------------------------------------------------------------------
 --Tool Version: Vivado v.2018.2 (lin64) Build 2258646 Thu Jun 14 20:02:38 MDT 2018
---Date        : Mon Aug 20 11:15:45 2018
+--Date        : Wed Sep 26 08:52:21 2018
 --Host        : beck.hep.wisc.edu running 64-bit CentOS Linux release 7.5.1804 (Core)
 --Command     : generate_target ipmc_bd.bd
 --Design      : ipmc_bd
@@ -2456,7 +2456,7 @@ entity ipmc_bd_axi_interconnect_0_0 is
 end ipmc_bd_axi_interconnect_0_0;
 
 architecture STRUCTURE of ipmc_bd_axi_interconnect_0_0 is
-  component ipmc_bd_xbar_0 is
+  component ipmc_bd_xbar_1 is
   port (
     aclk : in STD_LOGIC;
     aresetn : in STD_LOGIC;
@@ -2499,7 +2499,7 @@ architecture STRUCTURE of ipmc_bd_axi_interconnect_0_0 is
     m_axi_rvalid : in STD_LOGIC_VECTOR ( 11 downto 0 );
     m_axi_rready : out STD_LOGIC_VECTOR ( 11 downto 0 )
   );
-  end component ipmc_bd_xbar_0;
+  end component ipmc_bd_xbar_1;
   signal M00_ACLK_1 : STD_LOGIC;
   signal M00_ARESETN_1 : STD_LOGIC;
   signal M01_ACLK_1 : STD_LOGIC;
@@ -3892,7 +3892,7 @@ s00_couplers: entity work.s00_couplers_imp_1UC1GY4
       S_AXI_wstrb(3 downto 0) => axi_interconnect_0_to_s00_couplers_WSTRB(3 downto 0),
       S_AXI_wvalid => axi_interconnect_0_to_s00_couplers_WVALID
     );
-xbar: component ipmc_bd_xbar_0
+xbar: component ipmc_bd_xbar_1
      port map (
       aclk => axi_interconnect_0_ACLK_net,
       aresetn => axi_interconnect_0_ARESETN_net,
@@ -4231,7 +4231,7 @@ entity ipmc_bd_axi_interconnect_1_0 is
 end ipmc_bd_axi_interconnect_1_0;
 
 architecture STRUCTURE of ipmc_bd_axi_interconnect_1_0 is
-  component ipmc_bd_xbar_1 is
+  component ipmc_bd_xbar_0 is
   port (
     aclk : in STD_LOGIC;
     aresetn : in STD_LOGIC;
@@ -4274,7 +4274,7 @@ architecture STRUCTURE of ipmc_bd_axi_interconnect_1_0 is
     m_axi_rvalid : in STD_LOGIC_VECTOR ( 2 downto 0 );
     m_axi_rready : out STD_LOGIC_VECTOR ( 2 downto 0 )
   );
-  end component ipmc_bd_xbar_1;
+  end component ipmc_bd_xbar_0;
   signal axi_interconnect_1_ACLK_net : STD_LOGIC;
   signal axi_interconnect_1_ARESETN_net : STD_LOGIC;
   signal axi_interconnect_1_to_s00_couplers_ARADDR : STD_LOGIC_VECTOR ( 31 downto 0 );
@@ -4660,7 +4660,7 @@ s00_couplers: entity work.s00_couplers_imp_4LPQ0F
       S_AXI_wstrb(3 downto 0) => axi_interconnect_1_to_s00_couplers_WSTRB(3 downto 0),
       S_AXI_wvalid(0) => axi_interconnect_1_to_s00_couplers_WVALID(0)
     );
-xbar: component ipmc_bd_xbar_1
+xbar: component ipmc_bd_xbar_0
      port map (
       aclk => axi_interconnect_1_ACLK_net,
       aresetn => axi_interconnect_1_ARESETN_net,
@@ -4787,7 +4787,7 @@ entity esm_imp_1TIRAV0 is
 end esm_imp_1TIRAV0;
 
 architecture STRUCTURE of esm_imp_1TIRAV0 is
-  component ipmc_bd_axi_quad_spi_0_0 is
+  component ipmc_bd_axi_quad_spi_esm_0 is
   port (
     ext_spi_clk : in STD_LOGIC;
     s_axi_aclk : in STD_LOGIC;
@@ -4823,8 +4823,8 @@ architecture STRUCTURE of esm_imp_1TIRAV0 is
     ss_t : out STD_LOGIC;
     ip2intc_irpt : out STD_LOGIC
   );
-  end component ipmc_bd_axi_quad_spi_0_0;
-  component ipmc_bd_axi_gpio_1_0 is
+  end component ipmc_bd_axi_quad_spi_esm_0;
+  component ipmc_bd_axi_gpio_esm_0 is
   port (
     s_axi_aclk : in STD_LOGIC;
     s_axi_aresetn : in STD_LOGIC;
@@ -4849,7 +4849,7 @@ architecture STRUCTURE of esm_imp_1TIRAV0 is
     gpio_io_o : out STD_LOGIC_VECTOR ( 1 downto 0 );
     gpio_io_t : out STD_LOGIC_VECTOR ( 1 downto 0 )
   );
-  end component ipmc_bd_axi_gpio_1_0;
+  end component ipmc_bd_axi_gpio_esm_0;
   component ipmc_bd_axi_uartlite_esm_0 is
   port (
     s_axi_aclk : in STD_LOGIC;
@@ -5015,7 +5015,7 @@ begin
   S00_AXI_rvalid(0) <= Conn1_RVALID(0);
   S00_AXI_wready(0) <= Conn1_WREADY(0);
   intr(1 downto 0) <= xlconcat_1_dout(1 downto 0);
-axi_gpio_esm: component ipmc_bd_axi_gpio_1_0
+axi_gpio_esm: component ipmc_bd_axi_gpio_esm_0
      port map (
       gpio_io_i(1 downto 0) => Conn3_TRI_I(1 downto 0),
       gpio_io_o(1 downto 0) => Conn3_TRI_O(1 downto 0),
@@ -5123,7 +5123,7 @@ axi_interconnect_1: entity work.ipmc_bd_axi_interconnect_1_0
       S00_AXI_wstrb(3 downto 0) => Conn1_WSTRB(3 downto 0),
       S00_AXI_wvalid(0) => Conn1_WVALID(0)
     );
-axi_quad_spi_esm: component ipmc_bd_axi_quad_spi_0_0
+axi_quad_spi_esm: component ipmc_bd_axi_quad_spi_esm_0
      port map (
       ext_spi_clk => ACLK_1,
       io0_i => Conn4_IO0_I,
@@ -5260,7 +5260,7 @@ entity ipmc_bd is
     pwr_status : in STD_LOGIC_VECTOR ( 5 downto 0 )
   );
   attribute CORE_GENERATION_INFO : string;
-  attribute CORE_GENERATION_INFO of ipmc_bd : entity is "ipmc_bd,IP_Integrator,{x_ipVendor=xilinx.com,x_ipLibrary=BlockDiagram,x_ipName=ipmc_bd,x_ipVersion=1.00.a,x_ipLanguage=VHDL,numBlks=46,numReposBlks=25,numNonXlnxBlks=6,numHierBlks=21,maxHierDepth=1,numSysgenBlks=0,numHlsBlks=0,numHdlrefBlks=1,numPkgbdBlks=0,bdsource=USER,da_axi4_cnt=1,da_board_cnt=1,da_clkrst_cnt=14,synth_mode=OOC_per_IP}";
+  attribute CORE_GENERATION_INFO of ipmc_bd : entity is "ipmc_bd,IP_Integrator,{x_ipVendor=xilinx.com,x_ipLibrary=BlockDiagram,x_ipName=ipmc_bd,x_ipVersion=1.00.a,x_ipLanguage=VHDL,numBlks=46,numReposBlks=25,numNonXlnxBlks=6,numHierBlks=21,maxHierDepth=1,numSysgenBlks=0,numHlsBlks=0,numHdlrefBlks=1,numPkgbdBlks=0,bdsource=USER,synth_mode=OOC_per_IP}";
   attribute HW_HANDOFF : string;
   attribute HW_HANDOFF of ipmc_bd : entity is "ipmc_bd.hwdef";
 end ipmc_bd;
@@ -5275,7 +5275,7 @@ architecture STRUCTURE of ipmc_bd is
     dout : out STD_LOGIC_VECTOR ( 4 downto 0 )
   );
   end component ipmc_bd_xlconcat_0_0;
-  component ipmc_bd_led_controller_0_0 is
+  component ipmc_bd_axi_user_led_ctrl_0 is
   port (
     m_led_out : out STD_LOGIC_VECTOR ( 1 downto 0 );
     s_axi_awaddr : in STD_LOGIC_VECTOR ( 6 downto 0 );
@@ -5300,8 +5300,8 @@ architecture STRUCTURE of ipmc_bd is
     s_axi_aclk : in STD_LOGIC;
     s_axi_aresetn : in STD_LOGIC
   );
-  end component ipmc_bd_led_controller_0_0;
-  component ipmc_bd_led_controller_1_0 is
+  end component ipmc_bd_axi_user_led_ctrl_0;
+  component ipmc_bd_axi_atca_led_ctrl_0 is
   port (
     m_led_out : out STD_LOGIC_VECTOR ( 3 downto 0 );
     s_axi_awaddr : in STD_LOGIC_VECTOR ( 6 downto 0 );
@@ -5326,7 +5326,7 @@ architecture STRUCTURE of ipmc_bd is
     s_axi_aclk : in STD_LOGIC;
     s_axi_aresetn : in STD_LOGIC
   );
-  end component ipmc_bd_led_controller_1_0;
+  end component ipmc_bd_axi_atca_led_ctrl_0;
   component ipmc_bd_pwr_fail_concat_0 is
   port (
     In0 : in STD_LOGIC_VECTOR ( 5 downto 0 );
@@ -5574,6 +5574,38 @@ architecture STRUCTURE of ipmc_bd is
     busy_out : out STD_LOGIC
   );
   end component ipmc_bd_xadc_wiz_0_0;
+  component ipmc_bd_axi_gpio_0_0 is
+  port (
+    s_axi_aclk : in STD_LOGIC;
+    s_axi_aresetn : in STD_LOGIC;
+    s_axi_awaddr : in STD_LOGIC_VECTOR ( 8 downto 0 );
+    s_axi_awvalid : in STD_LOGIC;
+    s_axi_awready : out STD_LOGIC;
+    s_axi_wdata : in STD_LOGIC_VECTOR ( 31 downto 0 );
+    s_axi_wstrb : in STD_LOGIC_VECTOR ( 3 downto 0 );
+    s_axi_wvalid : in STD_LOGIC;
+    s_axi_wready : out STD_LOGIC;
+    s_axi_bresp : out STD_LOGIC_VECTOR ( 1 downto 0 );
+    s_axi_bvalid : out STD_LOGIC;
+    s_axi_bready : in STD_LOGIC;
+    s_axi_araddr : in STD_LOGIC_VECTOR ( 8 downto 0 );
+    s_axi_arvalid : in STD_LOGIC;
+    s_axi_arready : out STD_LOGIC;
+    s_axi_rdata : out STD_LOGIC_VECTOR ( 31 downto 0 );
+    s_axi_rresp : out STD_LOGIC_VECTOR ( 1 downto 0 );
+    s_axi_rvalid : out STD_LOGIC;
+    s_axi_rready : in STD_LOGIC;
+    ip2intc_irpt : out STD_LOGIC;
+    gpio_io_i : in STD_LOGIC_VECTOR ( 0 to 0 )
+  );
+  end component ipmc_bd_axi_gpio_0_0;
+  component ipmc_bd_debouncer_0_0 is
+  port (
+    CLK_IN : in STD_LOGIC;
+    SIG_IN : in STD_LOGIC;
+    SIG_OUT : out STD_LOGIC
+  );
+  end component ipmc_bd_debouncer_0_0;
   component ipmc_bd_ad7689_s_0_0 is
   port (
     spi_ncs0 : out STD_LOGIC;
@@ -5638,38 +5670,6 @@ architecture STRUCTURE of ipmc_bd is
     s_axi_aresetn : in STD_LOGIC
   );
   end component ipmc_bd_ad7689_s_1_0;
-  component ipmc_bd_axi_gpio_0_0 is
-  port (
-    s_axi_aclk : in STD_LOGIC;
-    s_axi_aresetn : in STD_LOGIC;
-    s_axi_awaddr : in STD_LOGIC_VECTOR ( 8 downto 0 );
-    s_axi_awvalid : in STD_LOGIC;
-    s_axi_awready : out STD_LOGIC;
-    s_axi_wdata : in STD_LOGIC_VECTOR ( 31 downto 0 );
-    s_axi_wstrb : in STD_LOGIC_VECTOR ( 3 downto 0 );
-    s_axi_wvalid : in STD_LOGIC;
-    s_axi_wready : out STD_LOGIC;
-    s_axi_bresp : out STD_LOGIC_VECTOR ( 1 downto 0 );
-    s_axi_bvalid : out STD_LOGIC;
-    s_axi_bready : in STD_LOGIC;
-    s_axi_araddr : in STD_LOGIC_VECTOR ( 8 downto 0 );
-    s_axi_arvalid : in STD_LOGIC;
-    s_axi_arready : out STD_LOGIC;
-    s_axi_rdata : out STD_LOGIC_VECTOR ( 31 downto 0 );
-    s_axi_rresp : out STD_LOGIC_VECTOR ( 1 downto 0 );
-    s_axi_rvalid : out STD_LOGIC;
-    s_axi_rready : in STD_LOGIC;
-    ip2intc_irpt : out STD_LOGIC;
-    gpio_io_i : in STD_LOGIC_VECTOR ( 0 to 0 )
-  );
-  end component ipmc_bd_axi_gpio_0_0;
-  component ipmc_bd_debouncer_0_0 is
-  port (
-    CLK_IN : in STD_LOGIC;
-    SIG_IN : in STD_LOGIC;
-    SIG_OUT : out STD_LOGIC
-  );
-  end component ipmc_bd_debouncer_0_0;
   signal ARESETN_1 : STD_LOGIC_VECTOR ( 0 to 0 );
   signal S00_AXI_1_ARADDR : STD_LOGIC_VECTOR ( 31 downto 0 );
   signal S00_AXI_1_ARBURST : STD_LOGIC_VECTOR ( 1 downto 0 );
@@ -6050,16 +6050,16 @@ architecture STRUCTURE of ipmc_bd is
   attribute X_INTERFACE_INFO of EEPROM_I2C_0_sda_i : signal is "xilinx.com:interface:iic:1.0 EEPROM_I2C_0 SDA_I";
   attribute X_INTERFACE_INFO of EEPROM_I2C_0_sda_o : signal is "xilinx.com:interface:iic:1.0 EEPROM_I2C_0 SDA_O";
   attribute X_INTERFACE_INFO of EEPROM_I2C_0_sda_t : signal is "xilinx.com:interface:iic:1.0 EEPROM_I2C_0 SDA_T";
-  attribute X_INTERFACE_INFO of ESM_FLASH_SPI_io0_i : signal is "xilinx.com:interface:spi:1.0 ESM_FLASH_SPI ";
-  attribute X_INTERFACE_INFO of ESM_FLASH_SPI_io0_o : signal is "xilinx.com:interface:spi:1.0 ESM_FLASH_SPI ";
-  attribute X_INTERFACE_INFO of ESM_FLASH_SPI_io0_t : signal is "xilinx.com:interface:spi:1.0 ESM_FLASH_SPI ";
-  attribute X_INTERFACE_INFO of ESM_FLASH_SPI_io1_i : signal is "xilinx.com:interface:spi:1.0 ESM_FLASH_SPI ";
-  attribute X_INTERFACE_INFO of ESM_FLASH_SPI_io1_o : signal is "xilinx.com:interface:spi:1.0 ESM_FLASH_SPI ";
-  attribute X_INTERFACE_INFO of ESM_FLASH_SPI_io1_t : signal is "xilinx.com:interface:spi:1.0 ESM_FLASH_SPI ";
-  attribute X_INTERFACE_INFO of ESM_FLASH_SPI_sck_i : signal is "xilinx.com:interface:spi:1.0 ESM_FLASH_SPI ";
-  attribute X_INTERFACE_INFO of ESM_FLASH_SPI_sck_o : signal is "xilinx.com:interface:spi:1.0 ESM_FLASH_SPI ";
-  attribute X_INTERFACE_INFO of ESM_FLASH_SPI_sck_t : signal is "xilinx.com:interface:spi:1.0 ESM_FLASH_SPI ";
-  attribute X_INTERFACE_INFO of ESM_FLASH_SPI_ss_t : signal is "xilinx.com:interface:spi:1.0 ESM_FLASH_SPI ";
+  attribute X_INTERFACE_INFO of ESM_FLASH_SPI_io0_i : signal is "xilinx.com:interface:spi:1.0 ESM_FLASH_SPI IO0_I";
+  attribute X_INTERFACE_INFO of ESM_FLASH_SPI_io0_o : signal is "xilinx.com:interface:spi:1.0 ESM_FLASH_SPI IO0_O";
+  attribute X_INTERFACE_INFO of ESM_FLASH_SPI_io0_t : signal is "xilinx.com:interface:spi:1.0 ESM_FLASH_SPI IO0_T";
+  attribute X_INTERFACE_INFO of ESM_FLASH_SPI_io1_i : signal is "xilinx.com:interface:spi:1.0 ESM_FLASH_SPI IO1_I";
+  attribute X_INTERFACE_INFO of ESM_FLASH_SPI_io1_o : signal is "xilinx.com:interface:spi:1.0 ESM_FLASH_SPI IO1_O";
+  attribute X_INTERFACE_INFO of ESM_FLASH_SPI_io1_t : signal is "xilinx.com:interface:spi:1.0 ESM_FLASH_SPI IO1_T";
+  attribute X_INTERFACE_INFO of ESM_FLASH_SPI_sck_i : signal is "xilinx.com:interface:spi:1.0 ESM_FLASH_SPI SCK_I";
+  attribute X_INTERFACE_INFO of ESM_FLASH_SPI_sck_o : signal is "xilinx.com:interface:spi:1.0 ESM_FLASH_SPI SCK_O";
+  attribute X_INTERFACE_INFO of ESM_FLASH_SPI_sck_t : signal is "xilinx.com:interface:spi:1.0 ESM_FLASH_SPI SCK_T";
+  attribute X_INTERFACE_INFO of ESM_FLASH_SPI_ss_t : signal is "xilinx.com:interface:spi:1.0 ESM_FLASH_SPI SS_T";
   attribute X_INTERFACE_INFO of ESM_UART_rxd : signal is "xilinx.com:interface:uart:1.0 ESM_UART RxD";
   attribute X_INTERFACE_INFO of ESM_UART_txd : signal is "xilinx.com:interface:uart:1.0 ESM_UART TxD";
   attribute X_INTERFACE_INFO of PIM400_I2C_scl_i : signal is "xilinx.com:interface:iic:1.0 PIM400_I2C SCL_I";
@@ -6076,10 +6076,10 @@ architecture STRUCTURE of ipmc_bd is
   attribute X_INTERFACE_INFO of DDR_dq : signal is "xilinx.com:interface:ddrx:1.0 DDR DQ";
   attribute X_INTERFACE_INFO of DDR_dqs_n : signal is "xilinx.com:interface:ddrx:1.0 DDR DQS_N";
   attribute X_INTERFACE_INFO of DDR_dqs_p : signal is "xilinx.com:interface:ddrx:1.0 DDR DQS_P";
-  attribute X_INTERFACE_INFO of ESM_FLASH_SPI_ss_i : signal is "xilinx.com:interface:spi:1.0 ESM_FLASH_SPI ";
-  attribute X_INTERFACE_INFO of ESM_FLASH_SPI_ss_o : signal is "xilinx.com:interface:spi:1.0 ESM_FLASH_SPI ";
+  attribute X_INTERFACE_INFO of ESM_FLASH_SPI_ss_i : signal is "xilinx.com:interface:spi:1.0 ESM_FLASH_SPI SS_I";
+  attribute X_INTERFACE_INFO of ESM_FLASH_SPI_ss_o : signal is "xilinx.com:interface:spi:1.0 ESM_FLASH_SPI SS_O";
   attribute X_INTERFACE_INFO of ESM_RESET_tri_i : signal is "xilinx.com:interface:gpio:1.0 ESM_RESET TRI_I";
-  attribute X_INTERFACE_INFO of ESM_RESET_tri_o : signal is "xilinx.com:interface:gpio:1.0 ESM_RESET ";
+  attribute X_INTERFACE_INFO of ESM_RESET_tri_o : signal is "xilinx.com:interface:gpio:1.0 ESM_RESET TRI_O";
   attribute X_INTERFACE_INFO of ESM_RESET_tri_t : signal is "xilinx.com:interface:gpio:1.0 ESM_RESET TRI_T";
 begin
   ADC_A_clk <= ad7689_s_0_spi_intf_clk;
@@ -6189,7 +6189,7 @@ ad7689_s_1: component ipmc_bd_ad7689_s_1_0
       spi_mosi => ad7689_s_1_spi_intf_mosi,
       spi_ncs0 => ad7689_s_1_spi_intf_ncs0
     );
-axi_atca_led_ctrl: component ipmc_bd_led_controller_1_0
+axi_atca_led_ctrl: component ipmc_bd_axi_atca_led_ctrl_0
      port map (
       m_led_out(3 downto 0) => led_controller_1_m_led_out(3 downto 0),
       s_axi_aclk => processing_system7_0_FCLK_CLK0,
@@ -6613,7 +6613,7 @@ axi_jtag_0: component ipmc_bd_axi_jtag_0_0
       s_axi_wstrb(3 downto 0) => axi_interconnect_0_M07_AXI_WSTRB(3 downto 0),
       s_axi_wvalid => axi_interconnect_0_M07_AXI_WVALID(0)
     );
-axi_user_led_ctrl: component ipmc_bd_led_controller_0_0
+axi_user_led_ctrl: component ipmc_bd_axi_user_led_ctrl_0
      port map (
       m_led_out(1 downto 0) => led_controller_0_m_led_out(1 downto 0),
       s_axi_aclk => processing_system7_0_FCLK_CLK0,

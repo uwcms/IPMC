@@ -332,7 +332,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>de45822f</spirit:value>
+            <spirit:value>aa028a78</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -348,7 +348,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>de45822f</spirit:value>
+            <spirit:value>aa028a78</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -362,7 +362,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>f4d99741</spirit:value>
+            <spirit:value>ea5a3188</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -846,14 +846,14 @@
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>hdl/ad7689_s_v1_0.vhd</spirit:name>
-        <spirit:fileType>vhdlSource</spirit:fileType>
-        <spirit:userFileType>CHECKSUM_111ae805</spirit:userFileType>
-      </spirit:file>
-      <spirit:file>
         <spirit:name>hdl/ad7689_s_v1_0_spi_intf.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
         <spirit:userFileType>CHECKSUM_af99f294</spirit:userFileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>hdl/ad7689_s_v1_0.vhd</spirit:name>
+        <spirit:fileType>vhdlSource</spirit:fileType>
+        <spirit:userFileType>CHECKSUM_13be5670</spirit:userFileType>
       </spirit:file>
     </spirit:fileSet>
     <spirit:fileSet>
@@ -863,11 +863,11 @@
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>hdl/ad7689_s_v1_0.vhd</spirit:name>
+        <spirit:name>hdl/ad7689_s_v1_0_spi_intf.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>hdl/ad7689_s_v1_0_spi_intf.vhd</spirit:name>
+        <spirit:name>hdl/ad7689_s_v1_0.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
     </spirit:fileSet>
@@ -966,22 +966,22 @@
       </xilinx:taxonomies>
       <xilinx:displayName>ad7689_s_v1.0</xilinx:displayName>
       <xilinx:vendorDisplayName>University of Wisconsin-Madison</xilinx:vendorDisplayName>
-      <xilinx:coreRevision>4</xilinx:coreRevision>
+      <xilinx:coreRevision>5</xilinx:coreRevision>
       <xilinx:upgrades>
         <xilinx:canUpgradeFrom>user.org:user:ad7689_s:1.0</xilinx:canUpgradeFrom>
       </xilinx:upgrades>
-      <xilinx:coreCreationDateTime>2018-07-24T16:52:19Z</xilinx:coreCreationDateTime>
+      <xilinx:coreCreationDateTime>2018-09-26T13:41:52Z</xilinx:coreCreationDateTime>
       <xilinx:tags>
         <xilinx:tag xilinx:name="user.org:user:ad7689_s:1.0_ARCHIVE_LOCATION">/scratch/ales/IPMC_repo_5/IPMC/Vivado/ip_repo/ad7689_s_1.0</xilinx:tag>
         <xilinx:tag xilinx:name="uw:user:ad7689_s:1.0_ARCHIVE_LOCATION">/scratch/ales/IPMC_repo_5/IPMC/Vivado/ip_repo/ad7689_s_1.0</xilinx:tag>
-        <xilinx:tag xilinx:name="uw:uw:ad7689_s:1.0_ARCHIVE_LOCATION">/scratch/ales/IPMC_repo_5/IPMC/Vivado/ip_repo/ad7689_s_1.0</xilinx:tag>
+        <xilinx:tag xilinx:name="uw:uw:ad7689_s:1.0_ARCHIVE_LOCATION">/scratch/ales/repos/IPMC_adc/IPMC/Vivado/ip_repo/ad7689_s_1.0</xilinx:tag>
       </xilinx:tags>
     </xilinx:coreExtensions>
     <xilinx:packagingInfo>
       <xilinx:xilinxVersion>2018.2</xilinx:xilinxVersion>
       <xilinx:checksum xilinx:scope="busInterfaces" xilinx:value="d65e9c2c"/>
       <xilinx:checksum xilinx:scope="memoryMaps" xilinx:value="c30980da"/>
-      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="d95c8259"/>
+      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="42ce0d66"/>
       <xilinx:checksum xilinx:scope="ports" xilinx:value="e88ff7a8"/>
       <xilinx:checksum xilinx:scope="hdlParameters" xilinx:value="bcc849e9"/>
       <xilinx:checksum xilinx:scope="parameters" xilinx:value="f550dc04"/>

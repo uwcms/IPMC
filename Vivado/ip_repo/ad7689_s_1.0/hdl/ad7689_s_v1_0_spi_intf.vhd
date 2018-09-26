@@ -26,6 +26,7 @@ entity ad7689_spi_intf is
 end ad7689_spi_intf;
 
 architecture Behavioral of ad7689_spi_intf is
+
     -- Bit and timeout counters
     signal r_bit_counter : unsigned (4 downto 0) := (others => '0');
     signal r_timeout_counter : unsigned (9 downto 0) := (others => '0');
@@ -47,6 +48,11 @@ architecture Behavioral of ad7689_spi_intf is
     signal r_cnv_valid_3 : std_logic := '0';
     
     signal init : std_logic := '1';
+    
+     signal r_dly_value_rst : std_logic;   
+     signal r_dly_value_dec : std_logic;   
+     signal s_load  : std_logic; 
+     signal s_cnv_done : std_logic;
     
     -- State machine
     type t_state is (ST_ASSERT, ST_HOLD, ST_RW, ST_WAIT, ST_DEASSERT, ST_DLY, ST_TIMEOUT);
@@ -74,9 +80,6 @@ architecture Behavioral of ad7689_spi_intf is
         return reg & c_dummy_filler; 
     end f_ad76xx_cfg_reg;    
      
-    signal r_dly_value_rst : std_logic;   
-    signal r_dly_value_dec : std_logic;   
-
 begin
 
     process(mclk_i) is
@@ -108,7 +111,7 @@ begin
                 r_bit_counter <= "10000";
                 r_timeout_counter <= (others => '0');
                 r_channel_value <= (others => '0');
-                cnv_done_o <= '0';
+                s_cnv_done <= '0';
                 cnv_channel_o <= (others => '0');
                 cnv_error_o <= '0';
                 
@@ -131,12 +134,13 @@ begin
                 spi_ncs0_o <= '0';
                 r_bit_counter <= "10000";
                 r_timeout_counter <= (others => '0');
-                cnv_done_o <= '0';
+                s_cnv_done <= '0';
                 cnv_channel_o <= (others => '0');
                 cnv_error_o <= '0';
                 r_dly_value_rst <= '0';
                 r_dly_value_dec <= '0';
-            
+                                        s_load <= '0';
+
                 case (r_state) is
                     when ST_ASSERT =>
                         -- Assert the /CS line, accessing the slave ADC
@@ -150,7 +154,7 @@ begin
                         r_dly_value_rst <= '1';
 
                     when ST_WAIT =>
-                                     r_clk <= '0';
+                        r_clk <= '0';
                         -- Wait for the conversion to complete or timeout
                         spi_ncs0_o <= '0'; -- Needed for conversion done
                         r_cnv_valid_1 <= '0'; -- Default
@@ -182,19 +186,21 @@ begin
                         if (r_clk = '0') then
                             -- CLK LOW to HIGH transition
                             r_clk <= '1';
-                            --if (r_bit_counter > 0) then
+                            --if (r_bit_counter > 1) then
                                 r_channel_value <=  r_channel_value (15 downto 0) & spi_miso_i;
-                            --end if;
+                            --end if;   
+                            s_load <= '1';
                             r_bit_counter <= r_bit_counter;
                         else
                             -- CLK HIGH to LOW transition
                             r_clk <= '0';
+                         
                             r_bit_counter <= r_bit_counter + 1;
                         end if;
                         
                         if (r_bit_counter >= 16) then -- 17 CLKs required for SDO release
                             r_state <= ST_DLY;
-                            cnv_done_o <= '1';
+                            s_cnv_done <= '1';
                             init <= '0';
                             cnv_channel_o <= std_logic_vector(r_channel_number_3);
 --                        -- Cycle through the channels where channel 9 (temperature) is the last
@@ -232,7 +238,9 @@ begin
         end if;
     end process;
     
+    cnv_done_o <= s_cnv_done;
+    
     spi_clk_o <= r_clk;
-    cnv_value_o <= r_channel_value (15 downto 0);
+    cnv_value_o <= r_channel_value (14 downto 0) & '0';
 
 end Behavioral;

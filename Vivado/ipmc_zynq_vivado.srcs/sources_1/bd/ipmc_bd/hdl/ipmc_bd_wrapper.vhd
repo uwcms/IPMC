@@ -1,7 +1,7 @@
 --Copyright 1986-2018 Xilinx, Inc. All Rights Reserved.
 ----------------------------------------------------------------------------------
 --Tool Version: Vivado v.2018.2 (lin64) Build 2258646 Thu Jun 14 20:02:38 MDT 2018
---Date        : Mon Aug 20 11:15:46 2018
+--Date        : Wed Sep 26 08:52:21 2018
 --Host        : beck.hep.wisc.edu running 64-bit CentOS Linux release 7.5.1804 (Core)
 --Command     : generate_target ipmc_bd_wrapper.bd
 --Design      : ipmc_bd_wrapper
@@ -97,8 +97,6 @@ architecture STRUCTURE of ipmc_bd_wrapper is
     EEPROM_I2C_0_sda_i : in STD_LOGIC;
     EEPROM_I2C_0_sda_o : out STD_LOGIC;
     EEPROM_I2C_0_sda_t : out STD_LOGIC;
-    ESM_UART_rxd : in STD_LOGIC;
-    ESM_UART_txd : out STD_LOGIC;
     PL_LEDS : out STD_LOGIC_VECTOR ( 1 downto 0 );
     ATCA_LEDS : out STD_LOGIC_VECTOR ( 3 downto 0 );
     pwr_en : out STD_LOGIC_VECTOR ( 6 downto 0 );
@@ -108,7 +106,11 @@ architecture STRUCTURE of ipmc_bd_wrapper is
     TDO : in STD_LOGIC;
     TMS : out STD_LOGIC;
     HNDL_SW : in STD_LOGIC;
+    ESM_UART_rxd : in STD_LOGIC;
+    ESM_UART_txd : out STD_LOGIC;
+    ESM_RESET_tri_i : in STD_LOGIC_VECTOR ( 1 downto 0 );
     ESM_RESET_tri_o : out STD_LOGIC_VECTOR ( 1 downto 0 );
+    ESM_RESET_tri_t : out STD_LOGIC_VECTOR ( 1 downto 0 );
     ESM_FLASH_SPI_io0_i : in STD_LOGIC;
     ESM_FLASH_SPI_io0_o : out STD_LOGIC;
     ESM_FLASH_SPI_io0_t : out STD_LOGIC;
@@ -120,9 +122,7 @@ architecture STRUCTURE of ipmc_bd_wrapper is
     ESM_FLASH_SPI_sck_t : out STD_LOGIC;
     ESM_FLASH_SPI_ss_i : in STD_LOGIC_VECTOR ( 0 to 0 );
     ESM_FLASH_SPI_ss_o : out STD_LOGIC_VECTOR ( 0 to 0 );
-    ESM_FLASH_SPI_ss_t : out STD_LOGIC;
-    ESM_RESET_tri_i : in STD_LOGIC_VECTOR ( 1 downto 0 );
-    ESM_RESET_tri_t : out STD_LOGIC_VECTOR ( 1 downto 0 )
+    ESM_FLASH_SPI_ss_t : out STD_LOGIC
   );
   end component ipmc_bd;
   component IOBUF is
