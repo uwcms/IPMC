@@ -122,6 +122,7 @@ void SensorDataRepository::u8import(const std::vector<uint8_t> &data) {
 			continue; // Can't be parsed.  We'll at least try for later ones.
 		this->records.push_back(record);
 	}
+	this->renumber();
 	this->reservation = reservation;
 	this->reserve(); // Increment reservation only once.
 }
