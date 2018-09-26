@@ -184,7 +184,7 @@ void driver_init(bool use_pl) {
 	LED_Controller_Initialize(&atcaLEDs, XPAR_AXI_ATCA_LED_CTRL_DEVICE_ID);
 
 	for (int i = 0; i < 2; i++) {
-		adc[i] = new AD7689(XPAR_AD7689_S_0_DEVICE_ID + 1);
+		adc[i] = new AD7689(XPAR_AD7689_S_0_DEVICE_ID + i);
 	}
 
 	xadc = new PS_XADC(XPAR_XADCPS_0_DEVICE_ID);
