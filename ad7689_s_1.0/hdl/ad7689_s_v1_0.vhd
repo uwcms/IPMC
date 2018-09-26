@@ -44,7 +44,7 @@ entity ad7689 is
 		s_axi_rvalid	: out std_logic;
 		s_axi_rready	: in std_logic
 	
-	);
+	); 
 end ad7689;
  
 architecture arch_imp of ad7689 is
@@ -74,6 +74,11 @@ architecture arch_imp of ad7689 is
    signal     s_spi_clk :  std_logic;
    signal     s_spi_mosi :  std_logic;
    signal     s_spi_miso :  std_logic;
+
+   signal     s_spi_ncs0_r :  std_logic;
+   signal     s_spi_clk_r :  std_logic;
+   signal     s_spi_mosi_r :  std_logic;
+   signal     s_spi_miso_r :  std_logic;
 
 
     signal s_ref_freq_cnt : unsigned(31 downto 0);
@@ -234,11 +239,28 @@ begin
     
 
 ----------------------------------------
--- IO interface 
-    spi_ncs0 <= s_spi_ncs0;
-    spi_clk <= s_spi_clk;
-    spi_mosi <= s_spi_mosi;
-    s_spi_miso <= spi_miso;
+-- Registered IO interface 
+    process(s_axi_aclk) is
+    begin
+    
+        if rising_edge(s_axi_aclk) then
+        
+            --s_spi_ncs0_r <= s_spi_ncs0;
+            spi_ncs0 <= s_spi_ncs0;
+
+            --s_spi_clk_r <= s_spi_clk;
+            spi_clk <= s_spi_clk;
+            
+            --s_spi_mosi_r <= s_spi_mosi;
+            spi_mosi <= s_spi_mosi;
+            
+            --s_spi_miso_r <= spi_miso;
+            s_spi_miso <= spi_miso;
+
+        end if;
+    end process; 
+    
+
     
      gen_ch_value_aggr : for idx in 0 to 8 generate
         adc_ch_value_aggr((idx+1)*16-1 downto idx*16) <= s_ch_value_demuxed(idx);
