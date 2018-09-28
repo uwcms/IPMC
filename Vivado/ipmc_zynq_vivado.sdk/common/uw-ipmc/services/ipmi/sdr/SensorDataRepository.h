@@ -8,6 +8,8 @@
 #ifndef SRC_COMMON_UW_IPMC_SERVICES_IPMI_SDR_SENSORDATAREPOSITORY_H_
 #define SRC_COMMON_UW_IPMC_SERVICES_IPMI_SDR_SENSORDATAREPOSITORY_H_
 
+#include <FreeRTOS.h>
+#include <semphr.h>
 #include <vector>
 #include <memory>
 #include <stdint.h>
@@ -15,14 +17,15 @@
 
 class SensorDataRepository {
 public:
-	SensorDataRepository() : reservation(1) { };
-	virtual ~SensorDataRepository() { };
+	SensorDataRepository();
+	virtual ~SensorDataRepository();
 
 	void add(const SensorDataRecord &record);
 	void add(const SensorDataRepository &sdrepository);
-	void remove(uint16_t key);
+	void remove(uint16_t id);
 	void clear();
-	std::shared_ptr<const SensorDataRecord> get(uint16_t key) const;
+	std::shared_ptr<const SensorDataRecord> get(uint16_t id) const;
+	std::shared_ptr<const SensorDataRecord> find(const std::vector<uint8_t> &key) const;
 	std::vector< std::shared_ptr<SensorDataRecord> >::size_type size() const;
 
 	std::vector<uint8_t> u8export() const;
@@ -38,6 +41,7 @@ protected:
 	uint8_t reservation; ///< The current reservation number for this repository
 	std::vector< std::shared_ptr<SensorDataRecord> > records; ///< The actual SDRs
 	void renumber();
+	SemaphoreHandle_t mutex; ///< A mutex to protect repository operations.
 };
 
 #endif /* SRC_COMMON_UW_IPMC_SERVICES_IPMI_SDR_SENSORDATAREPOSITORY_H_ */
