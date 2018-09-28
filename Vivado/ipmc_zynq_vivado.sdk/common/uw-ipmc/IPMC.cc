@@ -549,7 +549,7 @@ void init_fru_area() {
 	product_info.insert(product_info.end(), tlstring.begin(), tlstring.end()); // Product Version
 		tlstring = encode_ipmi_type_length_field(std::to_string(IPMC_SERIAL));
 	product_info.insert(product_info.end(), tlstring.begin(), tlstring.end()); // Product Serial
-	product_info.insert(0xC0); // Asset Tag (NULL)
+	product_info.push_back(0xC0); // Asset Tag (NULL)
 	tlstring = encode_ipmi_type_length_field(GIT_DESCRIBE);
 	product_info.insert(product_info.end(), tlstring.begin(), tlstring.end()); // FRU File ID (in our case generating software)
 	product_info.push_back(0xC1); // End of T/L Records.
