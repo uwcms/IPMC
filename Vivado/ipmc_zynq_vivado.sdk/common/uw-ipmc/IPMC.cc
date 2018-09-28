@@ -25,6 +25,7 @@
 #include "libs/Utils.h"
 #include "libs/XilinxImage.h"
 #include "libs/Authentication.h"
+#include <services/ipmi/IPMIFormats.h>
 
 /* Include drivers */
 #include <drivers/ps_xadc/PSXADC.h>
@@ -146,7 +147,6 @@ void driver_init(bool use_pl) {
 	console_log_filter = new LogTree::Filter(LOG, console_log_handler, LogTree::LOG_NOTICE);
 	console_log_filter->register_console_commands(console_command_parser);
 	LOG["console_log_command"].register_console_commands(console_command_parser);
-	register_core_console_commands(console_command_parser);
 
 	isfqspi = new PS_ISFQSPI(XPAR_PS7_QSPI_0_DEVICE_ID, XPAR_PS7_QSPI_0_INTR);
 
@@ -160,7 +160,10 @@ void driver_init(bool use_pl) {
 			mac_address[0], mac_address[1], mac_address[2], mac_address[3], mac_address[4], mac_address[5]), LogTree::LOG_NOTICE);
 	configASSERT(eeprom_mac->read(0, reinterpret_cast<uint8_t*>(&IPMC_SERIAL), sizeof(IPMC_SERIAL)));
 
-	init_device_sdrs();
+	// This has to be lower, so the serial number has been read by the time we register (or not register) set_serial.
+	register_core_console_commands(console_command_parser);
+
+	UWTaskCreate("init_sdr", TASK_PRIORITY_SERVICE, init_device_sdrs);
 
 	XGpioPs_Config* gpiops_config = XGpioPs_LookupConfig(XPAR_PS7_GPIO_0_DEVICE_ID);
 	configASSERT(XST_SUCCESS == XGpioPs_CfgInitialize(&gpiops, gpiops_config, gpiops_config->BaseAddr));
@@ -445,7 +448,6 @@ void ipmc_service_init() {
  * Initialize Device SDRs for this controller.
  */
 static void init_device_sdrs() {
-	return;
 	VariablePersistentAllocation sdr_persist(*persistent_storage, PersistentStorageAllocations::WISC_SDR_REPOSITORY);
 	std::vector<uint8_t> sdrdata = sdr_persist.get_data();
 	if (sdrdata.size()) {
@@ -502,6 +504,95 @@ static void init_device_sdrs() {
 
 	// I think these needta be imported to the main SDR repo too?
 	sdr_repo.add(device_sdr_repo);
+}
+
+void init_fru_area() {
+	std::vector<uint8_t> tlstring;
+
+	std::vector<uint8_t> board_info;
+	board_info.push_back(0x01); // Format Version
+	board_info.push_back(0x00); // Length Placeholder
+	board_info.push_back(25);   // Language Code (English)
+	board_info.push_back(0x00); // Mfg Date/Time (Unspecified
+	board_info.push_back(0x00); // Mfg Date/Time (Unspecified
+	board_info.push_back(0x00); // Mfg Date/Time (Unspecified
+	tlstring = encode_ipmi_type_length_field("University of Wisconsin");
+	board_info.insert(board_info.end(), tlstring.begin(), tlstring.end()); // Board Mfgr.
+	tlstring = encode_ipmi_type_length_field("ZYNQ IPMC");
+	board_info.insert(board_info.end(), tlstring.begin(), tlstring.end()); // Board Product Name
+	tlstring = encode_ipmi_type_length_field(std::to_string(IPMC_SERIAL));
+	board_info.insert(board_info.end(), tlstring.begin(), tlstring.end()); // Board Serial
+	tlstring = encode_ipmi_type_length_field(std::string("ELM1 Rev") + std::to_string(IPMC_HW_REVISION));
+	board_info.insert(board_info.end(), tlstring.begin(), tlstring.end()); // Board Part Number
+	tlstring = encode_ipmi_type_length_field(GIT_DESCRIBE);
+	board_info.insert(board_info.end(), tlstring.begin(), tlstring.end()); // FRU File ID (in our case generating software)
+	board_info.push_back(0xC1); // End of T/L Records.
+	board_info.push_back(0); // Ensure at least one pad, to be used for checksum.
+	while (board_info.size() % 8)
+		board_info.push_back(0); // Pad.
+	board_info[1] = board_info.size()/8; // Update length
+	board_info.pop_back(); // Remove one pad for checksum.
+	board_info.push_back(ipmi_checksum(board_info));
+
+
+	std::vector<uint8_t> product_info;
+	product_info.push_back(0x01); // Format Version
+	product_info.push_back(0x00); // Length Placeholder
+	product_info.push_back(25);   // Language Code (English)
+	tlstring = encode_ipmi_type_length_field("University of Wisconsin");
+	product_info.insert(product_info.end(), tlstring.begin(), tlstring.end()); // Mfgr Name
+	tlstring = encode_ipmi_type_length_field("ZYNQ IPMC");
+	product_info.insert(product_info.end(), tlstring.begin(), tlstring.end()); // Product Name
+	tlstring = encode_ipmi_type_length_field(std::string("ELM1 Rev") + std::to_string(IPMC_HW_REVISION));
+	product_info.insert(product_info.end(), tlstring.begin(), tlstring.end()); // Product Part/Model Number
+	tlstring = encode_ipmi_type_length_field(std::to_string(IPMC_HW_REVISION));
+	product_info.insert(product_info.end(), tlstring.begin(), tlstring.end()); // Product Version
+		tlstring = encode_ipmi_type_length_field(std::to_string(IPMC_SERIAL));
+	product_info.insert(product_info.end(), tlstring.begin(), tlstring.end()); // Product Serial
+	product_info.insert(0xC0); // Asset Tag (NULL)
+	tlstring = encode_ipmi_type_length_field(GIT_DESCRIBE);
+	product_info.insert(product_info.end(), tlstring.begin(), tlstring.end()); // FRU File ID (in our case generating software)
+	product_info.push_back(0xC1); // End of T/L Records.
+	product_info.push_back(0); // Ensure at least one pad, to be used for checksum.
+	while (product_info.size() % 8)
+		product_info.push_back(0); // Pad.
+	product_info[1] = product_info.size()/8; // Update length
+	product_info.pop_back(); // Remove one pad for checksum.
+	product_info.push_back(ipmi_checksum(product_info));
+
+
+	std::vector<uint8_t> frudata;
+	frudata.resize(8);
+	frudata[0] = 0x01; // Common Header Format Version
+	frudata[1] = 0x00; // Internal Use Area Offset (multiple of 8 bytes)
+	frudata[2] = 0x00; // Chassis Info Area Offset (multiple of 8 bytes)
+	frudata[3] = 0x01; // Board Area Offset (multiple of 8 bytes)
+	frudata[4] = 0x01 + board_info.size()/8; // Product Info Area Offset (multiple of 8 bytes)
+	frudata[5] = 0x01 + board_info.size()/8 + product_info.size()/8; // Multi-Record Area Offset (multiple of 8 bytes)
+	frudata[6] = 0x00; // PAD, write as 00h
+	frudata[7] = 0x00;
+	frudata[7] = ipmi_checksum(frudata); // Checksum
+
+	frudata.insert(frudata.end(), board_info.begin(), board_info.end());
+	frudata.insert(frudata.end(), product_info.begin(), product_info.end());
+
+	std::vector<uint8_t> multirecord;
+	multirecord.clear();
+	multirecord.push_back(0xC0); // "OEM", specified
+	multirecord.push_back(0x02); // Not end of list, format 02 (specified)
+	multirecord.push_back(0); // length (placeholder)
+	multirecord.push_back(0); // record checksum (placeholder)
+	multirecord.push_back(0); // header checksum (placeholder)
+	multirecord.push_back(0x5A); // PICMG, specified
+	multirecord.push_back(0x31); // PICMG, specified
+	multirecord.push_back(0x00); // PICMG, specified
+	multirecord.push_back(0x16); // PICMG Record ID, specified
+	multirecord.push_back(0); // Version, specified
+	multirecord.push_back(30); // ceil(35/1.2) // Current Draw, 35W
+	multirecord[2] = multirecord.size();
+	multirecord[3] = ipmi_checksum(std::vector<uint8_t>(std::next(multirecord.begin(), 5), multirecord.end()));
+	multirecord[4] = ipmi_checksum(std::vector<uint8_t>(multirecord.begin(), std::next(multirecord.begin(), 5)));
+	frudata.insert(frudata.end(), multirecord.begin(), multirecord.end());
 }
 
 void* operator new(std::size_t n) {
@@ -814,6 +905,32 @@ public:
 	//virtual std::vector<std::string> complete(const CommandParser::CommandParameters &parameters) const { };
 };
 
+/// A "set_serial" console command.
+class ConsoleCommand_set_serial: public CommandParser::Command {
+public:
+	virtual std::string get_helptext(const std::string &command) const {
+		return stdsprintf(
+				"%s $serial\n"
+				"\n"
+				"Set the IPMC serial number.\n"
+				"NOTE: This cannot be changed once set!\n", command.c_str());
+	}
+
+	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
+		uint16_t serial;
+		if (!parameters.parse_parameters(1, true, &serial)) {
+			console->write("Please provide a serial number.\n");
+			return;
+		}
+
+		IPMC_SERIAL = serial;
+		eeprom_mac->write(0, reinterpret_cast<uint8_t*>(&serial), sizeof(serial));
+		console->write("Serial updated.  Reboot to lock.\n");
+	}
+
+	//virtual std::vector<std::string> complete(const CommandParser::CommandParameters &parameters) const { };
+};
+
 } // anonymous namespace
 
 static void register_core_console_commands(CommandParser &parser) {
@@ -825,6 +942,8 @@ static void register_core_console_commands(CommandParser &parser) {
 	console_command_parser.register_command("restart", std::make_shared<ConsoleCommand_restart>());
 	console_command_parser.register_command("flash_info", std::make_shared<ConsoleCommand_flash_info>());
 	console_command_parser.register_command("setauth", std::make_shared<ConsoleCommand_setauth>());
+	if (IPMC_SERIAL == 0 || IPMC_SERIAL == 0xFFFF)
+		console_command_parser.register_command("set_serial", std::make_shared<ConsoleCommand_set_serial>());
 }
 
 static void console_log_handler(LogTree &logtree, const std::string &message, enum LogTree::LogLevel level) {
