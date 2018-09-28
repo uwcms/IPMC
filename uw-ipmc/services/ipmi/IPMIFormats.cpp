@@ -117,3 +117,19 @@ std::string render_ipmi_type_length_field(const std::vector<uint8_t> &data) {
 		return "";
 	}
 }
+
+/**
+ * A poor man's type-length encoder.  Only encodes raw ASCII.
+ * @param data The string to encode
+ * @param prevent_c1 0xC1 tends to be 'end of record list'.  Add a space to the end of single-character fields.
+ * @return The encoded data
+ */
+std::vector<uint8_t> encode_ipmi_type_length_field(const std::string &data, bool prevent_c1) {
+	std::vector<uint8_t> out(data.begin(), data.end());
+	if (out.size() > 63)
+		out.resize(63); // Trim, we can only encode this much.
+	if (out.size() == 1 && prevent_c1)
+		out.push_back(' '); // 0xC1 tends to be 'end of record list', so we'll add a space to the end of any one-letter field.
+	out.insert(out.begin(), 0xc0 /* Raw ASCII or Unicode */ | static_cast<uint8_t>(out.size()));
+	return out;
+}
