@@ -55,67 +55,21 @@
 #include "led_controller.h"
 #include "mgmt_zone_ctrl.h"
 #include "ad7689_s.h"
+#include "ipmi_sensor_proc.h"
 
 
 #define TEST_MIN_PE_CNT 12
 
 
-void ad7689_s_freq_demo(AD7689_S * ad7689_s_list, u16 freq_req)
-{
-	int ADC, freq_meas;
-	for (ADC = 0 ; ADC<XPAR_AD7689_S_NUM_INSTANCES; ADC++)
-	{
-		xil_printf("ADC %d: requested conv frequency  = %5d\n\r", ADC, freq_req);
-		AD7689_S_Set_Conv_Freq(&(ad7689_s_list[ADC]), freq_req);
-
-		sleep(2); // it takes 1 second for FW to fully refresh frequency measurement
-
-		freq_meas = AD7689_S_Measure_Conv_Freq(&(ad7689_s_list[ADC]));
-		xil_printf("ADC %d: measured conv frequency  = %5d\n\r", ADC, freq_meas);
-	}
-}
-
-void ad7689_s_reading_demo(AD7689_S * ad7689_s_list )
-{
-	int ADC;
-    u16 reading;
-
-
-	for (ADC = 0 ; ADC<XPAR_AD7689_S_NUM_INSTANCES; ADC++)
-	{
-		u32 ch;
-		xil_printf("\n\r");
-
-		xil_printf("ADC_%d (mV readings)\n\r", ADC);
-		xil_printf(" Ch0    Ch1    Ch2    Ch3    Ch4    Ch5    Ch6    Ch7    Ch8(temp)\n\r");
-		xil_printf("------------------------------------------------------------------\n\r");
-
-		for (ch=0; ch<9; ch++)
-		{
-			XStatus rc;
-			rc = AD7689_S_Get_Reading(&(ad7689_s_list[ADC]), ch, &reading);
-			if (rc != XST_SUCCESS)
-			{
-				continue;
-			}
-
-			// 2500 -> 2.5V reference voltage
-			// 65536 -> 16-bit ADC
-			xil_printf("%4d   ", reading * 2500 / 65536);
-		}
-		xil_printf("\n\r");
-	}
-}
+AD7689_S ad7689_s_list[XPAR_AD7689_S_NUM_INSTANCES];
 
 int ad7689_s_demo(int demo)
 {
 
 	int i, Status;
 
-	int ADC ;
-	int freq_meas, freq_req;
+	int freq_req;
 
-	AD7689_S ad7689_s_list[XPAR_AD7689_S_NUM_INSTANCES];
 
 	/* Initialize the LED Controller drivers */
 	for (i = 0; i < XPAR_AD7689_S_NUM_INSTANCES; i++) {
@@ -135,7 +89,7 @@ int ad7689_s_demo(int demo)
 
 	xil_printf("\n\r");
 
-	freq_req = 3000; // requested AD conversion frequency
+	freq_req = 3300; // requested AD conversion frequency
 
 	// set and read back AD conv freq
 	ad7689_s_freq_demo(ad7689_s_list, freq_req);
@@ -202,9 +156,279 @@ int ad7689_s_demo(int demo)
 
 	ad7689_s_reading_demo(ad7689_s_list);
 
-
 	return 0;
 }
+
+
+void ad7689_s_freq_demo(AD7689_S * ad7689_s_list, u16 freq_req)
+{
+	int ADC, freq_meas;
+	for (ADC = 0 ; ADC<XPAR_AD7689_S_NUM_INSTANCES; ADC++)
+	{
+		xil_printf("ADC %d: requested conv frequency  = %5d\n\r", ADC, freq_req);
+		AD7689_S_Set_Conv_Freq(&(ad7689_s_list[ADC]), freq_req);
+
+		sleep(2); // it takes 1 second for FW to fully refresh frequency measurement
+
+		freq_meas = AD7689_S_Measure_Conv_Freq(&(ad7689_s_list[ADC]));
+		xil_printf("ADC %d: measured conv frequency  = %5d\n\r", ADC, freq_meas);
+	}
+}
+
+void ad7689_s_reading_demo(AD7689_S * ad7689_s_list )
+{
+	int ADC;
+    u16 reading;
+
+
+	for (ADC = 0 ; ADC<XPAR_AD7689_S_NUM_INSTANCES; ADC++)
+	{
+		u32 ch;
+		xil_printf("\n\r");
+
+		xil_printf("ADC_%d (mV readings)\n\r", ADC);
+		xil_printf(" Ch0    Ch1    Ch2    Ch3    Ch4    Ch5    Ch6    Ch7    Ch8(temp)\n\r");
+		xil_printf("------------------------------------------------------------------\n\r");
+
+		for (ch=0; ch<9; ch++)
+		{
+			XStatus rc;
+			rc = AD7689_S_Get_Reading(&(ad7689_s_list[ADC]), ch, &reading);
+			if (rc != XST_SUCCESS)
+			{
+				continue;
+			}
+
+			// 2500 -> 2.5V reference voltage
+			// 65536 -> 16-bit ADC
+			xil_printf("%4d   ", reading * 2500 / 65536);
+		}
+		xil_printf("\n\r");
+	}
+}
+
+IPMI_Sensor_Proc IPMI_Sensor_Proc_list[XPAR_IPMI_SENSOR_PROC_NUM_INSTANCES];
+
+void PL_IPMI_ch_status(int ch)
+{
+	u16 raw_reading;
+	u8 thr_status;
+
+	u16 assert_status, deassert_status;
+	u16 assert_curr_status, deassert_curr_status;
+
+	IPMI_Sensor_Proc * p_IPMI_SP = &IPMI_Sensor_Proc_list[0];
+
+	IPMI_Sensor_Proc_Get_Sensor_Reading(p_IPMI_SP, ch, &raw_reading, &thr_status);
+	IPMI_Sensor_Proc_Get_Latched_Event_Status(p_IPMI_SP, ch, &assert_status, &deassert_status);
+	IPMI_Sensor_Proc_Get_Current_Event_Status(p_IPMI_SP, ch, &assert_curr_status, &deassert_curr_status);
+
+	xil_printf("\n\r");
+
+	xil_printf("PL_IPMI_Sensor_Proc Status ch%d: ", ch);
+	xil_printf("raw_reading %6d, thr_status 0x%02X ", raw_reading,thr_status);
+	xil_printf("assert_status 0x%03X, deassert_status 0x%03X ", assert_status,deassert_status);
+	xil_printf("assert_curr_status 0x%03X, deassert_curr_status 0x%03X ", assert_curr_status,deassert_curr_status);
+
+	xil_printf("\n\r");
+}
+
+int PL_IPMI_demo(int demo)
+{
+
+	int i, ch, Status, rc;
+
+	IPMI_Sensor_Proc * p_IPMI_SP = &IPMI_Sensor_Proc_list[0];
+
+	Hyst_Cfg hyst_cfg, hyst_cfg_rb;
+
+	Thr_Cfg thr_cfg, thr_cfg_rb;
+
+	/* Initialize the LED Controller drivers */
+	for (i = 0; i < XPAR_IPMI_SENSOR_PROC_NUM_INSTANCES; i++) {
+		Status = IPMI_Sensor_Proc_Initialize(&(IPMI_Sensor_Proc_list[i]), i);
+		if (Status != XST_SUCCESS) {
+			xil_printf("PL_IPMI_Sensor_Proc Initialization Failed\n\r");
+			return XST_FAILURE;
+		}
+	}
+
+	IPMI_Sensor_Proc_Reset(p_IPMI_SP);
+
+	xil_printf("------------------------------------------------------------------\n\r");
+	xil_printf("IPMI_Sensor_Proc Set_Hyst/Get_Hyst readback test...  ");
+	for (ch=0; ch < p_IPMI_SP->sensor_ch_cnt; ch++)
+	{
+		hyst_cfg.hyst_neg = ch+1;
+		hyst_cfg.hyst_pos = ch+2;
+
+		IPMI_Sensor_Proc_Set_Hyst(p_IPMI_SP,ch, &hyst_cfg);
+		IPMI_Sensor_Proc_Get_Hyst(p_IPMI_SP,ch, &hyst_cfg_rb);
+
+		rc = memcmp(&hyst_cfg, &hyst_cfg_rb, sizeof(Hyst_Cfg));
+		if (rc != 0)
+		{
+				xil_printf("FAILED!\n\r");
+				return -1;
+		}
+	}
+	xil_printf("passed.\n\r");
+
+
+	xil_printf("------------------------------------------------------------------\n\r");
+	xil_printf("IPMI_Sensor_Proc Set_Thr/Get_Thr readback test...  ");
+	for (ch=0; ch < p_IPMI_SP->sensor_ch_cnt; ch++)
+	{
+		thr_cfg.LNR = ch+1;
+		thr_cfg.LCR = ch+2;
+		thr_cfg.LNC = ch+3;
+		thr_cfg.UNC = ch+4;
+		thr_cfg.UCR = ch+5;
+		thr_cfg.UNR = ch+6;
+
+		IPMI_Sensor_Proc_Set_Thr(p_IPMI_SP,ch, &thr_cfg);
+		IPMI_Sensor_Proc_Get_Thr(p_IPMI_SP,ch, &thr_cfg_rb);
+
+		rc = memcmp(&thr_cfg, &thr_cfg_rb, sizeof(Thr_Cfg));
+		if (rc != 0)
+		{
+				xil_printf("FAILED!\n\r");
+				return -1;
+		}
+	}
+	xil_printf("passed.\n\r");
+
+	xil_printf("------------------------------------------------------------------\n\r");
+	xil_printf("IPMI_Sensor_Proc Set_Event_Enable/Get_Event_Enable readback test...  ");
+	for (ch=0; ch < p_IPMI_SP->sensor_ch_cnt; ch++)
+	{
+		u16 assert_en, deassert_en;
+		u16 assert_en_rb, deassert_en_rb;
+
+		assert_en = 0xF00 | ch;
+		deassert_en = 0xA00 | ch;
+
+		IPMI_Sensor_Proc_Set_Event_Enable(p_IPMI_SP,ch, assert_en, deassert_en);
+		IPMI_Sensor_Proc_Get_Event_Enable(p_IPMI_SP,ch, &assert_en_rb, &deassert_en_rb);
+
+		if ((assert_en!=assert_en_rb) || (deassert_en!=deassert_en_rb))
+		{
+				xil_printf("FAILED!\n\r");
+				return -1;
+		}
+	}
+	xil_printf("passed.\n\r");
+
+	{
+		xil_printf("------------------------------------------------------------------\n\r");
+		xil_printf("PL IPMI Sensor Processing Logic Test\n\r");
+
+		const int adc = 0;
+		const int ch = 5;
+		int adc_ovrrd_val;
+		xil_printf("Using ADC:%d ch:%d override method to inject data into the processing stream\n\r", adc, ch);
+
+		xil_printf("Configuring PL_IPMI_Proc ch%d settings: \n\r", ch);
+
+		hyst_cfg.hyst_neg = 2;
+		hyst_cfg.hyst_pos = 3;
+		thr_cfg.LNR = 1000;
+		thr_cfg.LCR = 2000;
+		thr_cfg.LNC = 3000;
+		thr_cfg.UNC = 4000;
+		thr_cfg.UCR = 5000;
+		thr_cfg.UNR = 6000;
+		int event_assert_en = 0xA95; // UNR_H, UCR_H, UNC_H, LNC_L, LCR_L, LNR_L
+		int event_deassert_en = 0;
+
+		int raw_reading, thr_stat;
+		int ev_assert_stat, ev_deassert_stat;
+		int ev_assert_curr_stat, ev_deassert_curr_stat;
+
+		IPMI_Sensor_Proc_Set_Hyst(p_IPMI_SP,ch, &hyst_cfg);
+		IPMI_Sensor_Proc_Set_Thr(p_IPMI_SP,ch, &thr_cfg);
+		IPMI_Sensor_Proc_Set_Event_Enable(p_IPMI_SP,ch, event_assert_en, event_deassert_en);
+
+
+		//Clear any pending latched event bits
+		IPMI_Sensor_Proc_Rearm_Event_Enable(p_IPMI_SP, ch, 0xFFF, 0xFFF);
+
+		//Clear pending IRQ request
+		IPMI_Sensor_Proc_Ack_IRQ(p_IPMI_SP, 0x1);
+
+		// Per channel override enables
+		AD7689_S_Set_Ch_Ovrrd_Enables(&(ad7689_s_list[adc]), 1 << ch);
+
+		// Master Override Enable
+		AD7689_S_Set_Master_Ovrrd_Enable(&(ad7689_s_list[adc]), 1);
+
+
+		for (i=0; i<20; i++)
+		{
+			adc_ovrrd_val = 300 + 500*i;
+			AD7689_S_Set_Ovrrd_Val(&(ad7689_s_list[adc]), ch, adc_ovrrd_val);
+			sleep(1);
+
+			PL_IPMI_ch_status(ch);
+		}
+		xil_printf("------------------------------------------------------------------\n\r");
+		xil_printf("Force ch to nominal operating value\n\r");
+
+		adc_ovrrd_val = 3500;
+		AD7689_S_Set_Ovrrd_Val(&(ad7689_s_list[adc]), ch, adc_ovrrd_val);
+		sleep(1);
+
+		xil_printf("Clear Event Bits\n\r");
+		IPMI_Sensor_Proc_Rearm_Event_Enable(p_IPMI_SP, ch, 0xFFF, 0xFFF);
+		sleep(1);
+
+		PL_IPMI_ch_status(ch);
+
+		xil_printf("------------------------------------------------------------------\n\r");
+		xil_printf("Force ch to UNC value\n\r");
+		adc_ovrrd_val = thr_cfg.UNC;
+		AD7689_S_Set_Ovrrd_Val(&(ad7689_s_list[adc]), ch, adc_ovrrd_val);
+		sleep(1);
+		PL_IPMI_ch_status(ch);
+
+		xil_printf("------------------------------------------------------------------\n\r");
+		xil_printf("Force ch to UCR value\n\r");
+		adc_ovrrd_val = thr_cfg.UCR;
+		AD7689_S_Set_Ovrrd_Val(&(ad7689_s_list[adc]), ch, adc_ovrrd_val);
+		sleep(1);
+		PL_IPMI_ch_status(ch);
+
+		xil_printf("------------------------------------------------------------------\n\r");
+		xil_printf("Force ch to UNR value\n\r");
+		adc_ovrrd_val = thr_cfg.UNR;
+		AD7689_S_Set_Ovrrd_Val(&(ad7689_s_list[adc]), ch, adc_ovrrd_val);
+		sleep(1);
+		PL_IPMI_ch_status(ch);
+
+		xil_printf("------------------------------------------------------------------\n\r");
+		xil_printf("Force ch to LNC value\n\r");
+		adc_ovrrd_val = thr_cfg.LNC;
+		AD7689_S_Set_Ovrrd_Val(&(ad7689_s_list[adc]), ch, adc_ovrrd_val);
+		sleep(1);
+		PL_IPMI_ch_status(ch);
+
+		xil_printf("------------------------------------------------------------------\n\r");
+		xil_printf("Force ch to LCR value\n\r");
+		adc_ovrrd_val = thr_cfg.LCR;
+		AD7689_S_Set_Ovrrd_Val(&(ad7689_s_list[adc]), ch, adc_ovrrd_val);
+		sleep(1);
+		PL_IPMI_ch_status(ch);
+
+		xil_printf("------------------------------------------------------------------\n\r");
+		xil_printf("Force ch to LNR value\n\r");
+		adc_ovrrd_val = thr_cfg.LNR;
+		AD7689_S_Set_Ovrrd_Val(&(ad7689_s_list[adc]), ch, adc_ovrrd_val);
+		sleep(1);
+		PL_IPMI_ch_status(ch);
+	}
+	return 0;
+}
+
 
 
 /* Three different demos, 0-On/Off, 1-Pulse, 2-Dim */
@@ -389,6 +613,9 @@ int main() {
 	//mgmt_zone_ctrl_demo();
 
 	ad7689_s_demo(0);
+
+	PL_IPMI_demo(0);
+
 
 	// LED demo
 	while (1) {
