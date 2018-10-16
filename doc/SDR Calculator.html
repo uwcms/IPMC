@@ -608,7 +608,7 @@ function recalculate(eventsource) {
 		return;
 	}
 
-	if (!formula_set && granularity.value && minval.float.value) {
+	if (!formula_set && granularity.value && minval.float.value !== null) {
 		// Now the hard part.  What's M?
 		// We'll start with the granularity, right? Times precision.
 		let rexp = -float_precision;
