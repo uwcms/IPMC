@@ -7,6 +7,7 @@
 
 #include <services/ipmi/sdr/SensorDataRecord01.h>
 #include <IPMC.h>
+#include <math.h>
 
 bool SensorDataRecord01::validate() const {
 	if (!SensorDataRecordReadableSensor::validate())
@@ -79,28 +80,28 @@ SDR_FIELD(conversion_b_accuracy_exp, uint8_t, 28, 3, 2)
 
 SDR_FIELD(sensor_direction, enum SensorDataRecordReadableSensor::Direction, 28, 1, 0)
 
-int8_t SensorDataRecord01::r_exp() const {
+int8_t SensorDataRecord01::conversion_r_exp() const {
 	configASSERT(this->validate());
 	uint8_t val = this->sdr_data[29] >> 4;
 	if (val & 0x08)
 		val |= 0xf0; // Extend the 1 sign to 8 bits. (2s complement)
 	return *reinterpret_cast<int8_t*>(&val);
 }
-void SensorDataRecord01::r_exp(int8_t val) {
+void SensorDataRecord01::conversion_r_exp(int8_t val) {
 	uint8_t uval = *reinterpret_cast<uint8_t*>(&val);
 	configASSERT((uval&0xf0) == 0 || (uval&0xf0) == 0xf0);
 	configASSERT(this->validate());
 	this->sdr_data[29] = (uval<<4) | (this->sdr_data[29] & 0x0f);
 }
 
-int8_t SensorDataRecord01::b_exp() const {
+int8_t SensorDataRecord01::conversion_b_exp() const {
 	configASSERT(this->validate());
 	uint8_t val = this->sdr_data[29] & 0x0f;
 	if (val & 0x08)
 		val |= 0xf0; // Extend the 1 sign to 8 bits. (2s complement)
 	return *reinterpret_cast<int8_t*>(&val);
 }
-void SensorDataRecord01::b_exp(int8_t val) {
+void SensorDataRecord01::conversion_b_exp(int8_t val) {
 	uint8_t uval = *reinterpret_cast<uint8_t*>(&val);
 	configASSERT((uval&0xf0) == 0 || (uval&0xf0) == 0xf0);
 	configASSERT(this->validate());
@@ -115,7 +116,72 @@ SDR_FIELD(nominal_reading_rawvalue, uint8_t, 31, 7, 0)
 SDR_FIELD(normal_max_rawvalue, uint8_t, 32, 7, 0)
 SDR_FIELD(normal_min_rawvalue, uint8_t, 33, 7, 0)
 
+SDR_FIELD(sensor_min_rawvalue, uint8_t, 34, 7, 0)
+SDR_FIELD(sensor_max_rawvalue, uint8_t, 35, 7, 0)
+
+SDR_FIELD(threshold_unr_rawvalue, uint8_t, 36, 7, 0)
+SDR_FIELD(threshold_ucr_rawvalue, uint8_t, 37, 7, 0)
+SDR_FIELD(threshold_unc_rawvalue, uint8_t, 38, 7, 0)
+SDR_FIELD(threshold_lnr_rawvalue, uint8_t, 39, 7, 0)
+SDR_FIELD(threshold_lcr_rawvalue, uint8_t, 40, 7, 0)
+SDR_FIELD(threshold_lnc_rawvalue, uint8_t, 41, 7, 0)
+
 SDR_FIELD(hysteresis_high, uint8_t, 42, 7, 0)
 SDR_FIELD(hysteresis_low, uint8_t, 43, 7, 0)
 
 SDR_FIELD(oem, uint8_t, 46, 7, 0)
+
+
+uint8_t SensorDataRecord01::from_float(float value) const {
+	// The reader side conversion function is: float = L[(M*raw + (B * 10^(Bexp) ) ) * 10^(Rexp) ] units
+
+	// Apply L_inv(x).  Done.  We only support linear sensors atm where this is L(x)=x.
+	if (this->linearization() != SensorDataRecord01::LIN_LINEAR) {
+		/* Alas, we have no exceptions, so we will return a value that is
+		 * obviously wrong and will trigger alarms.
+		 */
+		return 0xFF;
+	}
+
+	// Divide by 10^(Rexp).
+	value /= powf(10,this->conversion_r_exp());
+
+	// Subtract B*10^Bexp.
+	value -= this->conversion_b() * powf(10, this->conversion_b_exp());
+
+	// Divide by M.
+	value /= this->conversion_m();
+
+	// And now I guess it's a uint8_t?
+	uint8_t raw_discrete_value = static_cast<uint16_t>(value);
+	// Resolve domain errors.
+	if (value >= 0xff)
+		raw_discrete_value = 0xff;
+	if (value <= 0)
+		raw_discrete_value = 0;
+	return raw_discrete_value;
+}
+
+float SensorDataRecord01::to_float(uint8_t value) const {
+	// The reader side conversion function is: float = L[(M*raw + (B * 10^(Bexp) ) ) * 10^(Rexp) ] units
+
+	// Into float land to begin calculations.
+	float fval = static_cast<float>(value);
+
+	// Multiply by M.
+	fval *= this->conversion_m();
+
+	// Add B*10^Bexp.
+	fval += this->conversion_b() * powf(10, this->conversion_b_exp());
+
+	// Multiply by 10^(Rexp).
+	fval *= powf(10,this->conversion_r_exp());
+
+	// Apply L(x).  Done.  We only support linear sensors atm where this is L(x)=x.
+	if (this->linearization() != SensorDataRecord01::LIN_LINEAR) {
+		// Alas, we have no exceptions, so we will return the equivalent of null.
+		return NAN;
+	}
+
+	return fval;
+}

@@ -499,6 +499,62 @@ static void init_device_sdrs() {
 	// I don't need to specify unit type codes for this sensor.
 	device_sdr_repo.add(hotswap);
 
+	// TODO: Make the SDR Repository actually auto-number sensors correctly, and LUNs/etc
+	// TODO: Make IPMI stuff auto-process (auto) outgoing sdr Owner IDs correctly.
+
+	{
+		SensorDataRecord01 sensor;
+		sensor.initialize_blank("Payload 3.3V");
+		sensor.entity_id(0x0); // TODO
+		sensor.entity_instance(0x60); // TODO
+		//sensor.sensor_setable(false); // Default, Unsupported
+		//sensor.initialize_scanning_enabled(false); // Default (An Init Agent is not required.)
+		//sensor.initialize_events_enabled(false); // Default (An Init Agent is not required.)
+		//sensor.initialize_thresholds(false); // Default (An Init Agent is not required.)
+		//sensor.initialize_hysteresis(false); // Default (An Init Agent is not required.)
+		//sensor.initialize_sensor_type(false); // Default (An Init Agent is not required.)
+		sensor.ignore_if_entity_absent(true);
+		sensor.events_enabled_default(true);
+		sensor.scanning_enabled_default(true);
+		sensor.sensor_auto_rearm(true);
+		sensor.sensor_hysteresis_support(SensorDataRecordReadableSensor::ACCESS_READWRITE);
+		sensor.sensor_threshold_access_support(SensorDataRecordReadableSensor::ACCESS_READWRITE);
+		sensor.sensor_event_message_control_support(SensorDataRecordReadableSensor::EVTCTRL_GRANULAR);
+		sensor.sensor_type_code(0x02); // Voltage
+		sensor.event_type_reading_code(SensorDataRecordReadableSensor::EVENT_TYPE_THRESHOLD_SENSOR);
+		sensor.assertion_lower_threshold_reading_mask(0x7fff); // All events supported & LNR, LCR, LNC, UNC, UCR, UNR assertions enabled.
+		sensor.deassertion_upper_threshold_reading_mask(0x7000); // All events supported & no threshold deassertions enabled.
+		sensor.discrete_reading_setable_threshold_reading_mask(0x3fff); // All thresholds are configurable.
+		sensor.units_numeric_format(SensorDataRecord01::UNITS_UNSIGNED);
+		sensor.units_rate_unit(SensorDataRecordReadableSensor::RATE_UNIT_NONE);
+		sensor.units_base_unit(4); // Volts
+		sensor.units_modifier_unit(0); // unspecified
+		sensor.units_modifier_unit_method(SensorDataRecordReadableSensor::MODIFIER_UNIT_NONE);
+		sensor.linearization(SensorDataRecord01::LIN_LINEAR);
+		// IPMI Specifies a linearization function of: y = L[(Mx + (B * 10^(Bexp) ) ) * 10^(Rexp) ]
+		// Our settings produce a valid range of 2 (Volts) to 4.55 (Volts) with 0.01 Volts granularity.
+		sensor.conversion_m(1);
+		sensor.conversion_b(2);
+		sensor.conversion_b_exp(2);
+		sensor.conversion_r_exp(-2);
+		sensor.sensor_direction(SensorDataRecordReadableSensor::DIR_INPUT);
+		//sensor.normal_min_specified(false); // Default
+		//sensor.normal_min_rawvalue(0); // Unspecified
+		//sensor.normal_max_specified(false); // Default
+		//sensor.normal_max_rawvalue(0); // Unspecified
+		sensor.nominal_reading_specified(true);
+		sensor.nominal_reading_rawvalue(130); // 3.3 Volts
+		sensor.threshold_unr_rawvalue(147); // 3.47 Volts
+		sensor.threshold_ucr_rawvalue(142); // 3.42 Volts
+		sensor.threshold_unc_rawvalue(137); // 3.37 Volts
+		sensor.threshold_lnc_rawvalue(123); // 3.23 Volts
+		sensor.threshold_lcr_rawvalue(118); // 3.18 Volts
+		sensor.threshold_lnr_rawvalue(113); // 3.13 Volts
+		sensor.hysteresis_high(2); // +0.02 Volts
+		sensor.hysteresis_low(2); // -0.02 Volts
+		device_sdr_repo.add(sensor);
+	}
+
 	// Store the newly initialized Device SDRs
 	sdr_persist.set_data(device_sdr_repo.u8export());
 

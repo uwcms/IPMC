@@ -40,6 +40,7 @@ public:
 	SDR_FIELD(entity_instance, uint8_t, 9, 6, 0)
 
 	SDR_FIELD(sensor_type_code, uint8_t, VARIABLE, 7, 0) // Different in Type 03
+	static const uint8_t EVENT_TYPE_THRESHOLD_SENSOR = 0x01; ///< A convenience constant for the Event/Reading Type Code "Threshold".  (A sensor is discrete if this is not its event/reading type code.)
 	SDR_FIELD(event_type_reading_code, uint8_t, VARIABLE, 7, 0) // Different in Type 03
 
 	enum Direction {

@@ -82,8 +82,8 @@ public:
 
 	SDR_FIELD(sensor_direction, enum SensorDataRecordReadableSensor::Direction, 28, 1, 0)
 
-	SDR_FIELD(r_exp, int8_t, 29, 7, 4)
-	SDR_FIELD(b_exp, int8_t, 29, 3, 0)
+	SDR_FIELD(conversion_r_exp, int8_t, 29, 7, 4)
+	SDR_FIELD(conversion_b_exp, int8_t, 29, 3, 0)
 
 	SDR_FIELD(normal_min_specified, bool, 30, 2, 2)
 	SDR_FIELD(normal_max_specified, bool, 30, 1, 1)
@@ -92,6 +92,16 @@ public:
 	SDR_FIELD(nominal_reading_rawvalue, uint8_t, 31, 7, 0)
 	SDR_FIELD(normal_max_rawvalue, uint8_t, 32, 7, 0)
 	SDR_FIELD(normal_min_rawvalue, uint8_t, 33, 7, 0)
+
+	SDR_FIELD(sensor_min_rawvalue, uint8_t, 34, 7, 0)
+	SDR_FIELD(sensor_max_rawvalue, uint8_t, 35, 7, 0)
+
+	SDR_FIELD(threshold_unr_rawvalue, uint8_t, 36, 7, 0)
+	SDR_FIELD(threshold_ucr_rawvalue, uint8_t, 37, 7, 0)
+	SDR_FIELD(threshold_unc_rawvalue, uint8_t, 38, 7, 0)
+	SDR_FIELD(threshold_lnr_rawvalue, uint8_t, 39, 7, 0)
+	SDR_FIELD(threshold_lcr_rawvalue, uint8_t, 40, 7, 0)
+	SDR_FIELD(threshold_lnc_rawvalue, uint8_t, 41, 7, 0)
 
 	SDR_FIELD(hysteresis_high, uint8_t, 42, 7, 0)
 	SDR_FIELD(hysteresis_low, uint8_t, 43, 7, 0)
@@ -102,6 +112,23 @@ public:
 	virtual uint8_t _get_id_string_offset() const { return 47; };
 	///@}
 
+	/**
+	 * Convert a floating point value to a one-byte IPMI value using the formula
+	 * specified by this SDR.
+	 *
+	 * @param value A float sensor value
+	 * @return A one-byte IPMI sensor value
+	 */
+	virtual uint8_t from_float(float value) const;
+
+	/**
+	 * Convert a one-byte IPMI value to a floating point value using the formula
+	 * specified by this SDR.
+	 *
+	 * @param value A one-byte IPMI sensor value
+	 * @return A float sensor value
+	 */
+	virtual float to_float(uint8_t value) const;
 };
 
 #endif /* SRC_COMMON_UW_IPMC_SERVICES_IPMI_SDR_SENSORDATARECORD01_H_ */
