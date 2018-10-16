@@ -1,0 +1,799 @@
+<html>
+	<head>
+		<title>SDR Calculator</title>
+<style>
+body {
+	text-align: center;
+}
+input[type="number"] {
+	max-width: 5em;
+	text-align: center;
+	padding-left: 0.25em;
+	padding-right: 0.25em;
+}
+input:invalid {
+	background-color: #FFCCCC;
+}
+input:read-only {
+	border-color: transparent;
+}
+table {
+	margin-left: auto;
+	margin-right: auto;
+}
+table.calculator td:first-child {
+	text-align: right;
+	width: 5rem;
+	color: #b10000;
+}
+table.calculator td:last-child {
+	text-align: left;
+	width: 5rem;
+	color: #b10000;
+}
+table.calculator th, table.calculator td {
+	text-align: center;
+	padding-left: 0.5rem;
+	padding-right: 0.5rem;
+}
+div.error-holder {
+	text-align: left;
+	width: 30rem;
+	margin-left: auto;
+	margin-right: auto;
+	color: #b10000;
+}
+input[type=number]::-webkit-inner-spin-button, 
+input[type=number]::-webkit-outer-spin-button { 
+	  -webkit-appearance: none; 
+	  margin: 0; 
+}
+code {
+	tab-size: 4;
+	text-align: left;
+}
+</style>
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@9.13.0/build/styles/github.min.css">
+	<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@9.13.0/build/highlight.min.js"></script>
+	</head>
+	<body>
+		<table class="calculator">
+			<thead>
+				<tr>
+					<th/>
+					<th>Float Value</th>
+					<th/>
+					<th>IPMI Value</th>
+					<th/>
+				</tr>
+			</thead>
+			<tbody>
+				<p>
+					Calculator Precision:<br/>
+					<input id="float_precision" type="number" value="3" min="0" max="8" required="true" title="The number of decimals precision used for formatting floats on this page." />
+				</p>
+				<p>
+				<tr>
+					<td id="floatval_min_err"/>
+					<td><input class="dynprecision antiformulaic" id="floatval_min" type="number" min="0" title="Float Value (float)" /></td>
+					<td title="Minimum Sensor Value">Minimum</td>
+					<td>0</td>
+					<td/>
+				</tr>
+				<tr>
+					<td id="floatval_lnr_err"/>
+					<td><input class="dynprecision" id="floatval_lnr" type="number" min="0" title="Float Value (float)" /></td>
+					<td title="Lower Non-Recoverable Threshold">LNR</td>
+					<td><input class="" id="ipmival_lnr" type="number" step="1" min="0" max="255" placeholder="0" title="IPMI Value (uint8_t)" /></td>
+					<td id="ipmival_lnr_err"/>
+				</tr>
+				<tr>
+					<td id="floatval_lcr_err"/>
+					<td><input class="dynprecision" id="floatval_lcr" type="number" min="0" title="Float Value (float)" /></td>
+					<td title="Lower Critical Threshold">LCR</td>
+					<td><input class="" id="ipmival_lcr" type="number" step="1" min="0" max="255" placeholder="0" title="IPMI Value (uint8_t)" /></td>
+					<td id="ipmival_lcr_err"/>
+				</tr>
+				<tr>
+					<td id="floatval_lnc_err"/>
+					<td><input class="dynprecision" id="floatval_lnc" type="number" min="0" title="Float Value (float)" /></td>
+					<td title="Lower Non-Critical Threshold">LNC</td>
+					<td><input class="" id="ipmival_lnc" type="number" step="1" min="0" max="255" placeholder="0" title="IPMI Value (uint8_t)" /></td>
+					<td id="ipmival_lnc_err"/>
+				</tr>
+				<tr>
+					<td id="floatval_nominal_err"/>
+					<td><input class="dynprecision" id="floatval_nominal" type="number" min="0" title="Float Value (float)" /></td>
+					<td title="Nominal (Normal) Sensor Value">Nominal</td>
+					<td><input class="" id="ipmival_nominal" type="number" step="1" min="0" max="255" placeholder="0" title="IPMI Value (uint8_t)" /></td>
+					<td id="ipmival_nominal_err"/>
+				</tr>
+				<tr>
+					<td id="floatval_unc_err"/>
+					<td><input class="dynprecision" id="floatval_unc" type="number" min="0" title="Float Value (float)" /></td>
+					<td title="Upper Non-Critical Threshold">UNC</td>
+					<td><input class="" id="ipmival_unc" type="number" step="1" min="0" max="255" placeholder="0" title="IPMI Value (uint8_t)" /></td>
+					<td id="ipmival_unc_err"/>
+				</tr>
+				<tr>
+					<td id="floatval_ucr_err"/>
+					<td><input class="dynprecision" id="floatval_ucr" type="number" min="0" title="Float Value (float)" /></td>
+					<td title="Upper Critical Threshold">UCR</td>
+					<td><input class="" id="ipmival_ucr" type="number" step="1" min="0" max="255" placeholder="0" title="IPMI Value (uint8_t)" /></td>
+					<td id="ipmival_ucr_err"/>
+				</tr>
+				<tr>
+					<td id="floatval_unr_err"/>
+					<td><input class="dynprecision" id="floatval_unr" type="number" min="0" title="Float Value (float)" /></td>
+					<td title="Upper Non-Recoverable Threshold">UNR</td>
+					<td><input class="" id="ipmival_unr" type="number" step="1" min="0" max="255" placeholder="0" title="IPMI Value (uint8_t)" /></td>
+					<td id="ipmival_unr_err"/>
+				</tr>
+				<tr>
+					<td id="floatval_max_err"/>
+					<td><input class="dynprecision antiformulaic" id="floatval_max" type="number" min="0" title="Float Value (float)" /></td>
+					<td title="Maximum Sensor Value">Maximum</td>
+					<td>255</td>
+					<td/>
+				</tr>
+				<tr>
+					<td colspan="4" style="padding-top: 1rem"></td>
+				</tr>
+				<tr>
+					<td id="floatval_hystp_err"/>
+					<td><input class="dynprecision" id="floatval_hystp" type="number" min="0" title="Float Value (float)" /></td>
+					<td title="Going-High Hysteresis">Hysteresis +</td>
+					<td><input class="" id="ipmival_hystp" type="number" step="1" min="0" max="255" placeholder="0" title="IPMI Value (uint8_t)" /></td>
+					<td id="ipmival_hystp_err"/>
+				</tr>
+				<tr>
+					<td id="floatval_hystn_err"/>
+					<td><input class="dynprecision" id="floatval_hystn" type="number" min="0" title="Float Value (float)" /></td>
+					<td title="Going-Low Hysteresis">Hysteresis -</td>
+					<td><input class="" id="ipmival_hystn" type="number" step="1" min="0" max="255" placeholder="0" title="IPMI Value (uint8_t)" /></td>
+					<td id="ipmival_hystn_err"/>
+				</tr>
+			</tbody>
+		</table>
+		<p/>
+		<table class="calculator">
+			<tbody>
+				<tr>
+					<td/>
+					<td>Range:</td>
+					<td>Granularity:</td>
+					<td/>
+				</tr>
+				<tr>
+					<td id="range_err"/>
+					<td>
+						<input class="dynprecision antiformulaic" id="range" type="number" min="0" title="The range of values from min to max. (positive float)" />
+					</td>
+					<td>
+						<input class="dynprecision antiformulaic" id="granularity" type="number" min="0" title="The size of one sensor value increment. (positive float)" />
+					</td>
+					<td id="granularity_err"/>
+				</tr>
+			</tbody>
+		</table>
+		<p>
+			<code>
+				FloatValue = ( <input class="formula" id="convM" style="text-align: right" type="number" step="1" min="0" max="1023" placeholder="0" title="M" />*IPMIValue + <input class="formula" id="convB" style="text-align: right" type="number" step="1" min="0" max="1023" placeholder="0" title="B" />*10^<input class="formula" id="convBexp" style="text-align: left" type="number" step="1" min="-8" max="7" placeholder="0" title="Bexp" /> ) * 10^<input class="formula" id="convRexp" style="text-align: left" type="number" step="1" min="-8" max="7" placeholder="0" title="Rexp" />
+			</code>
+		</p>
+		<div class="error-holder">
+			<ul id="errorlist"></ul>
+		</div>
+		<table>
+			<tbody>
+				<tr>
+					<td>Sensor Name:</td>
+					<td><input type="text" id="sensor-name" placeholder="3.3V"/></td>
+				</tr>
+				<tr>
+					<td>Sensor Type Code:</td>
+					<td>
+						<select id="sensor-type">
+							<option value="0x01">Temperature</option>
+							<option value="0x02">Voltage</option>
+							<option value="0x03">Current</option>
+							<option value="0x04">Fan</option>
+							<option value="0x0A">Cooling Device</option>
+							<option value="0x0B">Other</option>
+							<option value="0x15">Module / Board</option>
+							<option value="0x16">Microprocessor / Coprocessor</option>
+							<option value="0x17">Add-in Card</option>
+							<option value="0x18">Chassis</option>
+							<option value="0x1A">Other FRU</option>
+							<option value="0x1C">Terminator</option>
+							<option value="0x26">Monitor ASIC / IC</option>
+						</select>
+					</td>
+				</tr>
+				<tr>
+					<td>Sensor Units:</td>
+					<td>
+						<select id="sensor-unit-primary"></select>
+						<select id="sensor-unit-modifier-type">
+							<option value="MODIFIER_UNIT_NONE">No Secondary</option>
+							<option value="MODIFIER_UNIT_DIVIDE">/</option>
+							<option value="MODIFIER_UNIT_MULTIPLY">*</option>
+						</select>
+						<select id="sensor-unit-modifier"></select>
+						<select id="sensor-unit-rate">
+							<option value="RATE_UNIT_NONE">No Rate</option>
+							<option value="RATE_UNIT_USEC">per &micro;s</option>
+							<option value="RATE_UNIT_MSEC">per ms</option>
+							<option value="RATE_UNIT_SEC">per second</option>
+							<option value="RATE_UNIT_MIN">per minute</option>
+							<option value="RATE_UNIT_HOUR">per hour</option>
+							<option value="RATE_UNIT_DAY">per day</option>
+						</select>
+					</td>
+				</tr>
+				<tr>
+					<td>Sensor Direction:</td>
+					<td>
+						<select id="sensor-direction">
+							<option value="DIR_UNSPECIFIED">Unspecified</option>
+							<option value="DIR_INPUT">Input</option>
+							<option value="DIR_OUTPUT">Output</option>
+						</select>
+					</td>
+				</tr>
+			</tbody>
+		</table>
+		<div>
+			<pre>
+				<code id="output-code" class="cpp"></code>
+			</pre>
+		</div>
+	</body>
+<script language="javascript">
+
+const sensor_unit_type_codes = {
+	"0": "unspecified",
+	"1": "degrees C",
+	"2": "degrees F",
+	"3": "degrees K",
+	"4": "Volts",
+	"5": "Amps",
+	"6": "Watts",
+	"7": "Joules",
+	"8": "Coulombs",
+	"9": "VA",
+	"10": "Nits",
+	"11": "lumen",
+	"12": "lux",
+	"13": "Candela",
+	"14": "kPa",
+	"15": "PSI",
+	"16": "Newton",
+	"17": "CFM",
+	"18": "RPM",
+	"19": "Hz",
+	"20": "microsecond",
+	"21": "millisecond",
+	"22": "second",
+	"23": "minute",
+	"24": "hour",
+	"25": "day",
+	"26": "week",
+	"27": "mil",
+	"28": "inches",
+	"29": "feet",
+	"30": "cu in",
+	"31": "cu feet",
+	"32": "mm",
+	"33": "cm",
+	"34": "m",
+	"35": "cu cm",
+	"36": "cu m",
+	"37": "liters",
+	"38": "fluid ounce",
+	"39": "radians",
+	"40": "steradians",
+	"41": "revolutions",
+	"42": "cycles",
+	"43": "gravities",
+	"44": "ounce",
+	"45": "pound",
+	"46": "ft-lb",
+	"47": "oz-in",
+	"48": "gauss",
+	"49": "gilberts",
+	"50": "henry",
+	"51": "millihenry",
+	"52": "farad",
+	"53": "microfarad",
+	"54": "ohms",
+	"55": "siemens",
+	"56": "mole",
+	"57": "becquerel",
+	"58": "PPM (parts/million)",
+	"59": "reserved",
+	"60": "Decibels",
+	"61": "DbA",
+	"62": "DbC",
+	"63": "gray",
+	"64": "sievert",
+	"65": "color temp deg K",
+	"66": "bit",
+	"67": "kilobit",
+	"68": "megabit",
+	"69": "gigabit",
+	"70": "byte",
+	"71": "kilobyte",
+	"72": "megabyte",
+	"73": "gigabyte",
+	"74": "word (data)",
+	"75": "dword",
+	"76": "qword",
+	"77": "line (re. mem. line)",
+	"78": "hit",
+	"79": "miss",
+	"80": "retry",
+	"81": "reset",
+	"82": "overrun / overflow",
+	"83": "underrun",
+	"84": "collision",
+	"85": "packets",
+	"86": "messages",
+	"87": "characters",
+	"88": "error",
+	"89": "correctable error",
+	"90": "uncorrectable error",
+	"91": "fatal error",
+	"92": "grams",
+}
+Object.entries(sensor_unit_type_codes).forEach(([k, v]) => {
+	['sensor-unit-primary', 'sensor-unit-modifier'].forEach((f) => {
+		let o = document.createElement('option');
+		o.value = k;
+		o.innerText = v;
+		document.getElementById(f).appendChild(o);
+	});
+});
+
+var float_precision = 3;
+
+class LinearConverter {
+	constructor(m, b, bexp, rexp) {
+		this.m = m;
+		this.b = b;
+		this.bexp = bexp;
+		this.rexp = rexp;
+	}
+	toIPMI(v, no_base = false) {
+		/* y = L[ (Mx + (B * 10^(Bexp) ) ) * 10^(Rexp) ] */
+		v /= Math.pow(10, this.rexp);
+		if (!no_base)
+			v -= this.b * Math.pow(10, this.bexp);
+		v /= this.m
+		v = Math.trunc(v);
+		return v;
+	}
+	fromIPMI(v, no_base = false) {
+		/* y = L[ (Mx + (B * 10^(Bexp) ) ) * 10^(Rexp) ] */
+		v *= this.m;
+		if (!no_base)
+			v += this.b * Math.pow(10, this.bexp);
+		v *= Math.pow(10, this.rexp);
+		return v;
+	}
+}
+
+class Field {
+	constructor(id, errid) {
+		this.element = document.getElementById(id);
+		this.errelement = document.getElementById(errid);
+		if (!this.element)
+			throw new ValueError('No element fount with id '+id);
+		if (!this.errelement && errid)
+			throw new ValueError('No element fount with id '+errid);
+		if (this.element.dataset.placeholder === undefined)
+			this.element.dataset.placeholder = this.element.placeholder;
+	}
+	get userval() {
+		if (!this.element.checkValidity())
+			return null;
+		if (this.element.value === '')
+			return null;
+		return Number(this.element.value);
+	}
+	set userval(v) {
+		if (!v && v !== 0)
+			this.element.value = '';
+		else
+			this.element.value = v.toFixed(this.element.step == '1' ? 0 : float_precision).replace(/\.0+$/,'');
+	}
+	get value() {
+		let u = this.userval;
+		let v = this.calcval;
+		if (u !== null)
+			return u;
+		if (v !== null)
+			return v;
+		return null;
+	}
+	set value(v) {
+		throw new ValueError('Field.value cannot be set directly. Did you mean .calcval?')
+	}
+	get calcval() {
+		if (!this.element.dataset.value)
+			return null;
+		else
+			return Number(this.element.dataset.value);
+	}
+	set calcval(v) {
+		if (!v && v !== 0) {
+			this.element.placeholder = this.element.dataset.placeholder;
+			this.element.dataset.value = '';
+			this.errval = null;
+		}
+		else {
+			this.element.placeholder = v.toFixed(this.element.step == '1' ? 0 : float_precision);
+			this.element.dataset.value = v.toFixed(this.element.step == '1' ? 0 : float_precision);
+		}
+	}
+	get errval() {
+		if (!this.errelement.innerText)
+			return null;
+		else
+			return Number(this.errelement.innerText);
+	}
+	set errval(v) {
+		if (!this.errelement) {
+			console.trace("Can't set errval without an errelement!");
+			return; // Ignore.
+		}
+		this.errelement.innerText = '';
+
+		if (v === null || this.value === null)
+			return; // Leave cleared.
+
+		// Normalize Decimal Nonsense
+		v = Number(v.toFixed(this.element.step == '1' ? 0 : float_precision));
+		if (this.value !== v)
+			this.errelement.innerText = v.toFixed(this.element.step == '1' ? 0 : float_precision);
+	}
+	get readOnly() {
+		return this.element.readOnly;
+	}
+	set readOnly(v) {
+		this.element.readOnly = v;
+	}
+}
+
+const thresholds = {
+	lnr: { 'float': new Field('floatval_lnr', 'floatval_lnr_err'), 'ipmi': new Field('ipmival_lnr', 'ipmival_lnr_err'), 'maskbits': 0x0030 },
+	lcr: { 'float': new Field('floatval_lcr', 'floatval_lcr_err'), 'ipmi': new Field('ipmival_lcr', 'ipmival_lcr_err'), 'maskbits': 0x000c },
+	lnc: { 'float': new Field('floatval_lnc', 'floatval_lnc_err'), 'ipmi': new Field('ipmival_lnc', 'ipmival_lnc_err'), 'maskbits': 0x0003 },
+	unc: { 'float': new Field('floatval_unc', 'floatval_unc_err'), 'ipmi': new Field('ipmival_unc', 'ipmival_unc_err'), 'maskbits': 0x00c0 },
+	ucr: { 'float': new Field('floatval_ucr', 'floatval_ucr_err'), 'ipmi': new Field('ipmival_ucr', 'ipmival_ucr_err'), 'maskbits': 0x0300 },
+	unr: { 'float': new Field('floatval_unr', 'floatval_unr_err'), 'ipmi': new Field('ipmival_unr', 'ipmival_unr_err'), 'maskbits': 0x0c00 },
+	nominal: { 'float': new Field('floatval_nominal', 'floatval_nominal_err'), 'ipmi': new Field('ipmival_nominal', 'ipmival_nominal_err') },
+};
+
+const unit_factors = {
+	hystp: { 'float': new Field('floatval_hystp', 'floatval_hystp_err'), 'ipmi': new Field('ipmival_hystp', 'ipmival_hystp_err') },
+	hystn: { 'float': new Field('floatval_hystn', 'floatval_hystn_err'), 'ipmi': new Field('ipmival_hystn', 'ipmival_hystn_err') },
+}
+
+const minval  = { 'float': new Field('floatval_min', 'floatval_min_err') };
+const maxval  = { 'float': new Field('floatval_max', 'floatval_max_err') };
+
+const range = new Field('range', 'range_err');
+const granularity = new Field('granularity', 'granularity_err');
+
+const conv = {
+	'M': new Field('convM'),
+	'B': new Field('convB'),
+	'Bexp': new Field('convBexp'),
+	'Rexp': new Field('convRexp'),
+};
+
+function allEmpty(nodelist) {
+	for (let v of nodelist) {
+		if (v.value !== '')
+			return false;
+	}
+	return true;
+}
+
+function addError(e) {
+	let li = document.createElement('li');
+	//li.appendChild(document.createTextNode(e));
+	li.innerHTML = e;
+	document.getElementById('errorlist').appendChild(li);
+}
+
+function zeroPad(s,l) {
+	return "0".repeat(l - s.length) + s
+}
+
+function recalculate(eventsource) {
+	// Clear old errors & code.
+	document.getElementById('errorlist').innerHTML = '';
+	document.getElementById('output-code').innerHTML = '';
+
+	// Update precision
+	let fp = document.getElementById('float_precision');
+	if (fp.checkValidity()) {
+		float_precision = parseInt(fp.value);
+		document.querySelectorAll('input[type="number"].dynprecision').forEach((e) => {
+			if (float_precision === 0)
+				e.step = '';
+			else
+				e.step = Math.pow(10, -float_precision);
+			e.dataset.placeholder = (0).toFixed(float_precision);
+		});
+	}
+
+	// Clear the other side if a threshold input is updated.
+	if (eventsource !== undefined) {
+		Object.values(thresholds).forEach((pair) => {
+			if (pair.ipmi.element === eventsource.target)
+				pair.float.userval = null;
+			if (pair.float.element === eventsource.target)
+				pair.ipmi.userval = null;
+		});
+		Object.values(unit_factors).forEach((pair) => {
+			if (pair.ipmi.element === eventsource.target)
+				pair.float.userval = null;
+			if (pair.float.element === eventsource.target)
+				pair.ipmi.userval = null;
+		});
+	}
+
+	// Lockout formula when other fields are set.
+	document.querySelectorAll('input.formula, input.antiformulaic').forEach((e) => e.readOnly = false);
+	if (!allEmpty(document.querySelectorAll('input.antiformulaic')))
+		document.querySelectorAll('input.formula').forEach((e) => e.readOnly = true);
+	let formula_set = !allEmpty(document.querySelectorAll('input.formula'))
+	if (formula_set)
+		document.querySelectorAll('input.antiformulaic').forEach((e) => e.readOnly = true);
+
+	// Lockout Range/Granularity if Min & Max
+	if (minval.float.userval !== null && maxval.float.userval !== null) {
+		range.readOnly = true;
+		granularity.readOnly = true;
+	}
+
+	// Lockout Range/Granularity if Granularity/Range
+	if (range.userval !== null)
+		granularity.readOnly = true;
+	if (granularity.userval !== null)
+		range.readOnly = true;
+
+	// Lockout the empty of Min & Max, if Range/Granularity
+	if ((range.userval !== null || granularity.userval !== null) && (minval.float.userval === null || maxval.float.userval === null) && (minval.float.userval !== null || maxval.float.userval !== null)) {
+		if (minval.float.userval === null)
+			minval.float.readOnly = true;
+		if (maxval.float.userval === null)
+			maxval.float.readOnly = true;
+	}
+
+	// Reset all calculated values.
+	minval.float.calcval = null;
+	Object.values(thresholds).forEach((x) => { x.float.calcval = null; x.ipmi.calcval = null });
+	Object.values(unit_factors).forEach((x) => { x.float.calcval = null; x.ipmi.calcval = null });
+	maxval.float.calcval = null;
+	range.calcval = null;
+	granularity.calcval = null;
+	Object.values(conv).forEach((x) => x.calcval = null);
+
+	// Calculate the granularity from max & min val.
+	if (granularity.value === null && minval.float.value !== null && maxval.float.value !== null)
+		granularity.calcval = (maxval.float.value - minval.float.value)/255;
+
+	// Calculate range from granularity.
+	if (range.value === null && granularity.value !== null)
+		range.calcval = granularity.value * 255;
+
+	// Calculate granularity from range.
+	if (range.value !== null && granularity.value === null) {
+		granularity.calcval = range.value / 255;
+		range.errval = granularity.value * 255;
+	}
+
+	// Calculate the max or min values if the range is specified as well as the other endpoint.
+	if (range.value !== null && minval.float.value === null && maxval.float.value !== null)
+		minval.float.calcval = maxval.float.value - range.value;
+	if (range.value !== null && minval.float.value !== null && maxval.float.value === null)
+		maxval.float.calcval = minval.float.value + range.value;
+
+	if (minval.float.value < 0) {
+		addError('This calculator does not support negative values.<br/>"Minimum" must be >= 0.'); 
+		return;
+	}
+
+	if (!formula_set && granularity.value && minval.float.value) {
+		// Now the hard part.  What's M?
+		// We'll start with the granularity, right? Times precision.
+		let rexp = -float_precision;
+		let m = granularity.value * Math.pow(10,-rexp);
+
+		// We have to prescale b the same, since Rexp effects it too.
+		let bexp = 0;
+		let b = minval.float.value * Math.pow(10,-rexp);
+
+		let precision_lost = false;
+		// Now, as many times as we can, shave a 0 off the end.
+		while (m > 0) {
+			if (m % 10 != 0) {
+				// Out of zeros to shave off.
+				if (m < 1024)
+					break; // Good. We're done.
+				else
+					precision_lost = true; // Well, we'll do what we can, I guess.
+			}
+			if (rexp >= 7)
+				break; // Nowhere to put the zeros we shave off anymore. (Rexp is a 4bit 2s complement int)
+			if (bexp <= -8)
+				break; // We can't adjust Bexp to counteract Rexp anymore. (Bexp is a 4bit 2s complement int)
+
+			m /= 10; // Adjust M
+			if (b % 10 == 0)
+				b /= 10; // Adjust B to match.
+			else
+				bexp -= 1; // We can't adjust B anymore, so scale Bexp to counter Rexp.
+			rexp += 1;
+		}
+		if (precision_lost)
+			addError('Precision was lost on the M factor to fit it in 10 bits.<br/>If unsatisfied, try reducing granularity.');
+
+		precision_lost = false;
+		// Then, as many times as we can, shave a 0 off the end of B, too.
+		while (b > 0) {
+			if (b % 10 != 0) {
+				// Out of zeros to shave off.
+				if (b < 1024)
+					break; // Good. We're done.
+				else
+					precision_lost = true; // Well, we'll do what we can, I guess.
+			}
+			if (bexp >= 7)
+				break; // Nowhere to put the zeros we shave off anymore. (Bexp is a 4bit 2s complement int)
+			b /= 10;
+			bexp += 1;
+		}
+		if (precision_lost)
+			addError('Precision was lost on the B factor to fit it in 10 bits.<br/>If unsatisfied, try reducing granularity.');
+
+		console.log({'m':m,'b':b,'bexp':bexp,'rexp':rexp});
+
+		if (m > 1023) // Shouldn't happen anymore given we're willing to lose precision.
+			addError('Unable to fit M factor in a 10 bit int.<br/>Try reducing granularity.'); 
+		conv.M.calcval = m;
+
+		if (b > 1023) // Shouldn't happen anymore given we're willing to lose precision.
+			addError('Unable to fit B factor in a 10 bit int.<br/>Try reducing granularity.'); 
+		conv.B.calcval = b;
+
+		if (rexp > 7)
+			addError("Unable to fit R exponent factor in a 4 bit 2's complement integer.<br/>Try reducing granularity or aligning the minimum value."); 
+		conv.Rexp.calcval = rexp;
+
+		if (bexp > 7)
+			addError("Unable to fit B exponent factor in a 4 bit 2's complement integer.<br/>Try reducing granularity or aligning the minimum value."); 
+		conv.Bexp.calcval = bexp;
+	}
+
+	let c = new LinearConverter(conv.M.value, conv.B.value, conv.Bexp.value, conv.Rexp.value);
+
+	if (formula_set) {
+		granularity.calcval = c.fromIPMI(1) - c.fromIPMI(0);
+		range.calcval = c.fromIPMI(255) - c.fromIPMI(0);
+		minval.float.calcval = c.fromIPMI(0);
+		maxval.float.calcval = c.fromIPMI(255);
+	}
+
+	if (granularity.value && minval.float.value !== null) {
+		granularity.errval = c.fromIPMI(1) - c.fromIPMI(0);
+		minval.float.errval = c.fromIPMI(0);
+		maxval.float.errval = c.fromIPMI(255);
+		Object.values(thresholds).forEach((t) => {
+			if (t.ipmi.userval !== null)
+				t.float.calcval = c.fromIPMI(t.ipmi.value);
+			if (t.float.userval !== null) {
+				t.ipmi.calcval = Math.min(255, Math.max(0, c.toIPMI(t.float.value)));
+				t.float.errval = c.fromIPMI(t.ipmi.calcval);
+			}
+		});
+		Object.values(unit_factors).forEach((t) => {
+			if (t.ipmi.userval !== null)
+				t.float.calcval = c.fromIPMI(t.ipmi.value, true);
+			if (t.float.userval !== null) {
+				t.ipmi.calcval = Math.min(255, Math.max(0, c.toIPMI(t.float.value, true)));
+				t.float.errval = c.fromIPMI(t.ipmi.calcval, true);
+			}
+		});
+
+		let assertmask = 0;
+		let assertmask_str = '';
+		['LNR','LCR','LNC','UNC','UCR','UNR'].forEach((threshold) => {
+			if (thresholds[threshold.toLowerCase()].ipmi.value !== null) {
+				assertmask |= thresholds[threshold.toLowerCase()].maskbits;
+				assertmask_str += ', ' + threshold;
+			}
+		});
+		if (assertmask_str)
+			assertmask_str = assertmask_str.substr(2);
+		else
+			assertmask_str = 'no threshold';
+
+
+		let human_units = document.getElementById('sensor-unit-primary').selectedOptions[0].label;
+		let modtype = document.getElementById('sensor-unit-modifier-type').value;
+		if (modtype === 'MODIFIER_UNIT_DIVIDE')
+			human_units += '/' + document.getElementById('sensor-unit-modifier').selectedOptions[0].label;
+		if (modtype === 'MODIFIER_UNIT_MULTIPLY')
+			human_units += '*' + document.getElementById('sensor-unit-modifier').selectedOptions[0].label;
+		if (document.getElementById('sensor-unit-rate').value !== 'RATE_UNIT_NONE')
+			human_units += ' ' + document.getElementById('sensor-unit-rate').selectedOptions[0].label;
+
+		const codeblock = document.getElementById('output-code');
+		codeblock.innerText = `{
+	SensorDataRecord01 sensor;
+	sensor.initialize_blank("${document.getElementById('sensor-name').value}");
+	sensor.entity_id(0x0); // TODO
+	sensor.entity_instance(0x60); // TODO
+	//sensor.sensor_setable(false); // Default, Unsupported
+	//sensor.initialize_scanning_enabled(false); // Default (An Init Agent is not required.)
+	//sensor.initialize_events_enabled(false); // Default (An Init Agent is not required.)
+	//sensor.initialize_thresholds(false); // Default (An Init Agent is not required.)
+	//sensor.initialize_hysteresis(false); // Default (An Init Agent is not required.)
+	//sensor.initialize_sensor_type(false); // Default (An Init Agent is not required.)
+	sensor.ignore_if_entity_absent(true);
+	sensor.events_enabled_default(true);
+	sensor.scanning_enabled_default(true);
+	sensor.sensor_auto_rearm(true);
+	sensor.sensor_hysteresis_support(SensorDataRecordReadableSensor::ACCESS_READWRITE);
+	sensor.sensor_threshold_access_support(SensorDataRecordReadableSensor::ACCESS_READWRITE);
+	sensor.sensor_event_message_control_support(SensorDataRecordReadableSensor::EVTCTRL_GRANULAR);
+	sensor.sensor_type_code(${document.getElementById('sensor-type').value}); // ${document.getElementById('sensor-type').selectedOptions[0].label}
+	sensor.event_type_reading_code(SensorDataRecordReadableSensor::EVENT_TYPE_THRESHOLD_SENSOR);
+	sensor.assertion_lower_threshold_reading_mask(0x7${zeroPad(assertmask.toString(16), 3)}); // All events supported & ${assertmask_str} assertions enabled.
+	sensor.deassertion_upper_threshold_reading_mask(0x7000); // All events supported & no threshold deassertions enabled.
+	sensor.discrete_reading_setable_threshold_reading_mask(0x3fff); // All thresholds are configurable.
+	sensor.units_numeric_format(SensorDataRecord01::UNITS_UNSIGNED);
+	sensor.units_rate_unit(SensorDataRecordReadableSensor::${document.getElementById('sensor-unit-rate').value});
+	sensor.units_base_unit(${document.getElementById('sensor-unit-primary').value}); // ${document.getElementById('sensor-unit-primary').selectedOptions[0].label}
+	sensor.units_modifier_unit(${document.getElementById('sensor-unit-modifier').value}); // ${document.getElementById('sensor-unit-modifier').selectedOptions[0].label}
+	sensor.units_modifier_unit_method(SensorDataRecordReadableSensor::${document.getElementById('sensor-unit-modifier-type').value});
+	sensor.linearization(SensorDataRecord01::LIN_LINEAR);
+	// IPMI Specifies a linearization function of: y = L[(Mx + (B * 10^(Bexp) ) ) * 10^(Rexp) ]
+	// Our settings produce a valid range of ${minval.float.value} (${human_units}) to ${maxval.float.value} (${human_units}) with ${granularity.value} ${human_units} granularity.
+	sensor.conversion_m(${conv.M.value});
+	sensor.conversion_b(${conv.B.value});
+	sensor.conversion_b_exp(${conv.Bexp.value});
+	sensor.conversion_r_exp(${conv.Rexp.value});
+	sensor.sensor_direction(SensorDataRecordReadableSensor::${document.getElementById('sensor-direction').value});
+	//sensor.normal_min_specified(false); // Default
+	//sensor.normal_min_rawvalue(0); // Unspecified
+	//sensor.normal_max_specified(false); // Default
+	//sensor.normal_max_rawvalue(0); // Unspecified
+	${(thresholds.nominal.ipmi.value !== null ? '' : '//')}sensor.nominal_reading_specified(true);
+	${(thresholds.nominal.ipmi.value !== null ? '' : '//')}sensor.nominal_reading_rawvalue(${(thresholds.nominal.ipmi.value !== null ? thresholds.nominal.ipmi.value : '0')}); // ${thresholds.nominal.float.value} ${human_units}
+	sensor.threshold_unr_rawvalue(${(thresholds.unr.ipmi.value !== null ? thresholds.unr.ipmi.value : '255')}); // ${thresholds.unr.float.value} ${human_units}
+	sensor.threshold_ucr_rawvalue(${(thresholds.ucr.ipmi.value !== null ? thresholds.ucr.ipmi.value : '255')}); // ${thresholds.ucr.float.value} ${human_units}
+	sensor.threshold_unc_rawvalue(${(thresholds.unc.ipmi.value !== null ? thresholds.unc.ipmi.value : '255')}); // ${thresholds.unc.float.value} ${human_units}
+	sensor.threshold_lnc_rawvalue(${(thresholds.lnc.ipmi.value !== null ? thresholds.lnc.ipmi.value : '0')}); // ${thresholds.lnc.float.value} ${human_units}
+	sensor.threshold_lcr_rawvalue(${(thresholds.lcr.ipmi.value !== null ? thresholds.lcr.ipmi.value : '0')}); // ${thresholds.lcr.float.value} ${human_units}
+	sensor.threshold_lnr_rawvalue(${(thresholds.lnr.ipmi.value !== null ? thresholds.lnr.ipmi.value : '0')}); // ${thresholds.lnr.float.value} ${human_units}
+	sensor.hysteresis_high(${(unit_factors.hystp.ipmi.value !== null ? unit_factors.hystp.ipmi.value : '0')}); // +${unit_factors.hystp.float.value||0} ${human_units}
+	sensor.hysteresis_low(${(unit_factors.hystn.ipmi.value !== null ? unit_factors.hystn.ipmi.value : '0')}); // -${unit_factors.hystn.float.value||0} ${human_units}
+	device_sdr_repo.add(sensor);
+}`;
+		hljs.highlightBlock(codeblock);
+	}
+}
+
+document.querySelectorAll('input, select').forEach((x) => {
+	x.addEventListener('change', recalculate);
+});
+recalculate();
+
+</script>
+</html>
