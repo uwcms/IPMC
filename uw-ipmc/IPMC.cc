@@ -488,9 +488,9 @@ static void init_device_sdrs() {
 	hotswap.events_enabled_default(true);
 	hotswap.scanning_enabled_default(true);
 	hotswap.sensor_auto_rearm(true);
-	hotswap.sensor_hysteresis_support(0);
-	hotswap.sensor_threshold_access_support(0);
-	hotswap.sensor_event_message_control_support(0);
+	hotswap.sensor_hysteresis_support(SensorDataRecordReadableSensor::ACCESS_READWRITE);
+	hotswap.sensor_threshold_access_support(SensorDataRecordReadableSensor::ACCESS_READWRITE);
+	hotswap.sensor_event_message_control_support(SensorDataRecordReadableSensor::EVTCTRL_GRANULAR);
 	hotswap.sensor_type_code(0xf0); // Hotswap
 	hotswap.event_type_reading_code(0x6f); // Sensor-specific discrete
 	hotswap.assertion_lower_threshold_reading_mask(0x00ff); // M7:M0
