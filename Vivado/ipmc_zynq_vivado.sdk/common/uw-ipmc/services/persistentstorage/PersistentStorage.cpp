@@ -251,7 +251,7 @@ std::vector<struct PersistentStorage::PersistentStorageIndexRecord> PersistentSt
  */
 void PersistentStorage::flush(std::function<void(void)> completion_cb) {
 	this->logtree.log("Requesting full storage flush", LogTree::LOG_DIAGNOSTIC);
-	this->flush(0, this->eeprom.size, completion_cb);
+	this->flush(this->data, this->eeprom.size, completion_cb);
 }
 
 /**
@@ -265,7 +265,7 @@ void PersistentStorage::flush(void *start, size_t len, std::function<void(void)>
 	configASSERT(start >= this->data && start <= this->data + this->eeprom.size - len);
 	u32 start_addr = reinterpret_cast<u8*>(start) - this->data;
 	u32 end_addr = start_addr + len;
-	this->logtree.log(stdsprintf("Requesting flush of range [%u, %u)", start_addr, end_addr), LogTree::LOG_DIAGNOSTIC);
+	this->logtree.log(stdsprintf("Requesting flush of range [%lu, %lu)", start_addr, end_addr), LogTree::LOG_DIAGNOSTIC);
 	xSemaphoreTake(this->flushq_mutex, portMAX_DELAY);
 	FlushRequest req(start_addr, end_addr, completion_cb);
 	if (!this->flushq.empty() && this->flushq.top().index_flush && !!req.complete) {
@@ -302,7 +302,7 @@ void PersistentStorage::flush_index() {
 	u32 index_length = sizeof(PersistentStorageHeader) + i*sizeof(PersistentStorageIndexRecord);
 	xSemaphoreGive(this->index_mutex);
 
-	this->logtree.log(stdsprintf("Requesting flush of index (length %u)", index_length), LogTree::LOG_DIAGNOSTIC);
+	this->logtree.log(stdsprintf("Requesting flush of index (length %lu)", index_length), LogTree::LOG_DIAGNOSTIC);
 
 	xSemaphoreTake(this->flushq_mutex, portMAX_DELAY);
 	if (!this->flushq.empty() && this->flushq.top().index_flush) {
@@ -444,7 +444,7 @@ void PersistentStorage::run_flush_thread() {
  * @return true if changes were flushed, else false
  */
 bool PersistentStorage::do_flush_range(u32 start, u32 end) {
-	this->logtree.log(stdsprintf("Flushing range [%u, %u)", start, end), LogTree::LOG_DIAGNOSTIC);
+	this->logtree.log(stdsprintf("Flushing range [%lu, %lu)", start, end), LogTree::LOG_DIAGNOSTIC);
 	start -= start % this->eeprom.page_size; // Round start down to page boundary.
 	if (end % this->eeprom.page_size)
 		end += this->eeprom.page_size - (end % this->eeprom.page_size);
