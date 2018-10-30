@@ -26,9 +26,9 @@
  * @return true if the record is well-formed, else false
  */
 bool SensorDataRecord::validate() const {
-	if (this->sdr_data.size() < 4)
+	if (this->sdr_data.size() < 5)
 		return false;
-	if (this->sdr_data.size() != (5U + this->sdr_data[4]))
+	if (this->sdr_data.size() < (5U + this->sdr_data[4]))
 		return false;
 	return true;
 }
