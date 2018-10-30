@@ -98,13 +98,24 @@ std::string SensorDataRecordSensor::id_string() const {
 void SensorDataRecordSensor::id_string(std::string val) {
 	configASSERT(this->validate());
 	configASSERT(val.size() <= 16); // Specified.
+
+	// Capture extended state data.
+	std::vector<uint8_t> ext_data(std::next(this->sdr_data.begin(), this->_get_ext_data_offset()), this->sdr_data.end());
+
 	this->sdr_data.resize(this->_get_id_string_offset()); // Downsize.
 	this->sdr_data.push_back(0xC0 | val.size()); // Type/Length code: Raw ASCII/Unicode, with length.
 	for (auto it = val.begin(), eit = val.end(); it != eit; ++it)
 		this->sdr_data.push_back(static_cast<uint8_t>(*it));
+
+	// Restore extended state data.
+	this->sdr_data.insert(this->sdr_data.end(), ext_data.begin(), ext_data.end());
 }
 
 uint8_t SensorDataRecordSensor::_get_id_string_offset() const {
 	configASSERT(0); // How'd you construct this object?  It should be virtual.
 	return 0;
+}
+
+uint8_t SensorDataRecordSensor::_get_ext_data_offset() const {
+	return this->_get_id_string_offset() + ipmi_type_length_field_get_length(std::vector<uint8_t>(std::next(this->sdr_data.begin(), this->_get_id_string_offset()), this->sdr_data.end()));
 }

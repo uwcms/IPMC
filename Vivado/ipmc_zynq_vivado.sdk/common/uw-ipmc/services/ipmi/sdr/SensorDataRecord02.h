@@ -51,6 +51,8 @@ public:
 	virtual uint8_t _get_id_string_offset() const { return 31; };
 	///@}
 
+	virtual uint8_t from_float(float value) const;
+	virtual float to_float(uint8_t value) const;
 };
 
 #endif /* SRC_COMMON_UW_IPMC_SERVICES_IPMI_SDR_SensorDataRecord02_H_ */
