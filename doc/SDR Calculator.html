@@ -187,6 +187,13 @@ code {
 		<table>
 			<tbody>
 				<tr>
+					<td>Sensor Number:</td>
+					<td>
+						<input type="number" id="sensor-number" min="0" step="1" max="254" placeholder="1"/>
+						<p>
+					</td>
+				</tr>
+				<tr>
 					<td>Sensor Name:</td>
 					<td><input type="text" id="sensor-name" placeholder="3.3V"/></td>
 				</tr>
@@ -737,6 +744,10 @@ function recalculate(eventsource) {
 		codeblock.innerText = `{
 	SensorDataRecord01 sensor;
 	sensor.initialize_blank("${document.getElementById('sensor-name').value}");
+	sensor.sensor_owner_id(0); // Tag as "self". This will be auto-calculated in "Get SDR" commands.
+	sensor.sensor_owner_channel(0); // See above.
+	sensor.sensor_owner_lun(0); // See above.
+	sensor.sensor_number(${document.getElementById('sensor-number').value || '/* TODO */'});
 	sensor.entity_id(0x0); // TODO
 	sensor.entity_instance(0x60); // TODO
 	//sensor.sensor_setable(false); // Default, Unsupported
@@ -755,7 +766,7 @@ function recalculate(eventsource) {
 	sensor.sensor_type_code(${document.getElementById('sensor-type').value}); // ${document.getElementById('sensor-type').selectedOptions[0].label}
 	sensor.event_type_reading_code(SensorDataRecordReadableSensor::EVENT_TYPE_THRESHOLD_SENSOR);
 	sensor.assertion_lower_threshold_reading_mask(0x7${zeroPad(assertmask.toString(16), 3)}); // All events supported & ${assertmask_str} assertions enabled.
-	sensor.deassertion_upper_threshold_reading_mask(0x7000); // All events supported & no threshold deassertions enabled.
+	sensor.deassertion_upper_threshold_reading_mask(0x7${zeroPad(assertmask.toString(16), 3)}); // All events supported & ${assertmask_str} deassertions enabled.
 	sensor.discrete_reading_setable_threshold_reading_mask(0x3fff); // All thresholds are configurable.
 	sensor.units_numeric_format(SensorDataRecord01::UNITS_UNSIGNED);
 	sensor.units_rate_unit(SensorDataRecordReadableSensor::${document.getElementById('sensor-unit-rate').value});
@@ -784,7 +795,7 @@ function recalculate(eventsource) {
 	sensor.threshold_lnr_rawvalue(${(thresholds.lnr.ipmi.value !== null ? thresholds.lnr.ipmi.value : '0')}); // ${thresholds.lnr.float.value} ${human_units}
 	sensor.hysteresis_high(${(unit_factors.hystp.ipmi.value !== null ? unit_factors.hystp.ipmi.value : '0')}); // +${unit_factors.hystp.float.value||0} ${human_units}
 	sensor.hysteresis_low(${(unit_factors.hystn.ipmi.value !== null ? unit_factors.hystn.ipmi.value : '0')}); // -${unit_factors.hystn.float.value||0} ${human_units}
-	device_sdr_repo.add(sensor);
+	ADD_TO_REPO(sensor);
 }`;
 		hljs.highlightBlock(codeblock);
 	}
