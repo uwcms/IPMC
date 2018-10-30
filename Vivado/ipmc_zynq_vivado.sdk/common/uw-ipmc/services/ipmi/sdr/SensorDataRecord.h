@@ -56,6 +56,17 @@ public:
 	 */
 	virtual std::vector<uint8_t> record_key() const;
 	///@}
+
+	/// "Is the same record" comparison, based on Type & Key Bytes.
+	virtual bool operator==(const SensorDataRecord &b) const {
+		if (this->record_type() != b.record_type())
+			return false;
+		return (this->record_key() == b.record_key());
+	}
+	/// "Is not the same record" comparison, based on Type & Key Bytes.
+	virtual bool operator!=(const SensorDataRecord &b) const {
+		return !(*this == b);
+	}
 };
 
 #endif /* SRC_COMMON_UW_IPMC_SERVICES_IPMI_SDR_SENSORDATARECORD_H_ */
