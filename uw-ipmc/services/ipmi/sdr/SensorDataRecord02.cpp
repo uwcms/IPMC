@@ -51,3 +51,20 @@ SDR_FIELD(hysteresis_high, uint8_t, 25, 7, 0)
 SDR_FIELD(hysteresis_low, uint8_t, 26, 7, 0)
 
 SDR_FIELD(oem, uint8_t, 30, 7, 0)
+
+uint8_t SensorDataRecord02::from_float(float value) const {
+	// SDR Type 02 don't specify any conversion method.  Convert as y=x.
+
+	uint8_t raw_discrete_value = static_cast<uint16_t>(value);
+	// Resolve domain errors.
+	if (value >= 0xff)
+		raw_discrete_value = 0xff;
+	if (value <= 0)
+		raw_discrete_value = 0;
+	return raw_discrete_value;
+}
+
+float SensorDataRecord02::to_float(uint8_t value) const {
+	// SDR Type 02 don't specify any conversion method.  Convert as y=x.
+	return static_cast<float>(value);
+}

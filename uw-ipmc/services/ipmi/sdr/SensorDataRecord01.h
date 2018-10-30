@@ -112,22 +112,7 @@ public:
 	virtual uint8_t _get_id_string_offset() const { return 47; };
 	///@}
 
-	/**
-	 * Convert a floating point value to a one-byte IPMI value using the formula
-	 * specified by this SDR.
-	 *
-	 * @param value A float sensor value
-	 * @return A one-byte IPMI sensor value
-	 */
 	virtual uint8_t from_float(float value) const;
-
-	/**
-	 * Convert a one-byte IPMI value to a floating point value using the formula
-	 * specified by this SDR.
-	 *
-	 * @param value A one-byte IPMI sensor value
-	 * @return A float sensor value
-	 */
 	virtual float to_float(uint8_t value) const;
 };
 

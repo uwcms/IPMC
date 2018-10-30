@@ -58,6 +58,7 @@ public:
 #undef SDR_FIELD
 protected:
 	virtual uint8_t _get_id_string_offset() const;
+	virtual uint8_t _get_ext_data_offset() const;
 	///@}
 };
 

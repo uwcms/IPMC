@@ -7,6 +7,7 @@
 
 #include <services/ipmi/sdr/SensorDataRecordReadableSensor.h>
 #include <IPMC.h>
+#include <math.h>
 
 /// Create a bitmask with the lower `nbits` bits set.
 #define LOWBITS(nbits) (0xff >> (8-(nbits)))
@@ -93,6 +94,51 @@ uint8_t SensorDataRecordReadableSensor::hysteresis_low() const {
 }
 void SensorDataRecordReadableSensor::hysteresis_low(uint8_t val) {
 	configASSERT(0); // How'd you construct this object?  It should be virtual.
+}
+
+uint16_t SensorDataRecordReadableSensor::ext_assertion_events_enabled() const {
+	configASSERT(this->validate());
+	const uint8_t offset = this->_get_ext_data_offset();
+	// If missing or uninitialized, use 'supported' mask instead of enabled mask.
+	if (this->sdr_data.size() < offset+2U || !(this->sdr_data[offset+1] & 0x80))
+		return this->assertion_lower_threshold_reading_mask();
+	return 0x7FFF & ((this->sdr_data[offset+1]<<8) | this->sdr_data[offset+0]);
+}
+void SensorDataRecordReadableSensor::ext_assertion_events_enabled(uint16_t val) {
+	configASSERT(this->validate());
+	const uint8_t offset = this->_get_ext_data_offset();
+	if (this->sdr_data.size() < offset+2U)
+		this->sdr_data.resize(offset+2U);
+	val |= 0x8000; // Set "initialized marker" bit.
+	this->sdr_data[offset+1] = val >> 8;
+	this->sdr_data[offset+0] = val & 0xff;
+}
+
+uint16_t SensorDataRecordReadableSensor::ext_deassertion_events_enabled() const {
+	configASSERT(this->validate());
+	const uint8_t offset = this->_get_ext_data_offset();
+	// If missing or uninitialized, use 'supported' mask instead of enabled mask.
+	if (this->sdr_data.size() < offset+4U || !(this->sdr_data[offset+3] & 0x80))
+		return this->deassertion_upper_threshold_reading_mask();
+	return 0x7FFF & ((this->sdr_data[offset+3]<<8) | this->sdr_data[offset+2]);
+}
+void SensorDataRecordReadableSensor::ext_deassertion_events_enabled(uint16_t val) {
+	configASSERT(this->validate());
+	const uint8_t offset = this->_get_ext_data_offset();
+	if (this->sdr_data.size() < offset+4U)
+		this->sdr_data.resize(offset+4U);
+	val |= 0x8000; // Set "initialized marker" bit.
+	this->sdr_data[offset+3] = val >> 8;
+	this->sdr_data[offset+2] = val & 0xff;
+}
+
+uint8_t SensorDataRecordReadableSensor::from_float(float value) const {
+	configASSERT(0); // How'd you construct this object?  It should be virtual.
+	return 0;
+}
+float SensorDataRecordReadableSensor::to_float(uint8_t value) const {
+	configASSERT(0); // How'd you construct this object?  It should be virtual.
+	return NAN;
 }
 
 const std::map<uint8_t, std::string> SensorDataRecordReadableSensor::sensor_unit_type_codes = {

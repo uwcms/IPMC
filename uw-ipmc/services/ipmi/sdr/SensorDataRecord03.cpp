@@ -32,6 +32,9 @@ bool SensorDataRecord03::validate() const {
 		this->sdr_data[byte] |= static_cast<uint8_t>(val)<<(b); /* Set new value */ \
 	}
 
+SDR_FIELD(sensor_type_code, uint8_t, 10, 7, 0)
+SDR_FIELD(event_type_reading_code, uint8_t, 11, 7, 0)
+
 SDR_FIELD(sensor_direction, enum SensorDataRecordReadableSensor::Direction, 12, 7, 6)
 
 SDR_FIELD(id_string_instance_modifier_type, enum SensorDataRecordSharedSensor::IDStringInstanceModifierType, 12, 5, 4)
