@@ -9,7 +9,7 @@
 #include <libs/ThreadingPrimitives.h>
 
 SensorDataRepository::SensorDataRepository()
-	: reservation(1) {
+	: reservation(0) {
 	this->mutex = xSemaphoreCreateRecursiveMutex();
 	configASSERT(this->mutex);
 }
@@ -19,63 +19,140 @@ SensorDataRepository::~SensorDataRepository() {
 }
 
 /**
- * Add a Sensor Data Record to this repository.
+ * Add a Sensor Data Record to this repository.  If another record with the same
+ * type and key bytes already exists, it will be replaced.
  *
- * \note This will invalidate all reservations on this repository.
+ * \warning If a record cannot be parsed it will not be added.
  *
  * @param record The record to add
+ * @param reservation The current reservation (or 0 to oneshot reserve for this
+ *                    operation).  If this does not match the current
+ *                    reservation, the operation will not complete.
+ * @return true if the operation was executed, false if the reservation was invalid
  */
-void SensorDataRepository::add(const SensorDataRecord &record) {
+bool SensorDataRepository::add(const SensorDataRecord &record, uint8_t reservation) {
 	xSemaphoreTakeRecursive(this->mutex, portMAX_DELAY);
+	if (!reservation)
+		reservation = this->reserve();
+	if (reservation != this->reservation) {
+		xSemaphoreGiveRecursive(this->mutex);
+		return false;
+	}
 	std::shared_ptr<SensorDataRecord> interpreted = record.interpret();
-	if (interpreted)
-		this->records.push_back(interpreted);
-	else
-		this->records.push_back(std::make_shared<SensorDataRecord>(record));
-	this->renumber();
+	if (interpreted) {
+		bool replaced = false;
+		for (size_type i = 0; i < this->records.size(); ++i) {
+			if (*this->records[i] == *interpreted) {
+				interpreted->record_id(i);
+				this->records[i] = interpreted;
+				replaced = true;
+				break;
+			}
+		}
+		if (!replaced) {
+			interpreted->record_id(this->records.size());
+			this->records.push_back(interpreted);
+		}
+	}
 	xSemaphoreGiveRecursive(this->mutex);
+	return true;
 }
 
 /**
  * Add all records in the specified Sensor Data Repository to this repository.
  *
- * \note This will invalidate all reservations on this repository.
- *
  * @param sdrepository The record to add
+ * @param reservation The current reservation (or 0 to oneshot reserve for this
+ *                    operation).  If this does not match the current
+ *                    reservation, the operation will not complete.
+ * @return true if the operation was executed, false if the reservation was invalid
  */
-void SensorDataRepository::add(const SensorDataRepository &sdrepository) {
+bool SensorDataRepository::add(const SensorDataRepository &sdrepository, uint8_t reservation) {
 	xSemaphoreTakeRecursive(this->mutex, portMAX_DELAY);
-	auto reservation = this->reservation;
+	if (!reservation)
+		reservation = this->reserve();
+	if (reservation != this->reservation) {
+		xSemaphoreGiveRecursive(this->mutex);
+		return false;
+	}
 	for (auto it = sdrepository.records.begin(), eit = sdrepository.records.end(); it != eit; ++it)
-		this->add(**it);
-	this->reservation = reservation;
-	this->reserve(); // Increment reservation only once.
+		this->add(**it, reservation);
 	xSemaphoreGiveRecursive(this->mutex);
+	return true;
 }
 
 /**
  * Remove the specified Sensor Data Record from this repository.
  *
- * \note This will invalidate all reservations on this repository.
- *
  * @param id The record id of the record to remove
+ * @param reservation The current reservation (or 0 to oneshot reserve for this
+ *                    operation).  If this does not match the current
+ *                    reservation, the operation will not complete.
+ * @return true if the operation was executed, false if the reservation was invalid
  */
-void SensorDataRepository::remove(uint16_t id) {
+bool SensorDataRepository::remove(uint16_t id, uint8_t reservation) {
 	xSemaphoreTakeRecursive(this->mutex, portMAX_DELAY);
+	if (!reservation)
+		reservation = this->reserve();
+	if (reservation != this->reservation) {
+		xSemaphoreGiveRecursive(this->mutex);
+		return false;
+	}
 	if (id <= this->records.size())
 		this->records.erase(std::next(this->records.begin(), id));
 	this->renumber();
 	xSemaphoreGiveRecursive(this->mutex);
+	return true;
+}
+
+/**
+ * Remove all records with the same type and key bytes as the provided SDR from
+ * the repository.
+ *
+ * @param record The SDR to match for removal
+ * @param reservation The current reservation (or 0 to oneshot reserve for this
+ *                    operation).  If this does not match the current
+ *                    reservation, the operation will not complete.
+ * @return true if the operation was executed, false if the reservation was invalid
+ */
+bool SensorDataRepository::remove(const SensorDataRecord &record, uint8_t reservation) {
+	xSemaphoreTakeRecursive(this->mutex, portMAX_DELAY);
+	if (!reservation)
+		reservation = this->reserve();
+	if (reservation != this->reservation) {
+		xSemaphoreGiveRecursive(this->mutex);
+		return false;
+	}
+	for (auto it = this->records.begin(); it != this->records.end(); /* below */) {
+		if (**it == record)
+			it = this->records.erase(it);
+		else
+			++it;
+	}
+	this->renumber();
+	xSemaphoreGiveRecursive(this->mutex);
+	return true;
 }
 
 /**
  * Erase the contents of this repository.
+ *
+ * @param reservation The current reservation (or 0 to oneshot reserve for this
+ *                    operation).  If this does not match the current
+ *                    reservation, the operation will not complete.
+ * @return true if the operation was executed, false if the reservation was invalid
  */
-void SensorDataRepository::clear() {
+bool SensorDataRepository::clear(uint8_t reservation) {
 	xSemaphoreTakeRecursive(this->mutex, portMAX_DELAY);
+	if (!reservation)
+		reservation = this->reserve();
+	if (reservation != this->reservation) {
+		xSemaphoreGiveRecursive(this->mutex);
+		return false;
+	}
 	this->records.clear();
-	this->reserve();
 	xSemaphoreGiveRecursive(this->mutex);
+	return true;
 }
 
 /**
@@ -119,7 +196,7 @@ std::shared_ptr<const SensorDataRecord> SensorDataRepository::find(const std::ve
  *
  * @return The number of records in this container
  */
-std::vector< std::shared_ptr<SensorDataRecord> >::size_type SensorDataRepository::size() const {
+SensorDataRepository::size_type SensorDataRepository::size() const {
 	xSemaphoreTakeRecursive(this->mutex, portMAX_DELAY);
 	auto ret = this->records.size();
 	xSemaphoreGiveRecursive(this->mutex);
@@ -138,8 +215,9 @@ std::vector<uint8_t> SensorDataRepository::u8export() const {
 	std::vector<uint8_t> output;
 	for (auto it = this->records.begin(), eit = this->records.end(); it != eit; ++it) {
 		SensorDataRecord &record = **it;
-		if (record.sdr_data.size() < 5U || record.sdr_data.size() != 5U + record.sdr_data[4])
-			continue; // Skip invalid record.
+		if (record.sdr_data.size() == 0 || record.sdr_data.size() > 255)
+			continue; // We can't store this record.
+		output.push_back(record.sdr_data.size());
 		output.insert(output.end(), record.sdr_data.begin(), record.sdr_data.end());
 	}
 	xSemaphoreGiveRecursive(this->mutex);
@@ -147,32 +225,33 @@ std::vector<uint8_t> SensorDataRepository::u8export() const {
 }
 
 /**
- * Import the data from the supplied u8 vector, overwriting this SDR repository.
- *
- * \warning This will potentially discard invalid SDR records, and any later record.
+ * Import the data from the supplied u8 vector, merging with this SDR repository.
  *
  * @param data The SDR repository contents in binary form
+ * @param reservation The current reservation (or 0 to oneshot reserve for this
+ *                    operation).  If this does not match the current
+ *                    reservation, the operation will not complete.
+ * @return true if the operation was executed, false if the reservation was invalid
  */
-void SensorDataRepository::u8import(const std::vector<uint8_t> &data) {
+bool SensorDataRepository::u8import(const std::vector<uint8_t> &data, uint8_t reservation) {
 	xSemaphoreTakeRecursive(this->mutex, portMAX_DELAY);
-	auto reservation = this->reservation;
-	this->records.clear();
+	if (!reservation)
+		reservation = this->reserve();
+	if (reservation != this->reservation) {
+		xSemaphoreGiveRecursive(this->mutex);
+		return false;
+	}
 	std::vector<uint8_t>::size_type cur = 0;
 	while (cur < data.size()) {
-		if (cur+5 < data.size())
-			break; // No remaining record headers.
-		if (cur+5+data[cur+4] < data.size())
-			break; // No remaining complete records.
-		std::vector<uint8_t> sdr(std::next(data.begin(), cur), std::next(data.begin(), cur+5+data[cur+4]));
-		std::shared_ptr<SensorDataRecord> record = SensorDataRecord(sdr).interpret();
-		if (!record)
-			continue; // Can't be parsed.  We'll at least try for later ones.
-		this->records.push_back(record);
+		uint8_t record_length = data[cur];
+		if (record_length == 0)
+			break; // We're out of sync. Abort.
+		std::vector<uint8_t> sdr(std::next(data.begin(), cur+1), std::next(data.begin(), cur+1+record_length));
+		cur += 1+record_length;
+		this->add(SensorDataRecord(sdr), reservation);
 	}
-	this->renumber();
-	this->reservation = reservation;
-	this->reserve(); // Increment reservation only once.
 	xSemaphoreGiveRecursive(this->mutex);
+	return true;
 }
 
 /**
@@ -181,7 +260,9 @@ void SensorDataRepository::u8import(const std::vector<uint8_t> &data) {
  */
 uint8_t SensorDataRepository::reserve() {
 	xSemaphoreTakeRecursive(this->mutex, portMAX_DELAY);
-	this->reservation = ((this->reservation-1) % 0xff) + 1;
+	this->reservation += 1; // Auto-wrap from uint8_t.
+	if (this->reservation == 0)
+		this->reservation += 1; // We don't want to give out reservation 0.
 	auto ret = this->reservation;
 	xSemaphoreGiveRecursive(this->mutex);
 	return ret;
@@ -192,7 +273,6 @@ uint8_t SensorDataRepository::reserve() {
  */
 void SensorDataRepository::renumber() {
 	xSemaphoreTakeRecursive(this->mutex, portMAX_DELAY);
-	this->reserve(); // Cancel any existing reservation.
 	for (std::vector< std::shared_ptr<SensorDataRecord> >::size_type i = 0; i < this->records.size(); ++i)
 		this->records.at(i)->record_id(i);
 	xSemaphoreGiveRecursive(this->mutex);

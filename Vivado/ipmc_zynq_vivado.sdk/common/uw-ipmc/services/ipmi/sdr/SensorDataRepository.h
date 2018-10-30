@@ -20,22 +20,25 @@ public:
 	SensorDataRepository();
 	virtual ~SensorDataRepository();
 
-	void add(const SensorDataRecord &record);
-	void add(const SensorDataRepository &sdrepository);
-	void remove(uint16_t id);
-	void clear();
+	bool add(const SensorDataRecord &record, uint8_t reservation);
+	bool add(const SensorDataRepository &sdrepository, uint8_t reservation);
+	bool remove(uint16_t id, uint8_t reservation);
+	bool remove(const SensorDataRecord &record, uint8_t reservation);
+	bool clear(uint8_t reservation);
 	std::shared_ptr<const SensorDataRecord> get(uint16_t id) const;
 	std::shared_ptr<const SensorDataRecord> find(const std::vector<uint8_t> &key) const;
-	std::vector< std::shared_ptr<SensorDataRecord> >::size_type size() const;
+	/// We inherit our size_type from our underlying std::vector.
+	typedef std::vector< std::shared_ptr<SensorDataRecord> >::size_type size_type;
+	size_type size() const;
 
 	std::vector<uint8_t> u8export() const;
-	void u8import(const std::vector<uint8_t> &data);
+	bool u8import(const std::vector<uint8_t> &data, uint8_t reservation = 0);
 
 	/**
 	 * Returns the current reservation id for this repository.
 	 * @return the current reservation id for this repository
 	 */
-	uint8_t get_reservation() const { return this->reservation; };
+	uint8_t get_current_reservation() const { return this->reservation; };
 	uint8_t reserve();
 protected:
 	uint8_t reservation; ///< The current reservation number for this repository
