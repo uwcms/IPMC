@@ -76,6 +76,7 @@ PS_UART *uart_ps0;
 MGMT_Zone *mgmt_zones[XPAR_MGMT_ZONE_CTRL_0_MZ_CNT];
 PS_ISFQSPI *isfqspi;
 IPMBSvc *ipmb0;
+EventReceiver ipmi_event_receiver;
 Network *network;
 IPMICommandParser *ipmi_command_parser;
 SensorDataRepository sdr_repo;
@@ -179,6 +180,9 @@ void driver_init(bool use_pl) {
 	ipmi_command_parser = new IPMICommandParser(ipmicmd_default, *ipmicmd_index);
 	ipmb0 = new IPMBSvc(ipmb0pair, ipmbaddr, ipmi_command_parser, log_ipmb0, "ipmb0", SWDT);
 	ipmb0->register_console_commands(console_command_parser, "ipmb0.");
+	ipmi_event_receiver.ipmb = NULL;
+	ipmi_event_receiver.lun = 0;
+	ipmi_event_receiver.addr = 0;
 
 	// TODO: Clean up this part
 	PL_I2C *i2c = new PL_I2C(XPAR_AXI_IIC_PIM400_DEVICE_ID, XPAR_FABRIC_AXI_IIC_PIM400_IIC2INTC_IRPT_INTR);
