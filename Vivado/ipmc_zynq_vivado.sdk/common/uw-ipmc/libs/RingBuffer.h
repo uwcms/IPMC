@@ -117,7 +117,12 @@ public:
 	 * \return true if the ring buffer is full, otherwise false
 	 */
 	bool full() {
-		return this->next_read_idx == ((this->next_write_idx+1) % this->buflen);
+		bool r = this->next_read_idx == ((this->next_write_idx+1) % this->buflen);
+		if (r == true) {
+			return true;
+		}
+		return false;
+		//return this->next_read_idx == ((this->next_write_idx+1) % this->buflen);
 	}
 
 	/**
@@ -154,6 +159,8 @@ public:
 		if (this->empty()) {
 			*data_start = this->buffer;
 			*maxitems = this->maxlength();
+			next_read_idx = 0;
+			next_write_idx = 0;
 		}
 		else if (this->next_write_idx > this->next_read_idx) {
 			// The next write goes into the end of the physical buffer, and free

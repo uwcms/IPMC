@@ -60,6 +60,11 @@ protected:
 	virtual void _InterruptHandler() = 0;
 
 private:
+	///! Internal use. Interrupt wrapper.
+	inline static void _InterruptWrapper(void *p) {
+		((InterruptBasedDriver*)p)->_InterruptHandler();
+	}
+
 	///! Internal use. Connect the interrupt handler to the interrupt.
 	void connectInterrupt();
 

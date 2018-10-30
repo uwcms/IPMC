@@ -44,6 +44,268 @@ static void XUartPs_DisableInterruptMask(XUartPs *InstancePtr, u32 Mask)
 
 }
 
+u32 PS_UART::XUartPs_ReceiveBuffer(XUartPs *InstancePtr)
+{
+	u32 CsrRegister;
+	u32 ReceivedCount = 0U;
+	u32 ByteStatusValue, EventData;
+	u32 Event;
+
+	u8 *dma_inbuf;
+	size_t items;
+
+	this->inbuf.setup_dma_input(&dma_inbuf, &items);
+
+	/*
+	 * Read the Channel Status Register to determine if there is any data in
+	 * the RX FIFO
+	 */
+	CsrRegister = XUartPs_ReadReg(InstancePtr->Config.BaseAddress,
+				XUARTPS_SR_OFFSET);
+
+	/*
+	 * Loop until there is no more data in RX FIFO or the specified
+	 * number of bytes has been received
+	 */
+	while((ReceivedCount < items) &&
+		(((CsrRegister & XUARTPS_SR_RXEMPTY) == (u32)0))){
+
+		if (InstancePtr->is_rxbs_error) {
+			ByteStatusValue = XUartPs_ReadReg(
+						InstancePtr->Config.BaseAddress,
+						XUARTPS_RXBS_OFFSET);
+			if((ByteStatusValue & XUARTPS_RXBS_MASK)!= (u32)0) {
+				EventData = ByteStatusValue;
+				Event = XUARTPS_EVENT_PARE_FRAME_BRKE;
+				/*
+				 * Call the application handler to indicate that there is a receive
+				 * error or a break interrupt, if the application cares about the
+				 * error it call a function to get the last errors.
+				 */
+				InstancePtr->Handler(InstancePtr->CallBackRef,
+							Event, EventData);
+			}
+		}
+
+		dma_inbuf[ReceivedCount++] = XUartPs_ReadReg(InstancePtr->Config.BaseAddress, XUARTPS_FIFO_OFFSET);
+
+		CsrRegister = XUartPs_ReadReg(InstancePtr->Config.BaseAddress, XUARTPS_SR_OFFSET);
+	}
+	InstancePtr->is_rxbs_error = 0;
+
+	this->inbuf.notify_dma_input_occurred(ReceivedCount);
+	this->readwait.wake(); // We received something.
+
+	return ReceivedCount;
+}
+
+u32 PS_UART::XUartPs_Recv(XUartPs *InstancePtr)
+{
+	u32 ReceivedCount;
+	u32 ImrRegister;
+
+	/* Assert validates the input arguments */
+	Xil_AssertNonvoid(InstancePtr != NULL);
+	Xil_AssertNonvoid(InstancePtr->IsReady == XIL_COMPONENT_IS_READY);
+
+	/*
+	 * Disable all the interrupts.
+	 * This stops a previous operation that may be interrupt driven
+	 */
+	//ImrRegister = XUartPs_ReadReg(InstancePtr->Config.BaseAddress, XUARTPS_IMR_OFFSET);
+	//XUartPs_WriteReg(InstancePtr->Config.BaseAddress, XUARTPS_IDR_OFFSET, XUARTPS_IXR_MASK);
+
+	/* Receive the data from the device */
+	ReceivedCount = XUartPs_ReceiveBuffer(InstancePtr);
+
+	/* Restore the interrupt state */
+	//XUartPs_WriteReg(InstancePtr->Config.BaseAddress, XUARTPS_IER_OFFSET, ImrRegister);
+
+	return ReceivedCount;
+}
+
+u32 PS_UART::XUartPs_SendBuffer(XUartPs *InstancePtr)
+{
+	u32 SentCount = 0U;
+	u32 ImrRegister;
+
+	u8 *dma_outbuf = NULL;
+	size_t items;
+
+	this->outbuf.setup_dma_output(&dma_outbuf, &items);
+	if (items > this->oblocksize)
+		items = this->oblocksize;
+
+	/*
+	 * If the TX FIFO is full, send nothing.
+	 * Otherwise put bytes into the TX FIFO until it is full, or all of the
+	 * data has been put into the FIFO.
+	 */
+	while ((!XUartPs_IsTransmitFull(InstancePtr->Config.BaseAddress)) &&
+		   (items > SentCount)) {
+
+		/* Fill the FIFO from the buffer */
+		XUartPs_WriteReg(InstancePtr->Config.BaseAddress,
+				   XUARTPS_FIFO_OFFSET,
+				   ((u32)dma_outbuf[SentCount]));
+
+		/* Increment the send count. */
+		SentCount++;
+	}
+
+	this->outbuf.notify_dma_output_occurred(SentCount);
+
+	/*
+	 * If interrupts are enabled as indicated by the receive interrupt, then
+	 * enable the TX FIFO empty interrupt, so further action can be taken
+	 * for this sending.
+	 */
+	if (!this->outbuf.empty()) {
+		// There is still data to send, so re-enable TX empty interrupt
+		ImrRegister = XUartPs_ReadReg(InstancePtr->Config.BaseAddress, XUARTPS_IMR_OFFSET);
+		if (((ImrRegister & XUARTPS_IXR_RXFULL) != (u32)0) ||
+			((ImrRegister & XUARTPS_IXR_RXEMPTY) != (u32)0)||
+			((ImrRegister & XUARTPS_IXR_RXOVR) != (u32)0)) {
+
+			XUartPs_WriteReg(InstancePtr->Config.BaseAddress,
+						   XUARTPS_IER_OFFSET,
+						   ImrRegister | (u32)XUARTPS_IXR_TXEMPTY);
+		}
+	}
+
+	if (SentCount) {
+		this->writewait.wake();
+	}
+
+	/*if (this->outbuf.empty()) {
+		this->write_running = false;
+	}*/
+
+	return SentCount;
+}
+
+u32 PS_UART::XUartPs_Send(XUartPs *InstancePtr)
+{
+	u32 BytesSent;
+
+	/* Asserts validate the input arguments */
+	Xil_AssertNonvoid(InstancePtr != NULL);
+	Xil_AssertNonvoid(InstancePtr->IsReady == XIL_COMPONENT_IS_READY);
+
+	/*
+	 * Disable the UART transmit interrupts to allow this call to stop a
+	 * previous operation that may be interrupt driven.
+	 */
+	/*XUartPs_WriteReg(InstancePtr->Config.BaseAddress, XUARTPS_IDR_OFFSET,
+					  XUARTPS_IXR_TXEMPTY);*/
+
+	/*
+	 * Transmit interrupts will be enabled in XUartPs_SendBuffer(), after
+	 * filling the TX FIFO.
+	 */
+	BytesSent = XUartPs_SendBuffer(InstancePtr);
+
+	return BytesSent;
+}
+
+void PS_UART::_InterruptHandler() {
+	u32 IsrStatus;
+
+	Xil_AssertVoid(this->UartInst.IsReady == XIL_COMPONENT_IS_READY);
+
+	/*
+	 * Read the interrupt ID register to determine which
+	 * interrupt is active
+	 */
+	IsrStatus = XUartPs_ReadReg(this->UartInst.Config.BaseAddress,
+				   XUARTPS_IMR_OFFSET);
+
+	IsrStatus &= XUartPs_ReadReg(this->UartInst.Config.BaseAddress,
+				   XUARTPS_ISR_OFFSET);
+
+	/* Dispatch an appropriate handler. */
+	if((IsrStatus & ((u32)XUARTPS_IXR_RXOVR | (u32)XUARTPS_IXR_RXEMPTY |
+			(u32)XUARTPS_IXR_RXFULL) | (u32)XUARTPS_IXR_TOUT) != (u32)0) {
+		/* Received data interrupt */
+		/*
+		 * If there are bytes still to be received in the specified buffer
+		 * go ahead and receive them. Removing bytes from the RX FIFO will
+		 * clear the interrupt.
+		 */
+		if (!this->inbuf.full()) {
+			(void)XUartPs_ReceiveBuffer(&(this->UartInst));
+		}
+	}
+
+	if((IsrStatus & (u32)XUARTPS_IXR_TXEMPTY) != (u32)0) {
+		/* Transmit data interrupt */
+		/*
+		 * If there are not bytes to be sent from the specified buffer then disable
+		 * the transmit interrupt so it will stop interrupting as it interrupts
+		 * any time the FIFO is empty
+		 */
+		if (this->outbuf.empty()) {
+			// There is nothing else in the transmit buffer to send
+			// Disable interrupt so it doesn't keep triggering
+			XUartPs_WriteReg(this->UartInst.Config.BaseAddress,
+					XUARTPS_IDR_OFFSET,
+					(u32)XUARTPS_IXR_TXEMPTY);
+
+		} else if ((IsrStatus & ((u32)XUARTPS_IXR_TXEMPTY)) != (u32)0) {
+			// If FIFO is empty and there is data to send then keep doing so
+			XUartPs_SendBuffer(&(this->UartInst));
+		}
+	}
+
+	/* XUARTPS_IXR_RBRK is applicable only for Zynq Ultrascale+ MP */
+	if ((IsrStatus & ((u32)XUARTPS_IXR_OVER | (u32)XUARTPS_IXR_FRAMING |
+			(u32)XUARTPS_IXR_PARITY | (u32)XUARTPS_IXR_RBRK)) != (u32)0) {
+		u32 EventData;
+		u32 Event;
+
+		this->UartInst.is_rxbs_error = 0;
+
+		if ((this->UartInst.Platform == XPLAT_ZYNQ_ULTRA_MP) &&
+			(IsrStatus & ((u32)XUARTPS_IXR_PARITY | (u32)XUARTPS_IXR_RBRK
+						| (u32)XUARTPS_IXR_FRAMING))) {
+			this->UartInst.is_rxbs_error = 1;
+		}
+
+		/* Received Error Status interrupt */
+		/*
+		 * If there are bytes still to be received in the specified buffer
+		 * go ahead and receive them. Removing bytes from the RX FIFO will
+		 * clear the interrupt.
+		 */
+
+		(void)XUartPs_ReceiveBuffer(&(this->UartInst));
+
+		if (!(this->UartInst.is_rxbs_error)) {
+			Event = XUARTPS_EVENT_RECV_ERROR;
+			EventData = this->UartInst.ReceiveBuffer.RequestedBytes -
+					this->UartInst.ReceiveBuffer.RemainingBytes;
+
+			/*
+			 * Call the application handler to indicate that there is a receive
+			 * error or a break interrupt, if the application cares about the
+			 * error it call a function to get the last errors.
+			 */
+			this->UartInst.Handler(this->UartInst.CallBackRef,
+						Event,
+						EventData);
+		}
+	}
+
+	if((IsrStatus & ((u32)XUARTPS_IXR_DMS)) != (u32)0) {
+		// Modem status interrupt not supported, just read to clean status
+		XUartPs_ReadReg(this->UartInst.Config.BaseAddress, XUARTPS_MODEMSR_OFFSET);
+	}
+
+	// Clear the interrupt status
+	XUartPs_WriteReg(this->UartInst.Config.BaseAddress, XUARTPS_ISR_OFFSET,
+		IsrStatus);
+}
+
 /**
  * Instantiate a PS_UART driver.
  *
@@ -56,37 +318,24 @@ static void XUartPs_DisableInterruptMask(XUartPs *InstancePtr, u32 Mask)
  * \param oblocksize  The maximum block size for output operations.  Relevant to wait times when the queue is full.
  */
 PS_UART::PS_UART(u32 DeviceId, u32 IntrId, u32 ibufsize, u32 obufsize,
-		u32 oblocksize) :
+		u32 oblocksize) : InterruptBasedDriver(IntrId),
 		error_mask(0), inbuf(RingBuffer<u8>(ibufsize)), outbuf(
-				RingBuffer<u8>(obufsize)), write_running(false), oblocksize(
-				oblocksize), IntrId(IntrId) {
+				RingBuffer<u8>(obufsize)), oblocksize(oblocksize) {
 
 	XUartPs_Config *Config = XUartPs_LookupConfig(DeviceId);
 	configASSERT(XST_SUCCESS == XUartPs_CfgInitialize(&this->UartInst, Config, Config->BaseAddress));
 	XUartPs_SetInterruptMask(&this->UartInst, 0);
-	XScuGic_Connect(&xInterruptController, IntrId, reinterpret_cast<Xil_InterruptHandler>(XUartPs_InterruptHandler), (void*)&this->UartInst);
 	XUartPs_SetHandler(&this->UartInst, reinterpret_cast<XUartPs_Handler>(PS_UART_InterruptPassthrough), reinterpret_cast<void*>(this));
-	XScuGic_Enable(&xInterruptController, IntrId);
 	XUartPs_SetRecvTimeout(&this->UartInst, 8); // My example says this is u32s, the comments say its nibbles, the TRM says its baud_sample_clocks.
 
-	u8 emptybuf;
-	XUartPs_Send(&this->UartInst, &emptybuf, 0);
-
-	u8 *dma_inbuf = NULL;
-	size_t maxitems;
-	this->inbuf.setup_dma_input(&dma_inbuf, &maxitems);
-	XUartPs_Recv(&this->UartInst, dma_inbuf, maxitems); // Set next input
 
 	XUartPs_EnableInterruptMask(&this->UartInst, IXR_RECV_ENABLE);
 }
 
 PS_UART::~PS_UART() {
-	u8 buf;
-	XUartPs_Send(&this->UartInst, &buf, 0);
-	XUartPs_Recv(&this->UartInst, &buf, 0);
+	XUartPs_Send(&this->UartInst);
+	XUartPs_Recv(&this->UartInst);
 	XUartPs_DisableInterruptMask(&this->UartInst, IXR_RECV_ENABLE);
-	XScuGic_Disconnect(&xInterruptController, this->IntrId);
-	XScuGic_Disable(&xInterruptController, this->IntrId);
 }
 
 /**
@@ -173,19 +422,13 @@ size_t PS_UART::write(const u8 *buf, size_t len, TickType_t timeout) {
 		if (!IN_INTERRUPT())
 			taskENTER_CRITICAL();
 		size_t batch_byteswritten = this->outbuf.write(buf+byteswritten, len-byteswritten);
-		if (batch_byteswritten && !this->write_running) {
-			/* We have written something to the buffer, and it's not already
-			 * running output.
-			 */
-			u8 *dma_outbuf = NULL;
-			size_t maxitems;
-			this->outbuf.setup_dma_output(&dma_outbuf, &maxitems);
-			// If we don't have any items to send, it means we didn't just write.
-			configASSERT(maxitems);
-			if (maxitems > this->oblocksize)
-				maxitems = this->oblocksize;
-			XUartPs_Send(&this->UartInst, dma_outbuf, maxitems);
-			this->write_running = true;
+		if (batch_byteswritten) {
+			// Trigger a send if the TX FIFO is empty
+			u32 ImrRegister = XUartPs_ReadReg(this->UartInst.Config.BaseAddress, XUARTPS_IMR_OFFSET);
+
+			if (!(ImrRegister & (XUARTPS_IXR_TXEMPTY))) {
+				XUartPs_SendBuffer(&(this->UartInst));
+			}
 		}
 		byteswritten += batch_byteswritten;
 		if (!IN_INTERRUPT())
@@ -222,7 +465,7 @@ void PS_UART::_HandleInterrupt(u32 Event, u32 EventData) {
 	if (Event == XUARTPS_EVENT_RECV_DATA || Event == XUARTPS_EVENT_RECV_TOUT
 			|| Event == XUARTPS_EVENT_RECV_ERROR) {
 
-		if (EventData > 0) {
+		/*if (EventData > 0) {
 			this->inbuf.notify_dma_input_occurred(EventData);
 			this->readwait.wake(); // We received something.
 			u8 *dma_inbuf;
@@ -232,7 +475,7 @@ void PS_UART::_HandleInterrupt(u32 Event, u32 EventData) {
 				XUartPs_Recv(&this->UartInst, dma_inbuf, maxitems); // Set next input
 			else
 				XUartPs_DisableInterruptMask(&this->UartInst, IXR_RECV_ENABLE); // Turn off receive until our buffer drains.
-		}
+		}*/
 	}
 	// if (Event == XUARTPS_EVENT_RECV_TOUT) { } // Recv data event.  Handled above.
 	if (Event == XUARTPS_EVENT_SENT_DATA) {
@@ -240,7 +483,7 @@ void PS_UART::_HandleInterrupt(u32 Event, u32 EventData) {
 		 * It is safe to enqueue more data now.
 		 */
 
-		this->outbuf.notify_dma_output_occurred(EventData);
+		/*this->outbuf.notify_dma_output_occurred(EventData);
 		u8 *dma_outbuf = NULL;
 		size_t maxitems;
 		this->outbuf.setup_dma_output(&dma_outbuf, &maxitems);
@@ -253,7 +496,7 @@ void PS_UART::_HandleInterrupt(u32 Event, u32 EventData) {
 		}
 		else {
 			this->write_running = false;
-		}
+		}*/
 	}
 	if (Event == XUARTPS_EVENT_RECV_ERROR) {
 		this->error_mask |= (1<<XUARTPS_EVENT_RECV_ERROR); // Set error mask flag.  This is probably an overrun error.
