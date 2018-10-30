@@ -32,6 +32,13 @@ class IPMICommandParser;
 extern IPMBSvc *ipmb0;
 extern IPMICommandParser *ipmi_command_parser;
 
+typedef struct {
+	IPMBSvc *ipmb;
+	uint8_t lun;
+	uint8_t addr;
+} EventReceiver;
+extern EventReceiver ipmi_event_receiver;
+
 class SensorDataRepository;
 extern SensorDataRepository sdr_repo;
 extern SensorDataRepository device_sdr_repo;
