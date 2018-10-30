@@ -9,6 +9,7 @@
 #include "semphr.h"
 #include <IPMC.h>
 #include <libs/LogTree.h>
+#include <libs/ThreadingPrimitives.h>
 #include <services/console/CommandParser.h>
 #include <services/console/ConsoleSvc.h>
 #include <deque>
@@ -565,3 +566,41 @@ const char *LogTree::LogLevel_strings[10] = {
 	"ALL",
 	"INHERIT"
 };
+
+/**
+ * Check if a log message is unique within a period of `this->timeout`, and if
+ * it is, log it.
+ *
+ * @param message The log message to check.
+ * @param level The LogLevel for output if unique.
+ * @return true if the message was logged, else false
+ */
+bool LogRepeatSuppressor::log_unique(const std::string &message, enum LogTree::LogLevel level) {
+	xSemaphoreTakeRecursive(this->mutex, portMAX_DELAY);
+	uint64_t now = get_tick64();
+	this->clean();
+	bool result = true;
+	if (this->lastlog.count(message))
+		result = false;
+	else
+		this->lastlog[message] = now;
+	xSemaphoreGiveRecursive(this->mutex);
+	if (result)
+		this->tree.log(message, level);
+	return result;
+}
+
+/**
+ * Clean old log messages from the tracking index.
+ */
+void LogRepeatSuppressor::clean() {
+	xSemaphoreTakeRecursive(this->mutex, portMAX_DELAY);
+	uint64_t now = get_tick64();
+	for (auto it = this->lastlog.begin(), eit = this->lastlog.end(); it != eit; /* below */) {
+		if (it->second + this->timeout < now)
+			it = this->lastlog.erase(it);
+		else
+			++it;
+	}
+	xSemaphoreGiveRecursive(this->mutex);
+}

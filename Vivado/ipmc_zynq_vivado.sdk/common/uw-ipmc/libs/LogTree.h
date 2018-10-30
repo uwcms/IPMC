@@ -128,4 +128,32 @@ protected:
 	SemaphoreHandle_t mutex; ///< A mutex protecting the filter and child lists.
 };
 
+/**
+ * A log message repeat checker.  It records log messages last sent within
+ * `timeout` and allows you to avoid repeating them unnecessarily.
+ */
+class LogRepeatSuppressor {
+public:
+	/**
+	 * Initialize a LogRepeatSuppressor.
+	 *
+	 * @param tree The LogTree to pass messages to
+	 * @param timeout The minimum time before repeating a message.
+	 */
+	LogRepeatSuppressor(LogTree &tree, uint64_t timeout = pdMS_TO_TICKS(10000)) : timeout(timeout), tree(tree) {
+		this->mutex = xSemaphoreCreateRecursiveMutex();
+		configASSERT(this->mutex);
+	};
+	virtual ~LogRepeatSuppressor() {
+		vSemaphoreDelete(this->mutex);
+	};
+	uint64_t timeout; ///< The minimum time between successive identical messages.
+	virtual bool log_unique(const std::string &message, enum LogTree::LogLevel level);
+	virtual void clean();
+protected:
+	SemaphoreHandle_t mutex; ///< A mutex protecting the map.
+	LogTree &tree; ///< The LogTree to dispatch unique messages to.
+	std::map<std::string, uint64_t> lastlog; ///< A map of recently sent messages.
+};
+
 #endif /* SRC_COMMON_UW_IPMC_LIBS_LOGTREE_H_ */
