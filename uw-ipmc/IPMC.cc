@@ -19,12 +19,14 @@
 #include "xscugic.h"
 #include "xil_exception.h"
 #include "xgpiops.h"
+#include <xilrsa.h>
 
 /* Include libs */
 #include <libs/LogTree.h>
 #include "libs/Utils.h"
 #include "libs/XilinxImage.h"
 #include "libs/Authentication.h"
+#include <libs/base64/base64.h>
 #include <services/ipmi/IPMIFormats.h>
 
 /* Include drivers */
@@ -996,6 +998,186 @@ public:
 	//virtual std::vector<std::string> complete(const CommandParser::CommandParameters &parameters) const { };
 };
 
+/// A "upload" console command.
+class ConsoleCommand_upload: public CommandParser::Command {
+public:
+	virtual std::string get_helptext(const std::string &command) const {
+		return stdsprintf(
+				"%s $filepath $sha256 $contents_in_base64\n\n"
+				"Uploads a file using the serial console interface.\n", command.c_str());
+	}
+
+	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
+		static std::string filepath, hash;
+		static uint32_t filesize;
+		static std::unique_ptr<uint8_t> buffer(nullptr);
+
+		std::string command;
+
+		if (!parameters.parse_parameters(1, false, &command)) {
+			goto ConsoleCommand_upload_wrongparams;
+		}
+
+		if (command == "filename") {
+			// Set filename
+			if (!parameters.parse_parameters(2, true, &filepath)) {
+				goto ConsoleCommand_upload_wrongparams;
+			}
+
+			console->write("Filepath set to: " + filepath + "\n");
+		} else if (command == "hash") {
+			// Set hash
+			if (!parameters.parse_parameters(2, true, &hash)) {
+				goto ConsoleCommand_upload_wrongparams;
+			}
+
+			console->write("Received hash: " + hash + "\n");
+		} else if (command == "size") {
+			// Set file size
+			if (!parameters.parse_parameters(2, true, &filesize)) {
+				goto ConsoleCommand_upload_wrongparams;
+			}
+
+			if (filesize > 16 * 1024 * 1024) {
+				console->write("File size too big.\n");
+				return;
+			}
+
+			buffer = std::unique_ptr<uint8_t>(new uint8_t[filesize]);
+		} else if (command == "release") {
+			// Release the file buffer
+			buffer = nullptr;
+		} else if (command == "transfer") {
+			uint32_t address;
+			std::string data;
+
+			if (!buffer) {
+				console->write("Buffer not set.\n");
+				return;
+			}
+
+			if (!parameters.parse_parameters(2, true, &address, &data)) {
+				goto ConsoleCommand_upload_wrongparams;
+			}
+
+			std::string decoded = base64_decode(data);
+			uint32_t length = decoded.length();
+
+			if ((address + length) >= filesize) {
+				console->write("Out of range.\n");
+				return;
+			}
+
+			memcpy(buffer.get() + address, (uint8_t*)decoded.data(), length);
+
+			console->write("OK.\n");
+		} else if (command == "compute") {
+			if (!buffer) {
+				console->write("Buffer not set.\n");
+				return;
+			}
+
+			char data_hash[SHA_VALBYTES+1] = "";
+			sha_256((const uint8_t*)buffer.get(), filesize, (uint8_t*)data_hash);
+			console->write("Calculated hash: " + std::string(data_hash) + "\n");
+		} else if (command == "write") {
+			// Check if the file exists
+			FTPFile *file = FTPServer::getFileFromPath(filepath);
+			if (!file || !file->write) {
+				console->write("Target file doesn't exist or cannot be written.\n");
+				return;
+			}
+
+			if (!buffer) {
+				console->write("Buffer not set.\n");
+				return;
+			}
+
+			char data_hash[SHA_VALBYTES+1] = "";
+			sha_256((const uint8_t*)buffer.get(), filesize, (uint8_t*)data_hash);
+
+			if (hash != std::string(data_hash)) {
+				console->write("Hashes do not match.\n");
+				return;
+			}
+
+			if (file->write(buffer.get(), filesize) != filesize) {
+				console->write("Write operation failed.\n");
+				return;
+			}
+		}
+
+		return;
+
+		ConsoleCommand_upload_wrongparams:
+			console->write("Invalid arguments, see help.\n");
+			return;
+
+		/*
+		if (!parameters.parse_parameters(1, true, &filepath, &hash, &contents)) {
+			console->write("Invalid arguments, see help.\n");
+			return;
+		}
+
+		// Check if the file exists
+		FTPFile *file = FTPServer::getFileFromPath(filepath);
+		if (!file || !file->write) {
+			console->write("Target file doesn't exist or cannot be written.\n");
+			return;
+		}
+
+		// Decode the file contents
+		std::string decoded = base64_decode(contents);
+
+		// Calculate content hash
+		char contents_hash[SHA_VALBYTES+1] = "";
+		sha_256((const uint8_t*)decoded.data(), decoded.size(), (uint8_t*)contents_hash);
+
+		console->write("Received hash: " + hash + "\n");
+		console->write("Calculated hash: " + std::string(contents_hash) + "\n");*/
+	}
+
+	//virtual std::vector<std::string> complete(const CommandParser::CommandParameters &parameters) const { };
+};
+
+class ConsoleCommand_testin : public CommandParser::Command {
+public:
+		virtual std::string get_helptext(const std::string &command) const {
+               return "test command, not intended for commit";
+       }
+
+		virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
+               const int BLOCKSIZE = 10*1024*1024;
+               u8 *buf = (u8*)malloc(BLOCKSIZE);
+               // Discard any incoming window size data, etc.
+               uart_ps0->read(buf, BLOCKSIZE, configTICK_RATE_HZ/10);
+               size_t bytesread = uart_ps0->read(buf, BLOCKSIZE, portMAX_DELAY, configTICK_RATE_HZ*20);
+               console->write(stdsprintf("read %d bytes\n", bytesread));
+               int i = 0;
+               while (i < BLOCKSIZE && buf[i] != '*')
+                       ++i;
+               std::string strbuf(reinterpret_cast<char*>(buf),i);
+               //TRACE.log("testin",6,LogTree::LOG_TRACE,strbuf.data(),strbuf.size(),true);
+               strbuf = base64_decode(strbuf);
+               //TRACE.log("testin",6,LogTree::LOG_TRACE,strbuf.data(),strbuf.size(),true);
+               u8 s256[32];
+               for (int i = 0; i < 32; ++i)
+                       s256[i] = 0;
+               sha_256(reinterpret_cast<const unsigned char *>(strbuf.data()), strbuf.size(), s256);
+               std::string shahex;
+               shahex.reserve(32*2);
+               for (int i = 0; i < 32; ++i)
+                       shahex.append(stdsprintf("%02hhx", s256[i]));
+               shahex.pop_back();
+               //TRACE.log("testin_sha",10,LogTree::LOG_TRACE,reinterpret_cast<char*>(s256),32,true);
+               //TRACE.log("testin_hex",10,LogTree::LOG_TRACE,shahex.data(),shahex.size(),true);
+               console->write(shahex+"\n");
+               free(buf);
+       }
+
+       //virtual std::vector<std::string> complete(const CommandParser::CommandParameters &parameters) const { };
+};
+
 } // anonymous namespace
 
 static void register_core_console_commands(CommandParser &parser) {
@@ -1009,6 +1191,8 @@ static void register_core_console_commands(CommandParser &parser) {
 	console_command_parser.register_command("setauth", std::make_shared<ConsoleCommand_setauth>());
 	if (IPMC_SERIAL == 0 || IPMC_SERIAL == 0xFFFF)
 		console_command_parser.register_command("set_serial", std::make_shared<ConsoleCommand_set_serial>());
+	console_command_parser.register_command("upload", std::make_shared<ConsoleCommand_upload>());
+	console_command_parser.register_command("testin", std::make_shared<ConsoleCommand_testin>());
 }
 
 static void console_log_handler(LogTree &logtree, const std::string &message, enum LogTree::LogLevel level) {
