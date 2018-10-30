@@ -110,7 +110,7 @@ bool firmwareUpdateFailed = false;
 // External static variables
 extern uint8_t mac_address[6]; ///< The MAC address of the board, read by persistent storage statically
 
-static void init_device_sdrs();
+static void init_device_sdrs(bool reinit=false);
 static void tracebuffer_log_handler(LogTree &logtree, const std::string &message, enum LogTree::LogLevel level);
 static void register_core_console_commands(CommandParser &parser);
 static void console_log_handler(LogTree &logtree, const std::string &message, enum LogTree::LogLevel level);
@@ -164,7 +164,7 @@ void driver_init(bool use_pl) {
 	// This has to be lower, so the serial number has been read by the time we register (or not register) set_serial.
 	register_core_console_commands(console_command_parser);
 
-	UWTaskCreate("init_sdr", TASK_PRIORITY_SERVICE, init_device_sdrs);
+	UWTaskCreate("init_sdr", TASK_PRIORITY_SERVICE, std::bind(init_device_sdrs, false));
 
 	XGpioPs_Config* gpiops_config = XGpioPs_LookupConfig(XPAR_PS7_GPIO_0_DEVICE_ID);
 	configASSERT(XST_SUCCESS == XGpioPs_CfgInitialize(&gpiops, gpiops_config, gpiops_config->BaseAddr));
@@ -451,60 +451,56 @@ void ipmc_service_init() {
 /**
  * Initialize Device SDRs for this controller.
  */
-static void init_device_sdrs() {
-	VariablePersistentAllocation sdr_persist(*persistent_storage, PersistentStorageAllocations::WISC_SDR_REPOSITORY);
-	std::vector<uint8_t> sdrdata = sdr_persist.get_data();
-	if (sdrdata.size()) {
-		device_sdr_repo.u8import(sdrdata);
-		// I think these needta be imported to the main SDR repo too?
-		sdr_repo.add(device_sdr_repo);
-		return;
+static void init_device_sdrs(bool reinit) {
+	uint8_t reservation = device_sdr_repo.reserve();
+#define ADD_TO_REPO(sdr) \
+	while (!device_sdr_repo.add(sdr, reservation)) { reservation = device_sdr_repo.reserve(); }
+
+	{
+		// Management Controller Device Locator Record for ourself.
+		SensorDataRecord12 mcdlr;
+		mcdlr.initialize_blank("UW ZYNQ IPMC");
+		mcdlr.device_slave_address(ipmb0->ipmb_address);
+		mcdlr.channel(0);
+		mcdlr.acpi_device_power_state_notification_required(false);
+		mcdlr.acpi_system_power_state_notification_required(false);
+		mcdlr.is_static(false);
+		mcdlr.init_agent_logs_errors(false);
+		mcdlr.init_agent_log_errors_accessing_this_controller(false);
+		mcdlr.init_agent_init_type(SensorDataRecord12::INIT_ENABLE_EVENTS);
+		mcdlr.cap_chassis_device(false);
+		mcdlr.cap_bridge(false);
+		mcdlr.cap_ipmb_event_generator(true);
+		mcdlr.cap_ipmb_event_receiver(true); // Possibly not required.  See also Get PICMG Properties code.
+		mcdlr.cap_fru_inventory_device(true);
+		mcdlr.cap_sel_device(false);
+		mcdlr.cap_sdr_repository_device(true);
+		mcdlr.cap_sensor_device(true);
+		mcdlr.entity_id(0xA0);
+		mcdlr.entity_instance(0x60);
+		ADD_TO_REPO(mcdlr);
 	}
 
-	// Management Controller Device Locator Record for ourself.
-	SensorDataRecord12 mcdlr;
-	mcdlr.initialize_blank("UW ZYNQ IPMC");
-	mcdlr.device_slave_address(ipmb0->ipmb_address);
-	mcdlr.channel(0);
-	mcdlr.acpi_device_power_state_notification_required(false);
-	mcdlr.acpi_system_power_state_notification_required(false);
-	mcdlr.is_static(false);
-	mcdlr.init_agent_logs_errors(false);
-	mcdlr.init_agent_log_errors_accessing_this_controller(false);
-	mcdlr.init_agent_init_type(SensorDataRecord12::INIT_ENABLE_EVENTS);
-	mcdlr.cap_chassis_device(false);
-	mcdlr.cap_bridge(false);
-	mcdlr.cap_ipmb_event_generator(true);
-	mcdlr.cap_ipmb_event_receiver(true); // Possibly not required.  See also Get PICMG Properties code.
-	mcdlr.cap_fru_inventory_device(true);
-	mcdlr.cap_sel_device(false);
-	mcdlr.cap_sdr_repository_device(true);
-	mcdlr.cap_sensor_device(true);
-	mcdlr.entity_id(0xA0);
-	mcdlr.entity_instance(0x60);
-	device_sdr_repo.add(mcdlr);
-
-	// Hotswap Sensor
-	SensorDataRecord02 hotswap;
-	hotswap.initialize_blank("Hotswap");
-	hotswap.entity_id(0xA0);
-	hotswap.entity_instance(0x60);
-	hotswap.events_enabled_default(true);
-	hotswap.scanning_enabled_default(true);
-	hotswap.sensor_auto_rearm(true);
-	hotswap.sensor_hysteresis_support(SensorDataRecordReadableSensor::ACCESS_READWRITE);
-	hotswap.sensor_threshold_access_support(SensorDataRecordReadableSensor::ACCESS_READWRITE);
-	hotswap.sensor_event_message_control_support(SensorDataRecordReadableSensor::EVTCTRL_GRANULAR);
-	hotswap.sensor_type_code(0xf0); // Hotswap
-	hotswap.event_type_reading_code(0x6f); // Sensor-specific discrete
-	hotswap.assertion_lower_threshold_reading_mask(0x00ff); // M7:M0
-	hotswap.deassertion_upper_threshold_reading_mask(0); // M7:M0
-	hotswap.discrete_reading_setable_threshold_reading_mask(0x00ff); // M7:M0
-	// I don't need to specify unit type codes for this sensor.
-	device_sdr_repo.add(hotswap);
-
-	// TODO: Make the SDR Repository actually auto-number sensors correctly, and LUNs/etc
-	// TODO: Make IPMI stuff auto-process (auto) outgoing sdr Owner IDs correctly.
+	{
+		// Hotswap Sensor
+		SensorDataRecord02 hotswap;
+		hotswap.initialize_blank("Hotswap");
+		hotswap.entity_id(0xA0);
+		hotswap.entity_instance(0x60);
+		hotswap.events_enabled_default(true);
+		hotswap.scanning_enabled_default(true);
+		hotswap.sensor_auto_rearm(true);
+		hotswap.sensor_hysteresis_support(SensorDataRecordReadableSensor::ACCESS_READWRITE);
+		hotswap.sensor_threshold_access_support(SensorDataRecordReadableSensor::ACCESS_READWRITE);
+		hotswap.sensor_event_message_control_support(SensorDataRecordReadableSensor::EVTCTRL_GRANULAR);
+		hotswap.sensor_type_code(0xf0); // Hotswap
+		hotswap.event_type_reading_code(0x6f); // Sensor-specific discrete
+		hotswap.assertion_lower_threshold_reading_mask(0x00ff); // M7:M0
+		hotswap.deassertion_upper_threshold_reading_mask(0); // M7:M0
+		hotswap.discrete_reading_setable_threshold_reading_mask(0x00ff); // M7:M0
+		// I don't need to specify unit type codes for this sensor.
+		ADD_TO_REPO(hotswap);
+	}
 
 	{
 		SensorDataRecord01 sensor;
@@ -556,14 +552,21 @@ static void init_device_sdrs() {
 		sensor.threshold_lnr_rawvalue(113); // 3.13 Volts
 		sensor.hysteresis_high(2); // +0.02 Volts
 		sensor.hysteresis_low(2); // -0.02 Volts
-		device_sdr_repo.add(sensor);
+		ADD_TO_REPO(sensor);
 	}
+
+#undef ADD_TO_REPO
+
+	VariablePersistentAllocation sdr_persist(*persistent_storage, PersistentStorageAllocations::WISC_SDR_REPOSITORY);
+	// If not reinitializing, merge in saved configuration, overwriting matching records.
+	if (!reinit)
+		device_sdr_repo.u8import(sdr_persist.get_data());
 
 	// Store the newly initialized Device SDRs
 	sdr_persist.set_data(device_sdr_repo.u8export());
 
 	// I think these needta be imported to the main SDR repo too?
-	sdr_repo.add(device_sdr_repo);
+	sdr_repo.add(device_sdr_repo, 0);
 }
 
 void init_fru_area() {
