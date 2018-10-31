@@ -38,7 +38,7 @@ public:
 		uint8_t unr;
 	} thresholds;
 
-	void update_value(const float value);
+	virtual void update_value(const float value);
 
 	/// A threshold sensor current value state.
 	typedef struct {
@@ -47,7 +47,9 @@ public:
 		uint16_t active_thresholds; ///< The currentyl active thresholds in IPMI "Get Sensor Reading" order.
 	} Value;
 
-	Value get_value() const;
+	virtual Value get_value() const;
+
+	virtual std::vector<uint8_t> get_sensor_reading();
 
 protected:
 	uint16_t active_thresholds; ///< Currently active thresholds.

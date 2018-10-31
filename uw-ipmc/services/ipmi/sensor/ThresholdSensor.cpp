@@ -271,3 +271,23 @@ ThresholdSensor::Value ThresholdSensor::get_value() const {
 	value.byte_value = sdr_readable->from_float(value.float_value);
 	return value;
 }
+
+std::vector<uint8_t> ThresholdSensor::get_sensor_reading() {
+	Value value = this->get_value();
+	std::vector<uint8_t> out;
+	out.push_back(IPMI::Completion::Success);
+	out.push_back(
+			(this->all_events_disabled() ? 0x80 : 0) |
+			(this->sensor_scanning_disabled() ? 0x40 : 0) |
+			(value.float_value == NAN ? 0x20 : 0)
+			);
+	out.push_back(
+			(value.byte_value >= this->thresholds.unr ? 0x20 : 0) |
+			(value.byte_value >= this->thresholds.ucr ? 0x10 : 0) |
+			(value.byte_value >= this->thresholds.unc ? 0x08 : 0) |
+			(value.byte_value <= this->thresholds.lnr ? 0x04 : 0) |
+			(value.byte_value <= this->thresholds.lcr ? 0x02 : 0) |
+			(value.byte_value <= this->thresholds.lnc ? 0x01 : 0)
+			);
+	return out;
+}
