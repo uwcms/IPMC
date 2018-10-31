@@ -10,15 +10,14 @@
 
 #include <services/ipmi/sensor/Sensor.h>
 
+/**
+ * A PICMG 3.0 Hot Swap Sensor
+ */
 class HotswapSensor: public Sensor {
 public:
-	HotswapSensor(const std::vector<uint8_t> &sdr_key, LogTree &log) : Sensor(sdr_key, log) {
-		// TODO Auto-generated constructor stub
-
-	}
-	virtual ~HotswapSensor() {
-		// TODO Auto-generated destructor stub
-	}
+	/// Instantiate the HotswapSensor
+	HotswapSensor(const std::vector<uint8_t> &sdr_key, LogTree &log) : Sensor(sdr_key, log) { };
+	virtual ~HotswapSensor() { };
 
 	/// PICMG State Transition Reasons (PICMG 3.0 Table 3-23)
 	enum StateTransitionReason {
