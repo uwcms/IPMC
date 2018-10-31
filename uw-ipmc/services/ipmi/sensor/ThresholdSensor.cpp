@@ -119,11 +119,20 @@ static void process_threshold(uint16_t &state, uint8_t bit, bool going_high, uin
  * Update the internal state of this sensor with the provided float value and
  * generate any relevant events based on this.
  *
+ * If the provided value is NAN, the sensor is presumed to be out of context,
+ * there is considered to be no reading available, and event processing is
+ * suspended.
+ *
  * @param value The new sensor value
  */
 void ThresholdSensor::update_value(const float value) {
 	xSemaphoreTake(this->value_mutex, portMAX_DELAY);
 	this->last_value = value;
+
+	if (value == NAN) {
+		xSemaphoreGive(this->value_mutex);
+		return;
+	}
 
 	std::shared_ptr<const SensorDataRecordReadableSensor> sdr = std::dynamic_pointer_cast<const SensorDataRecordReadableSensor>(device_sdr_repo.find(this->sdr_key));
 	if (!sdr) {
@@ -235,8 +244,8 @@ void ThresholdSensor::update_value(const float value) {
  * Get the current values and thresholds for this sensor.
  *
  * \note byte_value may be 0xFF if there is no SDR available to interpret it,
- *       but this is also a valid value.  When an SDR is present, check if
- *       float_value is NAN to determine whether a reading is available at all.
+ *       but this is also a valid value.  If no value is available, float_value
+ *       will be NAN.
  *
  * @return The current values & thresholds.
  */
