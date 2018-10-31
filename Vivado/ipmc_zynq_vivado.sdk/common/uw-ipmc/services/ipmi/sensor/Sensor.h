@@ -17,8 +17,8 @@
  */
 class Sensor {
 public:
-	Sensor(const std::vector<uint8_t> &sdr_key, LogTree &log);
 	virtual ~Sensor();
+	Sensor(const std::vector<uint8_t> &sdr_key, LogTree &log);
 
 	const std::vector<uint8_t> sdr_key; ///< SDR Key Bytes for this Sensor in the Device SDR Repository
 	LogTree &log; ///< The log facility for this sensor.
@@ -29,7 +29,20 @@ public:
 		EVENT_ASSERTION   = 0,
 		EVENT_DEASSERTION = 1
 	};
-	void send_event(enum EventDirection direction, const std::vector<uint8_t> &event_data);
+	virtual void send_event(enum EventDirection direction, const std::vector<uint8_t> &event_data);
+	/// Return the correct IPMI response data (including completion code) for Get Sensor Reading.
+	virtual std::vector<uint8_t> get_sensor_reading() = 0;
+
+	/// IPMI sensor runtime configuration.
+	///@{
+	void all_events_disabled(bool disabled) { this->_all_events_disabled = disabled; };
+	bool all_events_disabled() { return this->_all_events_disabled; };
+	void sensor_scanning_disabled(bool disabled) { this->_sensor_scanning_disabled = disabled; };
+	bool sensor_scanning_disabled() { return this->_sensor_scanning_disabled; };
+	///@}
+protected:
+	bool _all_events_disabled; ///< All IPMI events from this sensor are disabled.
+	bool _sensor_scanning_disabled; ///< Sensor scanning is disabled for this sensor.
 };
 
 #endif /* SRC_COMMON_UW_IPMC_SERVICES_IPMI_SENSOR_SENSOR_H_ */

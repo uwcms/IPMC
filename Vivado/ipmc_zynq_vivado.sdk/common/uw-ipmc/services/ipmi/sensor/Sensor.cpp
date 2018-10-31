@@ -21,7 +21,8 @@
  * @param log The LogTree for messages from this class.
  */
 Sensor::Sensor(const std::vector<uint8_t> &sdr_key, LogTree &log)
-	: sdr_key(sdr_key), log(log), logunique(log, pdMS_TO_TICKS(10000)) {
+	: sdr_key(sdr_key), log(log), logunique(log, pdMS_TO_TICKS(10000)),
+	  _all_events_disabled(false), _sensor_scanning_disabled(false) {
 	configASSERT(sdr_key.size() == 3);
 }
 
