@@ -6,6 +6,7 @@
  */
 
 #include <services/ipmi/IPMI_MSG.h>
+#include <services/ipmi/IPMI.h>
 #include <IPMC.h>
 
 /// Instantiate an IPMI_MSG as a blank slate.
@@ -154,14 +155,14 @@ bool IPMI_MSG::match_reply(const IPMI_MSG &response) const {
  *
  * @return The formatted IPMB message.
  */
-std::string IPMI_MSG::format() const {
+std::string IPMI_MSG::format(bool describe) const {
 	char buf[this->max_data_len*3 + 1] = "";
 	int i = 0;
 	for (i = 0; i < this->data_len; ++i)
 		snprintf(buf+(i*3), 4, "%02hhx ", this->data[i]);
 	if (i)
 		buf[(i*3) - 1] = '\0';
-	return stdsprintf("%hhd.%02hhx -> %s%hhd.%02hhx: %02hhx.%02hhx (seq %02hhx) [%s]",
+	std::string out = stdsprintf("%hhd.%02hhx -> %s%hhd.%02hhx: %02hhx.%02hhx (seq %02hhx) [%s]",
 				this->rqLUN, this->rqSA,
 				// " -> "
 				(this->broadcast ? "*" : ""),
@@ -170,6 +171,21 @@ std::string IPMI_MSG::format() const {
 				this->netFn, this->cmd,
 				/* "(seq " */ this->rqSeq /* ") " */,
 				/* "[" */ buf /* "]" */);
+	if (describe) {
+		out += " (";
+		const uint16_t netcmd = ((this->netFn & 0xFE) << 8) | this->cmd;
+		if (IPMI::id_to_cmd.count(netcmd))
+			out += IPMI::id_to_cmd.at(netcmd).second;
+		else
+			out += "Unknown Command";
+		if (this->cmd & 1 && this->data_len >= 1) {
+			// Completion code available.
+			if (IPMI::Completion::id_to_cmplcode.count(this->data[0]))
+				out += std::string("; ") + IPMI::Completion::id_to_cmplcode.at(this->data[0]);
+		}
+		out += ")";
+	}
+	return out;
 }
 
 /**
