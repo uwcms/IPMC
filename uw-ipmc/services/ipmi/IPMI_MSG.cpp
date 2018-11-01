@@ -178,7 +178,7 @@ std::string IPMI_MSG::format(bool describe) const {
 			out += IPMI::id_to_cmd.at(netcmd).second;
 		else
 			out += "Unknown Command";
-		if (this->cmd & 1 && this->data_len >= 1) {
+		if (this->netFn & 1 && this->data_len >= 1) {
 			// Completion code available.
 			if (IPMI::Completion::id_to_cmplcode.count(this->data[0]))
 				out += std::string("; ") + IPMI::Completion::id_to_cmplcode.at(this->data[0]);
