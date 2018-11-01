@@ -14,7 +14,7 @@ public:
 	SensorDataRecord12(const std::vector<uint8_t> &sdr_data = std::vector<uint8_t>()) : SensorDataRecord(sdr_data) { };
 	virtual ~SensorDataRecord12() { };
 
-	virtual std::vector<uint8_t> get_record_key() const;
+	virtual std::vector<uint8_t> record_key() const;
 	virtual bool validate() const;
 	virtual uint8_t parsed_record_type() const { return 0x12; };
 	virtual void initialize_blank(std::string name);

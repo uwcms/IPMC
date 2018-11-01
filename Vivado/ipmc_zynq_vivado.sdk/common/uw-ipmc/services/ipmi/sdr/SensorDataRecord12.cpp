@@ -3,7 +3,7 @@
 #include <services/ipmi/sdr/SensorDataRecord12.h>
 #include <iterator>
 
-std::vector<uint8_t> SensorDataRecord12::get_record_key() const {
+std::vector<uint8_t> SensorDataRecord12::record_key() const {
 	configASSERT(this->validate());
 	return std::vector<uint8_t>(std::next(this->sdr_data.begin(), 5), std::next(this->sdr_data.begin(), 8));
 }
