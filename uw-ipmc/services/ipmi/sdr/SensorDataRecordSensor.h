@@ -16,7 +16,7 @@ protected:
 public:
 	virtual ~SensorDataRecordSensor() { };
 
-	virtual std::vector<uint8_t> get_record_key() const;
+	virtual std::vector<uint8_t> record_key() const;
 	virtual bool validate() const;
 	virtual void initialize_blank(std::string name);
 
