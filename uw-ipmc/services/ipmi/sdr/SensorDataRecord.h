@@ -35,7 +35,9 @@ public:
 	 */
 	virtual uint8_t parsed_record_type() const { return 0xFF; };
 
-	std::shared_ptr<SensorDataRecord> interpret() const; // TODO: Review.
+	static std::shared_ptr<SensorDataRecord> interpret(const std::vector<uint8_t> &data);
+	/// \overload
+	std::shared_ptr<SensorDataRecord> interpret() const { return interpret(this->sdr_data); };
 
 	/**
 	 * SDR Data Accessors
@@ -54,7 +56,7 @@ public:
 	 * \warning Do not call this on an un-interpreted SensorDataRecord (i.e. non-subclass).
 	 * @return The record key bytes.
 	 */
-	virtual std::vector<uint8_t> record_key() const;
+	virtual std::vector<uint8_t> record_key() const = 0;
 	///@}
 
 	/// "Is the same record" comparison, based on Type & Key Bytes.

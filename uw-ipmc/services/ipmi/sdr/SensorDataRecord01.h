@@ -29,9 +29,9 @@ public:
 	 * \warning Do not call any accessors on a record that does not validate().
 	 */
 	///@{
-#define SDR_FIELD(name, type, byte, a, b) \
-	virtual type name() const; \
-	virtual void name(type val);
+#define SDR_FIELD(name, type, byte, a, b, attributes) \
+	virtual type name() const attributes; \
+	virtual void name(type val) attributes;
 
 	enum UnitsNumericFormat {
 		UNITS_UNSIGNED     = 0,
@@ -39,7 +39,7 @@ public:
 		UNITS_2SCOMPLEMENT = 2,
 		UNITS_NONNUMERIC   = 3,
 	};
-	SDR_FIELD(units_numeric_format, enum UnitsNumericFormat, 20, 7, 6)
+	SDR_FIELD(units_numeric_format, enum UnitsNumericFormat, 20, 7, 6, )
 
 	enum Linearization {
 		LIN_LINEAR = 0,
@@ -71,42 +71,42 @@ public:
 		LIN_NONLINEAR_OEM_E = 0x7E,
 		LIN_NONLINEAR_OEM_F = 0x7F,
 	};
-	SDR_FIELD(linearization, enum Linearization, 23, 7, 0)
+	SDR_FIELD(linearization, enum Linearization, 23, 7, 0, )
 
-	SDR_FIELD(conversion_m, uint16_t, 24 AND 25, 7, 0)
-	SDR_FIELD(conversion_m_tolerance, uint8_t, 25, 5, 0) // Unit: +/- half raw counts
+	SDR_FIELD(conversion_m, uint16_t, 24 AND 25, 7, 0, )
+	SDR_FIELD(conversion_m_tolerance, uint8_t, 25, 5, 0, ) // Unit: +/- half raw counts
 
-	SDR_FIELD(conversion_b, uint16_t, 26 AND 27, 7, 0)
-	SDR_FIELD(conversion_b_accuracy, uint16_t, 27 AND 28, 7, 0)
-	SDR_FIELD(conversion_b_accuracy_exp, uint8_t, 28, 3, 2)
+	SDR_FIELD(conversion_b, uint16_t, 26 AND 27, 7, 0, )
+	SDR_FIELD(conversion_b_accuracy, uint16_t, 27 AND 28, 7, 0, )
+	SDR_FIELD(conversion_b_accuracy_exp, uint8_t, 28, 3, 2, )
 
-	SDR_FIELD(sensor_direction, enum SensorDataRecordReadableSensor::Direction, 28, 1, 0)
+	SDR_FIELD(sensor_direction, enum SensorDataRecordReadableSensor::Direction, 28, 1, 0, )
 
-	SDR_FIELD(conversion_r_exp, int8_t, 29, 7, 4)
-	SDR_FIELD(conversion_b_exp, int8_t, 29, 3, 0)
+	SDR_FIELD(conversion_r_exp, int8_t, 29, 7, 4, )
+	SDR_FIELD(conversion_b_exp, int8_t, 29, 3, 0, )
 
-	SDR_FIELD(normal_min_specified, bool, 30, 2, 2)
-	SDR_FIELD(normal_max_specified, bool, 30, 1, 1)
-	SDR_FIELD(nominal_reading_specified, bool, 30, 0, 0)
+	SDR_FIELD(normal_min_specified, bool, 30, 2, 2, )
+	SDR_FIELD(normal_max_specified, bool, 30, 1, 1, )
+	SDR_FIELD(nominal_reading_specified, bool, 30, 0, 0, )
 
-	SDR_FIELD(nominal_reading_rawvalue, uint8_t, 31, 7, 0)
-	SDR_FIELD(normal_max_rawvalue, uint8_t, 32, 7, 0)
-	SDR_FIELD(normal_min_rawvalue, uint8_t, 33, 7, 0)
+	SDR_FIELD(nominal_reading_rawvalue, uint8_t, 31, 7, 0, )
+	SDR_FIELD(normal_max_rawvalue, uint8_t, 32, 7, 0, )
+	SDR_FIELD(normal_min_rawvalue, uint8_t, 33, 7, 0, )
 
-	SDR_FIELD(sensor_min_rawvalue, uint8_t, 34, 7, 0)
-	SDR_FIELD(sensor_max_rawvalue, uint8_t, 35, 7, 0)
+	SDR_FIELD(sensor_min_rawvalue, uint8_t, 34, 7, 0, )
+	SDR_FIELD(sensor_max_rawvalue, uint8_t, 35, 7, 0, )
 
-	SDR_FIELD(threshold_unr_rawvalue, uint8_t, 36, 7, 0)
-	SDR_FIELD(threshold_ucr_rawvalue, uint8_t, 37, 7, 0)
-	SDR_FIELD(threshold_unc_rawvalue, uint8_t, 38, 7, 0)
-	SDR_FIELD(threshold_lnr_rawvalue, uint8_t, 39, 7, 0)
-	SDR_FIELD(threshold_lcr_rawvalue, uint8_t, 40, 7, 0)
-	SDR_FIELD(threshold_lnc_rawvalue, uint8_t, 41, 7, 0)
+	SDR_FIELD(threshold_unr_rawvalue, uint8_t, 36, 7, 0, )
+	SDR_FIELD(threshold_ucr_rawvalue, uint8_t, 37, 7, 0, )
+	SDR_FIELD(threshold_unc_rawvalue, uint8_t, 38, 7, 0, )
+	SDR_FIELD(threshold_lnr_rawvalue, uint8_t, 39, 7, 0, )
+	SDR_FIELD(threshold_lcr_rawvalue, uint8_t, 40, 7, 0, )
+	SDR_FIELD(threshold_lnc_rawvalue, uint8_t, 41, 7, 0, )
 
-	SDR_FIELD(hysteresis_high, uint8_t, 42, 7, 0)
-	SDR_FIELD(hysteresis_low, uint8_t, 43, 7, 0)
+	SDR_FIELD(hysteresis_high, uint8_t, 42, 7, 0, )
+	SDR_FIELD(hysteresis_low, uint8_t, 43, 7, 0, )
 
-	SDR_FIELD(oem, uint8_t, 46, 7, 0)
+	SDR_FIELD(oem, uint8_t, 46, 7, 0, )
 
 #undef SDR_FIELD
 	virtual uint8_t _get_id_string_offset() const { return 47; };

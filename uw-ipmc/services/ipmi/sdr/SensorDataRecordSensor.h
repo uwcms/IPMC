@@ -26,22 +26,22 @@ public:
 	 * \warning Do not call any accessors on a record that does not validate().
 	 */
 	///@{
-#define SDR_FIELD(name, type, byte, a, b) \
-	virtual type name() const; \
-	virtual void name(type val);
+#define SDR_FIELD(name, type, byte, a, b, attributes) \
+	virtual type name() const attributes; \
+	virtual void name(type val) attributes;
 
-	SDR_FIELD(sensor_owner_id, uint8_t, 5, 7, 0)
-	SDR_FIELD(sensor_owner_channel, uint8_t, 6, 7, 4)
-	SDR_FIELD(sensor_owner_lun, uint8_t, 6, 2, 0)
-	SDR_FIELD(sensor_number, uint8_t, 7, 7, 0)
+	SDR_FIELD(sensor_owner_id, uint8_t, 5, 7, 0, )
+	SDR_FIELD(sensor_owner_channel, uint8_t, 6, 7, 4, )
+	SDR_FIELD(sensor_owner_lun, uint8_t, 6, 2, 0, )
+	SDR_FIELD(sensor_number, uint8_t, 7, 7, 0, )
 
-	SDR_FIELD(entity_id, uint8_t, 8, 7, 0)
-	SDR_FIELD(entity_instance_is_container, bool, 9, 7, 7)
-	SDR_FIELD(entity_instance, uint8_t, 9, 6, 0)
+	SDR_FIELD(entity_id, uint8_t, 8, 7, 0, )
+	SDR_FIELD(entity_instance_is_container, bool, 9, 7, 7, )
+	SDR_FIELD(entity_instance, uint8_t, 9, 6, 0, )
 
-	SDR_FIELD(sensor_type_code, uint8_t, VARIABLE, 7, 0) // Different in Type 03
+	SDR_FIELD(sensor_type_code, uint8_t, VARIABLE, 7, 0, =0) // Different in Type 03
 	static const uint8_t EVENT_TYPE_THRESHOLD_SENSOR = 0x01; ///< A convenience constant for the Event/Reading Type Code "Threshold".  (A sensor is discrete if this is not its event/reading type code.)
-	SDR_FIELD(event_type_reading_code, uint8_t, VARIABLE, 7, 0) // Different in Type 03
+	SDR_FIELD(event_type_reading_code, uint8_t, VARIABLE, 7, 0, =0) // Different in Type 03
 
 	enum Direction {
 		DIR_UNSPECIFIED = 0,
@@ -49,11 +49,11 @@ public:
 		DIR_OUTPUT      = 2,
 		DIR_RESERVED    = 3,
 	};
-	SDR_FIELD(sensor_direction, enum Direction, VARIABLE, 1, 0)
+	SDR_FIELD(sensor_direction, enum Direction, VARIABLE, 1, 0, =0)
 
-	SDR_FIELD(oem, uint8_t, VARIABLE, 7, 0)
+	SDR_FIELD(oem, uint8_t, VARIABLE, 7, 0, =0)
 
-	SDR_FIELD(id_string, std::string, VARIABLE, 7, 0)
+	SDR_FIELD(id_string, std::string, VARIABLE, 7, 0, )
 
 #undef SDR_FIELD
 protected:

@@ -31,21 +31,21 @@ public:
 	 * \warning Do not call any accessors on a record that does not validate().
 	 */
 	///@{
-#define SDR_FIELD(name, type, byte, a, b) \
-	virtual type name() const; \
-	virtual void name(type val);
+#define SDR_FIELD(name, type, byte, a, b, attributes) \
+	virtual type name() const attributes; \
+	virtual void name(type val) attributes;
 
-	SDR_FIELD(sensor_direction, enum SensorDataRecordReadableSensor::Direction, 23, 7, 6)
+	SDR_FIELD(sensor_direction, enum SensorDataRecordReadableSensor::Direction, 23, 7, 6, )
 
-	SDR_FIELD(id_string_instance_modifier_type, enum SensorDataRecordSharedSensor::IDStringInstanceModifierType, 23, 5, 4)
-	SDR_FIELD(share_count, uint8_t, 23, 3, 0)
-	SDR_FIELD(entity_instance_sharing, uint8_t, 24, 7, 7)
-	SDR_FIELD(id_string_instance_modifier_offset, uint8_t, 23, 6, 0)
+	SDR_FIELD(id_string_instance_modifier_type, enum SensorDataRecordSharedSensor::IDStringInstanceModifierType, 23, 5, 4, )
+	SDR_FIELD(share_count, uint8_t, 23, 3, 0, )
+	SDR_FIELD(entity_instance_sharing, uint8_t, 24, 7, 7, )
+	SDR_FIELD(id_string_instance_modifier_offset, uint8_t, 23, 6, 0, )
 
-	SDR_FIELD(hysteresis_high, uint8_t, 25, 7, 0)
-	SDR_FIELD(hysteresis_low, uint8_t, 26, 7, 0)
+	SDR_FIELD(hysteresis_high, uint8_t, 25, 7, 0, )
+	SDR_FIELD(hysteresis_low, uint8_t, 26, 7, 0, )
 
-	SDR_FIELD(oem, uint8_t, 30, 7, 0)
+	SDR_FIELD(oem, uint8_t, 30, 7, 0, )
 
 #undef SDR_FIELD
 	virtual uint8_t _get_id_string_offset() const { return 31; };

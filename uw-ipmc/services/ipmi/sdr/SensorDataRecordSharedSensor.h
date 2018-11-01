@@ -28,18 +28,18 @@ public:
 	 * \warning Do not call any accessors on a record that does not validate().
 	 */
 	///@{
-#define SDR_FIELD(name, type, byte, a, b) \
-	virtual type name() const; \
-	virtual void name(type val);
+#define SDR_FIELD(name, type, byte, a, b, attributes) \
+	virtual type name() const attributes; \
+	virtual void name(type val) attributes;
 
 	enum IDStringInstanceModifierType {
 		IDMOD_NUMERIC = 0,
 		IDMOD_ALPHA   = 1,
 	};
-	SDR_FIELD(id_string_instance_modifier_type, enum IDStringInstanceModifierType, VARIABLE, 5, 4)
-	SDR_FIELD(share_count, uint8_t, VARIBLE, 3, 0)
-	SDR_FIELD(entity_instance_sharing, uint8_t, VARIABLE, 7, 7)
-	SDR_FIELD(id_string_instance_modifier_offset, uint8_t, VARIABLE, 6, 0)
+	SDR_FIELD(id_string_instance_modifier_type, enum IDStringInstanceModifierType, VARIABLE, 5, 4, = 0)
+	SDR_FIELD(share_count, uint8_t, VARIBLE, 3, 0, = 0)
+	SDR_FIELD(entity_instance_sharing, uint8_t, VARIABLE, 7, 7, = 0)
+	SDR_FIELD(id_string_instance_modifier_offset, uint8_t, VARIABLE, 6, 0, = 0)
 
 #undef SDR_FIELD
 	///@}
