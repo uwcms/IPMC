@@ -21,21 +21,21 @@ bool SensorDataRecord01::validate() const {
 #define LOWBITS(nbits) (0xff >> (8-(nbits)))
 
 /// Define a `type` type SDR_FIELD from byte `byte`[a:b].
-#define SDR_FIELD(name, type, byte, a, b) \
-	type SensorDataRecord01::name() const { \
+#define SDR_FIELD(name, type, byte, a, b, attributes) \
+	type SensorDataRecord01::name() const attributes { \
 		configASSERT(this->validate()); \
 		return static_cast<type>((this->sdr_data[byte] >> (b)) & LOWBITS((a)-(b)+1)); \
 	} \
-	void SensorDataRecord01::name(type val) { \
+	void SensorDataRecord01::name(type val) attributes { \
 		configASSERT((static_cast<uint8_t>(val) & LOWBITS((a)-(b)+1)) == static_cast<uint8_t>(val)); \
 		configASSERT(this->validate()); \
 		this->sdr_data[byte] &= ~(LOWBITS((a)-(b)+1)<<(b)); /* Erase old value */ \
 		this->sdr_data[byte] |= static_cast<uint8_t>(val)<<(b); /* Set new value */ \
 	}
 
-SDR_FIELD(units_numeric_format, enum SensorDataRecord01::UnitsNumericFormat, 20, 7, 6)
+SDR_FIELD(units_numeric_format, enum SensorDataRecord01::UnitsNumericFormat, 20, 7, 6, )
 
-SDR_FIELD(linearization, enum SensorDataRecord01::Linearization, 23, 7, 0)
+SDR_FIELD(linearization, enum SensorDataRecord01::Linearization, 23, 7, 0, )
 
 uint16_t SensorDataRecord01::conversion_m() const {
 	configASSERT(this->validate());
@@ -49,7 +49,7 @@ void SensorDataRecord01::conversion_m(uint16_t val) {
 	this->sdr_data[25] |= val >> 8;
 }
 
-SDR_FIELD(conversion_m_tolerance, uint8_t, 25, 5, 0) // Unit: +/- half raw counts
+SDR_FIELD(conversion_m_tolerance, uint8_t, 25, 5, 0, ) // Unit: +/- half raw counts
 
 uint16_t SensorDataRecord01::conversion_b() const {
 	configASSERT(this->validate());
@@ -76,9 +76,9 @@ void SensorDataRecord01::conversion_b_accuracy(uint16_t val) {
 	this->sdr_data[28] |= (val >> 2) & 0xf0;
 }
 
-SDR_FIELD(conversion_b_accuracy_exp, uint8_t, 28, 3, 2)
+SDR_FIELD(conversion_b_accuracy_exp, uint8_t, 28, 3, 2, )
 
-SDR_FIELD(sensor_direction, enum SensorDataRecordReadableSensor::Direction, 28, 1, 0)
+SDR_FIELD(sensor_direction, enum SensorDataRecordReadableSensor::Direction, 28, 1, 0, )
 
 int8_t SensorDataRecord01::conversion_r_exp() const {
 	configASSERT(this->validate());
@@ -108,28 +108,28 @@ void SensorDataRecord01::conversion_b_exp(int8_t val) {
 	this->sdr_data[29] = (this->sdr_data[29] & 0xf0) | uval;
 }
 
-SDR_FIELD(normal_min_specified, bool, 30, 2, 2)
-SDR_FIELD(normal_max_specified, bool, 30, 1, 1)
-SDR_FIELD(nominal_reading_specified, bool, 30, 0, 0)
+SDR_FIELD(normal_min_specified, bool, 30, 2, 2, )
+SDR_FIELD(normal_max_specified, bool, 30, 1, 1, )
+SDR_FIELD(nominal_reading_specified, bool, 30, 0, 0, )
 
-SDR_FIELD(nominal_reading_rawvalue, uint8_t, 31, 7, 0)
-SDR_FIELD(normal_max_rawvalue, uint8_t, 32, 7, 0)
-SDR_FIELD(normal_min_rawvalue, uint8_t, 33, 7, 0)
+SDR_FIELD(nominal_reading_rawvalue, uint8_t, 31, 7, 0, )
+SDR_FIELD(normal_max_rawvalue, uint8_t, 32, 7, 0, )
+SDR_FIELD(normal_min_rawvalue, uint8_t, 33, 7, 0, )
 
-SDR_FIELD(sensor_min_rawvalue, uint8_t, 34, 7, 0)
-SDR_FIELD(sensor_max_rawvalue, uint8_t, 35, 7, 0)
+SDR_FIELD(sensor_min_rawvalue, uint8_t, 34, 7, 0, )
+SDR_FIELD(sensor_max_rawvalue, uint8_t, 35, 7, 0, )
 
-SDR_FIELD(threshold_unr_rawvalue, uint8_t, 36, 7, 0)
-SDR_FIELD(threshold_ucr_rawvalue, uint8_t, 37, 7, 0)
-SDR_FIELD(threshold_unc_rawvalue, uint8_t, 38, 7, 0)
-SDR_FIELD(threshold_lnr_rawvalue, uint8_t, 39, 7, 0)
-SDR_FIELD(threshold_lcr_rawvalue, uint8_t, 40, 7, 0)
-SDR_FIELD(threshold_lnc_rawvalue, uint8_t, 41, 7, 0)
+SDR_FIELD(threshold_unr_rawvalue, uint8_t, 36, 7, 0, )
+SDR_FIELD(threshold_ucr_rawvalue, uint8_t, 37, 7, 0, )
+SDR_FIELD(threshold_unc_rawvalue, uint8_t, 38, 7, 0, )
+SDR_FIELD(threshold_lnr_rawvalue, uint8_t, 39, 7, 0, )
+SDR_FIELD(threshold_lcr_rawvalue, uint8_t, 40, 7, 0, )
+SDR_FIELD(threshold_lnc_rawvalue, uint8_t, 41, 7, 0, )
 
-SDR_FIELD(hysteresis_high, uint8_t, 42, 7, 0)
-SDR_FIELD(hysteresis_low, uint8_t, 43, 7, 0)
+SDR_FIELD(hysteresis_high, uint8_t, 42, 7, 0, )
+SDR_FIELD(hysteresis_low, uint8_t, 43, 7, 0, )
 
-SDR_FIELD(oem, uint8_t, 46, 7, 0)
+SDR_FIELD(oem, uint8_t, 46, 7, 0, )
 
 
 uint8_t SensorDataRecord01::from_float(float value) const {

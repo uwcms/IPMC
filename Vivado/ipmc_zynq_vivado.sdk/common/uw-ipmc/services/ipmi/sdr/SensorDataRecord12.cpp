@@ -40,41 +40,41 @@ void SensorDataRecord12::initialize_blank(std::string name) {
 #define LOWBITS(nbits) (0xff >> (8-(nbits)))
 
 /// Define a `type` type SDR_FIELD from byte `byte`[a:b].
-#define SDR_FIELD(name, type, byte, a, b) \
-	type SensorDataRecord12::name() const { \
+#define SDR_FIELD(name, type, byte, a, b, attributes) \
+	type SensorDataRecord12::name() const attributes { \
 		configASSERT(this->validate()); \
 		return static_cast<type>((this->sdr_data[byte] >> (b)) & LOWBITS((a)-(b)+1)); \
 	} \
-	void SensorDataRecord12::name(type val) { \
+	void SensorDataRecord12::name(type val) attributes { \
 		configASSERT((static_cast<uint8_t>(val) & LOWBITS((a)-(b)+1)) == static_cast<uint8_t>(val)); \
 		configASSERT(this->validate()); \
 		this->sdr_data[byte] &= ~(LOWBITS((a)-(b)+1)<<(b)); /* Erase old value */ \
 		this->sdr_data[byte] |= static_cast<uint8_t>(val)<<(b); /* Set new value */ \
 	}
 
-SDR_FIELD(device_slave_address, uint8_t, 5, 7, 0)
-SDR_FIELD(channel, uint8_t, 6, 3, 0)
+SDR_FIELD(device_slave_address, uint8_t, 5, 7, 0, )
+SDR_FIELD(channel, uint8_t, 6, 3, 0, )
 
-SDR_FIELD(acpi_system_power_state_notification_required, bool, 7, 7, 7)
-SDR_FIELD(acpi_device_power_state_notification_required, bool, 7, 6, 6)
-SDR_FIELD(is_static, bool, 7, 5, 5)
-SDR_FIELD(init_agent_logs_errors, bool, 7, 3, 3)
-SDR_FIELD(init_agent_log_errors_accessing_this_controller, bool, 7, 2, 2)
-SDR_FIELD(init_agent_init_type, enum SensorDataRecord12::InitializationType, 7, 1, 0)
+SDR_FIELD(acpi_system_power_state_notification_required, bool, 7, 7, 7, )
+SDR_FIELD(acpi_device_power_state_notification_required, bool, 7, 6, 6, )
+SDR_FIELD(is_static, bool, 7, 5, 5, )
+SDR_FIELD(init_agent_logs_errors, bool, 7, 3, 3, )
+SDR_FIELD(init_agent_log_errors_accessing_this_controller, bool, 7, 2, 2, )
+SDR_FIELD(init_agent_init_type, enum SensorDataRecord12::InitializationType, 7, 1, 0, )
 
-SDR_FIELD(cap_chassis_device, bool, 8, 7, 7)
-SDR_FIELD(cap_bridge, bool, 8, 6, 6)
-SDR_FIELD(cap_ipmb_event_generator, bool, 8, 5, 5)
-SDR_FIELD(cap_ipmb_event_receiver, bool, 8, 4, 4)
-SDR_FIELD(cap_fru_inventory_device, bool, 8, 3, 3)
-SDR_FIELD(cap_sel_device, bool, 8, 2, 2)
-SDR_FIELD(cap_sdr_repository_device, bool, 8, 1, 1)
-SDR_FIELD(cap_sensor_device, bool, 8, 0, 0)
+SDR_FIELD(cap_chassis_device, bool, 8, 7, 7, )
+SDR_FIELD(cap_bridge, bool, 8, 6, 6, )
+SDR_FIELD(cap_ipmb_event_generator, bool, 8, 5, 5, )
+SDR_FIELD(cap_ipmb_event_receiver, bool, 8, 4, 4, )
+SDR_FIELD(cap_fru_inventory_device, bool, 8, 3, 3, )
+SDR_FIELD(cap_sel_device, bool, 8, 2, 2, )
+SDR_FIELD(cap_sdr_repository_device, bool, 8, 1, 1, )
+SDR_FIELD(cap_sensor_device, bool, 8, 0, 0, )
 
-SDR_FIELD(entity_id, uint8_t, 12, 7, 0)
-SDR_FIELD(entity_instance, uint8_t, 13, 7, 0)
+SDR_FIELD(entity_id, uint8_t, 12, 7, 0, )
+SDR_FIELD(entity_instance, uint8_t, 13, 7, 0, )
 
-SDR_FIELD(oem, uint8_t, 14, 7, 0)
+SDR_FIELD(oem, uint8_t, 14, 7, 0, )
 
 std::string SensorDataRecord12::id_string() const {
 	configASSERT(this->validate());

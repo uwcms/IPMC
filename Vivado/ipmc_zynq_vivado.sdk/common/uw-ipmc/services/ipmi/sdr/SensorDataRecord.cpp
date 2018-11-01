@@ -40,23 +40,26 @@ bool SensorDataRecord::validate() const {
  * \note This will return a NULL shared_ptr if the record cannot be handled by
  *       an appropriate subclass.
  *
- * @return A shared_ptr to a subclass if possible, false otherwise.
+ * @param The SDR data to interpret
+ * @return A shared_ptr to a subclass if possible, false otherwise
  */
-std::shared_ptr<SensorDataRecord> SensorDataRecord::interpret() const {
-	if (!this->validate())
-		return NULL;
+std::shared_ptr<SensorDataRecord> SensorDataRecord::interpret(const std::vector<uint8_t> &data) {
+	if (data.size() < 5 || data.size() < (5U + data[4]))
+		return NULL; // Invalid
 	SensorDataRecord *rec = NULL;
-	switch (this->record_type()) {
-	case 0x01: rec = new SensorDataRecord01(this->sdr_data); break;
-	case 0x02: rec = new SensorDataRecord02(this->sdr_data); break;
-	case 0x03: rec = new SensorDataRecord03(this->sdr_data); break;
-	case 0x12: rec = new SensorDataRecord12(this->sdr_data); break;
+	switch (data[3] /* Record Type */) {
+	case 0x01: rec = new SensorDataRecord01(data); break;
+	case 0x02: rec = new SensorDataRecord02(data); break;
+	case 0x03: rec = new SensorDataRecord03(data); break;
+	case 0x12: rec = new SensorDataRecord12(data); break;
 	default:
 		/* If interpretation fails, return NULL, rather than a copy of *this, so
 		 * that the user knows not to call get_record_key().
 		 */
 		rec = NULL;
 	}
+	if (rec && !rec->validate())
+		return NULL;
 	return std::shared_ptr<SensorDataRecord>(rec);
 }
 
@@ -79,9 +82,4 @@ uint8_t SensorDataRecord::record_version() const {
 uint8_t SensorDataRecord::record_type() const {
 	configASSERT(this->sdr_data.size() >= 4);
 	return this->sdr_data[3];
-}
-
-std::vector<uint8_t> SensorDataRecord::record_key() const {
-	configASSERT(0); // Supported only by derived classes.
-	return std::vector<uint8_t>();
 }

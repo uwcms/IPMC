@@ -38,6 +38,9 @@ bool SensorDataRepository::add(const SensorDataRecord &record, uint8_t reservati
 		xSemaphoreGiveRecursive(this->mutex);
 		return false;
 	}
+	/* Ensure we have our own copy, and that it is valid.
+	 * Retrievals are const, and we want modifications to be done by replacement.
+	 */
 	std::shared_ptr<SensorDataRecord> interpreted = record.interpret();
 	if (interpreted) {
 		bool replaced = false;
@@ -246,9 +249,10 @@ bool SensorDataRepository::u8import(const std::vector<uint8_t> &data, uint8_t re
 		uint8_t record_length = data[cur];
 		if (record_length == 0)
 			break; // We're out of sync. Abort.
-		std::vector<uint8_t> sdr(std::next(data.begin(), cur+1), std::next(data.begin(), cur+1+record_length));
+		std::vector<uint8_t> sdrdata(std::next(data.begin(), cur+1), std::next(data.begin(), cur+1+record_length));
 		cur += 1+record_length;
-		this->add(SensorDataRecord(sdr), reservation);
+		std::shared_ptr<SensorDataRecord> sdr = SensorDataRecord::interpret(sdrdata);
+		this->add(*sdr, reservation);
 	}
 	xSemaphoreGiveRecursive(this->mutex);
 	return true;

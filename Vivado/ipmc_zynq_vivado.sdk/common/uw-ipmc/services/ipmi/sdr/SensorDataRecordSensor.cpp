@@ -38,58 +38,26 @@ void SensorDataRecordSensor::initialize_blank(std::string name) {
 #define LOWBITS(nbits) (0xff >> (8-(nbits)))
 
 /// Define a `type` type SDR_FIELD from byte `byte`[a:b].
-#define SDR_FIELD(name, type, byte, a, b) \
-	type SensorDataRecordSensor::name() const { \
+#define SDR_FIELD(name, type, byte, a, b, attributes) \
+	type SensorDataRecordSensor::name() const attributes { \
 		configASSERT(this->validate()); \
 		return static_cast<type>((this->sdr_data[byte] >> (b)) & LOWBITS((a)-(b)+1)); \
 	} \
-	void SensorDataRecordSensor::name(type val) { \
+	void SensorDataRecordSensor::name(type val) attributes { \
 		configASSERT((static_cast<uint8_t>(val) & LOWBITS((a)-(b)+1)) == static_cast<uint8_t>(val)); \
 		configASSERT(this->validate()); \
 		this->sdr_data[byte] &= ~(LOWBITS((a)-(b)+1)<<(b)); /* Erase old value */ \
 		this->sdr_data[byte] |= static_cast<uint8_t>(val)<<(b); /* Set new value */ \
 	}
 
-SDR_FIELD(sensor_owner_id, uint8_t, 5, 7, 0)
-SDR_FIELD(sensor_owner_channel, uint8_t, 6, 7, 4)
-SDR_FIELD(sensor_owner_lun, uint8_t, 6, 2, 0)
-SDR_FIELD(sensor_number, uint8_t, 7, 7, 0)
+SDR_FIELD(sensor_owner_id, uint8_t, 5, 7, 0, )
+SDR_FIELD(sensor_owner_channel, uint8_t, 6, 7, 4, )
+SDR_FIELD(sensor_owner_lun, uint8_t, 6, 2, 0, )
+SDR_FIELD(sensor_number, uint8_t, 7, 7, 0, )
 
-SDR_FIELD(entity_id, uint8_t, 8, 7, 0)
-SDR_FIELD(entity_instance_is_container, bool, 9, 7, 7)
-SDR_FIELD(entity_instance, uint8_t, 9, 6, 0)
-
-uint8_t SensorDataRecordSensor::sensor_type_code() const {
-	configASSERT(0); // How'd you construct this object?  It should be virtual.
-	return 0;
-}
-void SensorDataRecordSensor::sensor_type_code(uint8_t val) {
-	configASSERT(0); // How'd you construct this object?  It should be virtual.
-}
-
-uint8_t SensorDataRecordSensor::event_type_reading_code() const {
-	configASSERT(0); // How'd you construct this object?  It should be virtual.
-	return 0;
-}
-void SensorDataRecordSensor::event_type_reading_code(uint8_t val) {
-	configASSERT(0); // How'd you construct this object?  It should be virtual.
-}
-
-enum SensorDataRecordSensor::Direction SensorDataRecordSensor::sensor_direction() const {
-	configASSERT(0); // How'd you construct this object?  It should be virtual.
-	return DIR_UNSPECIFIED;
-}
-void SensorDataRecordSensor::sensor_direction(enum SensorDataRecordSensor::Direction val) {
-	configASSERT(0); // How'd you construct this object?  It should be virtual.
-}
-
-uint8_t SensorDataRecordSensor::oem() const {
-	configASSERT(0); // How'd you construct this object?  It should be virtual.
-	return 0;
-}
-void SensorDataRecordSensor::oem(uint8_t val) {
-	configASSERT(0); // How'd you construct this object?  It should be virtual.
-}
+SDR_FIELD(entity_id, uint8_t, 8, 7, 0, )
+SDR_FIELD(entity_instance_is_container, bool, 9, 7, 7, )
+SDR_FIELD(entity_instance, uint8_t, 9, 6, 0, )
 
 std::string SensorDataRecordSensor::id_string() const {
 	configASSERT(this->validate());
