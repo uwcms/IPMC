@@ -50,9 +50,17 @@ void InterruptBasedDriver::connectInterrupt(uint32_t intr, uint8_t trigger) {
 void InterruptBasedDriver::connectInterrupt() {
 	configASSERT(XST_SUCCESS ==
 		XScuGic_Connect(&xInterruptController, this->intr, InterruptBasedDriver::_InterruptWrapper, (void*)this));
-	XScuGic_Enable(&xInterruptController, this->intr);
+	this->enableInterrupts();
 
 	this->connected = true;
+}
+
+void InterruptBasedDriver::disableInterrupts() {
+	XScuGic_Disable(&xInterruptController, this->intr);
+}
+
+void InterruptBasedDriver::enableInterrupts() {
+	XScuGic_Enable(&xInterruptController, this->intr);
 }
 
 void InterruptBasedDriver::setTriggerLevel(uint8_t trigger) {
