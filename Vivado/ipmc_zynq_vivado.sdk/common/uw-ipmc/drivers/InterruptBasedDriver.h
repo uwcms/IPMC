@@ -55,11 +55,22 @@ protected:
 	///! Return true if interrupt is connected, false otherwise.
 	inline bool isInterruptConnected() { return this->connected; };
 
+	///! Masks the interrupts associated with the driver. Use when entering localized critical sections.
+	void disableInterrupts();
+
+	///! Unmasks the interrupts associated with the driver. Use when exiting localized critical sections.
+	void enableInterrupts();
+
 protected:
 	///! Interrupt handler
 	virtual void _InterruptHandler() = 0;
 
 private:
+	///! Internal use. Interrupt wrapper.
+	inline static void _InterruptWrapper(void *p) {
+		((InterruptBasedDriver*)p)->_InterruptHandler();
+	}
+
 	///! Internal use. Connect the interrupt handler to the interrupt.
 	void connectInterrupt();
 

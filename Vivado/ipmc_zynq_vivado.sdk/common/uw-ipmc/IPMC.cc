@@ -1003,6 +1003,52 @@ public:
 	//virtual std::vector<std::string> complete(const CommandParser::CommandParameters &parameters) const { };
 };
 
+class ConsoleCommand_testin : public CommandParser::Command {
+public:
+	virtual std::string get_helptext(const std::string &command) const {
+		return "test command, not intended for commit";
+	}
+
+	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
+
+		uint32_t byteCount;
+
+		if (!parameters.parse_parameters(1, false, &byteCount)) {
+			console->write("Wrong arguments");
+			return;
+		}
+
+		u8 *buf = new u8[byteCount];
+
+		// Discard any incoming window size data, etc.
+		uart_ps0->read(buf, byteCount, configTICK_RATE_HZ/10);
+		size_t bytesread = uart_ps0->read(buf, byteCount, portMAX_DELAY, configTICK_RATE_HZ*(5 + (byteCount / 10000)));
+		console->write(stdsprintf("read %d bytes\n", bytesread));
+
+		u8 s256[SHA_VALBYTES] = {0};
+		sha_256(buf, bytesread, s256);
+		std::string shahex;
+		shahex.reserve(SHA_VALBYTES*2);
+		for (int i = 0; i < SHA_VALBYTES; i++)
+			   shahex.append(stdsprintf("%02hhx", s256[i]));
+		shahex.pop_back();
+		console->write(shahex+"\n");
+
+		console->write(formatedHexString(buf, 256));
+
+		/*FTPFile *file = FTPServer::getFileFromPath("virtual/esm.bin");
+		if (file) {
+			if (file->write(buf, bytesread) != bytesread) {
+				console->write("Failed to write");
+			} else {
+				console->write("Written");
+			}
+		}*/
+
+		delete buf;
+	}
+};
+
 } // anonymous namespace
 
 static void register_core_console_commands(CommandParser &parser) {
@@ -1016,6 +1062,7 @@ static void register_core_console_commands(CommandParser &parser) {
 	console_command_parser.register_command("setauth", std::make_shared<ConsoleCommand_setauth>());
 	if (IPMC_SERIAL == 0 || IPMC_SERIAL == 0xFFFF)
 		console_command_parser.register_command("set_serial", std::make_shared<ConsoleCommand_set_serial>());
+	console_command_parser.register_command("testin", std::make_shared<ConsoleCommand_testin>());
 }
 
 static void console_log_handler(LogTree &logtree, const std::string &message, enum LogTree::LogLevel level) {
@@ -1027,7 +1074,7 @@ static void console_log_handler(LogTree &logtree, const std::string &message, en
 	if (!console_service || IN_INTERRUPT() || IN_CRITICAL()) {
 		// Still early startup.
 		windows_newline(logmsg);
-		uart_ps0->write(logmsg.data(), logmsg.size(), 0);
+		uart_ps0->write((const u8*)logmsg.data(), logmsg.size(), 0);
 	}
 	else {
 		// We have to use a short timeout here, rather than none, due to the mutex involved.

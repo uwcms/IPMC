@@ -60,7 +60,9 @@ export CFLAGS = \
 	$(OPTIMIZE_OPTIONS) \
 	-fmessage-length=0 \
 	-mcpu=cortex-a9 \
-	-mfpu=vfpv3 \
+	-mfpu=neon \
+	-ftree-vectorize \
+	-mvectorize-with-neon-quad \
 	-mfloat-abi=hard \
 	-MMD -MP -MF"$(patsubst .obj/$(BUILD_CONFIGURATION)/%,.dep/$(BUILD_CONFIGURATION)/%,$@)" \
 	-D XPAR_XISF_FLASH_FAMILY=5 -D XPAR_XISF_INTERFACE_PSQSPI \
@@ -86,7 +88,8 @@ OBJS := \
 	$(patsubst ./%.cpp,.obj/$(BUILD_CONFIGURATION)/%.o,$(shell find -L . -type f -name '*.cpp')) \
 	$(patsubst ./%.S,.obj/$(BUILD_CONFIGURATION)/%.o,$(shell find -L . -type f -name '*.S')) \
 
-all: doxygen build
+#all: doxygen build
+all: build
 
 pre-build: .dep/.lwip-patch
 	-a9-linaro-pre-build-step
