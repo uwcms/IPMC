@@ -19,29 +19,39 @@
 template <typename T> class RingBuffer {
 protected:
 	T *buffer;                      ///< The actual buffer space itself.
-	ssize_t buflen;                  ///< The size of the buffer in units of sizeof(T) (maxlength()+1 for bookkeeping.)
-	volatile ssize_t next_read_idx;  ///< The next read position in the ringbuffer.
-	volatile ssize_t next_write_idx; ///< The next write position in the ringbuffer.
+	const size_t buflen;            ///< The size of the buffer in units of sizeof(T).
+	const size_t maxlen;			///< The maximum number of units that can be stored in the buffer.
+	volatile size_t next_read_idx;  ///< The next read position in the ringbuffer.
+	volatile size_t next_write_idx; ///< The next write position in the ringbuffer.
 public:
 	/**
 	 * Instantiate a new RingBuffer. Space for `items` items will be allocated
 	 * on the heap.
 	 *
-	 * \param items The number of `T` items that will fit in the buffer.
-	 *
-	 * \note Implementation Detail:  The allocated buffer will be
-	 *       `sizeof(T)*(items+1)` bytes in length to support an "empty"/"full"
-	 *       indicator.
+	 * \param items The number of `T` items that will fit in the buffer. Needs to be power of 2.
 	 */
 	RingBuffer(size_t items) :
-			buflen(items + 1), next_read_idx(0), next_write_idx(0) {
+			buflen(items), maxlen(items-1), next_read_idx(0), next_write_idx(0) {
+		configASSERT((items & maxlen) == 0); // Check if size is power of 2
 		this->buffer = static_cast<T*>(malloc(this->buflen * sizeof(T)));
+	}
+
+	///! Cleans and resets the ring buffer.
+	void reset() {
+		if (!IN_INTERRUPT())
+			portENTER_CRITICAL();
+
+		next_read_idx = 0;
+		next_write_idx = 0;
+
+		if (!IN_INTERRUPT())
+			portEXIT_CRITICAL();
 	}
 
 	/**
 	 * Write items into the ring buffer.
 	 *
-	 * \param data  A pointer to the data buffer to copy into the ringbuffer.
+	 * \param data  A pointer to the data buffer to copy into the ring buffer.
 	 * \param len   The number of data items to copy into the ring buffer.
 	 * \return      The number of items copied into the ring buffer successfully.
 	 */
@@ -49,15 +59,47 @@ public:
 		size_t i = 0;
 		if (!IN_INTERRUPT())
 			portENTER_CRITICAL();
-		for (i = 0; i < len; ++i) {
-			if (this->full())
-				break;
-			configASSERT(this->next_write_idx < this->buflen);
-			this->buffer[this->next_write_idx] = *(data++);
-			this->next_write_idx = (this->next_write_idx + 1) % this->buflen;
+
+		if (this->full()) {
+			// Do nothing, buffer is full!
+		} else if (this->empty()) {
+			// Buffer is empty, so copy everything possible from the start
+			const size_t copy_cnt = (len >= this->maxlen)? this->maxlen : len;
+
+			memcpy(this->buffer, data, sizeof(T) * copy_cnt);
+
+			this->next_read_idx = 0;
+			this->next_write_idx = copy_cnt;
+			i = copy_cnt;
+		} else if (this->next_write_idx > this->next_read_idx) {
+			// Write index is ahead, buffer can be written to the end and wrap if necessary
+			size_t remaining = this->buflen - this->next_write_idx;
+			if (this->next_read_idx == 0) remaining -= 1;
+			const size_t copy_cnt = (len >= remaining)? remaining : len;
+
+			memcpy(&(this->buffer[this->next_write_idx]), data, sizeof(T) * copy_cnt);
+
+			this->next_write_idx = (this->next_write_idx + copy_cnt) & this->maxlen;
+			i = copy_cnt;
+
+			if (len > copy_cnt && this->next_read_idx > 0) {
+				// There is still space and data to copy
+				i += this->write(&(data[copy_cnt]), len - copy_cnt);
+			}
+		} else {
+			// Read index is ahead, the write operation will probably hit it
+			const size_t remaining = this->next_read_idx - this->next_write_idx - 1;
+			const size_t copy_cnt = (len >= remaining)? remaining : len;
+
+			memcpy(&(this->buffer[this->next_write_idx]), data, sizeof(T) * copy_cnt);
+
+			this->next_write_idx += copy_cnt; // Will never wrap
+			i = copy_cnt;
 		}
+
 		if (!IN_INTERRUPT())
 			portEXIT_CRITICAL();
+
 		return i;
 	}
 
@@ -72,13 +114,36 @@ public:
 		size_t i = 0;
 		if (!IN_INTERRUPT())
 			portENTER_CRITICAL();
-		for (i = 0; i < len && !this->empty(); ++i) {
-			configASSERT(this->next_read_idx < this->buflen);
-			*(data++) = this->buffer[this->next_read_idx];
-			this->next_read_idx = (this->next_read_idx + 1) % this->buflen;
+
+		if (this->empty()) {
+			// No data available, do nothing.
+		} else if (this->next_write_idx > this->next_read_idx) {
+			// The current buffer contents are linear in memory.
+			const size_t available = this->length();
+			const size_t copy_cnt = (len >= available)? available : len;
+
+			memcpy(data, this->buffer, sizeof(T) * copy_cnt);
+
+			this->next_read_idx += copy_cnt; // Won't wrap.
+			i = copy_cnt;
+		} else {
+			// The current buffer contents are nonlinear in memory
+			const size_t available = this->buflen - this->next_read_idx;
+			const size_t copy_cnt = (len >= available)? available : len;
+
+			memcpy(data, this->buffer, sizeof(T) * copy_cnt);
+
+			this->next_read_idx = (this->next_read_idx + copy_cnt) & this->maxlen;
+
+			if (len > copy_cnt && !this->empty()) {
+				// Not everything was read and there is still data, continue then.
+				i += this->read(&data[copy_cnt], len - copy_cnt);
+			}
 		}
+
 		if (!IN_INTERRUPT())
 			portEXIT_CRITICAL();
+
 		return i;
 	}
 
@@ -87,13 +152,8 @@ public:
 	 *
 	 * \return The number of items currently stored in the ring buffer.
 	 */
-	size_t length() {
-		if (!IN_INTERRUPT())
-			portENTER_CRITICAL();
-		ssize_t ret = (this->next_write_idx - this->next_read_idx) % this->buflen;
-		if (!IN_INTERRUPT())
-			portEXIT_CRITICAL();
-		return ret;
+	inline size_t length() {
+		return (this->next_write_idx - this->next_read_idx) & this->maxlen;
 	}
 
 	/**
@@ -101,23 +161,23 @@ public:
 	 *
 	 * \return The maximum number of items which may be stored in the ring buffer.
 	 */
-	size_t maxlength() {
-		return this->buflen - 1;
+	inline size_t maxlength() {
+		return this->maxlen;
 	}
 
 	/**
 	 * Determine whether the ring buffer is empty.
 	 * \return true if the ring buffer is empty, otherwise false
 	 */
-	bool empty() {
+	inline bool empty() {
 		return this->next_read_idx == this->next_write_idx;
 	}
 	/**
 	 * Determine whether the ring buffer is full.
 	 * \return true if the ring buffer is full, otherwise false
 	 */
-	bool full() {
-		return this->next_read_idx == ((this->next_write_idx+1) % this->buflen);
+	inline bool full() {
+		return (this->length() == this->maxlength());
 	}
 
 	/**
@@ -125,7 +185,7 @@ public:
 	 *
 	 * You may fill the returned contiguous buffer externally with up to
 	 * `maxitems` items.  Additions will be reflected in the state of this
-	 * object uponcompletion of the DMA-style transaction with
+	 * object upon completion of the DMA-style transaction with
 	 * #notify_dma_input_occurred().
 	 *
 	 * \param[out] data_start  Returns a pointer to the start of the input
@@ -145,17 +205,15 @@ public:
 			size_t *maxitems) {
 		if (!IN_INTERRUPT())
 			portENTER_CRITICAL();
+
 		if (this->full()) {
 			*maxitems = 0;
-			if (!IN_INTERRUPT())
-				portEXIT_CRITICAL();
-			return;
-		}
-		if (this->empty()) {
+		} else if (this->empty()) {
 			*data_start = this->buffer;
 			*maxitems = this->maxlength();
-		}
-		else if (this->next_write_idx > this->next_read_idx) {
+			this->next_read_idx = 0;
+			this->next_write_idx = 0;
+		} else if (this->next_write_idx > this->next_read_idx) {
 			// The next write goes into the end of the physical buffer, and free
 			// space wraps.
 			*data_start = &(this->buffer[this->next_write_idx]);
@@ -163,8 +221,7 @@ public:
 
 			// If we were to completely fill the physical buffer, next_read_idx
 			// would equal next_write_idx and the buffer would be "empty".
-			if (this->next_read_idx == 0)
-				*maxitems -= 1;
+			if (this->next_read_idx == 0) *maxitems -= 1;
 		} else {
 			// The next write goes into the beginning of the physical buffer,
 			// and free space does not wrap.
@@ -172,8 +229,9 @@ public:
 
 			// If we were to completely fill the physical buffer, next_read_idx
 			// would equal next_write_idx and the buffer would be "empty".
-			*maxitems = (this->next_read_idx - this->next_write_idx) - 1;
+			*maxitems = this->next_read_idx - this->next_write_idx - 1;
 		}
+
 		if (!IN_INTERRUPT())
 			portEXIT_CRITICAL();
 	}
@@ -193,8 +251,10 @@ public:
 			size_t items) {
 		if (!IN_INTERRUPT())
 			portENTER_CRITICAL();
+
 		configASSERT(this->length() + items <= this->maxlength());
-		this->next_write_idx = (this->next_write_idx + items) % this->buflen;
+		this->next_write_idx = (this->next_write_idx + items) & this->maxlen;
+
 		if (!IN_INTERRUPT())
 			portEXIT_CRITICAL();
 	}
@@ -224,13 +284,10 @@ public:
 			size_t *maxitems) {
 		if (!IN_INTERRUPT())
 			portENTER_CRITICAL();
+
 		if (this->empty()) {
 			*maxitems = 0;
-			if (!IN_INTERRUPT())
-				portEXIT_CRITICAL();
-			return;
-		}
-		if (this->next_write_idx > this->next_read_idx) {
+		} else if (this->next_write_idx > this->next_read_idx) {
 			// The current buffer contents are linear in memory.
 			*data_start = &(this->buffer[this->next_read_idx]);
 			*maxitems = this->next_write_idx - this->next_read_idx;
@@ -239,6 +296,7 @@ public:
 			*data_start = &(this->buffer[this->next_read_idx]);
 			*maxitems = this->buflen - this->next_read_idx;
 		}
+
 		if (!IN_INTERRUPT())
 			portEXIT_CRITICAL();
 	}
@@ -258,8 +316,10 @@ public:
 			size_t items) {
 		if (!IN_INTERRUPT())
 			portENTER_CRITICAL();
+
 		configASSERT(items <= this->length());
-		this->next_read_idx = (this->next_read_idx + items) % this->buflen;
+		this->next_read_idx = (this->next_read_idx + items) & this->maxlen;
+
 		if (!IN_INTERRUPT())
 			portEXIT_CRITICAL();
 	}
