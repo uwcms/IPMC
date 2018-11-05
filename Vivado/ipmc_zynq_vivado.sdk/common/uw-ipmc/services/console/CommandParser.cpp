@@ -391,6 +391,15 @@ bool CommandParser::CommandParameters::parse_one(const std::string &arg, int *in
 	return true;
 }
 
+bool CommandParser::CommandParameters::parse_one(const std::string &arg, unsigned int *intval) {
+	// On this architecture, long unsigned int == unsigned int
+	long unsigned int luint;
+	if (!CommandParameters::parse_one(arg, &luint))
+		return false;
+	*intval = luint;
+	return true;
+}
+
 bool CommandParser::CommandParameters::parse_one(const std::string &arg, bool *boolval) {
 	static const std::vector<std::string> truevals = {"1","true","True","TRUE","yes","Yes","YES"};
 	static const std::vector<std::string> falsevals = {"0","false","False","FALSE","no","No","NO"};

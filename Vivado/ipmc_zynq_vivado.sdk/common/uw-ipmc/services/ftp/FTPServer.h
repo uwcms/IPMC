@@ -12,6 +12,7 @@
 #define SRC_COMMON_UW_IPMC_SERVICES_FTP_FTPSERVER_H_
 
 #include <string>
+#include <libs/VFS.h>
 #include <drivers/network/Socket.h>
 #include <drivers/network/ServerSocket.h>
 #include <drivers/network/ClientSocket.h>
@@ -22,47 +23,11 @@
 #define FTPSERVER_THREAD_NAME "ftpd"
 
 /**
- * Defines a single file that can be used by the FTP server
- */
-struct FTPFile {
-	size_t size; ///< The size of the file in bytes.
-
-	//typedef size_t (*FileCallback)(uint8_t *buf, size_t size);
-	typedef std::function<size_t(uint8_t*, size_t)> FileCallback; ///< Callback type used in virtual files.
-	FileCallback read;  ///< The callback used to fill the read buffer.
-	FileCallback write; ///< The callback used write to write the file with the buffer.
-
-	typedef std::map<std::string, FTPFile> DirectoryContents; ///< Defines the contents of a directory.
-	bool isDirectory; ///< true if this particular file is in fact a directory entry.
-	DirectoryContents contents; ///< The contents of the directory if isDirectory is true.
-
-	/**
-	 * Creates a new file.
-	 * @param read The read callback function.
-	 * @param write The write callback function.
-	 * @param size The number of bytes the file has.
-	 */
-	FTPFile(FileCallback read, FileCallback write, size_t size) :
-		size(size), read(read), write(write), isDirectory(false), contents({}) {};
-
-	/**
-	 * Creates a directory with some contents.
-	 * @param contents
-	 */
-	FTPFile(DirectoryContents contents) : size(0), read(NULL), write(NULL), isDirectory(true), contents(contents) {};
-
-	/**
-	 * Creates an empty directory with no contents.
-	 */
-	FTPFile() : size(0), read(NULL), write(NULL), isDirectory(true), contents({}) {};
-};
-
-/**
  * Single instance FTP Server
  * Only one client and a single connection will be allowed at any time to avoid problems.
  * The constructor takes a callback function that needs to return true if the user credentials are valid.
  */
-class FTPServer {
+class FTPServer final {
 	typedef bool AuthCallbackFunc(const std::string &user, const std::string &pass);
 
 public:
@@ -75,43 +40,13 @@ public:
 	 * @param dataport Data port. Default is 20.
 	 */
 	FTPServer(AuthCallbackFunc *authcallback, const uint16_t comport = 21, const uint16_t dataport = 20);
-	virtual ~FTPServer();
+	~FTPServer() {};
 
 	/**
 	 * Set or unset the authentication callback function.
 	 * @param func Authentication callback function.
 	 */
 	inline void setAuthCallback(const AuthCallbackFunc *func) { this->authcallback = func; };
-
-	/**
-	 * Set the root file directory.
-	 * @param files The directory root contents.
-	 */
-	static void setFiles(FTPFile::DirectoryContents files) {FTPServer::files = files;};
-
-	/**
-	 * Create or add a new file reference.
-	 * @param filename The full path to the file.
-	 * @param file FTPFile structure with information about the file
-	 * @return Always true.
-	 */
-	static bool addFile(const std::string& filename, FTPFile file);
-
-	/**
-	 * Remove a certain file reference.
-	 * @param filename The full path of the file to remove.
-	 * @return true if success, false otherwise.
-	 */
-	static bool removeFile(const std::string& filename);
-
-	///! Generates a new path based on the current path plus an extension.
-	static std::string modifyPath(const std::string& curpath, const std::string& addition, bool isfile = false);
-
-	///! Returns the directory contents (or NULL if invalid) for a given path.
-	static FTPFile::DirectoryContents* getContentsFromPath(const std::string &path);
-
-	///! Returns the file (or NULL if invalid) for a given file path.
-	static FTPFile* getFileFromPath(const std::string &filepath);
 
 	friend class FTPClient;
 private:
@@ -120,7 +55,6 @@ private:
 	AuthCallbackFunc *authcallback;				///< Authentication callback function.
 	const uint16_t comport;						///< FTP communication port.
 	const uint16_t dataport;					///< FTP data port.
-	static FTPFile::DirectoryContents files;	///< Virtual file root directory.
 
 protected:
 	///! Returns the server communication port.

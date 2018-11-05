@@ -11,12 +11,12 @@
 #include <FreeRTOS.h>
 #include <semphr.h>
 #include <string>
+#include <libs/VFS.h>
 #include <drivers/generics/UART.h>
 #include <drivers/spi_flash/SPIFLASH.h>
 #include <drivers/pl_gpio/PLGPIO.h>
 #include <services/console/CommandParser.h>
 #include <services/console/ConsoleSvc.h>
-#include <services/ftp/FTPServer.h>
 
 /**
  * ESM driver that implements the software layers for ESM management, including programming and monitoring.
@@ -66,11 +66,11 @@ public:
 	inline bool isFlashPresent() { return (this->flash)? true : false; };
 
 	/**
-	 * Generates an FTP file linked to the ESM flash that can be added to the
-	 * FTP virtual file system, allowing flash programming via ethernet.
-	 * @return The FTPFile that can be used with FTPServer::addFile.
+	 * Generates an VFS file linked to the ESM flash that can be added to the
+	 * virtual file system, allowing flash programming via ethernet or console.
+	 * @return The file that can be used with VFS::addFile.
 	 */
-	FTPFile createFlashFile();
+	VFS::File createFlashFile();
 
 	void register_console_commands(CommandParser &parser, const std::string &prefix="");
 	void deregister_console_commands(CommandParser &parser, const std::string &prefix="");
