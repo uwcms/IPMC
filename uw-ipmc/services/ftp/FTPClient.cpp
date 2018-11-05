@@ -6,15 +6,11 @@
  */
 
 #include <IPMC.h>
-#include "libs/Utils.h"
 #include <FreeRTOS.h>
 #include <task.h>
 #include <algorithm>
-
-#include "drivers/network/Network.h"
-#include "drivers/network/ServerSocket.h"
-#include "drivers/network/ClientSocket.h"
 #include <libs/ThreadingPrimitives.h>
+#include <drivers/network/Network.h>
 
 #include "lwip/sockets.h"
 #include "lwip/sys.h"
@@ -28,8 +24,6 @@
 #endif
 
 // TODO: Welcome message?
-
-FTPFile::DirectoryContents FTPServer::files = {};
 
 #define EOL "\r\n"
 
@@ -209,7 +203,7 @@ FTPClient::FTPClient(const FTPServer &ftpserver, std::shared_ptr<Socket> socket)
 					FTP_DBG_PRINTF("Received %u bytes", this->buffer.len);
 					this->data = nullptr;
 
-					FTPFile* file = FTPServer::getFileFromPath(this->curfile);
+					VFS::File* file = VFS::getFileFromPath(this->curfile);
 
 					if (file && file->write &&
 						(file->write(this->buffer.ptr.get(), this->buffer.len) != this->buffer.len)) {
@@ -470,10 +464,10 @@ bool FTPClient::CommandSTOR(FTPClient &client, char *cmd, char* filename) {
 		return true;
 	}
 
-	std::string filepath = FTPServer::modifyPath(client.curpath, filename, true);
+	std::string filepath = VFS::modifyPath(client.curpath, filename, true);
 
 	// Check if file exists
-	FTPFile *file = FTPServer::getFileFromPath(filepath);
+	VFS::File *file = VFS::getFileFromPath(filepath);
 	if (!file) {
 		client.socket->send(buildReply(450, "File does not exist."));
 		return true;
@@ -518,10 +512,10 @@ bool FTPClient::CommandRETR(FTPClient &client, char *cmd, char* filename) {
 		return true;
 	}
 
-	std::string filepath = FTPServer::modifyPath(client.curpath, filename, true);
+	std::string filepath = VFS::modifyPath(client.curpath, filename, true);
 
 	// Check if file exists
-	FTPFile *file = FTPServer::getFileFromPath(filepath);
+	VFS::File *file = VFS::getFileFromPath(filepath);
 	if (!file) {
 		client.socket->send(buildReply(450, "File does not exist."));
 		return true;
@@ -615,14 +609,14 @@ bool FTPClient::CommandLIST(FTPClient &client, char *cmd, char* path) {
 	// Possible replies: (125, 150) -> (226, 250, 425, 426, 451), 450, 500, 501, 502, 421, 530
 	FTP_DBG_PRINTF("List %s", path);
 
-	FTPFile::DirectoryContents *contents = NULL;
+	VFS::File::DirectoryContents *contents = NULL;
 
 	if (path) {
-		std::string dirpath = FTPServer::modifyPath(client.curpath, path);
-		contents = FTPServer::getContentsFromPath(dirpath);
+		std::string dirpath = VFS::modifyPath(client.curpath, path);
+		contents = VFS::getContentsFromPath(dirpath);
 	} else {
 		// No path provided
-		contents = FTPServer::getContentsFromPath(client.curpath);
+		contents = VFS::getContentsFromPath(client.curpath);
 	}
 
 	if (contents == NULL) {
@@ -707,7 +701,7 @@ bool FTPClient::CommandCWD(FTPClient &client, char *cmd, char* path) {
 
 	}
 
-	FTPFile::DirectoryContents *contents = NULL;
+	VFS::File::DirectoryContents *contents = NULL;
 	std::string dirpath = "";
 
 	// Check if the goal is to go one directory up or down
@@ -725,11 +719,11 @@ bool FTPClient::CommandCWD(FTPClient &client, char *cmd, char* path) {
 		}
 	} else {
 		// Check if directory exists
-		dirpath = FTPServer::modifyPath(client.curpath, path);
+		dirpath = VFS::modifyPath(client.curpath, path);
 	}
 
 	// Check if the directory exists
-	contents = FTPServer::getContentsFromPath(dirpath);
+	contents = VFS::getContentsFromPath(dirpath);
 
 	if (contents == NULL) {
 		// Directory doesn't exist
@@ -761,7 +755,7 @@ bool FTPClient::CommandCDUP(FTPClient &client, char *cmd, char* args) {
 	}
 
 	// Check if directory exists
-	FTPFile::DirectoryContents *contents = FTPServer::getContentsFromPath(dirpath);
+	VFS::File::DirectoryContents *contents = VFS::getContentsFromPath(dirpath);
 
 	if (contents == NULL) {
 		// Directory doesn't exist

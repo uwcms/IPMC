@@ -21,7 +21,6 @@
 
 #include "ESM.h"
 #include <libs/Utils.h>
-#include <services/ftp/FTPServer.h>
 
 const std::string ESM::commandStatusToString(const CommandStatus& s) {
 	switch (s) {
@@ -44,12 +43,12 @@ ESM::~ESM() {
 	vSemaphoreDelete(this->mutex);
 }
 
-FTPFile ESM::createFlashFile() {
+VFS::File ESM::createFlashFile() {
 	if (!this->flash) {
-		return FTPFile(nullptr, nullptr, 0);
+		return VFS::File(nullptr, nullptr, 0);
 	}
 
-	return FTPFile(
+	return VFS::File(
 		[this](uint8_t *buffer, size_t size) -> size_t {
 			// Read
 			MutexLock lock(this->mutex);
