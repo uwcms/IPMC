@@ -1021,24 +1021,24 @@ public:
 		std::string hash;
 
 		if (!parameters.parse_parameters(1, false, &filename, &size, &hash)) {
-			console->write("Invalid argument, see help.");
+			console->write("Invalid argument, see help.\n");
 			return;
 		}
 
 		// Validate the arguments
 		VFS::File *file = VFS::getFileFromPath(filename);
 		if (!file || !file->write) {
-			console->write("Destination file not found or no write callback defined.");
+			console->write("Destination file not found or no write callback defined.\n");
 			return;
 		}
 
 		if (size > MAX_BASE64_SIZE || size > (file->size * 4 / 3)) {
-			console->write("Requested size is too large.");
+			console->write("Requested size is too large.\n");
 			return;
 		}
 
 		if (hash.length() != SHA_VALBYTES*2) {
-			console->write("Provided hash doesn't have " + std::to_string(SHA_VALBYTES*2) + " characters.");
+			console->write("Provided hash doesn't have " + std::to_string(SHA_VALBYTES*2) + " characters.\n");
 			return;
 		}
 
@@ -1047,17 +1047,17 @@ public:
 
 		// Discard any incoming window size data, etc.
 		uart_ps0->clear();
-		console->write("Reading incoming serial stream for " + std::to_string(timeout_sec) + " seconds..");
+		console->write("Reading incoming serial stream for " + std::to_string(timeout_sec) + " seconds..\n");
 
 		// Read the file from serial
 		size_t bytesread = uart_ps0->read(buf.get(), size, portMAX_DELAY, configTICK_RATE_HZ * timeout_sec);
 
 		if (bytesread != size) {
-			console->write("Failed to read all bytes from the stream, only " + std::to_string(bytesread) + " bytes were read.");
+			console->write("Failed to read all bytes from the stream, only " + std::to_string(bytesread) + " bytes were read.\n");
 			return;
 		}
 
-		console->write(std::to_string(bytesread) + " bytes successfully read from serial stream.");
+		console->write(std::to_string(bytesread) + " bytes successfully read from serial stream.\n");
 
 		// Check hash validity
 		u8 s256[SHA_VALBYTES] = {0};
@@ -1067,27 +1067,27 @@ public:
 		shahex.reserve(SHA_VALBYTES*2);
 		for (int i = 0; i < SHA_VALBYTES; i++)
 			   shahex.append(stdsprintf("%02hhx", s256[i]));
-		console->write("Received hash is " + shahex);
+		console->write("Received hash is " + shahex + "\n");
 
 		// Compare hash keys
 		if (memcmp(shahex.data(), hash.data(), SHA_VALBYTES*2) != 0) {
-			console->write("Hashes DO NOT match.");
+			console->write("Hashes DO NOT match.\n");
 			return;
 		}
 
 		// Decodes from base64 to binary
 		std::string decoded = base64_decode((char*)buf.get());
-		console->write(std::to_string(decoded.size()) + " bytes decoded from received base64 stream.");
+		console->write(std::to_string(decoded.size()) + " bytes decoded from received base64 stream.\n");
 
 		if (decoded.size() > file->size) {
-			console->write("Decoded size is larger than file's maximum size.");
+			console->write("Decoded size is larger than file's maximum size.\n");
 			return;
 		}
 
 		if (file->write((uint8_t*)decoded.data(), decoded.size()) == decoded.size()) {
-			console->write("File was written successfully.");
+			console->write("File was written successfully.\n");
 		} else {
-			console->write("Failed to write to file.");
+			console->write("Failed to write to file.\n");
 		}
 	}
 };
