@@ -108,9 +108,6 @@ PS_XADC *xadc;
 
 bool firmwareUpdateFailed = false;
 
-// External static variables
-extern uint8_t mac_address[6]; ///< The MAC address of the board, read by persistent storage statically
-
 static void init_device_sdrs(bool reinit=false);
 static void tracebuffer_log_handler(LogTree &logtree, const std::string &message, enum LogTree::LogLevel level);
 static void register_core_console_commands(CommandParser &parser);
