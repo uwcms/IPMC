@@ -502,6 +502,10 @@ static void init_device_sdrs(bool reinit) {
 	{
 		SensorDataRecord01 sensor;
 		sensor.initialize_blank("Payload 3.3V");
+		sensor.sensor_owner_id(0); // Tag as "self". This will be auto-calculated in "Get SDR" commands.
+		sensor.sensor_owner_channel(0); // See above.
+		sensor.sensor_owner_lun(0); // See above.
+		sensor.sensor_number(1);
 		sensor.entity_id(0x0); // TODO
 		sensor.entity_instance(0x60); // TODO
 		//sensor.sensor_setable(false); // Default, Unsupported
@@ -520,7 +524,7 @@ static void init_device_sdrs(bool reinit) {
 		sensor.sensor_type_code(0x02); // Voltage
 		sensor.event_type_reading_code(SensorDataRecordReadableSensor::EVENT_TYPE_THRESHOLD_SENSOR);
 		sensor.assertion_lower_threshold_reading_mask(0x7fff); // All events supported & LNR, LCR, LNC, UNC, UCR, UNR assertions enabled.
-		sensor.deassertion_upper_threshold_reading_mask(0x7000); // All events supported & no threshold deassertions enabled.
+		sensor.deassertion_upper_threshold_reading_mask(0x7fff); // All events supported & LNR, LCR, LNC, UNC, UCR, UNR deassertions enabled.
 		sensor.discrete_reading_setable_threshold_reading_mask(0x3fff); // All thresholds are configurable.
 		sensor.units_numeric_format(SensorDataRecord01::UNITS_UNSIGNED);
 		sensor.units_rate_unit(SensorDataRecordReadableSensor::RATE_UNIT_NONE);
