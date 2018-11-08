@@ -26,6 +26,7 @@ public:
 		ret->weakself = ret;
 		return ret;
 	}
+
 protected:
 	/**
 	 * Instantiate a UART console service.
@@ -39,6 +40,7 @@ protected:
 	 */
 	UARTConsoleSvc(UART &uart, CommandParser &parser, const std::string &name, LogTree &logtree, bool echo, TickType_t read_data_timeout=10)
 		: ConsoleSvc(parser, name, logtree, echo, read_data_timeout), uart(uart) { this->start(); };
+
 public:
 	virtual ~UARTConsoleSvc() { };
 

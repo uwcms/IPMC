@@ -38,6 +38,7 @@ public:
 	StatCounter invalid_messages_received; ///< The number of received messages on this IPMB that are discarded as invalid.
 	StatCounter incoming_messages_missed;  ///< The number of received messages on this IPMB that are discarded for lack of space or readiness.
 	StatCounter unexpected_send_result_interrupts; ///< The number of unexpected send result interrupts we have received.
+
 protected:
 	static const int i2c_bufsize = 40; ///< The buffer size for I2C interactions. (Must be 1 greater than needed.)
 	bool master;                       ///< Identify whether the IPMB is currently in a master or slave mode.

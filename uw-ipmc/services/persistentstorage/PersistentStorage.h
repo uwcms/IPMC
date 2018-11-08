@@ -34,6 +34,7 @@ public:
 	virtual ~PersistentStorage();
 	void flush(std::function<void(void)> completion_cb = NULL);
 	void flush(void *start, size_t len, std::function<void(void)> completion_cb = NULL);
+
 protected:
 	void flush_index();
 
@@ -86,6 +87,7 @@ protected:
 
 public:
 	void run_flush_thread(); ///< \protected Internal.
+
 protected:
 	bool do_flush_range(u32 start, u32 end);
 };

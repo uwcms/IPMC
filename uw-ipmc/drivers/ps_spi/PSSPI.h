@@ -33,6 +33,7 @@ public:
 	void _HandleInterrupt(u32 Event, u32 EventData); ///< \protected Internal.
 	PS_SPI(PS_SPI const &) = delete;               ///< Class is not assignable.
     void operator=(PS_SPI const &x) = delete;       ///< Class is not copyable.
+
 protected:
 	u32 error_not_done;             ///< Error containing accumulated errors of non completed transfers. TODO: allow read.
 	u32 error_byte_count;           ///< Error containing accumulated errors of byte count mismatches. TODO: allow read.

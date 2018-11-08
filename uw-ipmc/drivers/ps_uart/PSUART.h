@@ -38,6 +38,7 @@ public:
 
     PS_UART(PS_UART const &) = delete;               ///< Class is not assignable.
     void operator=(PS_UART const &x) = delete;       ///< Class is not copyable.
+
 protected:
 	volatile u32 error_count;       ///< Error counter containing accumulated errors from recent operations.
 	XUartPs UartInst;      			///< The XUartPs handle of the driven device.

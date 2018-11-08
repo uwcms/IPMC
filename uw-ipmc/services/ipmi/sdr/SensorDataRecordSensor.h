@@ -13,6 +13,7 @@ class SensorDataRecordSensor : public SensorDataRecord {
 protected:
 	/// Protected constructor since our type-code based accessors are technically virtual
 	SensorDataRecordSensor(const std::vector<uint8_t> &sdr_data = std::vector<uint8_t>()) : SensorDataRecord(sdr_data) { };
+
 public:
 	virtual ~SensorDataRecordSensor() { };
 
@@ -56,6 +57,7 @@ public:
 	SDR_FIELD(id_string, std::string, VARIABLE, 7, 0, )
 
 #undef SDR_FIELD
+
 protected:
 	virtual uint8_t _get_id_string_offset() const;
 	virtual uint8_t _get_ext_data_offset() const;

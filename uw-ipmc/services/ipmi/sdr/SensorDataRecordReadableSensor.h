@@ -14,6 +14,7 @@ class SensorDataRecordReadableSensor: virtual public SensorDataRecordSensor {
 protected:
 	// Instantiate a Readable Sensor Record
 	SensorDataRecordReadableSensor(const std::vector<uint8_t> &sdr_data = std::vector<uint8_t>()) : SensorDataRecordSensor(sdr_data) { };
+
 public:
 	virtual ~SensorDataRecordReadableSensor() { };
 

@@ -23,6 +23,7 @@ protected:
 	const size_t maxlen;			///< The maximum number of units that can be stored in the buffer.
 	volatile size_t next_read_idx;  ///< The next read position in the ringbuffer.
 	volatile size_t next_write_idx; ///< The next write position in the ringbuffer.
+
 public:
 	/**
 	 * Instantiate a new RingBuffer. Space for `items` items will be allocated
