@@ -50,7 +50,6 @@ struct TraceBuffer::TraceRecord {
  */
 TraceBuffer::TraceBuffer(uint8_t *buf, size_t bufsize)
 	: buf(reinterpret_cast<struct TraceBufferHeader*>(buf)) {
-
 	configASSERT(bufsize >= sizeof(struct TraceBufferHeader)+sizeof(TraceBuffer::TraceRecord));
 	configASSERT(bufsize < 0xffffffff);
 

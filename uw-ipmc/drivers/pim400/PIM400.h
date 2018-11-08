@@ -71,7 +71,6 @@ private:
 	};
 
 	uint8_t read_int_reg(const PIM400_REGISTERS reg);
-
 };
 
 #endif /* SRC_COMMON_UW_IPMC_DRIVERS_PIM400_PIM400_H_ */

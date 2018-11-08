@@ -26,7 +26,6 @@
  */
 Telnet::TelnetConsoleSvc::TelnetConsoleSvc(std::shared_ptr<Socket> socket, std::shared_ptr<InputProtocolParser> proto, CommandParser &parser, const std::string &name, LogTree &logtree, bool echo, TickType_t read_data_timeout, std::function<void(TelnetConsoleSvc&)> shutdown_complete_cb)
 		: ConsoleSvc(parser, name, logtree, echo, read_data_timeout), socket(socket), proto(proto), shutdown_complete_cb(shutdown_complete_cb) {
-
 	//configASSERT(this->socket->valid());
 	this->sock_mutex = xSemaphoreCreateMutex();
 	configASSERT(this->sock_mutex);

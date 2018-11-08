@@ -10,7 +10,6 @@
 
 SPIFlash::SPIFlash(SPIMaster& spi, uint8_t cs)
 : spi(spi), cs(cs) {
-
 }
 
 bool SPIFlash::read(uint32_t address, uint8_t *buffer, size_t bytes) {

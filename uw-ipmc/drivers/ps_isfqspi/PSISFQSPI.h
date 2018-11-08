@@ -16,7 +16,6 @@
  */
 class PS_ISFQSPI {
 public:
-
 	PS_ISFQSPI(u16 DeviceId, u16 IntrId);
 	virtual ~PS_ISFQSPI();
 

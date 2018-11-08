@@ -37,7 +37,6 @@ PS_IPMB::PS_IPMB(u16 DeviceId, u32 IntrId, u8 IPMBAddr) :
 		incoming_messages_missed(stdsprintf("ipmb0.ps_ipmb.%hu.incoming_messages_missed", DeviceId)),
 		unexpected_send_result_interrupts(stdsprintf("ipmb0.ps_ipmb.%hu.unexpected_send_result_interrupts", DeviceId)),
 		IntrId(IntrId) {
-
 	this->mutex = xSemaphoreCreateMutex();
 	configASSERT(this->mutex);
 
@@ -319,7 +318,6 @@ static void XIicPs_VariableLengthSlaveInterruptHandler(XIicPs *InstancePtr)
 				XIICPS_IXR_RX_UNF_MASK |
 				XIICPS_IXR_TX_OVR_MASK |
 				XIICPS_IXR_RX_OVR_MASK))){
-
 		StatusEvent |= XIICPS_EVENT_ERROR;
 	}
 

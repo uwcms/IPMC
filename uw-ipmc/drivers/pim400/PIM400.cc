@@ -15,7 +15,6 @@ i2c(i2c), i2c_addr(i2c_addr>>1) {
 }
 
 PIM400::~PIM400() {
-
 }
 
 float PIM400::read_holdup_voltage() {

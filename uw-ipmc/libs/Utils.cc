@@ -86,7 +86,6 @@ std::string formatedHexString(const void *ptr, size_t bytes, size_t str_offset) 
 		}
 
 		r += std::string(ascii) + "\n";
-
 	}
 
 	return r;

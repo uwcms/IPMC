@@ -246,7 +246,6 @@ FTPClient::FTPClient(const FTPServer &ftpserver, std::shared_ptr<Socket> socket)
 			FTP_DBG_PRINTF("Error (errno=%d)", errno);
 			break;
 		}
-
 	};
 
 	FTP_DBG_PRINTF("Closing connection");
@@ -698,7 +697,6 @@ bool FTPClient::CommandCWD(FTPClient &client, char *cmd, char* path) {
 		// No path given
 		client.socket->send(buildReply(501)); // Wrong parameters
 		return true;
-
 	}
 
 	VFS::File::DirectoryContents *contents = NULL;
