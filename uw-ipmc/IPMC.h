@@ -11,6 +11,9 @@
 #include "xscugic.h"
 #include "xgpiops.h"
 #include <libs/LogTree.h>
+#include <map>
+#include <memory>
+#include <stdint.h>
 
 extern "C" {
 	extern XScuGic xInterruptController;
@@ -42,6 +45,8 @@ extern EventReceiver ipmi_event_receiver;
 class SensorDataRepository;
 extern SensorDataRepository sdr_repo;
 extern SensorDataRepository device_sdr_repo;
+class Sensor;
+extern std::map< uint8_t, std::shared_ptr<Sensor> > ipmc_sensors;
 
 extern LogTree LOG;
 extern LogTree::Filter *console_log_filter;
