@@ -43,7 +43,6 @@ public:
 
 #undef SDR_FIELD
 	///@}
-
 };
 
 #endif /* SRC_COMMON_UW_IPMC_SERVICES_IPMI_SDR_SensorDataRecord02_H_ */

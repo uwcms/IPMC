@@ -69,7 +69,6 @@ IPMICMD_INDEX_REGISTER(Set_System_Boot_Options);
 
 #if 0 // Unimplemented.
 static void ipmicmd_Get_System_Boot_Options(IPMBSvc &ipmb, const IPMI_MSG &message) {
-
 }
 IPMICMD_INDEX_REGISTER(Get_System_Boot_Options);
 #endif

@@ -341,7 +341,6 @@ enum LogTree::LogLevel LogTree::Filter::get_configuration(LogTree &logtree) {
  */
 LogTree::Filter::Filter(LogTree &logtree, handler_t handler, enum LogLevel level)
 	: handler(handler) {
-
 	LogTree *root = &logtree;
 	while (root->parent)
 		root = root->parent;

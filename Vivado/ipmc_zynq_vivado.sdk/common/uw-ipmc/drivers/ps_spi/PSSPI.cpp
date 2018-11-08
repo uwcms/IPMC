@@ -21,7 +21,6 @@ static void PS_SPI_InterruptPassthrough(PS_SPI *ps_spi, u32 event_status, u32 by
  */
 PS_SPI::PS_SPI(u16 DeviceId, u32 IntrId) :
 	IntrId(IntrId) {
-
 	this->irq_sync_q = xQueueCreate(1, sizeof(trans_st_t));
 	configASSERT(this->irq_sync_q);
 
@@ -53,7 +52,6 @@ PS_SPI::PS_SPI(u16 DeviceId, u32 IntrId) :
 }
 
 PS_SPI::~PS_SPI() {
-
 	XScuGic_Disable(&xInterruptController, this->IntrId);
 	XScuGic_Disconnect(&xInterruptController, this->IntrId);
 }
@@ -138,7 +136,6 @@ void PS_SPI::deselect() {
 }
 
 void PS_SPI::_HandleInterrupt(u32 event_status, u32 byte_count) {
-
 	trans_st_t trans_st;
 	trans_st.event_status = event_status;
 	trans_st.byte_count = byte_count;

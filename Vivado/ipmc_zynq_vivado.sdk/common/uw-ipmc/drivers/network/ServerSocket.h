@@ -16,7 +16,6 @@
  */
 class ServerSocket : public Socket {
 public:
-
 	/**
 	 * Constructs a listening socket on the specified port and address
 	 * The default address is 0.0.0.0 and the default backlog is 3.

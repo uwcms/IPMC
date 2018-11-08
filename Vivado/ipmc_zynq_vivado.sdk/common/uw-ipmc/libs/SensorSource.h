@@ -41,7 +41,6 @@ public:
 			uint32_t _u;
 			int32_t _i;
 		};
-
 	} SensorItem;
 
 	typedef std::vector<SensorItem> SensorList;

@@ -99,7 +99,6 @@ void PL_SPI::_InterruptHandler() {
 	DataWidth = this->xspi.DataWidth;
 	if ((IntrStatus & XSP_INTR_TX_EMPTY_MASK) ||
 		(IntrStatus & XSP_INTR_TX_HALF_EMPTY_MASK)) {
-
 		/*
 		 * A transmit has just completed. Process received data and
 		 * check for more data to transmit. Always inhibit the
@@ -121,7 +120,6 @@ void PL_SPI::_InterruptHandler() {
 		StatusReg = XSpi_GetStatusReg(&this->xspi);
 
 		while ((StatusReg & XSP_SR_RX_EMPTY_MASK) == 0) {
-
 			Data = XSpi_ReadReg(this->xspi.BaseAddr, XSP_DRR_OFFSET);
 
 			/*

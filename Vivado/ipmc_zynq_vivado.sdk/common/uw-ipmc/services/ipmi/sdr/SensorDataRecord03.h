@@ -49,7 +49,6 @@ public:
 #undef SDR_FIELD
 	virtual uint8_t _get_id_string_offset() const { return 16; };
 	///@}
-
 };
 
 #endif /* SRC_COMMON_UW_IPMC_SERVICES_IPMI_SDR_SensorDataRecord03_H_ */

@@ -170,7 +170,6 @@ size_t PL_I2C::write(uint8_t addr, const uint8_t *buf, size_t len, TickType_t ti
 			printf("IIC send timeout");
 			return 0;
 		}
-
 	} while (1);
 
 	// Wait completion

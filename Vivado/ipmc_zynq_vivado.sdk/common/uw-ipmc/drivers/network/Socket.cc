@@ -13,7 +13,6 @@
 
 Socket::Socket(int socket, struct sockaddr_in sockaddr)
 : socketfd(socket), sockaddr(sockaddr), recvTimeout(0), sendTimeout(0) {
-
 	if (this->isValid()) {
 #ifdef SOCKET_DEFAULT_KEEPALIVE
 	this->enableKeepAlive();
@@ -25,7 +24,6 @@ Socket::Socket(int socket, struct sockaddr_in sockaddr)
 
 Socket::Socket(const std::string& address, unsigned short port, bool useTCP)
 : sockaddr(address, port), recvTimeout(0), sendTimeout(0) {
-
 	this->socketfd = lwip_socket(AF_INET, useTCP?SOCK_STREAM:SOCK_DGRAM, 0);
 
 	if (this->isValid()) {

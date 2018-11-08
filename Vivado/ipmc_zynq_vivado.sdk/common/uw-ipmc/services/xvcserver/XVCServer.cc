@@ -180,7 +180,6 @@ bool XVCServer::HandleClient(std::shared_ptr<Socket> s) {
 			fprintf(stderr, "invalid cmd '%s'\n", cmd);
 			return 1;
 		}
-
 	} while (1);
 	/* Note: Need to fix JTAG state updates, until then no exit is allowed */
 }

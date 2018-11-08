@@ -131,7 +131,6 @@ void PS_UART::_InterruptHandler() {
 	// XUARTPS_IXR_RBRK is applicable only for Zynq Ultrascale+ MP
 	if ((IsrStatus & ((u32)XUARTPS_IXR_OVER | (u32)XUARTPS_IXR_FRAMING |
 			(u32)XUARTPS_IXR_PARITY | (u32)XUARTPS_IXR_RBRK)) != (u32)0) {
-
 		// Some errors, increase the error counter
 		this->error_count++;
 
@@ -151,7 +150,6 @@ void PS_UART::_InterruptHandler() {
 PS_UART::PS_UART(u32 DeviceId, u32 IntrId, u32 ibufsize, u32 obufsize) :
 		InterruptBasedDriver(IntrId), error_count(0),
 		inbuf(RingBuffer<u8>(ibufsize)), outbuf(RingBuffer<u8>(obufsize)) {
-
 	XUartPs_Config *Config = XUartPs_LookupConfig(DeviceId);
 	s32 Status = XUartPs_CfgInitialize(&this->UartInst, Config, Config->BaseAddress);
 	configASSERT(Status == XST_SUCCESS);

@@ -12,7 +12,6 @@
 #include <libs/LogTree.h>
 
 class TelnetServer {
-
 public:
 	TelnetServer(LogTree &logtree);
 	virtual ~TelnetServer();
