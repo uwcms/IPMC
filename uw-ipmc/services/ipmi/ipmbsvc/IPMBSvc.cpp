@@ -42,7 +42,6 @@ IPMBSvc::IPMBSvc(IPMB *ipmb, uint8_t ipmb_address, IPMICommandParser *command_pa
 		log_messages_in(logtree["incoming_messages"]),
 		log_messages_out(logtree["outgoing_messages"]),
 		wdt(wdt) {
-
 	configASSERT(ipmb); // An IPMB is required.
 
 	this->recvq = xQueueCreate(this->recvq_size, sizeof(IPMI_MSG));
