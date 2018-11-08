@@ -59,6 +59,9 @@ extern "C" {
 #include <services/ipmi/sdr/SensorDataRecord01.h>
 #include <services/ipmi/sdr/SensorDataRecord02.h>
 #include <services/ipmi/sdr/SensorDataRecord12.h>
+#include <services/ipmi/sensor/Sensor.h>
+#include <services/ipmi/sensor/HotswapSensor.h>
+#include <services/ipmi/sensor/ThresholdSensor.h>
 #include <services/persistentstorage/PersistentStorage.h>
 #include <services/console/UARTConsoleSvc.h>
 #include <services/influxdb/InfluxDB.h>
@@ -82,6 +85,7 @@ Network *network;
 IPMICommandParser *ipmi_command_parser;
 SensorDataRepository sdr_repo;
 SensorDataRepository device_sdr_repo;
+std::map< uint8_t, std::shared_ptr<Sensor> > ipmc_sensors;
 XGpioPs gpiops;
 LogTree LOG("ipmc");
 LogTree::Filter *console_log_filter;
@@ -450,8 +454,8 @@ void ipmc_service_init() {
  */
 static void init_device_sdrs(bool reinit) {
 	uint8_t reservation = device_sdr_repo.reserve();
-#define ADD_TO_REPO(sdr) \
-	while (!device_sdr_repo.add(sdr, reservation)) { reservation = device_sdr_repo.reserve(); }
+
+#define ADD_TO_REPO(sdr) while (!device_sdr_repo.add(sdr, reservation)) { reservation = device_sdr_repo.reserve(); }
 
 	{
 		// Management Controller Device Locator Record for ourself.
@@ -479,9 +483,12 @@ static void init_device_sdrs(bool reinit) {
 	}
 
 	{
-		// Hotswap Sensor
 		SensorDataRecord02 hotswap;
 		hotswap.initialize_blank("Hotswap");
+		hotswap.sensor_owner_id(0); // Tag as "self". This will be auto-calculated in "Get SDR" commands.
+		hotswap.sensor_owner_channel(0); // See above.
+		hotswap.sensor_owner_lun(0); // See above.
+		hotswap.sensor_number(1);
 		hotswap.entity_id(0xA0);
 		hotswap.entity_instance(0x60);
 		hotswap.events_enabled_default(true);
@@ -497,6 +504,11 @@ static void init_device_sdrs(bool reinit) {
 		hotswap.discrete_reading_setable_threshold_reading_mask(0x00ff); // M7:M0
 		// I don't need to specify unit type codes for this sensor.
 		ADD_TO_REPO(hotswap);
+		if (ipmc_sensors.count(hotswap.sensor_number()) == 0)
+			ipmc_sensors.emplace(
+					hotswap.sensor_number(),
+					std::make_shared<HotswapSensor>(hotswap.record_key(), LOG["sensors"]["Hotswap"])
+					);
 	}
 
 	{
@@ -505,7 +517,7 @@ static void init_device_sdrs(bool reinit) {
 		sensor.sensor_owner_id(0); // Tag as "self". This will be auto-calculated in "Get SDR" commands.
 		sensor.sensor_owner_channel(0); // See above.
 		sensor.sensor_owner_lun(0); // See above.
-		sensor.sensor_number(1);
+		sensor.sensor_number(2);
 		sensor.entity_id(0x0); // TODO
 		sensor.entity_instance(0x60); // TODO
 		//sensor.sensor_setable(false); // Default, Unsupported
@@ -554,6 +566,11 @@ static void init_device_sdrs(bool reinit) {
 		sensor.hysteresis_high(2); // +0.02 Volts
 		sensor.hysteresis_low(2); // -0.02 Volts
 		ADD_TO_REPO(sensor);
+		if (ipmc_sensors.count(sensor.sensor_number()) == 0)
+			ipmc_sensors.emplace(
+					sensor.sensor_number(),
+					std::make_shared<ThresholdSensor>(sensor.record_key(), LOG["sensors"]["Payload 3.3V"])
+					);
 	}
 
 #undef ADD_TO_REPO

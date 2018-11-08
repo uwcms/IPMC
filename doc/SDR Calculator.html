@@ -188,10 +188,11 @@ code {
 			<tbody>
 				<tr>
 					<td>Sensor Number:</td>
-					<td>
-						<input type="number" id="sensor-number" min="0" step="1" max="254" placeholder="1"/>
-						<p>
-					</td>
+					<td><input type="number" id="sensor-number" min="0" step="1" max="254" placeholder="1"/></td>
+				</tr>
+				<tr>
+					<td></td>
+					<td style="max-width: 30rem; font-size: 0.9rem">Note: If you are updating existing installations, keeping sensor numbers unique throughout time will ensure that old SDR data from EEPROM is not associated with an unrelated sensor.</td>
 				</tr>
 				<tr>
 					<td>Sensor Name:</td>
@@ -796,6 +797,11 @@ function recalculate(eventsource) {
 	sensor.hysteresis_high(${(unit_factors.hystp.ipmi.value !== null ? unit_factors.hystp.ipmi.value : '0')}); // +${unit_factors.hystp.float.value||0} ${human_units}
 	sensor.hysteresis_low(${(unit_factors.hystn.ipmi.value !== null ? unit_factors.hystn.ipmi.value : '0')}); // -${unit_factors.hystn.float.value||0} ${human_units}
 	ADD_TO_REPO(sensor);
+	if (ipmc_sensors.count(sensor.sensor_number()) == 0)
+		ipmc_sensors.emplace(
+				sensor.sensor_number(),
+				std::make_shared<ThresholdSensor>(sensor.record_key(), LOG["sensors"]["${document.getElementById('sensor-name').value}"])
+				);
 }`;
 		hljs.highlightBlock(codeblock);
 	}
