@@ -358,6 +358,7 @@ public:
 	public:
 		Hermes * const messenger; ///< The messenger that delivered this message.
 		virtual ~Envelope() { };
+
 	protected:
 		/**
 		 * Instantiate a Envelope.  Used only by Scroll<T>.
@@ -511,6 +512,7 @@ public:
 		QueueHandle_t get_queue() {
 			return this->queue;
 		}
+
 	protected:
 		QueueHandle_t queue; ///< The receive queue.
 		SemaphoreHandle_t mutex; ///< A mutex protecting the subscription list.

@@ -31,8 +31,10 @@ public:
 	const std::string path;  ///< The full path name of this LogTree node
 
 	LogTree(std::string root_label);
+
 protected:
 	LogTree(std::string subtree_label, LogTree &parent);
+
 public:
 	virtual ~LogTree();
 
@@ -87,6 +89,7 @@ public:
 
 		void register_console_commands(CommandParser &parser, const std::string &prefix="");
 		void deregister_console_commands(CommandParser &parser, const std::string &prefix="");
+
 	protected:
 		LogTree *logtree; ///< A reference to the (root) LogTree this Filter is associated with.
 
@@ -108,6 +111,7 @@ public:
 	void deregister_console_commands(CommandParser &parser, const std::string &prefix="");
 
 	LogTree* const parent;                          ///< The parent of this LogTree node.
+
 protected:
 	std::map<const std::string, LogTree*> children; ///< All children of this LogTree node.
 

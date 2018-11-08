@@ -47,8 +47,10 @@ public:
 		ret->weakself = ret;
 		return ret;
 	}
+
 protected:
 	TelnetConsoleSvc(std::shared_ptr<Socket> socket, std::shared_ptr<InputProtocolParser> proto, CommandParser &parser, const std::string &name, LogTree &logtree, bool echo, TickType_t read_data_timeout=4, std::function<void(TelnetConsoleSvc&)> shutdown_complete_cb=NULL);
+
 public:
 	virtual ~TelnetConsoleSvc();
 
@@ -57,6 +59,7 @@ public:
 	SemaphoreHandle_t sock_mutex; ///< A mutex protecting the socket.
 
 	virtual void close();
+
 protected:
 	std::function<void(TelnetConsoleSvc&)> shutdown_complete_cb;
 	virtual void shutdown_complete();

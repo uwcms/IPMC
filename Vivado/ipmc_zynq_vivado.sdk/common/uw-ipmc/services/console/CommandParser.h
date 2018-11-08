@@ -100,6 +100,7 @@ public:
 		typedef HexInt<uint32_t> xint32_t; ///< Base16 converted uint32_t
 		typedef HexInt<uint16_t> xint16_t; ///< Base16 converted uint16_t
 		typedef HexInt<uint8_t>  xint8_t;  ///< Base16 converted uint8_t
+
 	protected:
 		/// \overload
 		bool parse_parameters(int start, bool total_parse) const { configASSERT(0); return false; /* We should never get here, but typing requires it. */ };
@@ -191,12 +192,14 @@ public:
 	CompletionResult complete(const std::string &commandline, std::string::size_type cursor) const;
 
 	static std::vector<std::string> tokenize(const std::string &commandline, std::vector<std::string>::size_type *cursor_parameter=NULL, std::string::size_type *cursor_char=NULL);
+
 protected:
 	SemaphoreHandle_t mutex; ///< A mutex protecting the commandset info.
 	std::map< std::string, std::shared_ptr<Command> > commandset; ///< The registered commands.
 	std::shared_ptr<Command> get_command(const std::string &command) const;
 	CommandParser(CommandParser const &) = delete;   ///< Class is not assignable.
 	void operator=(CommandParser const &x) = delete; ///< Class is not copyable.
+
 public:
 	CommandParser *chain; ///< A chained command parser used for unknown commands if not NULL.
 };

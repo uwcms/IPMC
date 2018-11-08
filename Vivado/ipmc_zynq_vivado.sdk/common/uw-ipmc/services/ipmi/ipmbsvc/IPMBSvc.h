@@ -131,6 +131,7 @@ protected:
 	 */
 	std::map<uint32_t, uint64_t> incoming_sequence_numbers;
 	bool check_duplicate(const IPMI_MSG &msg);
+
 public:
 	void run_thread(); ///< \protected Run the IPMBSvc thread code.
 };

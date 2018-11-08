@@ -34,6 +34,7 @@ public:
 
 	void select(uint32_t cs);
 	void deselect();
+
 private:
 	XSpi xspi;	///< Internal use only. Xilinx SPI structure.
 

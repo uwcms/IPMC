@@ -40,6 +40,7 @@ public:
 	 */
 	uint8_t get_current_reservation() const { return this->reservation; };
 	uint8_t reserve();
+
 protected:
 	uint8_t reservation; ///< The current reservation number for this repository
 	std::vector< std::shared_ptr<SensorDataRecord> > records; ///< The actual SDRs

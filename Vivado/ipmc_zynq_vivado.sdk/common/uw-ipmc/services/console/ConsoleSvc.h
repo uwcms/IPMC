@@ -35,6 +35,7 @@ public:
 		ret->weakself = ret;
 		return ret;
 	}
+
 protected:
 	/**
 	 * A weak pointer to self, allowing us to be passed to Command::execute()
@@ -48,6 +49,7 @@ protected:
 	 * Since the parameters of this are specific, this factory cannot be virtual.
 	 */
 	ConsoleSvc(CommandParser &parser, const std::string &name, LogTree &logtree, bool echo, TickType_t read_data_timeout=10);
+
 public:
 	virtual ~ConsoleSvc();
 	virtual void start();

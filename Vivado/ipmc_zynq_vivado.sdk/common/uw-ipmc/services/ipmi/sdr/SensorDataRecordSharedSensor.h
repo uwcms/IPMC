@@ -19,6 +19,7 @@ class SensorDataRecordSharedSensor : virtual public SensorDataRecordSensor {
 protected:
 	/// Instantiate a Type 01 SensorDataRecord
 	SensorDataRecordSharedSensor(const std::vector<uint8_t> &sdr_data = std::vector<uint8_t>()) : SensorDataRecordSensor(sdr_data) { };
+
 public:
 	virtual ~SensorDataRecordSharedSensor() { };
 

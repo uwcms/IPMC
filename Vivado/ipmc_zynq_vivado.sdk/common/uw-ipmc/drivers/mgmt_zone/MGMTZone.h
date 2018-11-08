@@ -53,6 +53,7 @@ public:
 	virtual u32 get_pen_count() const { return this->zone.pwren_cnt; };
 	/// Get the number of hardfault inputs on this MZ controller.
 	virtual u32 get_hardfault_count() const { return this->zone.hf_cnt; };
+
 protected:
 	Mgmt_Zone_Ctrl zone; ///< The Mgmt_Zone_Ctrl instance.
 };
