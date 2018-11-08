@@ -198,7 +198,7 @@ for rec in RECORDS:
 		if ARGS.binary_as_text:
 			msg = 'BIN: ' + repr(msg)[1:]
 		else:
-			msg = 'BIN: ' + ' '.join(map(lambda x: '{:02x}'.format(x), msg))
+			msg = 'BIN: ' + ' '.join(map('{:02x}'.format, msg))
 	else:
 		print(type(msg))
 		assert False, 'Unexpected record data type'

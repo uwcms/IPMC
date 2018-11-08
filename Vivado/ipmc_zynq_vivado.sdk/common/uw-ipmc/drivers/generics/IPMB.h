@@ -27,6 +27,7 @@ protected:
 	 * messages from this interface, if not NULL.
 	 */
 	QueueHandle_t incoming_message_queue;
+
 public:
 	/**
 	 * Set the incoming message queue for this IPMB.
