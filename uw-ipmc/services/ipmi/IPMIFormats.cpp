@@ -71,35 +71,35 @@ std::string render_ipmi_type_length_field(const std::vector<uint8_t> &data) {
 		for (std::vector<uint8_t>::size_type i = 0; i*6 < count6b; ++i) {
 			char c;
 			// Calculate the byte offset in which this char starts.
-			std::vector<uint8_t>::size_type offset = 1 /* header*/ + ((i*6)/8);
+			std::vector<uint8_t>::size_type offset = ((i*6)/8);
 			switch (i % 4) {
 			case 0:
 				/* The first char in a cycle is zero aligned.
 				 *
 				 * Nothing fancy here.
 				 */
-				c = data[offset] & 0x3f;
+				c = data[1+offset] & 0x3f;
 				break;
 			case 1:
 				/* The second char in a cycle is offset by 6.
 				 *
 				 * Take the last two of that, and the first two of the next.
 				 */
-				c = (data[offset+1] & 0x0f) | (data[offset] >> 6);
+				c = (data[1+offset+1] & 0x0f) | (data[1+offset] >> 6);
 				break;
 			case 2:
 				/* The third char in a cycle is offset by 4.
 				 *
 				 * Take the last four of that, and the first two of the next.
 				 */
-				c = (data[offset+1] & 0x03) | (data[offset] >> 4);
+				c = (data[1+offset+1] & 0x03) | (data[1+offset] >> 4);
 				break;
 			case 3:
 				/* The fourth char in a cycle is offset by 2.
 				 *
 				 * Take the last 6 of that.
 				 */
-				c = data[offset] >> 2;
+				c = data[1+offset] >> 2;
 				break;
 			}
 			// Now convert 6b to 8b ASCII.
@@ -109,7 +109,7 @@ std::string render_ipmi_type_length_field(const std::vector<uint8_t> &data) {
 	}
 	else if (field_type == 3) {
 		// Raw ASCII or Unicode.
-		return std::string(std::next(data.begin()), std::next(data.begin(),field_length));
+		return std::string(std::next(data.begin()), std::next(data.begin(),1+field_length));
 	}
 	else {
 		// We have already iterated over values [0,1,2,3] of a 2 bit field.
