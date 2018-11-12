@@ -136,12 +136,12 @@ void ThresholdSensor::update_value(const float value) {
 
 	std::shared_ptr<const SensorDataRecordReadableSensor> sdr = std::dynamic_pointer_cast<const SensorDataRecordReadableSensor>(device_sdr_repo.find(this->sdr_key));
 	if (!sdr) {
-		this->logunique.log_unique(stdsprintf("Unable to locate a readable (Type 01/02) sensor %02hhx%02hhx%02hhx in the Device SDR Repository!  Thresholds not updated!", this->sdr_key[0], this->sdr_key[1], this->sdr_key[2]), LogTree::LOG_ERROR);
+		this->logunique.log_unique(stdsprintf("Unable to locate a readable (Type 01/02) sensor %s in the Device SDR Repository!  Thresholds not updated!", this->sensor_identifier().c_str()), LogTree::LOG_ERROR);
 		xSemaphoreGive(this->value_mutex);
 		return;
 	}
 	if (sdr->event_type_reading_code() != SensorDataRecordSensor::EVENT_TYPE_THRESHOLD_SENSOR) {
-		this->logunique.log_unique(stdsprintf("Sensor %02hhx%02hhx%02hhx (%s) is not a Threshold type sensor in the Device SDR Repository!  Thresholds not updated!", this->sdr_key[0], this->sdr_key[1], this->sdr_key[2], sdr->id_string().c_str()), LogTree::LOG_ERROR);
+		this->logunique.log_unique(stdsprintf("Sensor %s is not a Threshold type sensor in the Device SDR Repository!  Thresholds not updated!", this->sensor_identifier().c_str()), LogTree::LOG_ERROR);
 		xSemaphoreGive(this->value_mutex);
 		return;
 	}
@@ -209,8 +209,8 @@ void ThresholdSensor::update_value(const float value) {
 				(it->direction == Sensor::EVENT_ASSERTION && !(supported_assertion_mask & (1 << it->bit))) ||
 				(it->direction == Sensor::EVENT_DEASSERTION && !(supported_deassertion_mask & (1 << it->bit)))
 				) {
-			this->log.log(stdsprintf("Sensor %02hhx%02hhx%02hhx (%s): %s %s event for value 0x%02hhx (%f), threshold 0x%02hhx is specified as unsupported in the SDR and will not be sent",
-					this->sdr_key[0], this->sdr_key[1], this->sdr_key[2], sdr->id_string().c_str(),
+			this->log.log(stdsprintf("Sensor %s: %s %s event for value 0x%02hhx (%f), threshold 0x%02hhx is specified as unsupported in the SDR and will not be sent",
+					this->sensor_identifier().c_str(),
 					threshold_names.at(it->bit).c_str(), (it->direction == Sensor::EVENT_ASSERTION ? "assertion" : "deassertion"),
 					it->value, value, it->threshold), LogTree::LOG_DIAGNOSTIC);
 		}
@@ -218,14 +218,14 @@ void ThresholdSensor::update_value(const float value) {
 				(it->direction == Sensor::EVENT_ASSERTION && !(enabled_assertion_mask & (1 << it->bit))) ||
 				(it->direction == Sensor::EVENT_DEASSERTION && !(enabled_deassertion_mask & (1 << it->bit)))
 				) {
-			this->log.log(stdsprintf("Sensor %02hhx%02hhx%02hhx (%s): %s %s event for value 0x%02hhx (%f), threshold 0x%02hhx is configured as disabled and will not be sent",
-					this->sdr_key[0], this->sdr_key[1], this->sdr_key[2], sdr->id_string().c_str(),
+			this->log.log(stdsprintf("Sensor %s: %s %s event for value 0x%02hhx (%f), threshold 0x%02hhx is configured as disabled and will not be sent",
+					this->sensor_identifier().c_str(),
 					threshold_names.at(it->bit).c_str(), (it->direction == Sensor::EVENT_ASSERTION ? "assertion" : "deassertion"),
 					it->value, value, it->threshold), LogTree::LOG_DIAGNOSTIC);
 		}
 		else {
-			this->log.log(stdsprintf("Sensor %02hhx%02hhx%02hhx (%s): Sending %s %s event for value 0x%02hhx (%f), threshold 0x%02hhx",
-					this->sdr_key[0], this->sdr_key[1], this->sdr_key[2], sdr->id_string().c_str(),
+			this->log.log(stdsprintf("Sensor %s: Sending %s %s event for value 0x%02hhx (%f), threshold 0x%02hhx",
+					this->sensor_identifier().c_str(),
 					threshold_names.at(it->bit).c_str(), (it->direction == Sensor::EVENT_ASSERTION ? "assertion" : "deassertion"),
 					it->value, value, it->threshold), LogTree::LOG_DIAGNOSTIC);
 
@@ -260,12 +260,12 @@ ThresholdSensor::Value ThresholdSensor::get_value() const {
 		return value;
 	std::shared_ptr<const SensorDataRecordSensor> sdr = std::dynamic_pointer_cast<const SensorDataRecordSensor>(device_sdr_repo.find(this->sdr_key));
 	if (!sdr) {
-		this->logunique.log_unique(stdsprintf("Unable to locate sensor %02hhx%02hhx%02hhx in the Device SDR Repository!", this->sdr_key[0], this->sdr_key[1], this->sdr_key[2]), LogTree::LOG_ERROR);
+		this->logunique.log_unique(stdsprintf("Unable to locate sensor %s in the Device SDR Repository!", this->sensor_identifier().c_str()), LogTree::LOG_ERROR);
 		return value; // No exceptions available, so we'll send what we have, and byte_value can be something blatantly bad.
 	}
 	std::shared_ptr<const SensorDataRecordReadableSensor> sdr_readable = std::dynamic_pointer_cast<const SensorDataRecordReadableSensor>(sdr);
 	if (!sdr_readable) {
-		this->logunique.log_unique(stdsprintf("Sensor %02hhx%02hhx%02hhx (%s) is not a readable (Type 01/02) sensor in the Device SDR Repository!", this->sdr_key[0], this->sdr_key[1], this->sdr_key[2], sdr->id_string().c_str()), LogTree::LOG_ERROR);
+		this->logunique.log_unique(stdsprintf("Sensor %s is not a readable (Type 01/02) sensor in the Device SDR Repository!", this->sensor_identifier().c_str()), LogTree::LOG_ERROR);
 		return value; // No exceptions available, so we'll send what we have, and byte_value can be something blatantly bad.
 	}
 	value.byte_value = sdr_readable->from_float(value.float_value);
@@ -290,4 +290,15 @@ std::vector<uint8_t> ThresholdSensor::get_sensor_reading() {
 			(value.byte_value <= this->thresholds.lnc ? 0x01 : 0)
 			);
 	return out;
+}
+
+void ThresholdSensor::rearm() {
+	/* Clearing our value and IPMI events such that the next update will do
+	 * everything that is needed of us.
+	 */
+	xSemaphoreTake(this->value_mutex, portMAX_DELAY);
+	this->last_value = NAN;
+	this->active_thresholds = 0;
+	xSemaphoreGive(this->value_mutex);
+	this->log.log(stdsprintf("Sensor %s rearmed!", this->sensor_identifier()), LogTree::LOG_INFO);
 }

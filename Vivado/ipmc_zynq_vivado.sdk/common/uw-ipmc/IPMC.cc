@@ -59,6 +59,7 @@ extern "C" {
 #include <services/ipmi/sdr/SensorDataRecord01.h>
 #include <services/ipmi/sdr/SensorDataRecord02.h>
 #include <services/ipmi/sdr/SensorDataRecord12.h>
+#include <services/ipmi/sensor/SensorSet.h>
 #include <services/ipmi/sensor/Sensor.h>
 #include <services/ipmi/sensor/HotswapSensor.h>
 #include <services/ipmi/sensor/ThresholdSensor.h>
@@ -85,7 +86,7 @@ Network *network;
 IPMICommandParser *ipmi_command_parser;
 SensorDataRepository sdr_repo;
 SensorDataRepository device_sdr_repo;
-std::map< uint8_t, std::shared_ptr<Sensor> > ipmc_sensors;
+SensorSet ipmc_sensors(&device_sdr_repo);
 XGpioPs gpiops;
 LogTree LOG("ipmc");
 LogTree::Filter *console_log_filter;
@@ -182,9 +183,9 @@ void driver_init(bool use_pl) {
 	ipmi_command_parser = new IPMICommandParser(ipmicmd_default, *ipmicmd_index);
 	ipmb0 = new IPMBSvc(ipmb0pair, ipmbaddr, ipmi_command_parser, log_ipmb0, "ipmb0", SWDT);
 	ipmb0->register_console_commands(console_command_parser, "ipmb0.");
-	ipmi_event_receiver.ipmb = NULL;
+	ipmi_event_receiver.ipmb = ipmb0;
 	ipmi_event_receiver.lun = 0;
-	ipmi_event_receiver.addr = 0;
+	ipmi_event_receiver.addr = 0x20; // Should be `0xFF "Disabled"`, maybe?
 
 	// TODO: Clean up this part
 	PL_I2C *i2c = new PL_I2C(XPAR_AXI_IIC_PIM400_DEVICE_ID, XPAR_FABRIC_AXI_IIC_PIM400_IIC2INTC_IRPT_INTR);
@@ -504,11 +505,8 @@ static void init_device_sdrs(bool reinit) {
 		hotswap.discrete_reading_setable_threshold_reading_mask(0x00ff); // M7:M0
 		// I don't need to specify unit type codes for this sensor.
 		ADD_TO_REPO(hotswap);
-		if (ipmc_sensors.count(hotswap.sensor_number()) == 0)
-			ipmc_sensors.emplace(
-					hotswap.sensor_number(),
-					std::make_shared<HotswapSensor>(hotswap.record_key(), LOG["sensors"]["Hotswap"])
-					);
+		if (!ipmc_sensors.get(hotswap.sensor_number()))
+			ipmc_sensors.add(std::make_shared<HotswapSensor>(hotswap.record_key(), LOG["sensors"]["Hotswap"]));
 	}
 
 	{
@@ -566,11 +564,8 @@ static void init_device_sdrs(bool reinit) {
 		sensor.hysteresis_high(2); // +0.02 Volts
 		sensor.hysteresis_low(2); // -0.02 Volts
 		ADD_TO_REPO(sensor);
-		if (ipmc_sensors.count(sensor.sensor_number()) == 0)
-			ipmc_sensors.emplace(
-					sensor.sensor_number(),
-					std::make_shared<ThresholdSensor>(sensor.record_key(), LOG["sensors"]["Payload 3.3V"])
-					);
+		if (!ipmc_sensors.get(sensor.sensor_number()))
+			ipmc_sensors.add(std::make_shared<ThresholdSensor>(sensor.record_key(), LOG["sensors"]["Payload 3.3V"]));
 	}
 
 #undef ADD_TO_REPO
@@ -1110,6 +1105,26 @@ public:
 	}
 };
 
+class ConsoleCommand_transition : public CommandParser::Command {
+public:
+	virtual std::string get_helptext(const std::string &command) const {
+		return stdsprintf(
+				"%s $new_mstate $reason\n\n"
+				"Transitions to the specified M-state.\n", command.c_str());
+	}
+
+	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
+		CommandParser::CommandParameters::xint8_t mstate, reason;
+		if (!parameters.parse_parameters(1, true, &mstate, &reason)) {
+			console->write("Invalid arguments, see help.\n");
+			return;
+		}
+		std::shared_ptr<HotswapSensor> hotswap = std::dynamic_pointer_cast<HotswapSensor>(ipmc_sensors.find_by_name("Hotswap"));
+		configASSERT(hotswap);
+		hotswap->transition(mstate, static_cast<HotswapSensor::StateTransitionReason>(static_cast<uint8_t>(reason)));
+	}
+};
+
 } // anonymous namespace
 
 static void register_core_console_commands(CommandParser &parser) {
@@ -1124,6 +1139,7 @@ static void register_core_console_commands(CommandParser &parser) {
 	if (IPMC_SERIAL == 0 || IPMC_SERIAL == 0xFFFF)
 		console_command_parser.register_command("set_serial", std::make_shared<ConsoleCommand_set_serial>());
 	console_command_parser.register_command("upload", std::make_shared<ConsoleCommand_upload>());
+	console_command_parser.register_command("transition", std::make_shared<ConsoleCommand_transition>());
 }
 
 static void console_log_handler(LogTree &logtree, const std::string &message, enum LogTree::LogLevel level) {

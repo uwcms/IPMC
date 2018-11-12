@@ -38,7 +38,7 @@ Sensor::~Sensor() {
 void Sensor::send_event(enum EventDirection direction, const std::vector<uint8_t> &event_data) {
 	std::shared_ptr<const SensorDataRecordSensor> sdr = std::dynamic_pointer_cast<const SensorDataRecordSensor>(device_sdr_repo.find(this->sdr_key));
 	if (!sdr) {
-		this->logunique.log_unique(stdsprintf("Unable to locate sensor %02hhx%02hhx%02hhx in the Device SDR Repository!  Event not transmitted!", this->sdr_key[0], this->sdr_key[1], this->sdr_key[2]), LogTree::LOG_ERROR);
+		this->logunique.log_unique(stdsprintf("Unable to locate sensor %s in the Device SDR Repository!  Event not transmitted!", this->sensor_identifier().c_str()), LogTree::LOG_ERROR);
 		return;
 	}
 
@@ -47,7 +47,7 @@ void Sensor::send_event(enum EventDirection direction, const std::vector<uint8_t
 	memcpy(&er, &ipmi_event_receiver, sizeof(EventReceiver));
 	portEXIT_CRITICAL();
 
-	if (!ipmi_event_receiver.ipmb) {
+	if (!ipmi_event_receiver.ipmb || ipmi_event_receiver.addr == 0xFF /* Disabled */) {
 		this->logunique.log_unique(stdsprintf("There is not yet an IPMI Event Receiver.  Discarding events on sensor \"%s\".", sdr->id_string().c_str()), LogTree::LOG_DIAGNOSTIC);
 		return;
 	}
@@ -60,4 +60,19 @@ void Sensor::send_event(enum EventDirection direction, const std::vector<uint8_t
 	std::shared_ptr<IPMI_MSG> msg = std::make_shared<IPMI_MSG>(0, er.ipmb->ipmb_address, er.lun, er.addr, IPMI::NetFn::Sensor_Event, IPMI::Sensor_Event::Platform_Event, data);
 	this->log.log(stdsprintf("Sending event on \"%s\" sensor to %hhu.%02hhx: %s", sdr->id_string().c_str(), er.lun, er.addr, msg->format().c_str()), LogTree::LOG_INFO);
 	ipmb0->send(msg);
+}
+
+/**
+ * Generates a human-readable sensor description suitable for identifying the
+ * sensor in logs.  It includes the SDR Key, and if the SDR can be located, the
+ * sensor name stored in it.
+ *
+ * @return A human-readable unique identifer for this sensor
+ */
+std::string Sensor::sensor_identifier() const {
+	std::shared_ptr<const SensorDataRecordSensor> sdr = std::dynamic_pointer_cast<const SensorDataRecordSensor>(device_sdr_repo.find(this->sdr_key));
+	if (sdr)
+		return stdsprintf("%02hhx%02hhx%02hhx (%s)", this->sdr_key[0], this->sdr_key[1], this->sdr_key[2], sdr->id_string().c_str());
+	else
+		return stdsprintf("%02hhx%02hhx%02hhx (<No SDR Located>)", this->sdr_key[0], this->sdr_key[1], this->sdr_key[2]);
 }

@@ -45,8 +45,8 @@ extern EventReceiver ipmi_event_receiver;
 class SensorDataRepository;
 extern SensorDataRepository sdr_repo;
 extern SensorDataRepository device_sdr_repo;
-class Sensor;
-extern std::map< uint8_t, std::shared_ptr<Sensor> > ipmc_sensors;
+class SensorSet;
+extern SensorSet ipmc_sensors;
 
 extern LogTree LOG;
 extern LogTree::Filter *console_log_filter;
