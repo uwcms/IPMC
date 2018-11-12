@@ -16,7 +16,7 @@
 class HotswapSensor: public Sensor {
 public:
 	/// Instantiate the HotswapSensor
-	HotswapSensor(const std::vector<uint8_t> &sdr_key, LogTree &log) : Sensor(sdr_key, log) { };
+	HotswapSensor(const std::vector<uint8_t> &sdr_key, LogTree &log) : Sensor(sdr_key, log), mstate(0) { };
 	virtual ~HotswapSensor() { };
 
 	/// PICMG State Transition Reasons (PICMG 3.0 Table 3-23)
@@ -36,6 +36,7 @@ public:
 	};
 	virtual void transition(uint8_t new_state, enum StateTransitionReason reason);
 	virtual std::vector<uint8_t> get_sensor_reading();
+	virtual void rearm();
 
 	/// Return the current M-State
 	virtual uint8_t get_mstate() { return this->mstate; };

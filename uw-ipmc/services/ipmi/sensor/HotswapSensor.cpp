@@ -31,3 +31,10 @@ std::vector<uint8_t> HotswapSensor::get_sensor_reading() {
 	out[3] = this->mstate;
 	return out;
 }
+
+void HotswapSensor::rearm() {
+	/* It is unclear what reason code I am expected to send in the event of a
+	 * rearm of the hotswap sensor, so I will send "Unknown Reason".
+	 */
+	this->transition(this->mstate, HotswapSensor::TRANS_REASON_UNKNOWN);
+}

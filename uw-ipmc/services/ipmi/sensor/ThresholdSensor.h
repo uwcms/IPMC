@@ -48,8 +48,8 @@ public:
 	} Value;
 
 	virtual Value get_value() const;
-
 	virtual std::vector<uint8_t> get_sensor_reading();
+	virtual void rearm();
 
 protected:
 	uint16_t active_thresholds; ///< Currently active thresholds.

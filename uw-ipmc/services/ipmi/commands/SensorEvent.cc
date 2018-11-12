@@ -1,15 +1,27 @@
 #include <services/ipmi/IPMI.h>
 #include <services/ipmi/ipmbsvc/IPMBSvc.h>
+#include <services/ipmi/sensor/SensorSet.h>
+#include <IPMC.h>
 #include "IPMICmd_Index.h"
 
 // Event Commands
 
-#if 0 // Unimplemented.
 static void ipmicmd_Set_Event_Receiver(IPMBSvc &ipmb, const IPMI_MSG &message) {
-	// Unimplemented.
+	ipmi_event_receiver.ipmb = &ipmb;
+	ipmi_event_receiver.addr = message.data[0];
+	ipmi_event_receiver.lun  = message.data[1] & 0x03;
+
+	std::shared_ptr<IPMI_MSG> reply = std::make_shared<IPMI_MSG>();
+	message.prepare_reply(*reply);
+	reply->data[0] = IPMI::Completion::Success;
+	reply->data_len = 1;
+	ipmb.send(reply);
+
+	SensorSet::container_type all_sensors(ipmc_sensors);
+	for (auto it = all_sensors.begin(), eit = all_sensors.end(); it != eit; ++it)
+		it->second->rearm();
 }
 IPMICMD_INDEX_REGISTER(Set_Event_Receiver);
-#endif
 
 #if 0 // Unimplemented.
 static void ipmicmd_Get_Event_Receiver(IPMBSvc &ipmb, const IPMI_MSG &message) {
