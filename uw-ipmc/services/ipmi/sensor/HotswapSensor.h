@@ -16,8 +16,8 @@
 class HotswapSensor: public Sensor {
 public:
 	/// Instantiate the HotswapSensor
-	HotswapSensor(const std::vector<uint8_t> &sdr_key, LogTree &log) : Sensor(sdr_key, log), mstate(0) { };
-	virtual ~HotswapSensor() { };
+	HotswapSensor(const std::vector<uint8_t> &sdr_key, LogTree &log);
+	virtual ~HotswapSensor();
 
 	/// PICMG State Transition Reasons (PICMG 3.0 Table 3-23)
 	enum StateTransitionReason {
@@ -43,6 +43,9 @@ public:
 
 protected:
 	uint8_t mstate; ///< The current M-State
+	uint8_t previous_mstate; ///< The previous M-State
+	enum StateTransitionReason last_transition_reason; ///< The last transition reason.
+	SemaphoreHandle_t mutex; ///< A mutex to protect internal state.
 };
 
 #endif /* SRC_COMMON_UW_IPMC_SERVICES_IPMI_SENSOR_HOTSWAPSENSOR_H_ */
