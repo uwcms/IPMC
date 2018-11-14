@@ -13,6 +13,33 @@
 #include "xscugic.h"
 #include "xil_exception.h"
 
+#include <libs/BackTrace.h>
+
+extern "C" {
+int __real_printf(const char *format, ...);
+}
+
+// Replace week abort with one that actually does something.
+// In case abort gets called there will be a stack trace showing on the console.
+// __real_printf is used so that writes to the UART driver are blocking.
+void abort() {
+	BackTrace *extrace = BackTrace::traceException();
+
+	if (extrace) {
+		__real_printf("\n-- ABORT DUE TO EXCEPTION --\n");
+		__real_printf(extrace->toString().c_str());
+	} else {
+		BackTrace trace;
+		trace.trace();
+		__real_printf("\n-- ABORT CALLED --\n");
+		__real_printf(trace.toString().c_str());
+	}
+
+	__real_printf("-- ASSERTING --\n");
+
+	configASSERT(0);
+}
+
 extern "C" {
 #include <lwip/opt.h>
 }
@@ -182,6 +209,8 @@ int main() {
 
 	/* See http://www.freertos.org/RTOS-Xilinx-Zynq.html. */
 	prvSetupHardware();
+
+	//std::terminate();
 
 	configASSERT(UWTaskCreate("init", TASK_PRIORITY_WATCHDOG, []() -> void {
 		driver_init(true);
