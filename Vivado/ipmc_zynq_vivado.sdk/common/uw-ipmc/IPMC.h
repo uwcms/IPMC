@@ -51,7 +51,8 @@ extern SensorSet ipmc_sensors;
 extern LogTree LOG;
 extern LogTree::Filter *console_log_filter;
 class TraceBuffer;
-extern TraceBuffer TRACE;
+TraceBuffer& get_tracebuffer();
+#define TRACE get_tracebuffer()
 
 class SPI_EEPROM;
 extern SPI_EEPROM *eeprom_mac;
