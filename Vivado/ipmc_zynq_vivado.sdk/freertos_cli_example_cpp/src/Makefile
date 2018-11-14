@@ -40,6 +40,8 @@ export FUNCTION_WRAPPERS = \
 	-Wl,-wrap=print \
 	-Wl,-wrap=sleep \
 	-Wl,-wrap=sha_256 \
+	-Wl,-wrap=__cxa_throw \
+	-Wl,-wrap=__cxa_free_exception \
 
 export LIBRARY_PATHS = \
 	-L"$(WORKSPACE)/ipmc_standalone_bsp/ps7_cortexa9_0/lib" \
@@ -48,7 +50,7 @@ export LIBS := -lrsa -Wl,--start-group,-lxil,-lgcc,-lc,-lstdc++,--end-group
 
 ifeq ($(BUILD_CONFIGURATION),Debug)
 # "-Og Optimize debugging experience.  -Og enables optimizations that do not interfere with debugging." from man g++
-OPTIMIZE_OPTIONS := -O0 -ggdb3
+OPTIMIZE_OPTIONS := -O0 -ggdb3  -funwind-tables -mpoke-function-name
 #-flto -fuse-linker-plugin -fno-fat-lto-objects
 else
 # "-Os Optimize for size.  -Os enables all -O2 optimizations that do not typically increase code size." from man g++
