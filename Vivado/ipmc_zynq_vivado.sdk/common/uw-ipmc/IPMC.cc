@@ -91,9 +91,6 @@ SensorSet ipmc_sensors(&device_sdr_repo);
 XGpioPs gpiops;
 LogTree LOG("ipmc");
 LogTree::Filter *console_log_filter;
-#define TRACEBUFFER_SIZE (1*1024*1024)
-static uint8_t tracebuffer_contents[TRACEBUFFER_SIZE];
-TraceBuffer TRACE(tracebuffer_contents, TRACEBUFFER_SIZE);
 SPI_EEPROM *eeprom_mac;
 SPI_EEPROM *eeprom_data;
 PersistentStorage *persistent_storage;
