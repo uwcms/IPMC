@@ -7,6 +7,8 @@
 #include <task.h>
 #include <IPMC.h>
 
+#include <libs/BackTrace.h>
+
 /**
  * Instantiate an AbsoluteTimeout.
  *
@@ -224,7 +226,7 @@ void trampoline_cancel(void *voidstar) {
 		return;
 	delete reinterpret_cast< std::function<void(void)>* >(voidstar);
 }
-
+#include <iostream>
 /**
  * Provides the wrapper handling function call and thread cleanup for UWTaskCreate().
  *
@@ -232,7 +234,25 @@ void trampoline_cancel(void *voidstar) {
  */
 static void uwtask_run(void *stdfunc_cb) {
 	std::function<void(void)> *stdfunc = reinterpret_cast< std::function<void(void)>* >(stdfunc_cb);
-	(*stdfunc)();
+	try {
+		(*stdfunc)();
+	} catch (...) {
+		TaskHandle_t handler = xTaskGetCurrentTaskHandle();
+		char *tskname = pcTaskGetName(handler);
+
+		std::string diag;
+		BackTrace* trace = BackTrace::traceException();
+
+		if (trace) {
+			// There is a trace available!
+			diag += stdsprintf("Uncaught exception '%s' in task '%s':\n", trace->getName().c_str(), tskname);
+			diag += trace->toString();
+		} else {
+			diag += stdsprintf("Uncaught exception in thread '%s'. No trace available.", tskname);
+		}
+
+		print(diag.c_str());
+	}
 	delete stdfunc;
 	vTaskDelete(NULL);
 }

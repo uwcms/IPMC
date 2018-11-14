@@ -75,7 +75,7 @@ void ipmc_service_init();
 #define TASK_PRIORITY_BACKGROUND  1
 #define TASK_PRIORITY_IDLE        0 // Used by FreeRTOS.
 
-#define UWIPMC_STANDARD_STACK_SIZE (8192/4)
+#define UWIPMC_STANDARD_STACK_SIZE (16384/4)
 
 std::string generate_banner();
 std::string stdsprintf(const char *fmt, ...) __attribute__((format(printf,1,2)));

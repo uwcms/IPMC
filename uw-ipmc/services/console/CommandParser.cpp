@@ -66,6 +66,7 @@ public:
  */
 CommandParser::CommandParser(CommandParser *chain)
 	: chain(chain) {
+	throw 0;
 	this->mutex = xSemaphoreCreateMutex();
 	configASSERT(this->mutex);
 	// Register a help command by default.

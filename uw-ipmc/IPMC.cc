@@ -26,6 +26,7 @@
 #include "libs/XilinxImage.h"
 #include "libs/Authentication.h"
 #include "libs/base64/base64.h"
+#include <libs/BackTrace.h>
 #include <services/ipmi/IPMIFormats.h>
 
 /* Include drivers */
@@ -1125,6 +1126,39 @@ public:
 	}
 };
 
+class ConsoleCommand_throw : public CommandParser::Command {
+public:
+	virtual std::string get_helptext(const std::string &command) const {
+		return stdsprintf(
+				"%s\n\n"
+				"Throw and exception. Test command.\n", command.c_str());
+	}
+
+	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
+		//throw std::exception();
+		throw 0;
+	}
+};
+
+class ConsoleCommand_trace : public CommandParser::Command {
+public:
+	virtual std::string get_helptext(const std::string &command) const {
+		return stdsprintf(
+				"%s\n\n"
+				"Backtrace. Test command.\n", command.c_str());
+	}
+
+	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
+		BackTrace trace;
+		trace.trace();
+
+		console->write(trace.toString());
+
+		//throw std::exception();
+
+	}
+};
+
 } // anonymous namespace
 
 static void register_core_console_commands(CommandParser &parser) {
@@ -1140,6 +1174,8 @@ static void register_core_console_commands(CommandParser &parser) {
 		console_command_parser.register_command("set_serial", std::make_shared<ConsoleCommand_set_serial>());
 	console_command_parser.register_command("upload", std::make_shared<ConsoleCommand_upload>());
 	console_command_parser.register_command("transition", std::make_shared<ConsoleCommand_transition>());
+	console_command_parser.register_command("throw", std::make_shared<ConsoleCommand_throw>());
+	console_command_parser.register_command("trace", std::make_shared<ConsoleCommand_trace>());
 }
 
 static void console_log_handler(LogTree &logtree, const std::string &message, enum LogTree::LogLevel level) {
