@@ -158,8 +158,8 @@ void vApplicationGetTimerTaskMemory(StaticTask_t **ppxTimerTaskTCBBuffer, StackT
 void vApplicationMallocFailedHook( void )
 {
 	void __real_xil_printf( const char8 *ctrl1, ...);
-	__real_xil_printf( "HALT: vApplicationMallocFailedHook() called\n" );
-	configASSERT(0);
+	__real_xil_printf("HALT: vApplicationMallocFailedHook() called\n");
+	abort();
 }
 
 void vApplicationStackOverflowHook( TaskHandle_t xTask, char *pcTaskName )
@@ -174,7 +174,7 @@ void vApplicationStackOverflowHook( TaskHandle_t xTask, char *pcTaskName )
 
 	void __real_xil_printf( const char8 *ctrl1, ...);
 	__real_xil_printf( "HALT: Task %s overflowed its stack.", pcOverflowingTaskName );
-	configASSERT(0);
+	abort();
 }
 
 /*-----------------------------------------------------------*/
@@ -241,11 +241,11 @@ int main() {
 
 	//std::terminate();
 
-	configASSERT(UWTaskCreate("init", TASK_PRIORITY_WATCHDOG, []() -> void {
+	UWTaskCreate("init", TASK_PRIORITY_WATCHDOG, []() -> void {
 		driver_init(true);
 		ipmc_service_init();
 		LOG.log(std::string("\n") + generate_banner(), LogTree::LOG_NOTICE); // This is the ONLY place that should EVER log directly to LOG rather than a subtree.
-	}));
+	});
 
 	/* Start the tasks and timer running. */
 	vTaskStartScheduler();

@@ -10,6 +10,7 @@
 #include <functional>
 #include <string>
 #include <exception>
+#include <libs/except.h>
 
 /**
  * Given a pre-existing mutex, the MutexLock class automatically locks when created and releases it
@@ -134,6 +135,8 @@ extern "C" {
 	void trampoline_multilaunch_pv_x(void *voidstar, BaseType_t ignored);
 	void trampoline_cancel(void *voidstar);
 }
+
+DEFINE_GENERIC_EXCEPTION(thread_create_error, std::runtime_error)
 
 class BackTrace;
 std::string render_exception_report(const BackTrace *trace, const std::exception *exception, std::string location_description);

@@ -16,9 +16,9 @@
 
 FTPServer::FTPServer(AuthCallbackFunc *authcallback, const uint16_t comport, const uint16_t dataport)
 : authcallback(authcallback), comport(comport), dataport(dataport) {
-	configASSERT(UWTaskCreate(std::string(FTPSERVER_THREAD_NAME ":") + std::to_string(comport), TASK_PRIORITY_SERVICE, [this]() -> void {
+	UWTaskCreate(std::string(FTPSERVER_THREAD_NAME ":") + std::to_string(comport), TASK_PRIORITY_SERVICE, [this]() -> void {
 		this->thread_ftpserverd();
-	}));
+	});
 }
 
 void FTPServer::thread_ftpserverd() {

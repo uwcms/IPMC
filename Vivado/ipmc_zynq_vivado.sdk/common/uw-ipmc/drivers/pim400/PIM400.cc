@@ -7,12 +7,14 @@
 
 #include <drivers/pim400/PIM400.h>
 #include <libs/printf.h>
+#include <libs/except.h>
 #include <services/console/CommandParser.h>
 #include <services/console/ConsoleSvc.h>
 
 PIM400::PIM400(I2C &i2c, uint8_t i2c_addr) :
 i2c(i2c), i2c_addr(i2c_addr>>1) {
-	configASSERT(this->i2c_addr > 0);
+	if (this->i2c_addr == 0)
+		throw std::domain_error("Invalid I2C address (0) for PIM400.");
 }
 
 PIM400::~PIM400() {

@@ -19,7 +19,7 @@ baseAddr(baseAddr), port(port), verbose(false) {
 	threadName += std::to_string(port);
 
 	// Start the XVC server thread
-	configASSERT(UWTaskCreate(threadName, TASK_PRIORITY_BACKGROUND, [this]() {
+	UWTaskCreate(threadName, TASK_PRIORITY_BACKGROUND, [this]() {
 		// Just allow one connection at a time
 		ServerSocket server(this->port);
 
@@ -41,7 +41,7 @@ baseAddr(baseAddr), port(port), verbose(false) {
 
 			this->HandleClient(client);
 		}
-	}));
+	});
 }
 
 

@@ -1,3 +1,5 @@
+#include <exception>
+
 namespace {
 
 /// A debugging command to transition between M-states.
@@ -16,7 +18,8 @@ public:
 			return;
 		}
 		std::shared_ptr<HotswapSensor> hotswap = std::dynamic_pointer_cast<HotswapSensor>(ipmc_sensors.find_by_name("Hotswap"));
-		configASSERT(hotswap);
+		if (!hotswap)
+			throw std::out_of_range("No sensor named \"Hotswap\" found!");
 		hotswap->transition(mstate, static_cast<HotswapSensor::StateTransitionReason>(static_cast<uint8_t>(reason)));
 	}
 };

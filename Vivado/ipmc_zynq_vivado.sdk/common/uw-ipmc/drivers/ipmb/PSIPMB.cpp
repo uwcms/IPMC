@@ -16,6 +16,7 @@
 #include <queue.h>
 #include <task.h>
 #include <libs/printf.h>
+#include <libs/except.h>
 
 static void XIicPs_VariableLengthSlaveInterruptHandler(XIicPs *InstancePtr);
 
@@ -45,7 +46,8 @@ PS_IPMB::PS_IPMB(u16 DeviceId, u32 IntrId, u8 IPMBAddr) :
 	configASSERT(this->sendresult_q);
 
 	XIicPs_Config *Config = XIicPs_LookupConfig(DeviceId);
-	configASSERT(XST_SUCCESS == XIicPs_CfgInitialize(&this->IicInst, Config, Config->BaseAddress));
+	if (XST_SUCCESS != XIicPs_CfgInitialize(&this->IicInst, Config, Config->BaseAddress))
+		throw except::hardware_error(stdsprintf("Unable to initialize PS I2C for PS_IPMB(%hu, %u, %hhu)", DeviceId, IntrId, IPMBAddr));
 
 	this->setup_slave();
 }

@@ -8,6 +8,7 @@
 #include "InterruptBasedDriver.h"
 #include <FreeRTOS.h>
 #include <xscugic.h>
+#include <libs/except.h>
 
 extern XScuGic xInterruptController;
 
@@ -48,8 +49,9 @@ void InterruptBasedDriver::connectInterrupt(uint32_t intr, uint8_t trigger) {
 }
 
 void InterruptBasedDriver::connectInterrupt() {
-	configASSERT(XST_SUCCESS ==
-		XScuGic_Connect(&xInterruptController, this->intr, InterruptBasedDriver::_InterruptWrapper, (void*)this));
+	if (XST_SUCCESS !=
+		XScuGic_Connect(&xInterruptController, this->intr, InterruptBasedDriver::_InterruptWrapper, (void*)this))
+		throw except::hardware_error("Unable to connect handler to interrupt controller.");
 	this->enableInterrupts();
 
 	this->connected = true;

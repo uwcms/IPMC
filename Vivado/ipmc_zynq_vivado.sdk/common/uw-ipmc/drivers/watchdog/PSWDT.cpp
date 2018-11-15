@@ -12,6 +12,7 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include <string.h>
+#include <libs/except.h>
 
 const static volatile uint32_t global_canary_lshifted1 = 0x87d64518;
 #define GLOBAL_CANARY_RSHIFTED1 0x21f59146
@@ -31,8 +32,10 @@ PS_WDT::PS_WDT(u32 DeviceId, u8 num_slots, LogTree &log, std::function<void(void
 	this->global_canary = global_canary_lshifted1>>1;
 
 	XWdtPs_Config *Config = XWdtPs_LookupConfig(DeviceId);
-	configASSERT(Config);
-	configASSERT(XST_SUCCESS == XWdtPs_CfgInitialize(&this->wdt, Config, Config->BaseAddress));
+	if (!Config)
+		throw except::hardware_error("Unable to locate PS watchdog device");
+	if (XST_SUCCESS != XWdtPs_CfgInitialize(&this->wdt, Config, Config->BaseAddress))
+		throw except::hardware_error("Unable to configure PS watchdog device");
 
 	for (u8 i = 0; i < this->num_slots; ++i) {
 		struct wdtslot &slot = this->slots[i];
@@ -132,7 +135,8 @@ void PS_WDT::_run_thread() {
  */
 PS_WDT::slot_handle_t PS_WDT::register_slot(uint32_t lifetime) {
 	portENTER_CRITICAL();
-	configASSERT(this->free_slot < this->num_slots);
+	if (this->free_slot >= this->num_slots)
+		throw std::domain_error("No free PS_WDT slots.");
 	u8 slotid = this->free_slot++;
 	struct wdtslot &slot = this->slots[slotid];
 	slot.enabled = 0;
@@ -150,7 +154,8 @@ PS_WDT::slot_handle_t PS_WDT::register_slot(uint32_t lifetime) {
  */
 void PS_WDT::activate_slot(slot_handle_t slot_handle) {
 	u8 slotid = slot_handle & 0xff;
-	configASSERT(slot_handle == (0x80000000|(slotid<<24)|((~slotid)<<16)|slotid)); // Valid?
+	if (slot_handle != (0x80000000|(slotid<<24)|((~slotid)<<16)|slotid)) // Valid?
+		throw std::out_of_range(std::string("Invalid PS_WDT slot: ") + std::to_string(slotid));
 	portENTER_CRITICAL();
 	struct wdtslot &slot = this->slots[slotid];
 	if (slot.config_cksum != ((~((static_cast<uint64_t>(slot.enabled)<<32)|static_cast<uint64_t>(slot.lifetime))) ^ (slotkey_lshifted1>>1))) {
@@ -178,7 +183,8 @@ void PS_WDT::activate_slot(slot_handle_t slot_handle) {
  */
 void PS_WDT::deactivate_slot(slot_handle_t slot_handle, uint32_t deactivate_code) {
 	u8 slotid = slot_handle & 0xff;
-	configASSERT(slot_handle == (0x80000000|(slotid<<24)|((~slotid)<<16)|slotid)); // Valid?
+	if (slot_handle != (0x80000000|(slotid<<24)|((~slotid)<<16)|slotid)) // Valid?
+		throw std::out_of_range(std::string("Invalid PS_WDT slot: ") + std::to_string(slotid));
 	portENTER_CRITICAL();
 	struct wdtslot &slot = this->slots[slotid];
 	if (deactivate_code != (deactivate_code_lshifted1>>1)) {
@@ -208,7 +214,8 @@ void PS_WDT::deactivate_slot(slot_handle_t slot_handle, uint32_t deactivate_code
  */
 void PS_WDT::service_slot(slot_handle_t slot_handle) {
 	u8 slotid = slot_handle & 0xff;
-	configASSERT(slot_handle == (0x80000000|(slotid<<24)|((~slotid)<<16)|slotid)); // Valid?
+	if (slot_handle != (0x80000000|(slotid<<24)|((~slotid)<<16)|slotid)) // Valid?
+		throw std::out_of_range(std::string("Invalid PS_WDT slot: ") + std::to_string(slotid));
 	portENTER_CRITICAL();
 	struct wdtslot &slot = this->slots[slotid];
 	if (slot.config_cksum != ((~((static_cast<uint64_t>(slot.enabled)<<32)|static_cast<uint64_t>(slot.lifetime))) ^ (slotkey_lshifted1>>1))) {

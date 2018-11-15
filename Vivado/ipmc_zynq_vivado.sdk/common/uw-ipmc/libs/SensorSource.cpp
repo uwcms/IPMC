@@ -23,9 +23,9 @@ void SensorSource::startRefreshTask(const std::string& taskname, const uint32_t 
 	this->changeRefreshInterval(ms_interval);
 	this->taskName = std::string("sd:") + taskname;
 
-	configASSERT(UWTaskCreate(this->taskName, TASK_PRIORITY_DRIVER, [this]() -> void {
+	UWTaskCreate(this->taskName, TASK_PRIORITY_DRIVER, [this]() -> void {
 		this->_backgroundTask();
-	}));
+	});
 }
 
 void SensorSource::changeRefreshInterval(const uint32_t ms_interval) {

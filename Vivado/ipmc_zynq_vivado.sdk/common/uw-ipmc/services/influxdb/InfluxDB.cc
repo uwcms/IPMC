@@ -45,9 +45,9 @@ logtree(logtree) {
 		this->flushTicks = pdMS_TO_TICKS(this->config->flushInterval * 1000);
 	}
 
-	configASSERT(UWTaskCreate("influxdbd", TASK_PRIORITY_BACKGROUND, [this]() -> void {
+	UWTaskCreate("influxdbd", TASK_PRIORITY_BACKGROUND, [this]() -> void {
 		this->_backgroundTask();
-	}));
+	});
 }
 
 InfluxDB::~InfluxDB() {

@@ -8,6 +8,8 @@
 #include <mgmt_zone_ctrl.h>
 #include <drivers/mgmt_zone/MGMTZone.h>
 #include "FreeRTOS.h"
+#include <libs/printf.h>
+#include <libs/except.h>
 
 /**
  * Instantiate a MZ.
@@ -17,7 +19,8 @@
  */
 MGMT_Zone::MGMT_Zone(u16 DeviceId, u32 MZNo)
 	: DeviceId(DeviceId), MZNo(MZNo) {
-	configASSERT(XST_SUCCESS == Mgmt_Zone_Ctrl_Initialize(&this->zone, DeviceId));
+	if (XST_SUCCESS != Mgmt_Zone_Ctrl_Initialize(&this->zone, DeviceId))
+		throw except::hardware_error(stdsprintf("Unable to initialize MGMT_Zone(%hu, %lu)", DeviceId, MZNo));
 }
 
 MGMT_Zone::~MGMT_Zone() {
@@ -71,7 +74,8 @@ u64 MGMT_Zone::get_hardfault_status(bool apply_mask) {
  * @param pen_config An array of the correct number of OutputConfig entries.
  */
 void MGMT_Zone::set_pen_config(const std::vector<OutputConfig> &pen_config) {
-	configASSERT(pen_config.size() == this->get_pen_count());
+	if (pen_config.size() != this->get_pen_count())
+		throw std::logic_error(stdsprintf("Supplied PEN config vector specifies an incorrect number of PENs (%u/%lu) for MZ %lu", pen_config.size(), this->get_pen_count(), this->MZNo));
 	MZ_config config;
 	Mgmt_Zone_Ctrl_Get_MZ_Cfg(&this->zone, this->MZNo, &config);
 	for (uint32_t i = 0; i < this->get_pen_count(); ++i) {
@@ -125,7 +129,7 @@ void MGMT_Zone::set_power_state(PowerAction action) {
 	case ON:   Mgmt_Zone_Ctrl_Pwr_ON_Seq(&this->zone, this->MZNo); break;
 	case OFF:  Mgmt_Zone_Ctrl_Pwr_OFF_Seq(&this->zone, this->MZNo); break;
 	case KILL: Mgmt_Zone_Ctrl_Dispatch_Soft_Fault(&this->zone, this->MZNo); break;
-	default:   configASSERT(0); // Programming Error.
+	default:   throw std::domain_error(stdsprintf("Invalid PowerAction %u supplied to set_power_state() for MZ %lu", static_cast<unsigned int>(action), this->MZNo));
 	}
 }
 
@@ -144,7 +148,7 @@ bool MGMT_Zone::get_power_state(bool *in_transition) {
 	case MZ_PWR_ON:        active = true;  transitioning = false; break;
 	case MZ_PWR_TRANS_OFF: active = false; transitioning = true;  break;
 	case MZ_PWR_TRANS_ON:  active = true;  transitioning = true;  break;
-	default:               configASSERT(0); // Programming Error.
+	default:               throw except::hardware_error("Invalid power state read from MGMT_Zone driver"); break;
 	}
 	if (in_transition)
 		*in_transition = transitioning;

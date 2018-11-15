@@ -8,6 +8,8 @@
 // This driver is heavily based on Xilinx ISF STM INTR example.
 
 #include <drivers/ps_isfqspi/PSISFQSPI.h>
+#include <libs/printf.h>
+#include <libs/except.h>
 
 #include "xparameters.h"
 
@@ -69,12 +71,15 @@ IsfWriteBuffer(NULL), IsfReadBuffer(NULL) {
 
 	// Look up for the device configuration
 	XQspiPs_Config *ConfigPtr = XQspiPs_LookupConfig(DeviceId);
-	configASSERT(ConfigPtr != NULL);
-	configASSERT(XST_SUCCESS ==
-			XQspiPs_CfgInitialize(&(this->QspiInst), ConfigPtr, ConfigPtr->BaseAddress));
+	if (!ConfigPtr)
+		throw except::hardware_error(stdsprintf("Unable locate hardware config for PS_ISFQSPI(%hu, %hu)", DeviceId, IntrId));
+	if (XST_SUCCESS !=
+			XQspiPs_CfgInitialize(&(this->QspiInst), ConfigPtr, ConfigPtr->BaseAddress))
+		throw except::hardware_error(stdsprintf("Unable to initialize config for PS_ISFQSPI(%hu, %hu)", DeviceId, IntrId));
 
 	// Run a self test
-	configASSERT(XST_SUCCESS == XQspiPs_SelfTest(&(this->QspiInst)));
+	if (XST_SUCCESS != XQspiPs_SelfTest(&(this->QspiInst)))
+		throw except::hardware_error(stdsprintf("Self-test failed for PS_ISFQSPI(%hu, %hu)", DeviceId, IntrId));
 
 	// Reset the PS core
 	XQspiPs_Reset(&(this->QspiInst));
@@ -93,8 +98,9 @@ IsfWriteBuffer(NULL), IsfReadBuffer(NULL) {
 			XQSPIPS_MANUAL_START_OPTION |
 			XQSPIPS_HOLD_B_DRIVE_OPTION;
 
-	configASSERT(XST_SUCCESS ==
-			XIsf_SetSpiConfiguration(&(this->IsfInst), &(this->QspiInst), Options, XISF_SPI_PRESCALER));
+	if (XST_SUCCESS !=
+			XIsf_SetSpiConfiguration(&(this->IsfInst), &(this->QspiInst), Options, XISF_SPI_PRESCALER))
+		throw except::hardware_error(stdsprintf("Unable to SetSpiConfiguration for PS_ISFQSPI(%hu, %hu)", DeviceId, IntrId));
 
 	if (ConfigPtr->ConnectionMode == XQSPIPS_CONNECTION_MODE_STACKED) {
 		XQspiPs_SetLqspiConfigReg(&(this->QspiInst), DUAL_STACK_CONFIG_WRITE);
@@ -108,17 +114,20 @@ IsfWriteBuffer(NULL), IsfReadBuffer(NULL) {
 
 	// Initialize the XILISF Library
 	this->IsfWriteBuffer = (u8*)malloc(sizeof(u8) * (tempPageSize + XISF_CMD_SEND_EXTRA_BYTES_4BYTE_MODE));
-	configASSERT(this->IsfWriteBuffer != NULL);
+	if (this->IsfWriteBuffer == NULL)
+		throw std::runtime_error(stdsprintf("Unable to allocate %lu byte IsfWriteBuffer.", sizeof(u8) * (tempPageSize + XISF_CMD_SEND_EXTRA_BYTES_4BYTE_MODE)));
 
-	configASSERT(XST_SUCCESS ==
-			XIsf_Initialize(&(this->IsfInst), &(this->QspiInst), FLASH_QSPI_SELECT, this->IsfWriteBuffer));
+	if (XST_SUCCESS !=
+			XIsf_Initialize(&(this->IsfInst), &(this->QspiInst), FLASH_QSPI_SELECT, this->IsfWriteBuffer))
+		throw except::hardware_error(stdsprintf("Unable to initialize XIsf for PS_ISFQSPI(%hu, %hu)", DeviceId, IntrId));
 
 	if (tempPageSize != this->GetPageSize()) {
 		// Actual page size turned to be different then tempPageSize, resize the write buffer
 		free(this->IsfWriteBuffer);
 
 		this->IsfWriteBuffer = (u8*)malloc(sizeof(u8) * (this->GetPageSize() + XISF_CMD_SEND_EXTRA_BYTES_4BYTE_MODE));
-		configASSERT(this->IsfWriteBuffer != NULL);
+		if (this->IsfWriteBuffer == NULL)
+			throw std::runtime_error(stdsprintf("Unable to allocate %lu byte IsfWriteBuffer.", sizeof(u8) * (this->GetPageSize() + XISF_CMD_SEND_EXTRA_BYTES_4BYTE_MODE)));
 
 		this->IsfInst.WriteBufPtr = this->IsfWriteBuffer;
 	}
@@ -127,10 +136,11 @@ IsfWriteBuffer(NULL), IsfReadBuffer(NULL) {
 	XIsf_SetTransferMode(&(this->IsfInst), XISF_INTERRUPT_MODE);
 
 	// Connect interrupt handler to GIC
-	configASSERT(XST_SUCCESS ==
+	if (XST_SUCCESS !=
 			XScuGic_Connect(&xInterruptController, this->IntrId,
 					(Xil_InterruptHandler)XQspiPs_InterruptHandler,
-					(void*)&(this->QspiInst)));
+					(void*)&(this->QspiInst)))
+		throw except::hardware_error(stdsprintf("Unable connect PS_ISFQSPI(%hu, %hu) to the GIC", DeviceId, IntrId));
 
 	// Enable the interrupt
 	XScuGic_Enable(&xInterruptController, this->IntrId);
@@ -140,7 +150,8 @@ IsfWriteBuffer(NULL), IsfReadBuffer(NULL) {
 
 	// Create the read buffer
 	this->IsfReadBuffer = (u8*)malloc(sizeof(u8) * (this->GetPageSize() + DATA_OFFSET + DUMMY_SIZE));
-	configASSERT(this->IsfReadBuffer != NULL);
+	if (this->IsfReadBuffer == NULL)
+		throw std::runtime_error(stdsprintf("Unable to allocate %lu byte IsfReadBuffer.", sizeof(u8) * (this->GetPageSize() + DATA_OFFSET + DUMMY_SIZE)));
 }
 
 PS_ISFQSPI::~PS_ISFQSPI() {
@@ -362,7 +373,7 @@ std::string PS_ISFQSPI::GetManufacturerName() {
 	case (XISF_MANUFACTURER_ID_SPANSION): return "Spansion"; break;
 	case (XISF_MANUFACTURER_ID_SST): return "SST"; break;
 	case (XISF_MANUFACTURER_ID_MICRON): return "Micron/STM"; break;
-	default: "Unknown"; break;
+	default: return "Unknown"; break;
 	}
 
 	return "Unknown";

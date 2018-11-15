@@ -28,6 +28,7 @@
 #include <drivers/tracebuffer/TraceBuffer.h>
 #include <libs/SkyRoad.h>
 #include <libs/printf.h>
+#include <libs/except.h>
 #include <services/console/CommandParser.h>
 #include <services/console/ConsoleSvc.h>
 #include <string.h>
@@ -47,7 +48,8 @@ static inline uint16_t page_count(uint16_t size, uint16_t page_size) {
  */
 PersistentStorage::PersistentStorage(EEPROM &eeprom, LogTree &logtree, PS_WDT *watchdog)
 	: eeprom(eeprom), logtree(logtree), wdt(watchdog) {
-	configASSERT((eeprom.size / eeprom.page_size) <= UINT16_MAX); // Ensure that the EEPROM will not overflow our u16 fields.
+	if ((eeprom.size / eeprom.page_size) > UINT16_MAX) // Ensure that the EEPROM will not overflow our u16 fields.
+		throw std::domain_error("Only EEPROMs up to UINT16_MAX in length are supported.");
 	this->cache = (u8*)pvPortMalloc(this->eeprom.size*2 + 4);
 	NVREG32(this->cache, this->eeprom.size) = 0x1234dead; // Set Canary
 	this->data = this->cache + this->eeprom.size + 4;
@@ -61,7 +63,6 @@ PersistentStorage::PersistentStorage(EEPROM &eeprom, LogTree &logtree, PS_WDT *w
 		this->wdt->activate_slot(this->wdt_slot);
 	}
 	this->flushtask = UWTaskCreate("PersistentFlush", TASK_PRIORITY_DRIVER, [this]() -> void { this->run_flush_thread(); });
-	configASSERT(this->flushtask);
 }
 
 PersistentStorage::~PersistentStorage() {
@@ -132,7 +133,8 @@ void PersistentStorage::set_section_version(u16 section_id, u16 section_version)
  * @return A pointer to a memory of size section_size, backed by persistent storage, or NULL on error.
  */
 void *PersistentStorage::get_section(u16 section_id, u16 section_version, u16 section_size) {
-	configASSERT(section_id != PersistentStorageAllocations::RESERVED_END_OF_INDEX);
+	if (section_id == PersistentStorageAllocations::RESERVED_END_OF_INDEX)
+		std::domain_error("It is not possible to request the section \"RESERVED_END_OF_INDEX\".");
 	xEventGroupWaitBits(this->storage_loaded, 1, 0, pdTRUE, portMAX_DELAY);
 	xSemaphoreTake(this->index_mutex, portMAX_DELAY);
 	struct PersistentStorageIndexRecord *index = reinterpret_cast<struct PersistentStorageIndexRecord *>(this->data + sizeof(struct PersistentStorageHeader));
@@ -263,7 +265,8 @@ void PersistentStorage::flush(std::function<void(void)> completion_cb) {
  * @param completion_cb A callback to call upon completion.  (Triggers priority inheritance if not NULL.)
  */
 void PersistentStorage::flush(void *start, size_t len, std::function<void(void)> completion_cb) {
-	configASSERT(start >= this->data && start <= this->data + this->eeprom.size - len);
+	if (!(start >= this->data && start <= this->data + this->eeprom.size - len))
+		throw std::domain_error("The requested flush range exceeds the storage memory space.");
 	u32 start_addr = reinterpret_cast<u8*>(start) - this->data;
 	u32 end_addr = start_addr + len;
 	this->logtree.log(stdsprintf("Requesting flush of range [%lu, %lu)", start_addr, end_addr), LogTree::LOG_DIAGNOSTIC);
@@ -486,12 +489,12 @@ std::vector<uint8_t> VariablePersistentAllocation::get_data() {
 	if (version == 0)
 		return std::vector<uint8_t>(); // No storage.
 	if (version != 1)
-		configASSERT(0); // Unsupported!  We have no valid response to return, and this wasn't written by us.
+		throw std::runtime_error(stdsprintf("We support only record version 1, not record version %hu (found).", version)); // Unsupported!  We have no valid response to return, and this wasn't written by us.
 
 	// Retrieve two byte length header.
 	uint16_t *data_size = reinterpret_cast<uint16_t*>(this->storage.get_section(this->id, 1, 2));
 	if (!data_size)
-		configASSERT(0); // So there's data, but we can't retrieve our header?
+		throw std::runtime_error("The storage record is corrupt."); // So there's data, but we can't retrieve our header?
 
 	uint8_t *data = reinterpret_cast<uint8_t*>(this->storage.get_section(this->id, 1, 2+*data_size));
 	return std::vector<uint8_t>(data+2, data+2+*data_size);
