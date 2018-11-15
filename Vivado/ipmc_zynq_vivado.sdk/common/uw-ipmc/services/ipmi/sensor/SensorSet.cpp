@@ -29,7 +29,8 @@ SensorSet::~SensorSet() {
  * @param sensor The sensor
  */
 void SensorSet::add(std::shared_ptr<Sensor> sensor) {
-	configASSERT(sensor);
+	if (!sensor)
+		return;
 	xSemaphoreTake(this->mutex, portMAX_DELAY);
 	this->set[sensor->sdr_key[2]] = sensor;
 	xSemaphoreGive(this->mutex);
@@ -103,7 +104,8 @@ std::shared_ptr<Sensor> SensorSet::find_by_sdr_key(const std::vector<uint8_t> &s
  * @return A sensor or NULL if unavailable.
  */
 std::shared_ptr<Sensor> SensorSet::find_by_sdr(std::shared_ptr<const SensorDataRecordSensor> sdr) {
-	configASSERT(sdr);
+	if (!sdr)
+		return NULL;
 	return this->find_by_sdr_key(sdr->record_key());
 }
 

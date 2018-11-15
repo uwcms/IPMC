@@ -18,7 +18,7 @@ public:
 	virtual ~SensorDataRecordSensor() { };
 
 	virtual std::vector<uint8_t> record_key() const;
-	virtual bool validate() const;
+	virtual void validate() const;
 	virtual void initialize_blank(std::string name);
 
 	/**
@@ -59,7 +59,7 @@ public:
 #undef SDR_FIELD
 
 protected:
-	virtual uint8_t _get_id_string_offset() const;
+	virtual uint8_t _get_id_string_offset() const = 0;
 	virtual uint8_t _get_ext_data_offset() const;
 	///@}
 };

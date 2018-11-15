@@ -8,14 +8,11 @@
 #include <services/ipmi/sdr/SensorDataRecord02.h>
 #include <IPMC.h>
 
-bool SensorDataRecord02::validate() const {
-	if (!SensorDataRecordReadableSensor::validate())
-		return false;
-	if (!SensorDataRecordSharedSensor::validate())
-		return false;
+void SensorDataRecord02::validate() const {
+	SensorDataRecordReadableSensor::validate();
+	SensorDataRecordSharedSensor::validate();
 	if (this->record_type() != 0x02)
-		return false;
-	return true;
+		throw invalid_sdr_error("SensorDataRecord02 supports only type 02h SDRs.");
 }
 
 void SensorDataRecord02::initialize_blank(std::string name) {
@@ -30,12 +27,13 @@ void SensorDataRecord02::initialize_blank(std::string name) {
 /// Define a `type` type SDR_FIELD from byte `byte`[a:b].
 #define SDR_FIELD(name, type, byte, a, b, attributes) \
 	type SensorDataRecord02::name() const attributes { \
-		configASSERT(this->validate()); \
+		this->validate(); \
 		return static_cast<type>((this->sdr_data[byte] >> (b)) & LOWBITS((a)-(b)+1)); \
 	} \
 	void SensorDataRecord02::name(type val) attributes { \
-		configASSERT((static_cast<uint8_t>(val) & LOWBITS((a)-(b)+1)) == static_cast<uint8_t>(val)); \
-		configASSERT(this->validate()); \
+		if ((static_cast<uint8_t>(val) & LOWBITS((a)-(b)+1)) != static_cast<uint8_t>(val)) \
+			throw std::domain_error("The supplied value does not fit correctly in the field."); \
+		this->validate(); \
 		this->sdr_data[byte] &= ~(LOWBITS((a)-(b)+1)<<(b)); /* Erase old value */ \
 		this->sdr_data[byte] |= static_cast<uint8_t>(val)<<(b); /* Set new value */ \
 	}

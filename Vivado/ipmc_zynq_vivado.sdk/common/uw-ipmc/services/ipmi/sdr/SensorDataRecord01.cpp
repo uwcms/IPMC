@@ -9,12 +9,10 @@
 #include <IPMC.h>
 #include <math.h>
 
-bool SensorDataRecord01::validate() const {
-	if (!SensorDataRecordReadableSensor::validate())
-		return false;
+void SensorDataRecord01::validate() const {
+	SensorDataRecordReadableSensor::validate();
 	if (this->record_type() != 0x01)
-		return false;
-	return true;
+		throw invalid_sdr_error("SensorDataRecord01 supports only type 01h SDRs.");
 }
 
 /// Create a bitmask with the lower `nbits` bits set.
@@ -23,12 +21,13 @@ bool SensorDataRecord01::validate() const {
 /// Define a `type` type SDR_FIELD from byte `byte`[a:b].
 #define SDR_FIELD(name, type, byte, a, b, attributes) \
 	type SensorDataRecord01::name() const attributes { \
-		configASSERT(this->validate()); \
+		this->validate(); \
 		return static_cast<type>((this->sdr_data[byte] >> (b)) & LOWBITS((a)-(b)+1)); \
 	} \
 	void SensorDataRecord01::name(type val) attributes { \
-		configASSERT((static_cast<uint8_t>(val) & LOWBITS((a)-(b)+1)) == static_cast<uint8_t>(val)); \
-		configASSERT(this->validate()); \
+		if ((static_cast<uint8_t>(val) & LOWBITS((a)-(b)+1)) != static_cast<uint8_t>(val)) \
+			throw std::domain_error("The supplied value does not fit correctly in the field."); \
+		this->validate(); \
 		this->sdr_data[byte] &= ~(LOWBITS((a)-(b)+1)<<(b)); /* Erase old value */ \
 		this->sdr_data[byte] |= static_cast<uint8_t>(val)<<(b); /* Set new value */ \
 	}
@@ -38,12 +37,13 @@ SDR_FIELD(units_numeric_format, enum SensorDataRecord01::UnitsNumericFormat, 20,
 SDR_FIELD(linearization, enum SensorDataRecord01::Linearization, 23, 7, 0, )
 
 uint16_t SensorDataRecord01::conversion_m() const {
-	configASSERT(this->validate());
+	this->validate();
 	return this->sdr_data[24] | ((this->sdr_data[25]&0xc0)<<2);
 }
 void SensorDataRecord01::conversion_m(uint16_t val) {
-	configASSERT((val & 0x3ff) == val);
-	configASSERT(this->validate());
+	if ((val & 0x3ff) != val)
+		throw std::domain_error("The supplied value does not fit correctly in the field.");
+	this->validate();
 	this->sdr_data[24] = val & 0xff;
 	this->sdr_data[25] &= ~0xc0;
 	this->sdr_data[25] |= val >> 8;
@@ -52,24 +52,26 @@ void SensorDataRecord01::conversion_m(uint16_t val) {
 SDR_FIELD(conversion_m_tolerance, uint8_t, 25, 5, 0, ) // Unit: +/- half raw counts
 
 uint16_t SensorDataRecord01::conversion_b() const {
-	configASSERT(this->validate());
+	this->validate();
 	return this->sdr_data[26] | ((this->sdr_data[27]&0xc0)<<2);
 }
 void SensorDataRecord01::conversion_b(uint16_t val) {
-	configASSERT((val & 0x3ff) == val);
-	configASSERT(this->validate());
+	if ((val & 0x3ff) != val)
+		throw std::domain_error("The supplied value does not fit correctly in the field.");
+	this->validate();
 	this->sdr_data[26] = val & 0xff;
 	this->sdr_data[27] &= ~0xc0;
 	this->sdr_data[27] |= val >> 8;
 }
 
 uint16_t SensorDataRecord01::conversion_b_accuracy() const {
-	configASSERT(this->validate());
+	this->validate();
 	return (this->sdr_data[27] & 0x3f) | ((this->sdr_data[28]&0xf0)<<2);
 }
 void SensorDataRecord01::conversion_b_accuracy(uint16_t val) {
-	configASSERT((val & 0x3ff) == val);
-	configASSERT(this->validate());
+	if ((val & 0x3ff) != val)
+		throw std::domain_error("The supplied value does not fit correctly in the field.");
+	this->validate();
 	this->sdr_data[27] &= ~0x3f;
 	this->sdr_data[27] |= val & 0x3f;
 	this->sdr_data[28] &= ~0xf0;
@@ -81,7 +83,7 @@ SDR_FIELD(conversion_b_accuracy_exp, uint8_t, 28, 3, 2, )
 SDR_FIELD(sensor_direction, enum SensorDataRecordReadableSensor::Direction, 28, 1, 0, )
 
 int8_t SensorDataRecord01::conversion_r_exp() const {
-	configASSERT(this->validate());
+	this->validate();
 	uint8_t val = this->sdr_data[29] >> 4;
 	if (val & 0x08)
 		val |= 0xf0; // Extend the 1 sign to 8 bits. (2s complement)
@@ -89,13 +91,14 @@ int8_t SensorDataRecord01::conversion_r_exp() const {
 }
 void SensorDataRecord01::conversion_r_exp(int8_t val) {
 	uint8_t uval = *reinterpret_cast<uint8_t*>(&val);
-	configASSERT((uval&0xf0) == 0 || (uval&0xf0) == 0xf0);
-	configASSERT(this->validate());
+	if (!((uval&0xf0) == 0 || (uval&0xf0) == 0xf0))
+		throw std::domain_error("The supplied value does not fit correctly in the field.");
+	this->validate();
 	this->sdr_data[29] = (uval<<4) | (this->sdr_data[29] & 0x0f);
 }
 
 int8_t SensorDataRecord01::conversion_b_exp() const {
-	configASSERT(this->validate());
+	this->validate();
 	uint8_t val = this->sdr_data[29] & 0x0f;
 	if (val & 0x08)
 		val |= 0xf0; // Extend the 1 sign to 8 bits. (2s complement)
@@ -103,8 +106,9 @@ int8_t SensorDataRecord01::conversion_b_exp() const {
 }
 void SensorDataRecord01::conversion_b_exp(int8_t val) {
 	uint8_t uval = *reinterpret_cast<uint8_t*>(&val);
-	configASSERT((uval&0xf0) == 0 || (uval&0xf0) == 0xf0);
-	configASSERT(this->validate());
+	if (!((uval&0xf0) == 0 || (uval&0xf0) == 0xf0))
+		throw std::domain_error("The supplied value does not fit correctly in the field.");
+	this->validate();
 	this->sdr_data[29] = (this->sdr_data[29] & 0xf0) | uval;
 }
 

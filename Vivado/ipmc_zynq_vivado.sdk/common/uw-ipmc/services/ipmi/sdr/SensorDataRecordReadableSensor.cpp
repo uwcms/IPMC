@@ -15,12 +15,13 @@
 /// Define a `type` type SDR_FIELD from byte `byte`[a:b].
 #define SDR_FIELD(name, type, byte, a, b, attributes) \
 	type SensorDataRecordReadableSensor::name() const attributes { \
-		configASSERT(this->validate()); \
+		this->validate(); \
 		return static_cast<type>((this->sdr_data[byte] >> (b)) & LOWBITS((a)-(b)+1)); \
 	} \
 	void SensorDataRecordReadableSensor::name(type val) attributes { \
-		configASSERT((static_cast<uint8_t>(val) & LOWBITS((a)-(b)+1)) == static_cast<uint8_t>(val)); \
-		configASSERT(this->validate()); \
+		if ((static_cast<uint8_t>(val) & LOWBITS((a)-(b)+1)) != static_cast<uint8_t>(val)) \
+			throw std::domain_error("The supplied value does not fit correctly in the field."); \
+		this->validate(); \
 		this->sdr_data[byte] &= ~(LOWBITS((a)-(b)+1)<<(b)); /* Erase old value */ \
 		this->sdr_data[byte] |= static_cast<uint8_t>(val)<<(b); /* Set new value */ \
 	}
@@ -44,31 +45,31 @@ SDR_FIELD(sensor_type_code, uint8_t, 12, 7, 0, )
 SDR_FIELD(event_type_reading_code, uint8_t, 13, 7, 0, )
 
 uint16_t SensorDataRecordReadableSensor::assertion_lower_threshold_reading_mask() const {
-	configASSERT(this->validate());
+	this->validate();
 	return (this->sdr_data[15]<<8) | this->sdr_data[14];
 }
 void SensorDataRecordReadableSensor::assertion_lower_threshold_reading_mask(uint16_t val) {
-	configASSERT(this->validate());
+	this->validate();
 	this->sdr_data[15] = val >> 8;
 	this->sdr_data[14] = val & 0xff;
 }
 
 uint16_t SensorDataRecordReadableSensor::deassertion_upper_threshold_reading_mask() const {
-	configASSERT(this->validate());
+	this->validate();
 	return (this->sdr_data[17]<<8) | this->sdr_data[16];
 }
 void SensorDataRecordReadableSensor::deassertion_upper_threshold_reading_mask(uint16_t val) {
-	configASSERT(this->validate());
+	this->validate();
 	this->sdr_data[17] = val >> 8;
 	this->sdr_data[16] = val & 0xff;
 }
 
 uint16_t SensorDataRecordReadableSensor::discrete_reading_setable_threshold_reading_mask() const {
-	configASSERT(this->validate());
+	this->validate();
 	return (this->sdr_data[19]<<8) | this->sdr_data[18];
 }
 void SensorDataRecordReadableSensor::discrete_reading_setable_threshold_reading_mask(uint16_t val) {
-	configASSERT(this->validate());
+	this->validate();
 	this->sdr_data[19] = val >> 8;
 	this->sdr_data[18] = val & 0xff;
 }
@@ -81,7 +82,7 @@ SDR_FIELD(units_base_unit, uint8_t, 21, 7, 1, )
 SDR_FIELD(units_modifier_unit, uint8_t, 22, 7, 1, )
 
 uint16_t SensorDataRecordReadableSensor::ext_assertion_events_enabled() const {
-	configASSERT(this->validate());
+	this->validate();
 	const uint8_t offset = this->_get_ext_data_offset();
 	// If missing or uninitialized, use 'supported' mask instead of enabled mask.
 	if (this->sdr_data.size() < offset+2U || !(this->sdr_data[offset+1] & 0x80))
@@ -89,7 +90,7 @@ uint16_t SensorDataRecordReadableSensor::ext_assertion_events_enabled() const {
 	return 0x7FFF & ((this->sdr_data[offset+1]<<8) | this->sdr_data[offset+0]);
 }
 void SensorDataRecordReadableSensor::ext_assertion_events_enabled(uint16_t val) {
-	configASSERT(this->validate());
+	this->validate();
 	const uint8_t offset = this->_get_ext_data_offset();
 	if (this->sdr_data.size() < offset+2U)
 		this->sdr_data.resize(offset+2U);
@@ -99,7 +100,7 @@ void SensorDataRecordReadableSensor::ext_assertion_events_enabled(uint16_t val) 
 }
 
 uint16_t SensorDataRecordReadableSensor::ext_deassertion_events_enabled() const {
-	configASSERT(this->validate());
+	this->validate();
 	const uint8_t offset = this->_get_ext_data_offset();
 	// If missing or uninitialized, use 'supported' mask instead of enabled mask.
 	if (this->sdr_data.size() < offset+4U || !(this->sdr_data[offset+3] & 0x80))
@@ -107,22 +108,13 @@ uint16_t SensorDataRecordReadableSensor::ext_deassertion_events_enabled() const 
 	return 0x7FFF & ((this->sdr_data[offset+3]<<8) | this->sdr_data[offset+2]);
 }
 void SensorDataRecordReadableSensor::ext_deassertion_events_enabled(uint16_t val) {
-	configASSERT(this->validate());
+	this->validate();
 	const uint8_t offset = this->_get_ext_data_offset();
 	if (this->sdr_data.size() < offset+4U)
 		this->sdr_data.resize(offset+4U);
 	val |= 0x8000; // Set "initialized marker" bit.
 	this->sdr_data[offset+3] = val >> 8;
 	this->sdr_data[offset+2] = val & 0xff;
-}
-
-uint8_t SensorDataRecordReadableSensor::from_float(float value) const {
-	configASSERT(0); // How'd you construct this object?  It should be virtual.
-	return 0;
-}
-float SensorDataRecordReadableSensor::to_float(uint8_t value) const {
-	configASSERT(0); // How'd you construct this object?  It should be virtual.
-	return NAN;
 }
 
 const std::map<uint8_t, std::string> SensorDataRecordReadableSensor::sensor_unit_type_codes = {

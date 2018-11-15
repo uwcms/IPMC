@@ -106,7 +106,7 @@ public:
 	 * @param value A float sensor value
 	 * @return A one-byte IPMI sensor value
 	 */
-	virtual uint8_t from_float(float value) const;
+	virtual uint8_t from_float(float value) const = 0;
 
 	/**
 	 * Convert a one-byte IPMI value to a floating point value using the formula
@@ -115,7 +115,7 @@ public:
 	 * @param value A one-byte IPMI sensor value
 	 * @return A float sensor value
 	 */
-	virtual float to_float(uint8_t value) const;
+	virtual float to_float(uint8_t value) const = 0;
 
 	/**
 	 * Extended Sensor State Storage: Event Enables

@@ -12,6 +12,7 @@
 #include <services/ipmi/sdr/SensorDataRecord01.h>
 #include <services/ipmi/ipmbsvc/IPMBSvc.h>
 #include <libs/printf.h>
+#include <libs/except.h>
 #include <IPMC.h>
 #include <math.h>
 
@@ -24,7 +25,8 @@
 Sensor::Sensor(const std::vector<uint8_t> &sdr_key, LogTree &log)
 	: sdr_key(sdr_key), log(log), logunique(log, pdMS_TO_TICKS(10000)),
 	  _all_events_disabled(false), _sensor_scanning_disabled(false) {
-	configASSERT(sdr_key.size() == 3);
+	if (sdr_key.size() != 3)
+		throw std::domain_error("A Sensor SDR key must be 3 bytes.");
 }
 
 Sensor::~Sensor() {

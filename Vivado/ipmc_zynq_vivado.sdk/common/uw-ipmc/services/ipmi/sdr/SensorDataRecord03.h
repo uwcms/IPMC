@@ -21,7 +21,7 @@ public:
 	/// Instantiate a Type 02 SensorDataRecord
 	SensorDataRecord03(const std::vector<uint8_t> &sdr_data = std::vector<uint8_t>()) : SensorDataRecordSensor(sdr_data), SensorDataRecordSharedSensor(sdr_data) { };
 	virtual ~SensorDataRecord03() { };
-	virtual bool validate() const;
+	virtual void validate() const;
 	virtual uint8_t parsed_record_type() const { return 0x03; };
 
 	/**
