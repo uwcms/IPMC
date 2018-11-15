@@ -18,7 +18,8 @@
 		return static_cast<type>((this->sdr_data[byte] >> (b)) & LOWBITS((a)-(b)+1)); \
 	} \
 	void SensorDataRecordSharedSensor::name(type val) attributes { \
-		configASSERT((static_cast<uint8_t>(val) & LOWBITS((a)-(b)+1)) == static_cast<uint8_t>(val)); \
+		if ((static_cast<uint8_t>(val) & LOWBITS((a)-(b)+1)) != static_cast<uint8_t>(val)) \
+			throw std::domain_error("The supplied value does not fit correctly in the field."); \
 		configASSERT(this->validate()); \
 		this->sdr_data[byte] &= ~(LOWBITS((a)-(b)+1)<<(b)); /* Erase old value */ \
 		this->sdr_data[byte] |= static_cast<uint8_t>(val)<<(b); /* Set new value */ \

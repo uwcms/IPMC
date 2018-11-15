@@ -11,6 +11,7 @@
 #include <vector>
 #include <stdint.h>
 #include <memory>
+#include <libs/except.h>
 
 /**
  * A minimal class implementing the most basic level of SDR(ecord) support,
@@ -29,7 +30,9 @@ public:
 	SensorDataRecord(const std::vector<uint8_t> &sdr_data = std::vector<uint8_t>()) : sdr_data(sdr_data) { };
 	virtual ~SensorDataRecord() { };
 
-	virtual bool validate() const;
+	DEFINE_LOCAL_GENERIC_EXCEPTION(invalid_sdr_error, std::runtime_error)
+
+	virtual void validate() const;
 	/**
 	 * @return the Record Type supported by the current handler subclass.
 	 */
