@@ -271,7 +271,7 @@ BackTrace* BackTrace::traceException(void *ex) {
 	return r;
 }
 
-const std::string BackTrace::toString() {
+const std::string BackTrace::toString() const {
 	constexpr size_t BUFFER_SIZE = 512;
 
 	int status = 0;
