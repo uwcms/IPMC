@@ -1,3 +1,5 @@
+#include <exception>
+
 namespace {
 
 /// A debug command for testing exception handling.
@@ -11,7 +13,7 @@ public:
 
 	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
 		//throw std::exception();
-		throw 0;
+		throw std::runtime_error("The user doesn't like me.");
 	}
 };
 
