@@ -7,6 +7,8 @@
 
 #include <drivers/spi_eeprom/SPIEEPROM.h>
 #include <task.h>
+#include <libs/printf.h>
+#include <libs/except.h>
 
 /**
  * Instantiate an EEPROM interface.
@@ -35,7 +37,8 @@ SPI_EEPROM::~SPI_EEPROM() {
  * @return        The number of bytes read
  */
 size_t SPI_EEPROM::read(u16 address, u8 *buf, size_t bytes) {
-	configASSERT(address + bytes <= this->size);
+	if (address + bytes > this->size)
+		throw std::out_of_range(stdsprintf("Tried to access addresses [%u, %u) of an EEPROM with size %lu.", address, address+bytes, this->size));
 
 	const u8 hdr_len = (this->size > 256 ? 3 : 2);
 
@@ -74,7 +77,9 @@ size_t SPI_EEPROM::read(u16 address, u8 *buf, size_t bytes) {
  * @return        The number of bytes written
  */
 size_t SPI_EEPROM::write(u16 address, u8 *buf, size_t bytes) {
-	configASSERT(address + bytes <= this->size);
+	if (address + bytes > this->size)
+		throw std::out_of_range(stdsprintf("Tried to access addresses [%u, %u) of an EEPROM with size %lu.", address, address+bytes, this->size));
+
 	xSemaphoreTake(this->mutex, portMAX_DELAY);
 
 	/* Unlike reads, writes DEFINITELY care about page boundaries.  We'll need

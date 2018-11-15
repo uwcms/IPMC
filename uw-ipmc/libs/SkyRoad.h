@@ -10,6 +10,7 @@
 #include <libs/StatCounter.h>
 #include <libs/LogTree.h>
 #include <libs/printf.h>
+#include <libs/except.h>
 #include <vector>
 #include <string>
 #include <map>
@@ -544,7 +545,8 @@ public:
 	 * \return The requested Messenger
 	 */
 	template <typename T> static Messenger<T> *request_messenger(const std::string topic, bool anonymize=false) {
-		configASSERT(topic.find("/") == std::string::npos); // Don't allow re-lookup of an anonymized name.
+		if (topic.find("/") != std::string::npos) // Don't allow re-lookup of an anonymized name.
+			throw std::domain_error("Messenger names cannot contain '/', consider using '.'.");
 
 		if (!SkyRoad::mutex) {
 			SemaphoreHandle_t new_mutex = xSemaphoreCreateMutex();

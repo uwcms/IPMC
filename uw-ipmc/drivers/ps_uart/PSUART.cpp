@@ -12,6 +12,8 @@
 #include <FreeRTOS.h>
 #include <semphr.h>
 #include <task.h>
+#include <libs/printf.h>
+#include <libs/except.h>
 
 #define IXR_RECV_ENABLE \
 	(XUARTPS_IXR_TOUT | XUARTPS_IXR_PARITY | XUARTPS_IXR_FRAMING | \
@@ -152,7 +154,8 @@ PS_UART::PS_UART(u32 DeviceId, u32 IntrId, u32 ibufsize, u32 obufsize) :
 		inbuf(RingBuffer<u8>(ibufsize)), outbuf(RingBuffer<u8>(obufsize)) {
 	XUartPs_Config *Config = XUartPs_LookupConfig(DeviceId);
 	s32 Status = XUartPs_CfgInitialize(&this->UartInst, Config, Config->BaseAddress);
-	configASSERT(Status == XST_SUCCESS);
+	if (Status != XST_SUCCESS)
+		throw except::hardware_error(stdsprintf("Unable to initialize PS_UART(%u, %u, ...)", DeviceId, IntrId));
 
 	XUartPs_SetInterruptMask(&this->UartInst, 0);
 	XUartPs_SetRecvTimeout(&this->UartInst, 8); // My example says this is u32s, the comments say its nibbles, the TRM says its baud_sample_clocks.

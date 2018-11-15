@@ -6,6 +6,8 @@
  */
 
 #include <drivers/pl_spi/PLSPI.h>
+#include <libs/printf.h>
+#include <libs/except.h>
 
 void XSpi_Abort(XSpi *InstancePtr)
 {
@@ -221,13 +223,16 @@ PL_SPI::PL_SPI(uint16_t DeviceId, uint32_t IntrId)
 	configASSERT(this->sync);
 
 	// Initialize the XSpi driver so that it's ready to use
-	configASSERT(XST_SUCCESS == XSpi_Initialize(&(this->xspi), DeviceId));
+	if (XST_SUCCESS != XSpi_Initialize(&(this->xspi), DeviceId))
+		throw except::hardware_error(stdsprintf("Unable to initialize PL_SPI(%hu, %lu)", DeviceId, IntrId));
 
 	// Perform a self-test to ensure that the hardware was built correctly
-	configASSERT(XST_SUCCESS == XSpi_SelfTest(&(this->xspi)));
+	if (XST_SUCCESS != XSpi_SelfTest(&(this->xspi)))
+		throw except::hardware_error(stdsprintf("Self-test for PL_SPI(%hu, %lu) failed.", DeviceId, IntrId));
 
 	// Apply proper settings to the IP.
-	configASSERT(XST_SUCCESS == XSpi_SetOptions(&this->xspi, XSP_MASTER_OPTION | XSP_MANUAL_SSELECT_OPTION));
+	if (XST_SUCCESS != XSpi_SetOptions(&this->xspi, XSP_MASTER_OPTION | XSP_MANUAL_SSELECT_OPTION))
+		throw except::hardware_error(stdsprintf("Unable to XSpi_SetOptions on PL_SPI(%hu, %lu)", DeviceId, IntrId));
 }
 
 PL_SPI::~PL_SPI() {

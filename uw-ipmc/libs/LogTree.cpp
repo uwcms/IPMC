@@ -10,6 +10,7 @@
 #include <IPMC.h>
 #include <libs/LogTree.h>
 #include <libs/printf.h>
+#include <libs/except.h>
 #include <libs/ThreadingPrimitives.h>
 #include <services/console/CommandParser.h>
 #include <services/console/ConsoleSvc.h>
@@ -203,7 +204,8 @@ std::vector<std::string> LogTree::list_children() {
  * \see LogLevel
  */
 void LogTree::log(const std::string &message, enum LogLevel level) {
-	configASSERT(level != LOG_SILENT);
+	if (level == LOG_SILENT)
+		throw std::domain_error("Messages may not be logged at level LOG_SILENT.");
 	xSemaphoreTakeRecursive(this->mutex, portMAX_DELAY);
 	for (auto it = this->filters.begin(), eit = this->filters.end(); it != eit; ++it)
 		if (it->second.level >= level && it->first->handler)

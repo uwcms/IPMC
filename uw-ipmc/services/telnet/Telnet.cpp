@@ -74,7 +74,8 @@ static void _thread_telnetc(void *p) {
 
 TelnetClient::TelnetClient(std::shared_ptr<Socket> s, LogTree &logtree, SemaphoreHandle_t connection_pool_limiter)
 	: socket(s), logtree(logtree), connection_pool_limiter(connection_pool_limiter) {
-	configASSERT(s);
+	if (!s)
+		throw std::runtime_error("A valid socket must be supplied.");
 	configASSERT(connection_pool_limiter);
 	taskENTER_CRITICAL();
 	this->session_serial = this->next_session_serial++;

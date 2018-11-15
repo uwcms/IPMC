@@ -8,6 +8,8 @@
 #include <xiic.h>
 #include <drivers/pl_i2c/PLI2C.h>
 #include <xscugic.h>
+#include <libs/printf.h>
+#include <libs/except.h>
 
 /*
  * It has been observed that interrupted based IIC takes 5 times
@@ -64,12 +66,15 @@ DeviceId(DeviceId), IntrId(IntrId), I2C() {
 
 	// Initialize the IIC driver so that it is ready to use.
 	ConfigPtr = XIic_LookupConfig(this->DeviceId);
-	configASSERT(ConfigPtr != NULL);
+	if (ConfigPtr == NULL)
+		throw except::hardware_error(stdsprintf("No XIic config available for PL_I2C(%hu, %lu)", DeviceId, IntrId));
 
-	configASSERT(XST_SUCCESS ==
-			XIic_CfgInitialize(&(this->IicInst), ConfigPtr, ConfigPtr->BaseAddress));
+	if (XST_SUCCESS !=
+			XIic_CfgInitialize(&(this->IicInst), ConfigPtr, ConfigPtr->BaseAddress))
+		throw except::hardware_error(stdsprintf("Unable to initialize PL_I2C(%hu, %lu)", DeviceId, IntrId));
 
-	configASSERT(XST_SUCCESS == XIic_SelfTest(&(this->IicInst)));
+	if (XST_SUCCESS != XIic_SelfTest(&(this->IicInst)))
+		throw except::hardware_error(stdsprintf("Self-test failed for PL_I2C(%hu, %lu)", DeviceId, IntrId));
 
 	// Enable dynamic mode - it seems that dynamic mode doesn't support variable length receives
 	//XIic_DynamicInitialize(&(this->IicInst));
@@ -86,8 +91,9 @@ DeviceId(DeviceId), IntrId(IntrId), I2C() {
 	XIic_MultiMasterInclude();
 
 	// Enable interrupts
-	configASSERT(XST_SUCCESS ==
-			XScuGic_Connect(&xInterruptController, this->IntrId, XIic_InterruptHandler, (void*)&(this->IicInst)));
+	if (XST_SUCCESS !=
+			XScuGic_Connect(&xInterruptController, this->IntrId, XIic_InterruptHandler, (void*)&(this->IicInst)))
+		throw except::hardware_error(stdsprintf("Failed to connect PL_I2C(%hu, %lu) to the GIC.", DeviceId, IntrId));
 	XScuGic_Enable(&xInterruptController, this->IntrId);
 }
 

@@ -8,6 +8,7 @@
 #include <services/ipmi/IPMI_MSG.h>
 #include <services/ipmi/IPMI.h>
 #include <libs/printf.h>
+#include <libs/except.h>
 #include <IPMC.h>
 
 /// Instantiate an IPMI_MSG as a blank slate.
@@ -20,7 +21,8 @@ IPMI_MSG::IPMI_MSG()
 /// Instantiate an IPMI_MSG with parameters as a convenience.
 IPMI_MSG::IPMI_MSG(uint8_t rqLUN, uint8_t rqSA, uint8_t rsLUN, uint8_t rsSA, uint8_t netFn, uint8_t cmd, const std::vector<uint8_t> &data)
 	: rsSA(rsSA), netFn(netFn), rsLUN(rsLUN), rqSA(rqSA), rqSeq(0), rqLUN(rqLUN), cmd(cmd), data_len(data.size()), broadcast(false), duplicate(false) {
-	configASSERT(data.size() <= max_data_len);
+	if (data.size() > max_data_len)
+		throw std::domain_error(stdsprintf("Only up to %hhu bytes of IPMI message data are supported.", max_data_len));
 	for (std::vector<uint8_t>::size_type i = 0; i < data.size(); ++i)
 		this->data[i] = data[i];
 };

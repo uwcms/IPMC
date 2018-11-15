@@ -10,6 +10,8 @@
 #include <stdio.h>
 #include "xil_exception.h"
 #include "xuartlite_l.h"
+#include <libs/printf.h>
+#include <libs/except.h>
 
 extern XScuGic xInterruptController;
 
@@ -42,10 +44,12 @@ void PL_UART::_InterruptHandler(PL_UART *uart)
 PL_UART::PL_UART(uint16_t DeviceId, uint32_t IntrId, size_t ibufsize, size_t obufsize) :
 IntrId(IntrId) {
 	// Initialize the UartLite driver so that it's ready to use.
-	configASSERT(XST_SUCCESS == XUartLite_Initialize(&(this->UartLite), DeviceId));
+	if (XST_SUCCESS != XUartLite_Initialize(&(this->UartLite), DeviceId))
+		throw except::hardware_error(stdsprintf("Unable to initialize PL_UART(%hu, %lu, ...)", DeviceId, IntrId));
 
 	// Perform a self-test to ensure that the hardware was built correctly.
-	configASSERT(XST_SUCCESS == XUartLite_SelfTest(&(this->UartLite)));
+	if (XST_SUCCESS != XUartLite_SelfTest(&(this->UartLite)))
+		throw except::hardware_error(stdsprintf("Self-test failed for PL_UART(%hu, %lu, ...)", DeviceId, IntrId));
 
 	// UartLite interrupt works differently than expected, adjust trigger type.
 	uint8_t priority, trigger;
@@ -53,8 +57,9 @@ IntrId(IntrId) {
 	XScuGic_SetPriorityTriggerType(&xInterruptController, this->IntrId, priority, 0x3);
 
 	// Connect the driver to the interrupt subsystem.
-	configASSERT(XST_SUCCESS ==
-			XScuGic_Connect(&xInterruptController, this->IntrId, (Xil_InterruptHandler)PL_UART::_InterruptHandler, (void*)this));
+	if (XST_SUCCESS !=
+			XScuGic_Connect(&xInterruptController, this->IntrId, (Xil_InterruptHandler)PL_UART::_InterruptHandler, (void*)this))
+		throw except::hardware_error(stdsprintf("Unable to connect PL_UART(%hu, %lu, ...) to the GIC.", DeviceId, IntrId));
 	XScuGic_Enable(&xInterruptController, this->IntrId);
 
 	this->recvstream = xStreamBufferCreate(ibufsize, 0);

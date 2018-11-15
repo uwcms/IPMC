@@ -6,6 +6,8 @@
  */
 
 #include <drivers/ps_spi/PSSPI.h>
+#include <libs/printf.h>
+#include <libs/except.h>
 
 static void PS_SPI_InterruptPassthrough(PS_SPI *ps_spi, u32 event_status, u32 byte_count) {
 	ps_spi->_HandleInterrupt(event_status, byte_count);
@@ -25,10 +27,11 @@ PS_SPI::PS_SPI(u16 DeviceId, u32 IntrId) :
 	configASSERT(this->irq_sync_q);
 
 	XSpiPs_Config *Config = XSpiPs_LookupConfig(DeviceId);
-	configASSERT(
-			XST_SUCCESS == XSpiPs_CfgInitialize(&this->SpiInst, Config, Config->BaseAddress));
+	if (XST_SUCCESS != XSpiPs_CfgInitialize(&this->SpiInst, Config, Config->BaseAddress))
+		throw except::hardware_error(stdsprintf("Unable to initialize PS_SPI(%hu, %lu)", DeviceId, IntrId));
 
-	configASSERT(XST_SUCCESS == XSpiPs_SelfTest(&this->SpiInst));
+	if (XST_SUCCESS != XSpiPs_SelfTest(&this->SpiInst))
+		throw except::hardware_error(stdsprintf("Self-test failed for PS_SPI(%hu, %lu)", DeviceId, IntrId));
 	XSpiPs_Reset(&this->SpiInst);
 
 	XScuGic_Connect(&xInterruptController, IntrId,

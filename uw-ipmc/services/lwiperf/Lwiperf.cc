@@ -15,7 +15,7 @@
 
 Lwiperf::Lwiperf(unsigned short port) :
 port(port) {
-	configASSERT(UWTaskCreate("lwiperfd", TCPIP_THREAD_HIGH_PRIO, [this]() -> void {
+	UWTaskCreate("lwiperfd", TCPIP_THREAD_HIGH_PRIO, [this]() -> void {
 		ServerSocket server(this->port);
 
 		int err = server.listen();
@@ -38,5 +38,5 @@ port(port) {
 					break;
 			}
 		}
-	}));
+	});
 }

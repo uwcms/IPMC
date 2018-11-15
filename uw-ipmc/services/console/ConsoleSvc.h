@@ -18,6 +18,7 @@
 #include <deque>
 #include <string>
 #include <vector>
+#include <stdexcept>
 
 /**
  * A generic console service.
@@ -30,7 +31,7 @@ public:
 	 * \note Since the parameters are specific, this function cannot be virtual.
 	 */
 	static std::shared_ptr<ConsoleSvc> create(CommandParser &parser, const std::string &name, LogTree &logtree, bool echo, TickType_t read_data_timeout=10) {
-		configASSERT(0); // ConsoleSvc is intended as an abstract class only.
+		throw std::logic_error("ConsoleSvc is an abstract class. Please instantiate a specialization.");
 		std::shared_ptr<ConsoleSvc> ret(new ConsoleSvc(parser, name, logtree, echo, read_data_timeout));
 		ret->weakself = ret;
 		return ret;

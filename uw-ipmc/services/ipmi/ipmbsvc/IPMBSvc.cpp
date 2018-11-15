@@ -15,6 +15,7 @@
 #include "task.h"
 #include <time.h>
 #include <libs/printf.h>
+#include <libs/except.h>
 
 /**
  * Instantiate the IPMB service.
@@ -43,7 +44,8 @@ IPMBSvc::IPMBSvc(IPMB *ipmb, uint8_t ipmb_address, IPMICommandParser *command_pa
 		log_messages_in(logtree["incoming_messages"]),
 		log_messages_out(logtree["outgoing_messages"]),
 		wdt(wdt) {
-	configASSERT(ipmb); // An IPMB is required.
+	if (!ipmb)
+		throw std::domain_error("An IPMB is required.");
 
 	this->recvq = xQueueCreate(this->recvq_size, sizeof(IPMI_MSG));
 	configASSERT(this->recvq);
@@ -68,7 +70,6 @@ IPMBSvc::IPMBSvc(IPMB *ipmb, uint8_t ipmb_address, IPMICommandParser *command_pa
 	}
 
 	this->task = UWTaskCreate(name, TASK_PRIORITY_DRIVER, [this]() -> void { this->run_thread(); });
-	configASSERT(this->task);
 }
 
 IPMBSvc::~IPMBSvc() {

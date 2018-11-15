@@ -43,19 +43,20 @@ Network *pNetworkInstance = NULL;
 
 Network::Network(LogTree &logtree, uint8_t mac[6], std::function<void(Network*)> net_ready_cb) :
 logtree(logtree) {
-	configASSERT(!pNetworkInstance);
+	if (pNetworkInstance)
+		throw std::logic_error("Network already constructed & initialized.");
 	pNetworkInstance = this;
 	memcpy(this->mac, mac, sizeof(uint8_t) * 6);
 	memset(&(this->netif), 0, sizeof(struct netif));
 
-	configASSERT(UWTaskCreate("network_start", TCPIP_THREAD_PRIO, [this,net_ready_cb]() -> void {
+	UWTaskCreate("network_start", TCPIP_THREAD_PRIO, [this,net_ready_cb]() -> void {
 		// It is imperative that lwIP gets initialized before the network start thread gets launched
 		// otherwise there will be problems with TCP requests
 		lwip_init();
 		this->thread_network_start();
 		if (net_ready_cb)
 			net_ready_cb(this);
-	}));
+	});
 }
 
 void Network::thread_network_start() {
@@ -102,7 +103,7 @@ void Network::thread_network_start() {
 	netif_set_up(&(this->netif));
 
 	// Start packet receive thread, required for lwIP operation
-	configASSERT(UWTaskCreate("xemacifd", TCPIP_THREAD_XEMACIFD_PRIO, [this]() -> void { xemacif_input_thread(&this->netif); }));
+	UWTaskCreate("xemacifd", TCPIP_THREAD_XEMACIFD_PRIO, [this]() -> void { xemacif_input_thread(&this->netif); });
 
 #if LWIP_DHCP==1
 	// If DHCP is enabled then start it

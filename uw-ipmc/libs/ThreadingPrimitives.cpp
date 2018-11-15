@@ -10,6 +10,7 @@
 
 #include <libs/BackTrace.h>
 #include <libs/printf.h>
+#include <libs/except.h>
 
 /**
  * Instantiate an AbsoluteTimeout.
@@ -24,7 +25,8 @@ AbsoluteTimeout::AbsoluteTimeout(TickType_t relative_timeout) :
 /// \overload
 AbsoluteTimeout::AbsoluteTimeout(uint64_t relative_timeout) :
 	timeout64(relative_timeout == UINT64_MAX ? UINT64_MAX : get_tick64()+relative_timeout) {
-	configASSERT( relative_timeout == UINT64_MAX || (UINT64_MAX - relative_timeout) > get_tick64() ); // Wait past the end of time?  Never!
+	if (!( relative_timeout == UINT64_MAX || (UINT64_MAX - relative_timeout) > get_tick64() )) // Wait past the end of time?  Never!
+		throw std::domain_error("We can't wait that long.  Please choose a time shorter than the life of the sun.");
 }
 
 /**
@@ -310,7 +312,8 @@ static void uwtask_run(void *stdfunc_cb) {
  * @return
  */
 TaskHandle_t UWTaskCreate(const std::string name, BaseType_t priority, std::function<void(void)> thread_func, BaseType_t stack_words) {
-	configASSERT(name.size() < configMAX_TASK_NAME_LEN); // < because we need the '\0' still.
+	if (name.size() >= configMAX_TASK_NAME_LEN) // < because we need the '\0' still.
+		throw std::domain_error(stdsprintf("The name \"%s\" (%u) is longer than the maximum thread name length (%u).", name.c_str(), name.size(), configMAX_TASK_NAME_LEN));
 	TaskHandle_t handle = NULL;
 	if (pdFAIL == xTaskCreate(
 			uwtask_run,
@@ -319,6 +322,6 @@ TaskHandle_t UWTaskCreate(const std::string name, BaseType_t priority, std::func
 			new std::function<void(void)>(thread_func),
 			priority,
 			&handle))
-		return NULL;
+		throw except::thread_create_error(std::string("Unable to create thread \"")+name+"\", xTaskCreate returned pdFAIL.");
 	return handle;
 }
