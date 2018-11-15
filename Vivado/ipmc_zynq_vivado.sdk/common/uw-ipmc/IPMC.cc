@@ -355,6 +355,11 @@ void ipmc_service_init() {
 				influxdbclient->write("cdb.voltage", {{"id", ipmc_mac}, {"name", "v1p0eth"}}, {{"value", std::to_string((float)v1p0eth)}}, timestamp);
 				influxdbclient->write("cdb.voltage", {{"id", ipmc_mac}, {"name", "v2p5eth"}}, {{"value", std::to_string((float)v2p5eth)}}, timestamp);
 				influxdbclient->write("cdb.voltage", {{"id", ipmc_mac}, {"name", "v1p2phy"}}, {{"value", std::to_string((float)v1p2phy)}}, timestamp);
+
+				float esmTemp = 0.0;
+				if (esm->getTemperature(esmTemp)) {
+					influxdbclient->write("esm.temperature", {{"id", ipmc_mac}, {"name", "temp"}}, {{"value", std::to_string(esmTemp)}}, timestamp);
+				}
 			}
 		});
 	});
