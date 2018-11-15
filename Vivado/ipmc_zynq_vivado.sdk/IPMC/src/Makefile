@@ -15,14 +15,14 @@ export CXX := arm-none-eabi-g++
 export WORKSPACE ?= ../..
 
 export INCLUDE_PATHS = \
-	-I"$(WORKSPACE)/freertos_cli_example_cpp/src/common/uw-ipmc" \
-	-I"$(WORKSPACE)/freertos_cli_example_cpp/src/config" \
-	-I"$(WORKSPACE)/freertos_cli_example_cpp/src/components" \
-	-I"$(WORKSPACE)/freertos_cli_example_cpp/src/common/lwIP/src/contrib/ports/xilinx/include" \
-	-I"$(WORKSPACE)/freertos_cli_example_cpp/src/common/lwIP/src/lwip-2.0.2/src/include" \
-	-I"$(WORKSPACE)/freertos_cli_example_cpp/src/common/FreeRTOS/portable/GCC/ARM_CA9" \
-	-I"$(WORKSPACE)/freertos_cli_example_cpp/src/common/FreeRTOS/include" \
-	-I"$(WORKSPACE)/freertos_cli_example_cpp/src/common/xilisf/include" \
+	-I"$(WORKSPACE)/IPMC/src/common/uw-ipmc" \
+	-I"$(WORKSPACE)/IPMC/src/config" \
+	-I"$(WORKSPACE)/IPMC/src/components" \
+	-I"$(WORKSPACE)/IPMC/src/common/lwIP/src/contrib/ports/xilinx/include" \
+	-I"$(WORKSPACE)/IPMC/src/common/lwIP/src/lwip-2.0.2/src/include" \
+	-I"$(WORKSPACE)/IPMC/src/common/FreeRTOS/portable/GCC/ARM_CA9" \
+	-I"$(WORKSPACE)/IPMC/src/common/FreeRTOS/include" \
+	-I"$(WORKSPACE)/IPMC/src/common/xilisf/include" \
 	-I"$(WORKSPACE)/ipmc_standalone_bsp/ps7_cortexa9_0/include" \
 
 export FUNCTION_WRAPPERS = \
@@ -103,9 +103,9 @@ pre-build: .dep/.lwip-patch
 	sed -i -r -e '/^#undef /d;s/(#define\s+)(E\w+)(\s)/#undef \2\n\1\2\3/' common/lwIP/src/lwip-2.0.2/src/include/lwip/arch.h
 	find common/lwIP/src -type f -name '*.h' -exec sed -i -e 's!"U16_F!" U16_F!g;s!U16_F"!U16_F "!g' '{}' +
 
-build: pre-build bin/$(BUILD_CONFIGURATION)/freertos_cli_example_cpp.elf
+build: pre-build bin/$(BUILD_CONFIGURATION)/IPMC.elf
 
-bin/$(BUILD_CONFIGURATION)/freertos_cli_example_cpp.elf: $(OBJS) | pre-build
+bin/$(BUILD_CONFIGURATION)/IPMC.elf: $(OBJS) | pre-build
 	@mkdir -p "$(dir $@)"
 	$(CXX) $(CFLAGS) $(LDFLAGS) $(INCLUDE_PATHS) $(LIBRARY_PATHS) -o "$@" $^ $(LIBS)
 	arm-none-eabi-size "$@" | tee "$@.size"

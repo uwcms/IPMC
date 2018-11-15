@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
-	<name>freertos_cli_example_cpp</name>
+	<name>IPMC</name>
 	<comment>Created by SDK v2017.2. ipmc_standalone_bsp - ps7_cortexa9_0</comment>
 	<projects>
 		<project>ipmc_standalone_bsp</project>
