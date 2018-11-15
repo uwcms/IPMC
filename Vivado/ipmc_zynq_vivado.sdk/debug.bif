@@ -3,5 +3,5 @@ the_ROM_image:
 {
 	[bootloader]fsbl/Debug/fsbl.elf
 	[checksum = md5]ipmc_bd_wrapper_hw_platform_0/ipmc_bd_wrapper.bit
-	[checksum = md5]freertos_cli_example_cpp/src/bin/Debug/freertos_cli_example_cpp.elf
+	[checksum = md5]IPMC/src/bin/Debug/IPMC.elf
 }
