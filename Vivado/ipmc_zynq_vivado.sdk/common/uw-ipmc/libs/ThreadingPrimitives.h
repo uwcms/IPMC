@@ -8,6 +8,8 @@
 #include <list>
 #include <memory>
 #include <functional>
+#include <string>
+#include <exception>
 
 /**
  * Given a pre-existing mutex, the MutexLock class automatically locks when created and releases it
@@ -133,6 +135,8 @@ extern "C" {
 	void trampoline_cancel(void *voidstar);
 }
 
+class BackTrace;
+std::string render_exception_report(const BackTrace *trace, const std::exception *exception, std::string location_description);
 TaskHandle_t UWTaskCreate(const std::string name, BaseType_t priority, std::function<void(void)> thread_func, BaseType_t stack_words=0);
 
 #endif /* UW_IPMC_LIBS_THREADINGPRIMITIVES_H_ */
