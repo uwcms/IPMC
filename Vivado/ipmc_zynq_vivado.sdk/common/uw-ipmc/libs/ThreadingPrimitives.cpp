@@ -239,19 +239,21 @@ void __real_print( const char8 *ptr);
 std::string render_exception_report(const BackTrace *trace, const std::exception *exception, std::string location_description) {
 	if (location_description.size())
 		location_description.insert(location_description.begin(), ' ');
-	std::string diag;
+	std::string diag = "Uncaught exception";
 	if (trace) {
 		// There is a trace available!
+		diag += " ";
 		if (exception)
-			diag += stdsprintf("Uncaught exception %s(\"%s\")%s:\n", trace->getName().c_str(), exception->what(), location_description.c_str());
+			diag += trace->getName() + "(\"" + exception->what() + "\")" + location_description;
 		else
-			diag += stdsprintf("Uncaught exception '%s'%s:\n", trace->getName().c_str(), location_description.c_str());
-		diag += trace->toString();
+			diag += "'" + trace->getName() + "'" + location_description;
+		diag += ":\n" + trace->toString();
 	} else {
 		if (exception)
-			diag += stdsprintf("Uncaught exception [std::exception](\"%s\")%s. No trace available.", exception->what(), location_description.c_str());
+			diag += std::string(" [std::exception](\"") + exception->what() + "\")" + location_description;
 		else
-			diag += stdsprintf("Uncaught exception%s. No trace available.", location_description.c_str());
+			diag += location_description;
+		diag += ". No trace available.";
 	}
 	return diag;
 }
