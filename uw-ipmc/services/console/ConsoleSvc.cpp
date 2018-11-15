@@ -11,6 +11,7 @@
 #include <drivers/tracebuffer/TraceBuffer.h>
 #include <libs/ThreadingPrimitives.h>
 #include <libs/printf.h>
+#include <libs/BackTrace.h>
 
 template <typename T> static inline T div_ceil(T val, T divisor) {
 	return (val / divisor) + (val % divisor ? 1 : 0);
@@ -208,8 +209,22 @@ void ConsoleSvc::_run_thread() {
 					log_input.log(cmdbuf, LogTree::LOG_INFO);
 					history.record_entry(cmdbuf);
 					xSemaphoreGive(this->linebuf_mutex);
-					if (!this->parser.parse(this->weakself.lock(), cmdbuf))
-						this->write("Unknown command!\n", portMAX_DELAY);
+					try {
+						if (!this->parser.parse(this->weakself.lock(), cmdbuf))
+							this->write("Unknown command!\n", portMAX_DELAY);
+					}
+					catch (std::exception &e) {
+						BackTrace* trace = BackTrace::traceException();
+						std::string diag = render_exception_report(trace, &e, std::string("in console command"));
+						this->logtree.log(diag, LogTree::LOG_TRACE);
+						this->write(diag+"\n");
+					}
+					catch (...) {
+						BackTrace* trace = BackTrace::traceException();
+						std::string diag = render_exception_report(trace, NULL, std::string("in console command"));
+						this->logtree.log(diag, LogTree::LOG_TRACE);
+						this->write(diag+"\n");
+					}
 					xSemaphoreTake(this->linebuf_mutex, portMAX_DELAY);
 				}
 			}
@@ -354,7 +369,21 @@ void ConsoleSvc::_run_thread() {
 					echobuf.clear();
 
 					xSemaphoreGive(this->linebuf_mutex);
-					this->parser.parse(this->weakself.lock(), std::string("ANSI_") + ansi_code.name);
+					try {
+						this->parser.parse(this->weakself.lock(), std::string("ANSI_") + ansi_code.name);
+					}
+					catch (std::exception &e) {
+						BackTrace* trace = BackTrace::traceException();
+						std::string diag = render_exception_report(trace, &e, std::string("in console command"));
+						this->logtree.log(diag, LogTree::LOG_TRACE);
+						this->write(diag+"\n");
+					}
+					catch (...) {
+						BackTrace* trace = BackTrace::traceException();
+						std::string diag = render_exception_report(trace, NULL, std::string("in console command"));
+						this->logtree.log(diag, LogTree::LOG_TRACE);
+						this->write(diag+"\n");
+					}
 					xSemaphoreTake(this->linebuf_mutex, portMAX_DELAY);
 				}
 				ansi_code.buffer.clear();

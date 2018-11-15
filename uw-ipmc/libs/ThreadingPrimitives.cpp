@@ -234,28 +234,35 @@ void __real_print( const char8 *ptr);
 };
 #include <iostream>
 
+std::string render_exception_report(const BackTrace *trace, const std::exception *exception, std::string location_description) {
+	if (location_description.size())
+		location_description.insert(location_description.begin(), ' ');
+	std::string diag;
+	if (trace) {
+		// There is a trace available!
+		if (exception)
+			diag += stdsprintf("Uncaught exception %s(\"%s\")%s:\n", trace->getName().c_str(), exception->what(), location_description.c_str());
+		else
+			diag += stdsprintf("Uncaught exception '%s'%s:\n", trace->getName().c_str(), location_description.c_str());
+		diag += trace->toString();
+	} else {
+		if (exception)
+			diag += stdsprintf("Uncaught exception [std::exception](\"%s\")%s. No trace available.", exception->what(), location_description.c_str());
+		else
+			diag += stdsprintf("Uncaught exception%s. No trace available.", location_description.c_str());
+	}
+	return diag;
+}
+
 static void print_exception(const std::exception *exception) {
 	TaskHandle_t handler = xTaskGetCurrentTaskHandle();
 	std::string tskname = "unknown_task";
 	if (handler)
 		tskname = pcTaskGetName(handler);
 
-	std::string diag;
 	BackTrace* trace = BackTrace::traceException();
 
-	if (trace) {
-		// There is a trace available!
-		if (exception)
-			diag += stdsprintf("Uncaught exception %s(\"%s\") in task '%s':\n", trace->getName().c_str(), exception->what(), tskname.c_str());
-		else
-			diag += stdsprintf("Uncaught exception '%s' in task '%s':\n", trace->getName().c_str(), tskname.c_str());
-		diag += trace->toString();
-	} else {
-		if (exception)
-			diag += stdsprintf("Uncaught exception [std::exception](\"%s\") in thread '%s'. No trace available.", exception->what(), tskname.c_str());
-		else
-			diag += stdsprintf("Uncaught exception in thread '%s'. No trace available.", tskname.c_str());
-	}
+	std::string diag = render_exception_report(trace, exception, std::string("in task '") + tskname + "'");
 
 	/* Put it through the trace facility, so regardless of our ability to
 	 * put it through the standard log paths, it gets trace logged.
