@@ -45,10 +45,10 @@ struct BackTrace final {
 	static BackTrace* traceException(void *ex = nullptr);
 
 	///! Generates a multi-line string where each line represents a frame of the stack trace.
-	const std::string toString();
+	const std::string toString() const;
 
 	///! Returns the name associate to the trace, if any.
-	const std::string getName() {
+	const std::string getName() const {
 		if (this->name) {
 			return std::string(this->name);
 		} else {
