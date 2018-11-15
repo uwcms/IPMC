@@ -79,10 +79,6 @@ void ipmc_service_init();
 #define UWIPMC_STANDARD_STACK_SIZE (16384/4)
 
 std::string generate_banner();
-std::string stdsprintf(const char *fmt, ...) __attribute__((format(printf,1,2)));
-void windows_newline(std::string &input, char nlchar='\n');
-
-std::string cxa_demangle(const char *name); // From libwrap.cc
 
 // From libwrap.cc
 void init_stdlib_mutex();

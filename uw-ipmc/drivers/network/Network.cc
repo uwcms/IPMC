@@ -17,6 +17,7 @@
 #include <drivers/network/Network.h>
 #include <services/console/CommandParser.h>
 #include <services/console/ConsoleSvc.h>
+#include <libs/printf.h>
 #include <FreeRTOS.h>
 #include <task.h>
 

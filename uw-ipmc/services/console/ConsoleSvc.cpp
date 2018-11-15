@@ -10,6 +10,7 @@
 #include "task.h"
 #include <drivers/tracebuffer/TraceBuffer.h>
 #include <libs/ThreadingPrimitives.h>
+#include <libs/printf.h>
 
 template <typename T> static inline T div_ceil(T val, T divisor) {
 	return (val / divisor) + (val % divisor ? 1 : 0);

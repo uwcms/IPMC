@@ -6,6 +6,7 @@
  */
 
 #include <libs/ANSICode.h>
+#include <libs/printf.h>
 #include <IPMC.h>
 
 /**

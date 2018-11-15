@@ -9,6 +9,7 @@
 #include <drivers/ps_uart/PSUART.h>
 #include <libs/StatCounter.h>
 #include <libs/LogTree.h>
+#include <libs/printf.h>
 
 #include <FreeRTOS.h>
 #include <semphr.h>
@@ -16,7 +17,6 @@
 
 #include <stdio.h>
 #include <stdarg.h>
-#include <cxxabi.h> // for cxa_demangle()
 #include <algorithm>
 #include <ctype.h>
 
@@ -326,27 +326,4 @@ void __wrap_sha_256(const unsigned char *in, const unsigned int size, unsigned c
 	xSemaphoreTake(librsa_mutex, portMAX_DELAY);
 	__real_sha_256(in, size, out);
 	xSemaphoreGive(librsa_mutex);
-}
-
-/**
- * This function calls the cross-vendor C++ Application Binary Interface to
- * demangle a C++ type name.
- *
- * @param name The name to be demangled, perhaps returned from typeid(T).name()
- * @return The demangled form of name, or name if an error occurred.
- */
-std::string cxa_demangle(const char *name) {
-	init_stdlib_mutex();
-	size_t length = 0;
-	int status = 0;
-	std::string result(name);
-	xSemaphoreTake(stdlib_mutex, portMAX_DELAY);
-	// __cxa_demangle will malloc, but that's now intercepted, but it might still need this protection.
-	char *demangled = abi::__cxa_demangle(name, NULL, &length, &status);
-	xSemaphoreGive(stdlib_mutex);
-	if (status == 0 && demangled)
-		result = demangled;
-	if (demangled)
-		free(demangled);
-	return result;
 }

@@ -9,6 +9,7 @@
 #include "semphr.h"
 #include <IPMC.h>
 #include <libs/LogTree.h>
+#include <libs/printf.h>
 #include <libs/ThreadingPrimitives.h>
 #include <services/console/CommandParser.h>
 #include <services/console/ConsoleSvc.h>

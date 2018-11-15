@@ -9,6 +9,7 @@
 #include <libs/ThreadingPrimitives.h>
 #include <libs/StatCounter.h>
 #include <libs/LogTree.h>
+#include <libs/printf.h>
 #include <vector>
 #include <string>
 #include <map>

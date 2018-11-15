@@ -6,8 +6,9 @@
  */
 
 #include <services/ipmi/IPMIFormats.h>
-#include <IPMC.h> // stdsprintf()
+#include <libs/printf.h>
 #include <iterator>
+#include <IPMC.h>
 
 /**
  * Perform basic validation on the provided IPMI Type/Length field, and return

@@ -7,6 +7,7 @@
 
 #include <drivers/ipmb/IPMBPair.h>
 #include <IPMC.h>
+#include <libs/printf.h>
 
 /**
  * This function will send a message out on the correct IPMB in a blocking manner.
