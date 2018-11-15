@@ -72,6 +72,8 @@ public:
 	 */
 	VFS::File createFlashFile();
 
+	bool getTemperature(float &temperature);
+
 	void register_console_commands(CommandParser &parser, const std::string &prefix="");
 	void deregister_console_commands(CommandParser &parser, const std::string &prefix="");
 

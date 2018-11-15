@@ -109,7 +109,7 @@ ESM::CommandStatus ESM::command(const std::string& command, std::string& respons
 	while (pos < 2043) {
 		count = this->uart->read((u8*)inbuf+pos, 1, pdMS_TO_TICKS(1000));
 		if (count == 0) break; // No character received
-		if ((pos > 3) && (memcmp(inbuf+pos-2, "\r\n>", 3) == 0)) break;
+		if ((pos > 3) && (memcmp(inbuf+pos-2, "\r\n>", 3) == 0)) break; // End of command
 		pos++;
 	}
 
@@ -120,8 +120,10 @@ ESM::CommandStatus ESM::command(const std::string& command, std::string& respons
 	} else {
 		// ESM will send back the command written and a new line.
 		// At the end it will return '\r\n>', we erase this.
-		size_t start = command.length() + 1;
+		size_t start = command.length() + 3;
 		size_t end = strlen(inbuf);
+		if (start >= end)
+			return ESM_CMD_NORESPONSE;
 
 		// Force the end of buf to be before '\r\n>'
 		if (end > 3) { // We don't want a data abort here..
@@ -132,6 +134,24 @@ ESM::CommandStatus ESM::command(const std::string& command, std::string& respons
 	}
 
 	return ESM_CMD_SUCCESS;
+}
+
+bool ESM::getTemperature(float &temperature) {
+	std::string response = "";
+
+	CommandStatus r = this->command("-", response);
+
+	if (r == ESM_CMD_SUCCESS) {
+		std::vector<std::string> vs = stringSplit(response, ' ');
+
+		if (vs.size() == 2 && !vs[0].compare("TEMP")) {
+			int temp_raw = std::stoi(vs[1]);
+			temperature = 177.4 - 0.8777 * temp_raw;
+			return true;
+		}
+	};
+
+	return false;
 }
 
 void ESM::restart() {
