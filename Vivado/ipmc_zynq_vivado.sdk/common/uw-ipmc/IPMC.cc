@@ -117,6 +117,8 @@ static void tracebuffer_log_handler(LogTree &logtree, const std::string &message
 static void register_core_console_commands(CommandParser &parser);
 static void console_log_handler(LogTree &logtree, const std::string &message, enum LogTree::LogLevel level);
 static void watchdog_ontrip();
+static size_t flash_read(uint8_t *buf, size_t size);
+static size_t flash_write(uint8_t *buf, size_t size);
 
 /** Stage 1 driver initialization.
  *
@@ -249,98 +251,6 @@ void driver_init(bool use_pl) {
 	mgmt_zones[1]->set_pen_config(pen_config);
 }
 
-// TODO: Will be moved
-size_t flash_read(uint8_t *buf, size_t size) {
-	size_t totalsize = isfqspi->GetTotalSize();
-	size_t pagesize = isfqspi->GetPageSize();
-	int pagecount = totalsize / pagesize;
-
-	for (int i = 0; i < pagecount; i++) {
-		size_t addr = i * pagesize;
-		uint8_t* ptr = isfqspi->ReadPage(addr);
-		memcpy(buf + addr, ptr, pagesize);
-	}
-
-	return totalsize;
-}
-
-// TODO: Will be moved
-size_t flash_write(uint8_t *buf, size_t size) {
-	// Validate the bin file before writing
-	BootFileValidationReturn r = validateBootFile(buf, size);
-	if (r != BFV_VALID) {
-		// File is invalid!
-		printf("Received bin file has errors: %s. Aborting firmware update.",
-				getBootFileValidationErrorString(r));
-		return 0;
-	} else {
-		printf("Bin file is valid, proceeding with update.");
-	}
-
-	// Write the buffer to flash
-	const size_t baseaddr = 0x0;
-
-	size_t rem = size % isfqspi->GetPageSize();
-	size_t pages = size / isfqspi->GetPageSize() + (size? 1 : 0);
-
-	for (size_t i = 0; i < pages; i++) {
-		size_t addr = i * isfqspi->GetPageSize();
-		if (addr % isfqspi->GetSectorSize() == 0) {
-			// This is the first page of a new sector, so erase the sector
-			printf("Erasing sector 0x%08x..", addr + baseaddr);
-			if (!isfqspi->SectorErase(addr + baseaddr)) {
-				// Failed to erase
-				printf("Failed to erase 0x%08x. Write to flash failed.", addr + baseaddr);
-				firmwareUpdateFailed = true;
-				return addr;
-			}
-		}
-
-		if ((i == (pages-1)) && (rem != 0)) {
-			// Last page, avoid a memory leak
-			uint8_t tmpbuf[isfqspi->GetPageSize()];
-			memset(tmpbuf, 0xFFFFFFFF, isfqspi->GetPageSize());
-
-			memcpy(tmpbuf, buf + addr, rem);
-
-			if (!isfqspi->WritePage(addr + baseaddr, tmpbuf)) {
-				// Failed to write page
-				printf("Failed to write page 0x%08x. Write to flash failed.", addr + baseaddr);
-				firmwareUpdateFailed = true;
-				return addr;
-			}
-		} else {
-			if (!isfqspi->WritePage(addr + baseaddr, buf + addr)) {
-				// Failed to write page
-				printf("Failed to write page 0x%08x. Write to flash failed.", addr + baseaddr);
-				firmwareUpdateFailed = true;
-				return addr;
-			}
-		}
-	}
-
-	// Verify
-	for (int i = 0; i < pages; i++) {
-		size_t addr = i * isfqspi->GetPageSize();
-		uint8_t* ptr = isfqspi->ReadPage(addr + baseaddr);
-		int ret = 0;
-		if ((i == (pages-1)) && (rem != 0)) {
-			// Last page
-			ret = memcmp(ptr, buf + addr, rem);
-		} else {
-			ret = memcmp(ptr, buf + addr, isfqspi->GetPageSize());
-		}
-		if (ret != 0) {
-			printf("Page 0x%08x is different. Verification failed.", addr + baseaddr);
-			firmwareUpdateFailed = true;
-			return addr;
-		}
-	}
-
-	printf("Flash image updated and verified successfully.");
-	firmwareUpdateFailed = false;
-	return size;
-}
 
 /** IPMC service initialization.
  *
@@ -668,6 +578,99 @@ void init_fru_area() {
 	multirecord[3] = ipmi_checksum(std::vector<uint8_t>(std::next(multirecord.begin(), 5), multirecord.end()));
 	multirecord[4] = ipmi_checksum(std::vector<uint8_t>(multirecord.begin(), std::next(multirecord.begin(), 5)));
 	frudata.insert(frudata.end(), multirecord.begin(), multirecord.end());
+}
+
+// TODO: Will be moved (see #19)
+static size_t flash_read(uint8_t *buf, size_t size) {
+	size_t totalsize = isfqspi->GetTotalSize();
+	size_t pagesize = isfqspi->GetPageSize();
+	int pagecount = totalsize / pagesize;
+
+	for (int i = 0; i < pagecount; i++) {
+		size_t addr = i * pagesize;
+		uint8_t* ptr = isfqspi->ReadPage(addr);
+		memcpy(buf + addr, ptr, pagesize);
+	}
+
+	return totalsize;
+}
+
+// TODO: Will be moved (see #19)
+static size_t flash_write(uint8_t *buf, size_t size) {
+	// Validate the bin file before writing
+	BootFileValidationReturn r = validateBootFile(buf, size);
+	if (r != BFV_VALID) {
+		// File is invalid!
+		printf("Received bin file has errors: %s. Aborting firmware update.",
+				getBootFileValidationErrorString(r));
+		return 0;
+	} else {
+		printf("Bin file is valid, proceeding with update.");
+	}
+
+	// Write the buffer to flash
+	const size_t baseaddr = 0x0;
+
+	size_t rem = size % isfqspi->GetPageSize();
+	size_t pages = size / isfqspi->GetPageSize() + (size? 1 : 0);
+
+	for (size_t i = 0; i < pages; i++) {
+		size_t addr = i * isfqspi->GetPageSize();
+		if (addr % isfqspi->GetSectorSize() == 0) {
+			// This is the first page of a new sector, so erase the sector
+			printf("Erasing sector 0x%08x..", addr + baseaddr);
+			if (!isfqspi->SectorErase(addr + baseaddr)) {
+				// Failed to erase
+				printf("Failed to erase 0x%08x. Write to flash failed.", addr + baseaddr);
+				firmwareUpdateFailed = true;
+				return addr;
+			}
+		}
+
+		if ((i == (pages-1)) && (rem != 0)) {
+			// Last page, avoid a memory leak
+			uint8_t tmpbuf[isfqspi->GetPageSize()];
+			memset(tmpbuf, 0xFFFFFFFF, isfqspi->GetPageSize());
+
+			memcpy(tmpbuf, buf + addr, rem);
+
+			if (!isfqspi->WritePage(addr + baseaddr, tmpbuf)) {
+				// Failed to write page
+				printf("Failed to write page 0x%08x. Write to flash failed.", addr + baseaddr);
+				firmwareUpdateFailed = true;
+				return addr;
+			}
+		} else {
+			if (!isfqspi->WritePage(addr + baseaddr, buf + addr)) {
+				// Failed to write page
+				printf("Failed to write page 0x%08x. Write to flash failed.", addr + baseaddr);
+				firmwareUpdateFailed = true;
+				return addr;
+			}
+		}
+	}
+
+	// Verify
+	for (int i = 0; i < pages; i++) {
+		size_t addr = i * isfqspi->GetPageSize();
+		uint8_t* ptr = isfqspi->ReadPage(addr + baseaddr);
+		int ret = 0;
+		if ((i == (pages-1)) && (rem != 0)) {
+			// Last page
+			ret = memcmp(ptr, buf + addr, rem);
+		} else {
+			ret = memcmp(ptr, buf + addr, isfqspi->GetPageSize());
+		}
+		if (ret != 0) {
+			printf("Page 0x%08x is different. Verification failed.", addr + baseaddr);
+			firmwareUpdateFailed = true;
+			return addr;
+		}
+	}
+
+	printf("Flash image updated and verified successfully.");
+	firmwareUpdateFailed = false;
+	return size;
 }
 
 void* operator new(std::size_t n) {
