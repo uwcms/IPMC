@@ -14,9 +14,11 @@
 #include "xil_exception.h"
 
 #include <libs/BackTrace.h>
+#include <libs/printf.h>
+#include <drivers/tracebuffer/TraceBuffer.h>
 
 extern "C" {
-int __real_printf(const char *format, ...);
+void __real_print( const char8 *ptr);
 }
 
 // Replace week abort with one that actually does something.
@@ -25,17 +27,37 @@ int __real_printf(const char *format, ...);
 void abort() {
 	BackTrace *extrace = BackTrace::traceException();
 
+	TaskHandle_t handler = xTaskGetCurrentTaskHandle();
+	std::string tskname = "unknown_task";
+	if (handler)
+		tskname = pcTaskGetName(handler);
+
+	std::string output;
 	if (extrace) {
-		__real_printf("\n-- ABORT DUE TO EXCEPTION --\n");
-		__real_printf(extrace->toString().c_str());
+		output += "\n-- ABORT DUE TO EXCEPTION --\n";
+		output += extrace->toString();
 	} else {
 		BackTrace trace;
 		trace.trace();
-		__real_printf("\n-- ABORT CALLED --\n");
-		__real_printf(trace.toString().c_str());
+		output += "\n-- ABORT CALLED --\n";
+		output += trace.toString();
 	}
 
-	__real_printf("-- ASSERTING --\n");
+	output += "-- ASSERTING --\n";
+
+	/* Put it through the trace facility, so regardless of our ability to
+	 * put it through the standard log paths, it gets trace logged.
+	 */
+	std::string log_facility = stdsprintf("ipmc.unhandled_exception.%s", tskname);
+	TRACE.log(log_facility.c_str(), log_facility.size(), LogTree::LOG_CRITICAL, output.c_str(), output.size());
+
+	// Put it directly to the UART console, for the same reason.
+	std::string wnl_output = output;
+	windows_newline(wnl_output);
+	__real_print(wnl_output.c_str());
+
+	// Put it through the standard log system.
+	LOG[tskname].log(output, LogTree::LOG_CRITICAL);
 
 	configASSERT(0);
 }
