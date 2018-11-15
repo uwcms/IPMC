@@ -60,6 +60,13 @@ void abort() {
 	LOG[tskname].log(output, LogTree::LOG_CRITICAL);
 
 	configASSERT(0);
+
+	/* This function is attribute noreturn, configASSERT(0) can technically
+	 * return within a debugger.  This literally can't, it has no epilogue.
+	 *
+	 * Ensure it doesn't.
+	 */
+	while (1);
 }
 
 extern "C" {
