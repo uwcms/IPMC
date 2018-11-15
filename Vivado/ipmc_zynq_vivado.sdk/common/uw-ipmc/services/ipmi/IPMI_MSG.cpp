@@ -7,6 +7,7 @@
 
 #include <services/ipmi/IPMI_MSG.h>
 #include <services/ipmi/IPMI.h>
+#include <libs/printf.h>
 #include <IPMC.h>
 
 /// Instantiate an IPMI_MSG as a blank slate.

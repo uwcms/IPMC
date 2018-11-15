@@ -8,6 +8,7 @@
 #include <drivers/watchdog/PSWDT.h>
 #include <IPMC.h>
 #include <libs/ThreadingPrimitives.h>
+#include <libs/printf.h>
 #include "FreeRTOS.h"
 #include "task.h"
 #include <string.h>

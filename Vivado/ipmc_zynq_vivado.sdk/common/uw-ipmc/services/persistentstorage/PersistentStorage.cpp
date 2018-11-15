@@ -27,6 +27,7 @@
 #include <drivers/spi_eeprom/SPIEEPROM.h>
 #include <drivers/tracebuffer/TraceBuffer.h>
 #include <libs/SkyRoad.h>
+#include <libs/printf.h>
 #include <services/console/CommandParser.h>
 #include <services/console/ConsoleSvc.h>
 #include <string.h>

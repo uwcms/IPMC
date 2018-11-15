@@ -11,6 +11,7 @@
 #include <services/ipmi/sdr/SensorDataRecordReadableSensor.h>
 #include <services/ipmi/sdr/SensorDataRecord01.h>
 #include <services/ipmi/ipmbsvc/IPMBSvc.h>
+#include <libs/printf.h>
 #include <IPMC.h>
 #include <math.h>
 

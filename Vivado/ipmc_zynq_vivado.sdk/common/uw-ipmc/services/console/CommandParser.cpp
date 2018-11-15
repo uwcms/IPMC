@@ -13,6 +13,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <algorithm>
+#include <libs/printf.h>
 
 namespace {
 /// The default 'help' console command.

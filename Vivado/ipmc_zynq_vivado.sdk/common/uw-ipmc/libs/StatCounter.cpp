@@ -8,6 +8,7 @@
 #include <IPMC.h>
 #include <libs/StatCounter.h>
 #include <libs/ThreadingPrimitives.h>
+#include <libs/printf.h>
 #include <FreeRTOS.h>
 #include <semphr.h>
 #include <task.h>

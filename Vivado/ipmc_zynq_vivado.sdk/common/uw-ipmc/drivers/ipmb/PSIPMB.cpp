@@ -15,6 +15,7 @@
 #include <semphr.h>
 #include <queue.h>
 #include <task.h>
+#include <libs/printf.h>
 
 static void XIicPs_VariableLengthSlaveInterruptHandler(XIicPs *InstancePtr);
 

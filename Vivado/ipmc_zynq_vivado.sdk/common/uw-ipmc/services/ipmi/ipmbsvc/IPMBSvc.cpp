@@ -14,6 +14,7 @@
 #include "queue.h"
 #include "task.h"
 #include <time.h>
+#include <libs/printf.h>
 
 /**
  * Instantiate the IPMB service.

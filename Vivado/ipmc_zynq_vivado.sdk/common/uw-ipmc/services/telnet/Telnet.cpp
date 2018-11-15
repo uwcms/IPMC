@@ -14,6 +14,7 @@
 #include <drivers/network/ServerSocket.h>
 #include <services/console/TelnetConsoleSvc.h>
 #include <services/persistentstorage/PersistentStorage.h>
+#include <libs/printf.h>
 
 #include <functional>
 

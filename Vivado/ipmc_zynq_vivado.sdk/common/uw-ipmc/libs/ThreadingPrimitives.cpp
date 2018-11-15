@@ -8,6 +8,7 @@
 #include <IPMC.h>
 
 #include <libs/BackTrace.h>
+#include <libs/printf.h>
 
 /**
  * Instantiate an AbsoluteTimeout.

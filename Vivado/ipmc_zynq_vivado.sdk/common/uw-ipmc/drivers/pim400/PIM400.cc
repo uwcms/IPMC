@@ -6,6 +6,7 @@
  */
 
 #include <drivers/pim400/PIM400.h>
+#include <libs/printf.h>
 #include <services/console/CommandParser.h>
 #include <services/console/ConsoleSvc.h>
 
