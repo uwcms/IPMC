@@ -233,6 +233,45 @@ extern "C" {
 void __real_print( const char8 *ptr);
 };
 #include <iostream>
+
+static void print_exception(const std::exception *exception) {
+	TaskHandle_t handler = xTaskGetCurrentTaskHandle();
+	std::string tskname = "unknown_task";
+	if (handler)
+		tskname = pcTaskGetName(handler);
+
+	std::string diag;
+	BackTrace* trace = BackTrace::traceException();
+
+	if (trace) {
+		// There is a trace available!
+		if (exception)
+			diag += stdsprintf("Uncaught exception %s(\"%s\") in task '%s':\n", trace->getName().c_str(), exception->what(), tskname.c_str());
+		else
+			diag += stdsprintf("Uncaught exception '%s' in task '%s':\n", trace->getName().c_str(), tskname.c_str());
+		diag += trace->toString();
+	} else {
+		if (exception)
+			diag += stdsprintf("Uncaught exception [std::exception](\"%s\") in thread '%s'. No trace available.", exception->what(), tskname.c_str());
+		else
+			diag += stdsprintf("Uncaught exception in thread '%s'. No trace available.", tskname.c_str());
+	}
+
+	/* Put it through the trace facility, so regardless of our ability to
+	 * put it through the standard log paths, it gets trace logged.
+	 */
+	std::string log_facility = stdsprintf("ipmc.unhandled_exception.%s", tskname.c_str());
+	TRACE.log(log_facility.c_str(), log_facility.size(), LogTree::LOG_CRITICAL, diag.c_str(), diag.size());
+
+	// Put it directly to the UART console, for the same reason.
+	std::string wnl_diag = diag;
+	windows_newline(wnl_diag);
+	__real_print(wnl_diag.c_str());
+
+	// Put it through the standard log system.
+	LOG[tskname].log(diag, LogTree::LOG_CRITICAL);
+}
+
 /**
  * Provides the wrapper handling function call and thread cleanup for UWTaskCreate().
  *
@@ -242,36 +281,12 @@ static void uwtask_run(void *stdfunc_cb) {
 	std::function<void(void)> *stdfunc = reinterpret_cast< std::function<void(void)>* >(stdfunc_cb);
 	try {
 		(*stdfunc)();
-	} catch (...) {
-		TaskHandle_t handler = xTaskGetCurrentTaskHandle();
-		std::string tskname = "unknown_task";
-		if (handler)
-			tskname = pcTaskGetName(handler);
-
-		std::string diag;
-		BackTrace* trace = BackTrace::traceException();
-
-		if (trace) {
-			// There is a trace available!
-			diag += stdsprintf("Uncaught exception '%s' in task '%s':\n", trace->getName().c_str(), tskname.c_str());
-			diag += trace->toString();
-		} else {
-			diag += stdsprintf("Uncaught exception in thread '%s'. No trace available.", tskname.c_str());
-		}
-
-		/* Put it through the trace facility, so regardless of our ability to
-		 * put it through the standard log paths, it gets trace logged.
-		 */
-		std::string log_facility = stdsprintf("ipmc.unhandled_exception.%s", tskname.c_str());
-		TRACE.log(log_facility.c_str(), log_facility.size(), LogTree::LOG_CRITICAL, diag.c_str(), diag.size());
-
-		// Put it directly to the UART console, for the same reason.
-		std::string wnl_diag = diag;
-		windows_newline(wnl_diag);
-		__real_print(wnl_diag.c_str());
-
-		// Put it through the standard log system.
-		LOG[tskname].log(diag, LogTree::LOG_CRITICAL);
+	}
+	catch (const std::exception &e) {
+		print_exception(&e);
+	}
+	catch (...) {
+		print_exception(NULL);
 	}
 	delete stdfunc;
 	vTaskDelete(NULL);
