@@ -189,66 +189,68 @@ void driver_init(bool use_pl) {
 	ipmi_event_receiver.addr = 0x20; // Should be `0xFF "Disabled"`, maybe?
 
 	// TODO: Clean up this part
-	PL_I2C *i2c = new PL_I2C(XPAR_AXI_IIC_PIM400_DEVICE_ID, XPAR_FABRIC_AXI_IIC_PIM400_IIC2INTC_IRPT_INTR);
-	(new PIM400(*i2c, 0x5E))->register_console_commands(console_command_parser, "pim400");
+	if (use_pl) {
+		PL_I2C *i2c = new PL_I2C(XPAR_AXI_IIC_PIM400_DEVICE_ID, XPAR_FABRIC_AXI_IIC_PIM400_IIC2INTC_IRPT_INTR);
+		(new PIM400(*i2c, 0x5E))->register_console_commands(console_command_parser, "pim400");
 
-	LED_Controller_Initialize(&atcaLEDs, XPAR_AXI_ATCA_LED_CTRL_DEVICE_ID);
+		LED_Controller_Initialize(&atcaLEDs, XPAR_AXI_ATCA_LED_CTRL_DEVICE_ID);
 
-	for (int i = 0; i < 2; i++) {
-		adc[i] = new AD7689(XPAR_AD7689_S_0_DEVICE_ID + i);
-	}
+		for (int i = 0; i < 2; i++) {
+			adc[i] = new AD7689(XPAR_AD7689_S_0_DEVICE_ID + i);
+		}
 
-	xadc = new PS_XADC(XPAR_XADCPS_0_DEVICE_ID);
+		xadc = new PS_XADC(XPAR_XADCPS_0_DEVICE_ID);
 
-	for (int i = 0; i < XPAR_MGMT_ZONE_CTRL_0_MZ_CNT; ++i)
-		mgmt_zones[i] = new MGMT_Zone(XPAR_MGMT_ZONE_CTRL_0_DEVICE_ID, i);
+		for (int i = 0; i < XPAR_MGMT_ZONE_CTRL_0_MZ_CNT; ++i)
+			mgmt_zones[i] = new MGMT_Zone(XPAR_MGMT_ZONE_CTRL_0_DEVICE_ID, i);
 
-	std::vector<MGMT_Zone::OutputConfig> pen_config;
-	uint64_t hf_mask = 0
-			| (1<<0) // PGOOD_2V5ETH
-			| (1<<1) // PGOOD_1V0ETH
-			| (1<<2) // PGOOD_3V3PYLD
-			| (1<<3) // PGOOD_5V0PYLD
-			| (1<<4);// PGOOD_1V2PHY
+		std::vector<MGMT_Zone::OutputConfig> pen_config;
+		uint64_t hf_mask = 0
+				| (1<<0) // PGOOD_2V5ETH
+				| (1<<1) // PGOOD_1V0ETH
+				| (1<<2) // PGOOD_3V3PYLD
+				| (1<<3) // PGOOD_5V0PYLD
+				| (1<<4);// PGOOD_1V2PHY
 #warning "Hardfault Safety is Disabled (Hacked out)"
-	hf_mask = 0; // XXX Disable Hardfault Safety
-	mgmt_zones[0]->set_hardfault_mask(hf_mask, 140);
-	mgmt_zones[0]->get_pen_config(pen_config);
-	for (int i = 0; i < 6; ++i) {
-		pen_config[i].active_high = true;
-		pen_config[i].drive_enabled = true;
-	}
-	// +12VPYLD
-	pen_config[0].enable_delay = 10;
-	// +2V5ETH
-	pen_config[1].enable_delay = 200;
-	// +1V0ETH
-	pen_config[2].enable_delay = 20;
-	// +3V3PYLD
-	// +1V8PYLD
-	// +3V3FFTX_TX
-	// +3V3FFTX_RX
-	// +3V3FFRX_TX
-	// +3V3FFRX_RX
-	pen_config[3].enable_delay = 30;
-	// +5V0PYLD
-	pen_config[4].enable_delay = 30;
-	// +1V2PHY
-	pen_config[5].enable_delay = 40;
-	mgmt_zones[0]->set_pen_config(pen_config);
-	mgmt_zones[0]->set_power_state(MGMT_Zone::ON); // Immediately power up.  Xil ethernet driver asserts otherwise.
+		hf_mask = 0; // XXX Disable Hardfault Safety
+		mgmt_zones[0]->set_hardfault_mask(hf_mask, 140);
+		mgmt_zones[0]->get_pen_config(pen_config);
+		for (int i = 0; i < 6; ++i) {
+			pen_config[i].active_high = true;
+			pen_config[i].drive_enabled = true;
+		}
+		// +12VPYLD
+		pen_config[0].enable_delay = 10;
+		// +2V5ETH
+		pen_config[1].enable_delay = 200;
+		// +1V0ETH
+		pen_config[2].enable_delay = 20;
+		// +3V3PYLD
+		// +1V8PYLD
+		// +3V3FFTX_TX
+		// +3V3FFTX_RX
+		// +3V3FFRX_TX
+		// +3V3FFRX_RX
+		pen_config[3].enable_delay = 30;
+		// +5V0PYLD
+		pen_config[4].enable_delay = 30;
+		// +1V2PHY
+		pen_config[5].enable_delay = 40;
+		mgmt_zones[0]->set_pen_config(pen_config);
+		mgmt_zones[0]->set_power_state(MGMT_Zone::ON); // Immediately power up.  Xil ethernet driver asserts otherwise.
 
-	hf_mask = 0
-			| (1<<5);// ELM_PFAIL
+		hf_mask = 0
+				| (1<<5);// ELM_PFAIL
 #warning "Hardfault Safety is Disabled (Hacked out)"
-	hf_mask = 0; // XXX Disable Hardfault Safety
-	mgmt_zones[1]->set_hardfault_mask(hf_mask, 150);
-	mgmt_zones[1]->get_pen_config(pen_config);
-	// ELM_PWR_EN_I
-	pen_config[6].active_high = true;
-	pen_config[6].drive_enabled = true;
-	pen_config[6].enable_delay = 50;
-	mgmt_zones[1]->set_pen_config(pen_config);
+		hf_mask = 0; // XXX Disable Hardfault Safety
+		mgmt_zones[1]->set_hardfault_mask(hf_mask, 150);
+		mgmt_zones[1]->get_pen_config(pen_config);
+		// ELM_PWR_EN_I
+		pen_config[6].active_high = true;
+		pen_config[6].drive_enabled = true;
+		pen_config[6].enable_delay = 50;
+		mgmt_zones[1]->set_pen_config(pen_config);
+	}
 }
 
 
