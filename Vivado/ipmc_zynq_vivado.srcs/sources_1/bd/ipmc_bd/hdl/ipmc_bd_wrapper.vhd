@@ -1,7 +1,7 @@
 --Copyright 1986-2018 Xilinx, Inc. All Rights Reserved.
 ----------------------------------------------------------------------------------
 --Tool Version: Vivado v.2018.2 (lin64) Build 2258646 Thu Jun 14 20:02:38 MDT 2018
---Date        : Fri Oct  5 11:50:40 2018
+--Date        : Mon Nov 19 15:49:21 2018
 --Host        : beck.hep.wisc.edu running 64-bit CentOS Linux release 7.5.1804 (Core)
 --Command     : generate_target ipmc_bd_wrapper.bd
 --Design      : ipmc_bd_wrapper
@@ -39,6 +39,9 @@ entity ipmc_bd_wrapper is
     DDR_we_n : inout STD_LOGIC;
     EEPROM_I2C_0_scl_io : inout STD_LOGIC;
     EEPROM_I2C_0_sda_io : inout STD_LOGIC;
+    ELM_LINK_tri_io : inout STD_LOGIC_VECTOR ( 3 downto 0 );
+    ELM_UART_rxd : in STD_LOGIC;
+    ELM_UART_txd : out STD_LOGIC;
     ESM_FLASH_SPI_io0_io : inout STD_LOGIC;
     ESM_FLASH_SPI_io1_io : inout STD_LOGIC;
     ESM_FLASH_SPI_sck_io : inout STD_LOGIC;
@@ -122,7 +125,12 @@ architecture STRUCTURE of ipmc_bd_wrapper is
     ESM_FLASH_SPI_sck_t : out STD_LOGIC;
     ESM_FLASH_SPI_ss_i : in STD_LOGIC_VECTOR ( 0 to 0 );
     ESM_FLASH_SPI_ss_o : out STD_LOGIC_VECTOR ( 0 to 0 );
-    ESM_FLASH_SPI_ss_t : out STD_LOGIC
+    ESM_FLASH_SPI_ss_t : out STD_LOGIC;
+    ELM_LINK_tri_i : in STD_LOGIC_VECTOR ( 3 downto 0 );
+    ELM_LINK_tri_o : out STD_LOGIC_VECTOR ( 3 downto 0 );
+    ELM_LINK_tri_t : out STD_LOGIC_VECTOR ( 3 downto 0 );
+    ELM_UART_rxd : in STD_LOGIC;
+    ELM_UART_txd : out STD_LOGIC
   );
   end component ipmc_bd;
   component IOBUF is
@@ -139,6 +147,22 @@ architecture STRUCTURE of ipmc_bd_wrapper is
   signal EEPROM_I2C_0_sda_i : STD_LOGIC;
   signal EEPROM_I2C_0_sda_o : STD_LOGIC;
   signal EEPROM_I2C_0_sda_t : STD_LOGIC;
+  signal ELM_LINK_tri_i_0 : STD_LOGIC_VECTOR ( 0 to 0 );
+  signal ELM_LINK_tri_i_1 : STD_LOGIC_VECTOR ( 1 to 1 );
+  signal ELM_LINK_tri_i_2 : STD_LOGIC_VECTOR ( 2 to 2 );
+  signal ELM_LINK_tri_i_3 : STD_LOGIC_VECTOR ( 3 to 3 );
+  signal ELM_LINK_tri_io_0 : STD_LOGIC_VECTOR ( 0 to 0 );
+  signal ELM_LINK_tri_io_1 : STD_LOGIC_VECTOR ( 1 to 1 );
+  signal ELM_LINK_tri_io_2 : STD_LOGIC_VECTOR ( 2 to 2 );
+  signal ELM_LINK_tri_io_3 : STD_LOGIC_VECTOR ( 3 to 3 );
+  signal ELM_LINK_tri_o_0 : STD_LOGIC_VECTOR ( 0 to 0 );
+  signal ELM_LINK_tri_o_1 : STD_LOGIC_VECTOR ( 1 to 1 );
+  signal ELM_LINK_tri_o_2 : STD_LOGIC_VECTOR ( 2 to 2 );
+  signal ELM_LINK_tri_o_3 : STD_LOGIC_VECTOR ( 3 to 3 );
+  signal ELM_LINK_tri_t_0 : STD_LOGIC_VECTOR ( 0 to 0 );
+  signal ELM_LINK_tri_t_1 : STD_LOGIC_VECTOR ( 1 to 1 );
+  signal ELM_LINK_tri_t_2 : STD_LOGIC_VECTOR ( 2 to 2 );
+  signal ELM_LINK_tri_t_3 : STD_LOGIC_VECTOR ( 3 to 3 );
   signal ESM_FLASH_SPI_io0_i : STD_LOGIC;
   signal ESM_FLASH_SPI_io0_o : STD_LOGIC;
   signal ESM_FLASH_SPI_io0_t : STD_LOGIC;
@@ -180,6 +204,34 @@ EEPROM_I2C_0_sda_iobuf: component IOBUF
       IO => EEPROM_I2C_0_sda_io,
       O => EEPROM_I2C_0_sda_i,
       T => EEPROM_I2C_0_sda_t
+    );
+ELM_LINK_tri_iobuf_0: component IOBUF
+     port map (
+      I => ELM_LINK_tri_o_0(0),
+      IO => ELM_LINK_tri_io(0),
+      O => ELM_LINK_tri_i_0(0),
+      T => ELM_LINK_tri_t_0(0)
+    );
+ELM_LINK_tri_iobuf_1: component IOBUF
+     port map (
+      I => ELM_LINK_tri_o_1(1),
+      IO => ELM_LINK_tri_io(1),
+      O => ELM_LINK_tri_i_1(1),
+      T => ELM_LINK_tri_t_1(1)
+    );
+ELM_LINK_tri_iobuf_2: component IOBUF
+     port map (
+      I => ELM_LINK_tri_o_2(2),
+      IO => ELM_LINK_tri_io(2),
+      O => ELM_LINK_tri_i_2(2),
+      T => ELM_LINK_tri_t_2(2)
+    );
+ELM_LINK_tri_iobuf_3: component IOBUF
+     port map (
+      I => ELM_LINK_tri_o_3(3),
+      IO => ELM_LINK_tri_io(3),
+      O => ELM_LINK_tri_i_3(3),
+      T => ELM_LINK_tri_t_3(3)
     );
 ESM_FLASH_SPI_io0_iobuf: component IOBUF
      port map (
@@ -269,6 +321,20 @@ ipmc_bd_i: component ipmc_bd
       EEPROM_I2C_0_sda_i => EEPROM_I2C_0_sda_i,
       EEPROM_I2C_0_sda_o => EEPROM_I2C_0_sda_o,
       EEPROM_I2C_0_sda_t => EEPROM_I2C_0_sda_t,
+      ELM_LINK_tri_i(3) => ELM_LINK_tri_i_3(3),
+      ELM_LINK_tri_i(2) => ELM_LINK_tri_i_2(2),
+      ELM_LINK_tri_i(1) => ELM_LINK_tri_i_1(1),
+      ELM_LINK_tri_i(0) => ELM_LINK_tri_i_0(0),
+      ELM_LINK_tri_o(3) => ELM_LINK_tri_o_3(3),
+      ELM_LINK_tri_o(2) => ELM_LINK_tri_o_2(2),
+      ELM_LINK_tri_o(1) => ELM_LINK_tri_o_1(1),
+      ELM_LINK_tri_o(0) => ELM_LINK_tri_o_0(0),
+      ELM_LINK_tri_t(3) => ELM_LINK_tri_t_3(3),
+      ELM_LINK_tri_t(2) => ELM_LINK_tri_t_2(2),
+      ELM_LINK_tri_t(1) => ELM_LINK_tri_t_1(1),
+      ELM_LINK_tri_t(0) => ELM_LINK_tri_t_0(0),
+      ELM_UART_rxd => ELM_UART_rxd,
+      ELM_UART_txd => ELM_UART_txd,
       ESM_FLASH_SPI_io0_i => ESM_FLASH_SPI_io0_i,
       ESM_FLASH_SPI_io0_o => ESM_FLASH_SPI_io0_o,
       ESM_FLASH_SPI_io0_t => ESM_FLASH_SPI_io0_t,

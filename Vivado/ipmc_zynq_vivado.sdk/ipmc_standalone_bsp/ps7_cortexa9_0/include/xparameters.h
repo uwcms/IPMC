@@ -244,7 +244,7 @@
 /******************************************************************/
 
 /* Definitions for driver GPIO */
-#define XPAR_XGPIO_NUM_INSTANCES 2
+#define XPAR_XGPIO_NUM_INSTANCES 3
 
 /* Definitions for peripheral AXI_GPIO_0 */
 #define XPAR_AXI_GPIO_0_BASEADDR 0x41210000
@@ -262,6 +262,14 @@
 #define XPAR_ESM_AXI_GPIO_ESM_IS_DUAL 0
 
 
+/* Definitions for peripheral ELM_AXI_GPIO_ELM */
+#define XPAR_ELM_AXI_GPIO_ELM_BASEADDR 0x41200000
+#define XPAR_ELM_AXI_GPIO_ELM_HIGHADDR 0x4120FFFF
+#define XPAR_ELM_AXI_GPIO_ELM_DEVICE_ID 2
+#define XPAR_ELM_AXI_GPIO_ELM_INTERRUPT_PRESENT 1
+#define XPAR_ELM_AXI_GPIO_ELM_IS_DUAL 0
+
+
 /******************************************************************/
 
 /* Canonical definitions for peripheral AXI_GPIO_0 */
@@ -277,6 +285,13 @@
 #define XPAR_GPIO_1_DEVICE_ID XPAR_ESM_AXI_GPIO_ESM_DEVICE_ID
 #define XPAR_GPIO_1_INTERRUPT_PRESENT 0
 #define XPAR_GPIO_1_IS_DUAL 0
+
+/* Canonical definitions for peripheral ELM_AXI_GPIO_ELM */
+#define XPAR_GPIO_2_BASEADDR 0x41200000
+#define XPAR_GPIO_2_HIGHADDR 0x4120FFFF
+#define XPAR_GPIO_2_DEVICE_ID XPAR_ELM_AXI_GPIO_ELM_DEVICE_ID
+#define XPAR_GPIO_2_INTERRUPT_PRESENT 1
+#define XPAR_GPIO_2_IS_DUAL 0
 
 
 /******************************************************************/
@@ -472,6 +487,8 @@
 #define XPAR_FABRIC_ESM_AXI_UARTLITE_ESM_INTERRUPT_INTR 63U
 #define XPAR_FABRIC_AXI_IIC_EEPROM_0_IIC2INTC_IRPT_INTR 64U
 #define XPAR_FABRIC_AXI_GPIO_0_IP2INTC_IRPT_INTR 65U
+#define XPAR_FABRIC_ELM_AXI_GPIO_ELM_IP2INTC_IRPT_INTR 67U
+#define XPAR_FABRIC_ELM_AXI_UARTLITE_ELM_INTERRUPT_INTR 68U
 
 /******************************************************************/
 
@@ -481,6 +498,8 @@
 #define XPAR_FABRIC_UARTLITE_0_VEC_ID XPAR_FABRIC_ESM_AXI_UARTLITE_ESM_INTERRUPT_INTR
 #define XPAR_FABRIC_IIC_0_VEC_ID XPAR_FABRIC_AXI_IIC_EEPROM_0_IIC2INTC_IRPT_INTR
 #define XPAR_FABRIC_GPIO_0_VEC_ID XPAR_FABRIC_AXI_GPIO_0_IP2INTC_IRPT_INTR
+#define XPAR_FABRIC_GPIO_2_VEC_ID XPAR_FABRIC_ELM_AXI_GPIO_ELM_IP2INTC_IRPT_INTR
+#define XPAR_FABRIC_UARTLITE_1_VEC_ID XPAR_FABRIC_ELM_AXI_UARTLITE_ELM_INTERRUPT_INTR
 
 /******************************************************************/
 
@@ -626,7 +645,7 @@
 /******************************************************************/
 
 /* Definitions for driver UARTLITE */
-#define XPAR_XUARTLITE_NUM_INSTANCES 1
+#define XPAR_XUARTLITE_NUM_INSTANCES 2
 
 /* Definitions for peripheral ESM_AXI_UARTLITE_ESM */
 #define XPAR_ESM_AXI_UARTLITE_ESM_BASEADDR 0x42C00000
@@ -636,6 +655,16 @@
 #define XPAR_ESM_AXI_UARTLITE_ESM_USE_PARITY 0
 #define XPAR_ESM_AXI_UARTLITE_ESM_ODD_PARITY 0
 #define XPAR_ESM_AXI_UARTLITE_ESM_DATA_BITS 8
+
+
+/* Definitions for peripheral ELM_AXI_UARTLITE_ELM */
+#define XPAR_ELM_AXI_UARTLITE_ELM_BASEADDR 0x42C10000
+#define XPAR_ELM_AXI_UARTLITE_ELM_HIGHADDR 0x42C1FFFF
+#define XPAR_ELM_AXI_UARTLITE_ELM_DEVICE_ID 1
+#define XPAR_ELM_AXI_UARTLITE_ELM_BAUDRATE 115200
+#define XPAR_ELM_AXI_UARTLITE_ELM_USE_PARITY 0
+#define XPAR_ELM_AXI_UARTLITE_ELM_ODD_PARITY 0
+#define XPAR_ELM_AXI_UARTLITE_ELM_DATA_BITS 8
 
 
 /******************************************************************/
@@ -648,6 +677,15 @@
 #define XPAR_UARTLITE_0_USE_PARITY 0
 #define XPAR_UARTLITE_0_ODD_PARITY 0
 #define XPAR_UARTLITE_0_DATA_BITS 8
+
+/* Canonical definitions for peripheral ELM_AXI_UARTLITE_ELM */
+#define XPAR_UARTLITE_1_DEVICE_ID XPAR_ELM_AXI_UARTLITE_ELM_DEVICE_ID
+#define XPAR_UARTLITE_1_BASEADDR 0x42C10000
+#define XPAR_UARTLITE_1_HIGHADDR 0x42C1FFFF
+#define XPAR_UARTLITE_1_BAUDRATE 115200
+#define XPAR_UARTLITE_1_USE_PARITY 0
+#define XPAR_UARTLITE_1_ODD_PARITY 0
+#define XPAR_UARTLITE_1_DATA_BITS 8
 
 
 /******************************************************************/
