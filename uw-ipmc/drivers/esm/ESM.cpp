@@ -51,13 +51,13 @@ VFS::File ESM::createFlashFile() {
 	return VFS::File(
 		[this](uint8_t *buffer, size_t size) -> size_t {
 			// Read
-			MutexLock lock(this->mutex);
+			MutexGuard<false> lock(this->mutex, true);
 			this->flash->initialize();
 			this->flash->read(0, buffer, size);
 			return size;
 		},
 		[this](uint8_t *buffer, size_t size) -> size_t {
-			MutexLock lock(this->mutex);
+			MutexGuard<false> lock(this->mutex, true);
 			this->flash->initialize();
 
 			// Write
@@ -91,7 +91,7 @@ ESM::CommandStatus ESM::command(const std::string& command, std::string& respons
 	// Terminate with '/r' to trigger ESM to respond
 	std::string formated_cmd = command + "\r";
 
-	MutexLock lock(this->mutex);
+	MutexGuard<false> lock(this->mutex, true);
 
 	// Clear the receiver buffer
 	this->uart->clear();
@@ -156,7 +156,7 @@ bool ESM::getTemperature(float &temperature) {
 
 void ESM::restart() {
 	if (this->esm_reset){
-		MutexLock lock(this->mutex);
+		MutexGuard<false> lock(this->mutex, true);
 		esm_reset->toggle();
 	} else {
 		std::string resp;
@@ -233,7 +233,7 @@ public:
 	}
 
 	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
-		MutexLock lock(esm.mutex);
+		MutexGuard<false> lock(esm.mutex, true);
 
 		if (!this->esm.flash->isInitialized()) {
 			this->esm.flash->initialize();
