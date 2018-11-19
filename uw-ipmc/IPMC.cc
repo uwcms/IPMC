@@ -188,6 +188,8 @@ void driver_init(bool use_pl) {
 	ipmi_event_receiver.lun = 0;
 	ipmi_event_receiver.addr = 0x20; // Should be `0xFF "Disabled"`, maybe?
 
+	console_log_filter->reconfigure(log_ipmb0, LogTree::LOG_INFO); // XXX For IPMI Testing
+
 	// TODO: Clean up this part
 	if (use_pl) {
 		PL_I2C *i2c = new PL_I2C(XPAR_AXI_IIC_PIM400_DEVICE_ID, XPAR_FABRIC_AXI_IIC_PIM400_IIC2INTC_IRPT_INTR);
