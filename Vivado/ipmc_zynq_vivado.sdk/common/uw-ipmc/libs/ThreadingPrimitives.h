@@ -117,20 +117,20 @@ public:
 	 * @param immediate If true, acquire the guard immediately, else wait for
 	 *                  a call to .acquire()
 	 */
-	ScopeGuard(bool immediate) : acquisition_count(0) {
+	ScopeGuard(bool immediate) : acquired(false) {
 		if (immediate)
 			this->acquire();
 	};
 	virtual ~ScopeGuard() {
 		/*
-		if (this->acquisition_count)
+		if (this->acquired)
 			this->release();
 
 		 * ...is what I would like to say, but dynamic dispatch works
 		 * differently in destructors, and it will call ScopeGuard's release. We
 		 * have to do this in each derived class.  Implementers take note!
 		 */
-		if (this->acquisition_count) {
+		if (this->acquired) {
 			/*
 			throw except::deadlock_error("The ScopeGuard subclass did not properly call release() in its destructor.");
 
@@ -144,30 +144,30 @@ public:
 	/**
 	 * Acquire this guard.
 	 *
-	 * \note Implementers must set this->acquisition_count appropriately.
+	 * \note Implementers must set this->acquired appropriately.
 	 */
 	virtual void acquire() {
-		this->acquisition_count++;
+		this->acquired = true;
 	}
 
 	/**
 	 * Release this guard.
 	 *
-	 * \note Implementers must set this->acquisition_count appropriately.
+	 * \note Implementers must set this->acquired appropriately.
 	 */
 	virtual void release() {
-		if (this->acquisition_count == 0)
+		if (!this->acquired)
 			throw except::deadlock_error("Attempted to release a ScopedGuard that is not held.");
-		this->acquisition_count--;
+		this->acquired = false;
 	}
 
 	/**
 	 * Determine whether the guard is acquired.
 	 * @return true if the guard is acquired, else false
 	 */
-	virtual bool is_acquired() { return this->acquisition_count; };
+	virtual bool is_acquired() { return this->acquired; };
 protected:
-	uint32_t acquisition_count; ///< Indicate whether this ScopeGuard is acquired.
+	bool acquired; ///< Indicate whether this ScopeGuard is acquired.
 };
 
 DEFINE_GENERIC_EXCEPTION(timeout_error, std::runtime_error)
@@ -191,7 +191,7 @@ public:
 			this->acquire(timeout);
 	};
 	virtual ~MutexGuard() {
-		if (this->acquisition_count)
+		if (this->acquired)
 			this->release();
 	};
 
@@ -205,8 +205,8 @@ public:
 	 * @throw except::deadlock_error The MutexGuard was already acquired.
 	 */
 	virtual void acquire(TickType_t timeout) {
-		if (this->acquisition_count && !RecursiveMutex)
-			throw except::deadlock_error("Attempted to acquire() a non-recursive MutexGuard that is already held.");
+		if (this->acquired)
+			throw except::deadlock_error("Attempted to acquire() a MutexGuard that is already held.");
 		BaseType_t ret;
 		if (RecursiveMutex)
 			ret = xSemaphoreTakeRecursive(this->mutex, timeout);
@@ -214,7 +214,7 @@ public:
 			ret = xSemaphoreTake(this->mutex, timeout);
 		if (ret != pdTRUE)
 			throw except::timeout_error("Unable to acquire MutexLock in the specified period.");
-		this->acquisition_count++;
+		this->acquired = true;
 	}
 
 	/**
@@ -222,9 +222,9 @@ public:
 	 * @throw except::deadlock_error The MutexGuard was improperly released or release failed.
 	 */
 	virtual void release() {
-		if (!this->acquisition_count)
+		if (!this->acquired)
 			throw except::deadlock_error("Attempted to release() a MutexGuard that was not held.");
-		this->acquisition_count--;
+		this->acquired = false;
 		BaseType_t ret;
 		if (RecursiveMutex)
 			ret = xSemaphoreGiveRecursive(this->mutex);
@@ -249,20 +249,20 @@ public:
 	 */
 	CriticalGuard(bool immediate) : ScopeGuard(immediate) { };
 	virtual ~CriticalGuard() {
-		if (this->acquisition_count)
+		if (this->acquired)
 			this->release();
 	};
 
 	virtual void acquire() {
 		if (!IN_INTERRUPT())
 			portENTER_CRITICAL();
-		this->acquisition_count++;
+		this->acquired = true;
 	}
 
 	virtual void release() {
-		if (!this->acquisition_count)
+		if (!this->acquired)
 			throw except::deadlock_error("Attempted to release() a CriticalGuard that was not held.");
-		this->acquisition_count--;
+		this->acquired = false;
 		if (!IN_INTERRUPT())
 			portEXIT_CRITICAL();
 	}
