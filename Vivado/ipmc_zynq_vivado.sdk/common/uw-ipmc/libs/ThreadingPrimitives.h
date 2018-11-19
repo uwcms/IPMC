@@ -102,37 +102,43 @@ DEFINE_GENERIC_EXCEPTION(deadlock_error, std::logic_error)
  * An Abstract Base Class for scope guard utilities, such as MutexLock, and
  * CriticalSection.
  */
-class ScopeGuard {
+class ScopedGuard {
 public:
 	/**
-	 * Instantiate a ScopeGuard
+	 * Instantiate a ScopedGuard
 	 *
 	 * \warning You MUST keep an object in scope, the following code creates and
-	 *          then immediately destroys a ScopeGuard, providing no protection:
-	 *          `ScopeGuard(true);`
-	 *          The following code creates a ScopeGuard and holds it, providing
+	 *          then immediately destroys a ScopedGuard, providing no protection:
+	 *          `ScopedGuard(true);`
+	 *          The following code creates a ScopedGuard and holds it, providing
 	 *          the expected protection:
-	 *          `ScopeGuard grd(true);`
+	 *          `ScopedGuard grd(true);`
 	 *
 	 * @param immediate If true, acquire the guard immediately, else wait for
 	 *                  a call to .acquire()
 	 */
-	ScopeGuard(bool immediate) : acquired(false) {
+	ScopedGuard(/* bool immediate */) : acquired(false) {
+		/*
 		if (immediate)
 			this->acquire();
+
+		 * ...is what I would like to say, but `this->mutex` or the like might
+		 * not be instantiated in subclasses yet. We have to do this in each
+		 * derived class.  Implementers take note!
+		 */
 	};
-	virtual ~ScopeGuard() {
+	virtual ~ScopedGuard() {
 		/*
 		if (this->acquired)
 			this->release();
 
 		 * ...is what I would like to say, but dynamic dispatch works
-		 * differently in destructors, and it will call ScopeGuard's release. We
+		 * differently in destructors, and it will call ScopedGuard's release. We
 		 * have to do this in each derived class.  Implementers take note!
 		 */
 		if (this->acquired) {
 			/*
-			throw except::deadlock_error("The ScopeGuard subclass did not properly call release() in its destructor.");
+			throw except::deadlock_error("The ScopedGuard subclass did not properly call release() in its destructor.");
 
 			 * ...is what I would like to say, but I can't throw in a destructor!
 			 * I'll settle for calling abort.
@@ -146,20 +152,14 @@ public:
 	 *
 	 * \note Implementers must set this->acquired appropriately.
 	 */
-	virtual void acquire() {
-		this->acquired = true;
-	}
+	virtual void acquire() = 0;
 
 	/**
 	 * Release this guard.
 	 *
 	 * \note Implementers must set this->acquired appropriately.
 	 */
-	virtual void release() {
-		if (!this->acquired)
-			throw except::deadlock_error("Attempted to release a ScopedGuard that is not held.");
-		this->acquired = false;
-	}
+	virtual void release() = 0;
 
 	/**
 	 * Determine whether the guard is acquired.
@@ -167,15 +167,15 @@ public:
 	 */
 	virtual bool is_acquired() { return this->acquired; };
 protected:
-	bool acquired; ///< Indicate whether this ScopeGuard is acquired.
+	bool acquired; ///< Indicate whether this ScopedGuard is acquired.
 };
 
 DEFINE_GENERIC_EXCEPTION(timeout_error, std::runtime_error)
 
 /**
- * A ScopeGuard servicing FreeRTOS mutexes.
+ * A ScopedGuard servicing FreeRTOS mutexes.
  */
-template <bool RecursiveMutex> class MutexGuard : public ScopeGuard {
+template <bool RecursiveMutex> class MutexGuard : public ScopedGuard {
 public:
 	/**
 	 * Instantiate a MutexGuard
@@ -186,7 +186,7 @@ public:
 	 * @throw except::timeout_error Immediate acquisition timed out.
 	 */
 	MutexGuard(SemaphoreHandle_t &mutex, bool immediate, const TickType_t timeout = portMAX_DELAY)
-		: ScopeGuard(false /* We'll handle acquisition here. */), mutex(mutex) {
+		: mutex(mutex) {
 		if (immediate)
 			this->acquire(timeout);
 	};
@@ -198,6 +198,7 @@ public:
 	virtual void acquire() {
 		this->acquire(portMAX_DELAY);
 	}
+
 	/**
 	 * Acquire the mutex.
 	 * @timeout A timeout for mutex acquisition.
@@ -238,22 +239,27 @@ protected:
 };
 
 /**
- * A ScopeGuard servicing FreeRTOS critical sections.
+ * A ScopedGuard servicing FreeRTOS critical sections.
  */
-class CriticalGuard : public ScopeGuard {
+class CriticalGuard : public ScopedGuard {
 public:
 	/**
 	 * Lock the desired mutex.
 	 * @param mutex Pre-initialized mutex that will be managed.
 	 * @param immediate If true, acquire the mutex immediately.
 	 */
-	CriticalGuard(bool immediate) : ScopeGuard(immediate) { };
+	CriticalGuard(bool immediate) {
+		if (immediate)
+			this->acquire();
+	};
 	virtual ~CriticalGuard() {
 		if (this->acquired)
 			this->release();
 	};
 
 	virtual void acquire() {
+		if (this->acquired)
+			throw except::deadlock_error("Attempted to acquire() a CriticalGuard that was already held.");
 		if (!IN_INTERRUPT())
 			portENTER_CRITICAL();
 		this->acquired = true;
@@ -266,6 +272,50 @@ public:
 		if (!IN_INTERRUPT())
 			portEXIT_CRITICAL();
 	}
+};
+
+/**
+ * A ScopedGuard temporarily releasing another ScopedGuard.
+ *
+ * It will remember the is_acquired() of the guard it releases, in case it was
+ * not in fact held when the ScopedGuardRelease was acquired.
+ */
+class ScopedGuardRelease : public ScopedGuard {
+public:
+	/**
+	 * Release the provided guard.
+	 * @param guard The ScopedGuard instance that will be managed.
+	 * @param immediate If true, release the guard immediately.
+	 */
+	ScopedGuardRelease(ScopedGuard &guard, bool immediate) : guard(guard) {
+		if (immediate)
+			this->acquire();
+	};
+	virtual ~ScopedGuardRelease() {
+		if (this->acquired)
+			this->release();
+	};
+
+	virtual void acquire() {
+		if (this->acquired)
+			throw except::deadlock_error("Attempted to acquire() a ScopedGuardRelease that was already acquired.");
+		this->guard_actually_held = this->guard.is_acquired();
+		this->acquired = true;
+		if (this->guard_actually_held)
+			this->guard.release();
+	}
+
+	virtual void release() {
+		if (!this->acquired)
+			throw except::deadlock_error("Attempted to release() a CriticalGuard that was not held.");
+		if (this->guard_actually_held)
+			this->guard.acquire();
+		this->acquired = false;
+	}
+
+protected:
+	ScopedGuard &guard; ///< A ScopedGuard instance that we are temporarily releasing.
+	bool guard_actually_held; ///< Track whether the guard we're releasing was held to begin with.
 };
 
 static inline uint64_t get_tick64() {
