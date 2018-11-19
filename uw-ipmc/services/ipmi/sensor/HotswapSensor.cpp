@@ -25,8 +25,9 @@ HotswapSensor::~HotswapSensor() {
  * Update the current M-state and send the appropriate events.
  * @param new_state The new M-state
  * @param reason The reason for the state transition
+ * @param send_event If true, send the appropriate IPMI event.
  */
-void HotswapSensor::transition(uint8_t new_state, enum StateTransitionReason reason) {
+void HotswapSensor::transition(uint8_t new_state, enum StateTransitionReason reason, bool send_event) {
 	if (new_state >= 8)
 		throw std::domain_error(stdsprintf("Only M0-M7 are supported, not M%hhu.", new_state));
 	std::vector<uint8_t> data;
@@ -38,7 +39,8 @@ void HotswapSensor::transition(uint8_t new_state, enum StateTransitionReason rea
 	this->mstate = new_state;
 	this->last_transition_reason = reason;
 	xSemaphoreGive(this->mutex);
-	this->send_event(Sensor::EVENT_ASSERTION, data);
+	if (send_event)
+		this->send_event(Sensor::EVENT_ASSERTION, data);
 }
 
 std::vector<uint8_t> HotswapSensor::get_sensor_reading() {

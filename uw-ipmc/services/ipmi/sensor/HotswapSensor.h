@@ -34,7 +34,7 @@ public:
 		TRANS_SURPRISE_POWER_FAIL                     = 10,
 		TRANS_REASON_UNKNOWN                          = 0xF
 	};
-	virtual void transition(uint8_t new_state, enum StateTransitionReason reason);
+	virtual void transition(uint8_t new_state, enum StateTransitionReason reason, bool send_event=true);
 	virtual std::vector<uint8_t> get_sensor_reading();
 	virtual void rearm();
 
