@@ -248,7 +248,7 @@ void PL_SPI::stop() {
 }
 
 bool PL_SPI::transfer(u8 cs, const u8 *sendbuf, u8 *recvbuf, size_t bytes, TickType_t timeout) {
-	MutexLock lock(this->mutex);
+	MutexGuard<false> lock(this->mutex, true);
 
 	this->select(cs);
 	bool r = this->transfer_unsafe(sendbuf, recvbuf, bytes, timeout);

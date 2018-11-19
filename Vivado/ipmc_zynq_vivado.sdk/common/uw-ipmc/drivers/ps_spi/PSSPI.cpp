@@ -70,7 +70,7 @@ PS_SPI::~PS_SPI() {
  */
 bool PS_SPI::transfer(u8 chip, const u8 *sendbuf, u8 *recvbuf, size_t bytes, TickType_t timeout) {
 	// TODO: Needs some work
-	MutexLock lock(this->mutex);
+	MutexGuard<false> lock(this->mutex, true);
 
 	// Assert the EEPROM chip select
 	XSpiPs_SetSlaveSelect(&this->SpiInst, chip);

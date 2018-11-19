@@ -13,27 +13,6 @@
 #include <libs/except.h>
 
 /**
- * Given a pre-existing mutex, the MutexLock class automatically locks when created and releases it
- * when scope is lost.
- */
-class MutexLock {
-public:
-	/**
-	 * Lock the desired mutex.
-	 * @param m Pre-initialized mutex that will be locked.
-	 * @param t Timeout if required, default is portMAX_DELAY, which will wait forever.
-	 * @note If a timeout is defined then isLocked should be used after construction.
-	 */
-	inline MutexLock(SemaphoreHandle_t &m, const TickType_t t = portMAX_DELAY) : mutex(m) { this->locked = xSemaphoreTake(this->mutex, t); };
-	inline ~MutexLock() { if (this->locked) xSemaphoreGive(this->mutex); };
-	///! Returns true if the mutex successfully locked, only required when timeout is set.
-	inline bool isLocked() { return locked; };
-private:
-	SemaphoreHandle_t mutex;
-	bool locked;
-};
-
-/**
  * A class which allows for absolute timeout tracking in a wraparound-aware manner.
  *
  * \warning This class is not ISR safe and contains no internal locking.
@@ -116,6 +95,178 @@ static inline bool IN_CRITICAL() {
 	extern volatile uint32_t ulCriticalNesting;
 	return !!ulCriticalNesting;
 }
+
+DEFINE_GENERIC_EXCEPTION(deadlock_error, std::logic_error)
+
+/**
+ * An Abstract Base Class for scope guard utilities, such as MutexLock, and
+ * CriticalSection.
+ */
+class ScopeGuard {
+public:
+	/**
+	 * Instantiate a ScopeGuard
+	 *
+	 * \warning You MUST keep an object in scope, the following code creates and
+	 *          then immediately destroys a ScopeGuard, providing no protection:
+	 *          `ScopeGuard(true);`
+	 *          The following code creates a ScopeGuard and holds it, providing
+	 *          the expected protection:
+	 *          `ScopeGuard grd(true);`
+	 *
+	 * @param immediate If true, acquire the guard immediately, else wait for
+	 *                  a call to .acquire()
+	 */
+	ScopeGuard(bool immediate) : acquisition_count(0) {
+		if (immediate)
+			this->acquire();
+	};
+	virtual ~ScopeGuard() {
+		/*
+		if (this->acquisition_count)
+			this->release();
+
+		 * ...is what I would like to say, but dynamic dispatch works
+		 * differently in destructors, and it will call ScopeGuard's release. We
+		 * have to do this in each derived class.  Implementers take note!
+		 */
+		if (this->acquisition_count) {
+			/*
+			throw except::deadlock_error("The ScopeGuard subclass did not properly call release() in its destructor.");
+
+			 * ...is what I would like to say, but I can't throw in a destructor!
+			 * I'll settle for calling abort.
+			 */
+			abort();
+		}
+	};
+
+	/**
+	 * Acquire this guard.
+	 *
+	 * \note Implementers must set this->acquisition_count appropriately.
+	 */
+	virtual void acquire() {
+		this->acquisition_count++;
+	}
+
+	/**
+	 * Release this guard.
+	 *
+	 * \note Implementers must set this->acquisition_count appropriately.
+	 */
+	virtual void release() {
+		if (this->acquisition_count == 0)
+			throw except::deadlock_error("Attempted to release a ScopedGuard that is not held.");
+		this->acquisition_count--;
+	}
+
+	/**
+	 * Determine whether the guard is acquired.
+	 * @return true if the guard is acquired, else false
+	 */
+	virtual bool is_acquired() { return this->acquisition_count; };
+protected:
+	uint32_t acquisition_count; ///< Indicate whether this ScopeGuard is acquired.
+};
+
+DEFINE_GENERIC_EXCEPTION(timeout_error, std::runtime_error)
+
+/**
+ * A ScopeGuard servicing FreeRTOS mutexes.
+ */
+template <bool RecursiveMutex> class MutexGuard : public ScopeGuard {
+public:
+	/**
+	 * Instantiate a MutexGuard
+	 *
+	 * @param mutex Pre-initialized mutex that will be managed.
+	 * @param immediate If true, acquire the mutex immediately.
+	 * @param timeout The timeout for immediate acquisition (default 'forever')
+	 * @throw except::timeout_error Immediate acquisition timed out.
+	 */
+	MutexGuard(SemaphoreHandle_t &mutex, bool immediate, const TickType_t timeout = portMAX_DELAY)
+		: ScopeGuard(false /* We'll handle acquisition here. */), mutex(mutex) {
+		if (immediate)
+			this->acquire(timeout);
+	};
+	virtual ~MutexGuard() {
+		if (this->acquisition_count)
+			this->release();
+	};
+
+	virtual void acquire() {
+		this->acquire(portMAX_DELAY);
+	}
+	/**
+	 * Acquire the mutex.
+	 * @timeout A timeout for mutex acquisition.
+	 * @throw except::timeout_error Acquisition timed out.
+	 * @throw except::deadlock_error The MutexGuard was already acquired.
+	 */
+	virtual void acquire(TickType_t timeout) {
+		if (this->acquisition_count && !RecursiveMutex)
+			throw except::deadlock_error("Attempted to acquire() a non-recursive MutexGuard that is already held.");
+		BaseType_t ret;
+		if (RecursiveMutex)
+			ret = xSemaphoreTakeRecursive(this->mutex, timeout);
+		else
+			ret = xSemaphoreTake(this->mutex, timeout);
+		if (ret != pdTRUE)
+			throw except::timeout_error("Unable to acquire MutexLock in the specified period.");
+		this->acquisition_count++;
+	}
+
+	/**
+	 * Release the mutex.
+	 * @throw except::deadlock_error The MutexGuard was improperly released or release failed.
+	 */
+	virtual void release() {
+		if (!this->acquisition_count)
+			throw except::deadlock_error("Attempted to release() a MutexGuard that was not held.");
+		this->acquisition_count--;
+		BaseType_t ret;
+		if (RecursiveMutex)
+			ret = xSemaphoreGiveRecursive(this->mutex);
+		else
+			ret = xSemaphoreGive(this->mutex);
+		if (ret != pdTRUE)
+			throw except::deadlock_error("xSemaphoreGive*() did not return pdTRUE when releasing MutexGuard.");
+	}
+protected:
+	SemaphoreHandle_t mutex; ///< The mutex managed.
+};
+
+/**
+ * A ScopeGuard servicing FreeRTOS critical sections.
+ */
+class CriticalGuard : public ScopeGuard {
+public:
+	/**
+	 * Lock the desired mutex.
+	 * @param mutex Pre-initialized mutex that will be managed.
+	 * @param immediate If true, acquire the mutex immediately.
+	 */
+	CriticalGuard(bool immediate) : ScopeGuard(immediate) { };
+	virtual ~CriticalGuard() {
+		if (this->acquisition_count)
+			this->release();
+	};
+
+	virtual void acquire() {
+		if (!IN_INTERRUPT())
+			portENTER_CRITICAL();
+		this->acquisition_count++;
+	}
+
+	virtual void release() {
+		if (!this->acquisition_count)
+			throw except::deadlock_error("Attempted to release() a CriticalGuard that was not held.");
+		this->acquisition_count--;
+		if (!IN_INTERRUPT())
+			portEXIT_CRITICAL();
+	}
+};
 
 static inline uint64_t get_tick64() {
 	if (!IN_INTERRUPT())

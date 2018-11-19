@@ -39,14 +39,14 @@ public:
 	 * @return The return value of the function/lambda is returned.
 	 */
 	template<typename T> T atomic(std::function<T()> lambda_func) {
-		MutexLock lock(this->mutex);
+		MutexGuard<false> lock(this->mutex, true);
 		T r = lambda_func();
 		return r;
 	}
 
 	///! Same as AtomicitySupport::atomic, but where no return is required.
 	void atomic(std::function<void()> lambda_func) {
-		MutexLock lock(this->mutex);
+		MutexGuard<false> lock(this->mutex, true);
 		lambda_func();
 	}
 
@@ -79,7 +79,7 @@ public:
 	 * @return The return value of the function/lambda is returned.
 	 */
 	template<typename T> T atomic(uint32_t address, std::function<T()> lambda_func, bool dont_deselect = true) {
-		MutexLock lock(this->mutex);
+		MutexGuard<false> lock(this->mutex, true);
 		this->select(address);
 		T r = lambda_func();
 		if (dont_deselect) this->deselect();
@@ -88,7 +88,7 @@ public:
 
 	///! Same as AddressableAtomicitySupport::atomic, but where no return is required.
 	void atomic(uint32_t address, std::function<void()> lambda_func, bool dont_deselect = true) {
-		MutexLock lock(this->mutex);
+		MutexGuard<false> lock(this->mutex, true);
 		this->select(address);
 		lambda_func();
 		if (dont_deselect) this->deselect();
