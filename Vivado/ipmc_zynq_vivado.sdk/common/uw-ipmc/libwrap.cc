@@ -10,6 +10,7 @@
 #include <libs/StatCounter.h>
 #include <libs/LogTree.h>
 #include <libs/printf.h>
+#include <libs/ThreadingPrimitives.h>
 
 #include <FreeRTOS.h>
 #include <semphr.h>
@@ -191,12 +192,12 @@ int __wrap_vprintf(const char *format, va_list ap) {
 		va_end(ap2);
 		return s;
 	}
-	char *str = (char*) pvPortMalloc(s);
+	char *str = (char*) malloc(s);
 	vsnprintf(str, s, format, ap2);
 	va_end(ap);
 	va_end(ap2);
 	std::string outstr(str);
-	vPortFree(str);
+	free(str);
 
 	// printf goes through the log facility now.
 	static LogTree *printf_trace = NULL;
@@ -252,12 +253,12 @@ void ipmc_lwip_printf(const char *ctrl1, ...) {
 		va_end(ap2);
 		return;
 	}
-	char *str = (char*) pvPortMalloc(s);
+	char *str = (char*) malloc(s);
 	vsnprintf(str, s, ctrl1, ap2);
 	va_end(ap);
 	va_end(ap2);
 	std::string outstr(str);
-	vPortFree(str);
+	free(str);
 	windows_newline(outstr);
 
 	// We need to strip trailing \r\n.  The logger handles that.
