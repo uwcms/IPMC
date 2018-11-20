@@ -683,10 +683,10 @@ static size_t flash_write(uint8_t *buf, size_t size) {
 }
 
 void* operator new(std::size_t n) {
-	return pvPortMalloc(n);
+	return malloc(n);
 }
 void operator delete(void* p) throw() {
-	vPortFree(p);
+	free(p);
 }
 
 std::string generate_banner() {
