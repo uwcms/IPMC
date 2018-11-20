@@ -74,10 +74,16 @@ int _gettimeofday( struct timeval *tv, struct timezone *tz )
 volatile SemaphoreHandle_t stdlib_mutex = NULL;
 
 void *__wrap_malloc(size_t size) {
+	// The FreeRTOS pvPortMalloc/vPortFree are not ISR safe, only critical safe.
+	if (IN_INTERRUPT())
+		abort();
 	return pvPortMalloc(size);
 }
 
 void __wrap_free(void *ptr) {
+	// The FreeRTOS pvPortMalloc/vPortFree are not ISR safe, only critical safe.
+	if (IN_INTERRUPT())
+		abort();
 	vPortFree(ptr);
 }
 
