@@ -14,6 +14,7 @@
 #include <errno.h>
 #include <algorithm>
 #include <libs/printf.h>
+#include <libs/ThreadingPrimitives.h>
 
 namespace {
 /// The default 'help' console command.
@@ -188,12 +189,11 @@ bool CommandParser::parse(std::shared_ptr<ConsoleSvc> console, const std::string
  */
 std::shared_ptr<CommandParser::Command> CommandParser::get_command(const std::string &command) const {
 	std::shared_ptr<Command> handler = NULL;
-	xSemaphoreTake(this->mutex, portMAX_DELAY);
+	MutexGuard<false> lock(this->mutex, true);
 	if (this->commandset.count(command))
 		handler = this->commandset.at(command);
 	if (!handler && this->chain)
 		handler = this->chain->get_command(command);
-	xSemaphoreGive(this->mutex);
 	return handler;
 }
 
@@ -204,12 +204,11 @@ std::shared_ptr<CommandParser::Command> CommandParser::get_command(const std::st
  * @param handler The handler for the command.
  */
 void CommandParser::register_command(const std::string &token, std::shared_ptr<Command> handler) {
-	xSemaphoreTake(this->mutex, portMAX_DELAY);
+	MutexGuard<false> lock(this->mutex, true);
 	if (!handler)
 		this->commandset.erase(token);
 	else
 		this->commandset[token] = handler;
-	xSemaphoreGive(this->mutex);
 }
 
 
@@ -219,7 +218,7 @@ void CommandParser::register_command(const std::string &token, std::shared_ptr<C
  * @return All installed commands.
  */
 std::vector<std::string> CommandParser::list_commands(bool native_only) const {
-	xSemaphoreTake(this->mutex, portMAX_DELAY);
+	MutexGuard<false> lock(this->mutex, true);
 	std::vector<std::string> commands;
 	commands.reserve(this->commandset.size());
 	for (auto it = this->commandset.begin(), eit = this->commandset.end(); it != eit; ++it)
@@ -228,7 +227,6 @@ std::vector<std::string> CommandParser::list_commands(bool native_only) const {
 		std::vector<std::string> chained_commands = this->chain->list_commands(false);
 		commands.insert(commands.end(),chained_commands.begin(),chained_commands.end());
 	}
-	xSemaphoreGive(this->mutex);
 	return std::move(commands);
 }
 

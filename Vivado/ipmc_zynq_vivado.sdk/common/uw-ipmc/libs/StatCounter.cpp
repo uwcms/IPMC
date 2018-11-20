@@ -37,17 +37,17 @@ StatCounter::StatCounter(std::string name)
 		if (sem)
 			vSemaphoreDelete(sem);
 	}
-	xSemaphoreTake(StatCounter::mutex, portMAX_DELAY);
+	SemaphoreHandle_t nvmutex = const_cast<SemaphoreHandle_t>(StatCounter::mutex);
+	MutexGuard<false> lock(nvmutex, true);
 	if (!StatCounter::registry)
 		StatCounter::registry = new std::map< std::string, StatCounter* >();
 	StatCounter::registry->insert(std::make_pair(this->name, this));
-	xSemaphoreGive(StatCounter::mutex);
 }
 
 StatCounter::~StatCounter() {
-	xSemaphoreTake(StatCounter::mutex, portMAX_DELAY);
+	SemaphoreHandle_t nvmutex = const_cast<SemaphoreHandle_t>(StatCounter::mutex);
+	MutexGuard<false> lock(nvmutex, true);
 	StatCounter::registry->erase(this->name);
-	xSemaphoreGive(StatCounter::mutex);
 }
 
 

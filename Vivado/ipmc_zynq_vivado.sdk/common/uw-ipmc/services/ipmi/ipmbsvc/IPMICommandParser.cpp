@@ -10,6 +10,7 @@
 #include <semphr.h>
 #include <IPMC.h>
 #include <services/ipmi/IPMI_MSG.h>
+#include <libs/ThreadingPrimitives.h>
 #include <functional>
 #include <map>
 
@@ -37,12 +38,11 @@ IPMICommandParser::~IPMICommandParser() {
  * @param handler The handler for the command
  */
 void IPMICommandParser::register_handler(uint16_t command, ipmi_cmd_handler_t handler) {
-	xSemaphoreTake(this->mutex, portMAX_DELAY);
+	MutexGuard<false> lock(this->mutex, true);
 	if (!handler)
 		this->commandset.erase(command);
 	else
 		this->commandset[command] = handler;
-	xSemaphoreGive(this->mutex);
 }
 
 /**
@@ -54,10 +54,10 @@ void IPMICommandParser::register_handler(uint16_t command, ipmi_cmd_handler_t ha
 void IPMICommandParser::dispatch(IPMBSvc &ipmb, const IPMI_MSG &message) {
 	ipmi_cmd_handler_t handler = this->default_handler;
 	uint16_t command = (message.netFn << 8) | message.cmd;
-	xSemaphoreTake(this->mutex, portMAX_DELAY);
+	MutexGuard<false> lock(this->mutex, true);
 	if (this->commandset.count(command))
 		handler = this->commandset[command];
-	xSemaphoreGive(this->mutex);
+	lock.release();
 	if (handler)
 		handler(ipmb, message);
 }

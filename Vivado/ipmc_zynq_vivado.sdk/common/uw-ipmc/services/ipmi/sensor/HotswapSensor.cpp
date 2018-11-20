@@ -10,6 +10,7 @@
 #include <semphr.h>
 #include <libs/printf.h>
 #include <libs/except.h>
+#include <libs/ThreadingPrimitives.h>
 
 HotswapSensor::HotswapSensor(const std::vector<uint8_t> &sdr_key, LogTree &log)
 	: Sensor(sdr_key, log), mstate(1), previous_mstate(0),
@@ -31,14 +32,14 @@ void HotswapSensor::transition(uint8_t new_state, enum StateTransitionReason rea
 	if (new_state >= 8)
 		throw std::domain_error(stdsprintf("Only M0-M7 are supported, not M%hhu.", new_state));
 	std::vector<uint8_t> data;
-	xSemaphoreTake(this->mutex, portMAX_DELAY);
+	MutexGuard<false> lock(this->mutex, true);
 	data.push_back(0xA0|new_state);
 	data.push_back((static_cast<uint8_t>(reason)<<4)|this->mstate);
 	data.push_back(0 /* FRU Device ID */);
 	this->previous_mstate = this->mstate;
 	this->mstate = new_state;
 	this->last_transition_reason = reason;
-	xSemaphoreGive(this->mutex);
+	lock.release();
 	if (send_event)
 		this->send_event(Sensor::EVENT_ASSERTION, data);
 }
@@ -59,10 +60,10 @@ void HotswapSensor::rearm() {
 	 * resend the last event.
 	 */
 	std::vector<uint8_t> data;
-	xSemaphoreTake(this->mutex, portMAX_DELAY);
+	MutexGuard<false> lock(this->mutex, true);
 	data.push_back(0xA0|this->mstate);
 	data.push_back((static_cast<uint8_t>(this->last_transition_reason)<<4)|this->previous_mstate);
 	data.push_back(0 /* FRU Device ID */);
-	xSemaphoreGive(this->mutex);
+	lock.release();
 	this->send_event(Sensor::EVENT_ASSERTION, data);
 }

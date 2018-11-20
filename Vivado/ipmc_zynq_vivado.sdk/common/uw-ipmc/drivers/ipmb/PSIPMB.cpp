@@ -15,6 +15,7 @@
 #include <semphr.h>
 #include <queue.h>
 #include <task.h>
+#include <libs/ThreadingPrimitives.h>
 #include <libs/printf.h>
 #include <libs/except.h>
 
@@ -116,7 +117,7 @@ bool PS_IPMB::send_message(IPMI_MSG &msg, uint32_t retry) {
 	uint8_t msgbuf[this->i2c_bufsize];
 	int msglen = msg.unparse_message(msgbuf, this->i2c_bufsize);
 
-	xSemaphoreTake(this->mutex, portMAX_DELAY);
+	MutexGuard<false> lock(this->mutex, true);
 	this->setup_master();
 	XIicPs_MasterSend(&this->IicInst, msgbuf, msglen, msg.rsSA>>1);
 
@@ -124,7 +125,6 @@ bool PS_IPMB::send_message(IPMI_MSG &msg, uint32_t retry) {
 	xQueueReceive(this->sendresult_q, &isr_result, portMAX_DELAY);
 
 	this->setup_slave(); // Return to slave mode.
-	xSemaphoreGive(this->mutex);
 
 	return isr_result == XIICPS_EVENT_COMPLETE_SEND; // Return wire-level success/failure.
 }

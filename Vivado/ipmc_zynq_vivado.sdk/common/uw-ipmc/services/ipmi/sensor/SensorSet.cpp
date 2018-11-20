@@ -8,6 +8,7 @@
 #include <services/ipmi/sensor/SensorSet.h>
 #include <FreeRTOS.h>
 #include <semphr.h>
+#include <libs/ThreadingPrimitives.h>
 
 /**
  * Instantiate a SensorSet
@@ -31,9 +32,8 @@ SensorSet::~SensorSet() {
 void SensorSet::add(std::shared_ptr<Sensor> sensor) {
 	if (!sensor)
 		return;
-	xSemaphoreTake(this->mutex, portMAX_DELAY);
+	MutexGuard<false> lock(this->mutex, true);
 	this->set[sensor->sdr_key[2]] = sensor;
-	xSemaphoreGive(this->mutex);
 }
 
 /**
@@ -42,10 +42,9 @@ void SensorSet::add(std::shared_ptr<Sensor> sensor) {
  * @param sensor The number of the sensor to remove
  */
 void SensorSet::remove(uint8_t sensor_number) {
-	xSemaphoreTake(this->mutex, portMAX_DELAY);
+	MutexGuard<false> lock(this->mutex, true);
 	if (this->set.count(sensor_number))
 		this->set.erase(sensor_number);
-	xSemaphoreGive(this->mutex);
 }
 
 /**
@@ -57,11 +56,10 @@ void SensorSet::remove(uint8_t sensor_number) {
  * @return A sensor or NULL if unavailable.
  */
 std::shared_ptr<Sensor> SensorSet::get(uint8_t sensor_number) {
-	xSemaphoreTake(this->mutex, portMAX_DELAY);
+	MutexGuard<false> lock(this->mutex, true);
 	std::shared_ptr<Sensor> ret = NULL;
 	if (this->set.count(sensor_number))
 		ret = this->set.at(sensor_number);
-	xSemaphoreGive(this->mutex);
 	return ret;
 }
 
@@ -72,10 +70,8 @@ std::shared_ptr<Sensor> SensorSet::get(uint8_t sensor_number) {
  * @return A snapshot of the inner container.
  */
 SensorSet::operator SensorSet::container_type() {
-	xSemaphoreTake(this->mutex, portMAX_DELAY);
-	container_type ret(this->set);
-	xSemaphoreGive(this->mutex);
-	return ret;
+	MutexGuard<false> lock(this->mutex, true);
+	return container_type(this->set);
 }
 
 /**
@@ -85,7 +81,7 @@ SensorSet::operator SensorSet::container_type() {
  * @return A sensor or NULL if unavailable.
  */
 std::shared_ptr<Sensor> SensorSet::find_by_sdr_key(const std::vector<uint8_t> &sdr_key) {
-	xSemaphoreTake(this->mutex, portMAX_DELAY);
+	MutexGuard<false> lock(this->mutex, true);
 	std::shared_ptr<Sensor> ret = NULL;
 	for (auto it = this->set.begin(), eit = this->set.end(); it != eit; ++it) {
 		if (it->second->sdr_key == sdr_key) {
@@ -93,7 +89,6 @@ std::shared_ptr<Sensor> SensorSet::find_by_sdr_key(const std::vector<uint8_t> &s
 			break;
 		}
 	}
-	xSemaphoreGive(this->mutex);
 	return ret;
 }
 
@@ -124,7 +119,7 @@ std::shared_ptr<Sensor> SensorSet::find_by_sdr(std::shared_ptr<const SensorDataR
 std::shared_ptr<Sensor> SensorSet::find_by_name(const std::string &name) {
 	if (!this->sdr_repo)
 		return NULL; // We can't do name lookups.
-	xSemaphoreTake(this->mutex, portMAX_DELAY);
+	MutexGuard<false> lock(this->mutex, true);
 	std::shared_ptr<Sensor> ret = NULL;
 	for (auto it = this->set.begin(), eit = this->set.end(); it != eit; ++it) {
 		std::shared_ptr<const SensorDataRecordSensor> sdr = std::dynamic_pointer_cast<const SensorDataRecordSensor>(this->sdr_repo->find(it->second->sdr_key));
@@ -135,6 +130,5 @@ std::shared_ptr<Sensor> SensorSet::find_by_name(const std::string &name) {
 			break;
 		}
 	}
-	xSemaphoreGive(this->mutex);
 	return ret;
 }

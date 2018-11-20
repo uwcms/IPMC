@@ -9,6 +9,7 @@
 #include <task.h>
 #include <libs/printf.h>
 #include <libs/except.h>
+#include <libs/ThreadingPrimitives.h>
 
 /**
  * Instantiate an EEPROM interface.
@@ -55,13 +56,13 @@ size_t SPI_EEPROM::read(u16 address, u8 *buf, size_t bytes) {
 		configASSERT(address <= 0xff);
 		txbuf[1] = address & 0xff;
 	}
-	xSemaphoreTake(this->mutex, portMAX_DELAY);
+	MutexGuard<false> lock(this->mutex, true);
 	if (!this->spibus.transfer(this->cs, txbuf, txbuf, hdr_len+bytes)) {
-		xSemaphoreGive(this->mutex);
+		lock.release();
 		vPortFree(txbuf);
 		return 0;
 	}
-	xSemaphoreGive(this->mutex);
+	lock.release();
 
 	memcpy(buf, txbuf+hdr_len, bytes);
 	vPortFree(txbuf);
@@ -80,7 +81,7 @@ size_t SPI_EEPROM::write(u16 address, u8 *buf, size_t bytes) {
 	if (address + bytes > this->size)
 		throw std::out_of_range(stdsprintf("Tried to access addresses [%u, %u) of an EEPROM with size %lu.", address, address+bytes, this->size));
 
-	xSemaphoreTake(this->mutex, portMAX_DELAY);
+	MutexGuard<false> lock(this->mutex, true);
 
 	/* Unlike reads, writes DEFINITELY care about page boundaries.  We'll need
 	 * to split transactions correctly.
@@ -128,6 +129,5 @@ size_t SPI_EEPROM::write(u16 address, u8 *buf, size_t bytes) {
 		bytes_written += to_write;
 		address += to_write;
 	}
-	xSemaphoreGive(this->mutex);
 	return bytes_written;
 }
