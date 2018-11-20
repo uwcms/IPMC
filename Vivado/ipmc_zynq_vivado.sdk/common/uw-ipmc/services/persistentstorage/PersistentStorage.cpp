@@ -50,7 +50,7 @@ PersistentStorage::PersistentStorage(EEPROM &eeprom, LogTree &logtree, PS_WDT *w
 	: eeprom(eeprom), logtree(logtree), wdt(watchdog) {
 	if ((eeprom.size / eeprom.page_size) > UINT16_MAX) // Ensure that the EEPROM will not overflow our u16 fields.
 		throw std::domain_error("Only EEPROMs up to UINT16_MAX in length are supported.");
-	this->cache = (u8*)pvPortMalloc(this->eeprom.size*2 + 4);
+	this->cache = (u8*)malloc(this->eeprom.size*2 + 4);
 	NVREG32(this->cache, this->eeprom.size) = 0x1234dead; // Set Canary
 	this->data = this->cache + this->eeprom.size + 4;
 	this->logtree.log("Persistent storage task starting.", LogTree::LOG_INFO);
@@ -71,7 +71,7 @@ PersistentStorage::~PersistentStorage() {
 	vSemaphoreDelete(this->flushq_mutex);
 	vSemaphoreDelete(this->index_mutex);
 	vEventGroupDelete(this->storage_loaded);
-	vPortFree(this->cache);
+	free(this->cache);
 }
 
 /**

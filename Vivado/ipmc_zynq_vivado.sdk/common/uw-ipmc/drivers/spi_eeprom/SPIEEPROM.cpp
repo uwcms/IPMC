@@ -44,7 +44,7 @@ size_t SPI_EEPROM::read(u16 address, u8 *buf, size_t bytes) {
 	const u8 hdr_len = (this->size > 256 ? 3 : 2);
 
 	// Heap allocation to avoid stack overflow on large reads (like PersistentStorage startup)
-	u8 *txbuf = (u8*)pvPortMalloc(hdr_len + bytes);
+	u8 *txbuf = (u8*)malloc(hdr_len + bytes);
 	txbuf[0] = 3; // CMD_READ
 	if (hdr_len == 3) {
 		// Two byte address.
@@ -65,7 +65,7 @@ size_t SPI_EEPROM::read(u16 address, u8 *buf, size_t bytes) {
 	lock.release();
 
 	memcpy(buf, txbuf+hdr_len, bytes);
-	vPortFree(txbuf);
+	free(txbuf);
 	return bytes;
 }
 
