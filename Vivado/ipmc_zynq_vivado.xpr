@@ -3,7 +3,7 @@
 <!--                                                         -->
 <!-- Copyright 1986-2018 Xilinx, Inc. All Rights Reserved.   -->
 
-<Project Version="7" Minor="38" Path="/scratch/mpv/IPMC/Vivado/ipmc_zynq_vivado.xpr">
+<Project Version="7" Minor="38" Path="/home/jtikalsky/work/ecad/IPMI/IPMC/Vivado/ipmc_zynq_vivado.xpr">
   <DefaultLaunch Dir="$PRUNDIR"/>
   <Configuration>
     <Option Name="Id" Val="96ac94580d984afd960042f9941f03e4"/>
@@ -27,7 +27,7 @@
     <Option Name="IPCachePermission" Val="disable"/>
     <Option Name="EnableCoreContainer" Val="FALSE"/>
     <Option Name="CreateRefXciForCoreContainers" Val="FALSE"/>
-    <Option Name="IPUserFilesDir" Val="$PPRDIR/../../../../../../../home/jtikalsky/work/ecad/data/mpv/ipmc_zynq_vivado/ipmc_zynq_vivado.ip_user_files"/>
+    <Option Name="IPUserFilesDir" Val="$PPRDIR/../../../data/mpv/ipmc_zynq_vivado/ipmc_zynq_vivado.ip_user_files"/>
     <Option Name="IPStaticSourceDir" Val="$PIPUSERFILESDIR/ipstatic"/>
     <Option Name="EnableBDX" Val="FALSE"/>
     <Option Name="DSAVendor" Val="xilinx"/>
@@ -56,111 +56,22 @@
   <FileSets Version="1" Minor="31">
     <FileSet Name="sources_1" Type="DesignSrcs" RelSrcDir="$PSRCDIR/sources_1">
       <Filter Type="Srcs"/>
-      <File Path="$PSRCDIR/sources_1/new/debouncer.vhd">
-        <FileInfo>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
       <File Path="$PSRCDIR/sources_1/bd/ipmc_bd/ipmc_bd.bd">
         <FileInfo>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="implementation"/>
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
-        <CompFileExtendedInfo CompFileName="ipmc_bd.bd" FileRelPathName="ip/ipmc_bd_axi_atca_led_ctrl_0_1/ipmc_bd_axi_atca_led_ctrl_0.xci">
-          <Proxy FileSetName="ipmc_bd_axi_atca_led_ctrl_0"/>
-        </CompFileExtendedInfo>
-        <CompFileExtendedInfo CompFileName="ipmc_bd.bd" FileRelPathName="ip/ipmc_bd_mgmt_zone_ctrl_0_0_1/ipmc_bd_mgmt_zone_ctrl_0_0.xci">
-          <Proxy FileSetName="ipmc_bd_mgmt_zone_ctrl_0_0"/>
-        </CompFileExtendedInfo>
-        <CompFileExtendedInfo CompFileName="ipmc_bd.bd" FileRelPathName="ip/ipmc_bd_axi_iic_pim400_0_1/ipmc_bd_axi_iic_pim400_0.xci">
-          <Proxy FileSetName="ipmc_bd_axi_iic_pim400_0"/>
-        </CompFileExtendedInfo>
-        <CompFileExtendedInfo CompFileName="ipmc_bd.bd" FileRelPathName="ip/ipmc_bd_xbar_1_1/ipmc_bd_xbar_1.xci">
-          <Proxy FileSetName="ipmc_bd_xbar_1"/>
-        </CompFileExtendedInfo>
-        <CompFileExtendedInfo CompFileName="ipmc_bd.bd" FileRelPathName="ip/ipmc_bd_auto_pc_0_1/ipmc_bd_auto_pc_0.xci">
-          <Proxy FileSetName="ipmc_bd_auto_pc_0"/>
-        </CompFileExtendedInfo>
-        <CompFileExtendedInfo CompFileName="ipmc_bd.bd" FileRelPathName="ip/ipmc_bd_axi_iic_eeprom_0_0_1/ipmc_bd_axi_iic_eeprom_0_0.xci">
-          <Proxy FileSetName="ipmc_bd_axi_iic_eeprom_0_0"/>
-        </CompFileExtendedInfo>
-        <CompFileExtendedInfo CompFileName="ipmc_bd.bd" FileRelPathName="ip/ipmc_bd_proc_sys_reset_0_0_1/ipmc_bd_proc_sys_reset_0_0.xci">
-          <Proxy FileSetName="ipmc_bd_proc_sys_reset_0_0"/>
-        </CompFileExtendedInfo>
-        <CompFileExtendedInfo CompFileName="ipmc_bd.bd" FileRelPathName="ip/ipmc_bd_xlconcat_0_1/ipmc_bd_xlconcat_0_1.xci">
-          <Proxy FileSetName="ipmc_bd_xlconcat_0_1"/>
-        </CompFileExtendedInfo>
-        <CompFileExtendedInfo CompFileName="ipmc_bd.bd" FileRelPathName="ip/ipmc_bd_axi_uartlite_0_0/ipmc_bd_axi_uartlite_0_0.xci">
-          <Proxy FileSetName="ipmc_bd_axi_uartlite_0_0"/>
-        </CompFileExtendedInfo>
-        <CompFileExtendedInfo CompFileName="ipmc_bd.bd" FileRelPathName="ip/ipmc_bd_processing_system7_0_0_1/ipmc_bd_processing_system7_0_0.xci">
-          <Proxy FileSetName="ipmc_bd_processing_system7_0_0"/>
-        </CompFileExtendedInfo>
-        <CompFileExtendedInfo CompFileName="ipmc_bd.bd" FileRelPathName="ip/ipmc_bd_axi_jtag_0_0_1/ipmc_bd_axi_jtag_0_0.xci">
-          <Proxy FileSetName="ipmc_bd_axi_jtag_0_0"/>
-        </CompFileExtendedInfo>
-        <CompFileExtendedInfo CompFileName="ipmc_bd.bd" FileRelPathName="ip/ipmc_bd_xlconcat_0_0_1/ipmc_bd_xlconcat_0_0.xci">
-          <Proxy FileSetName="ipmc_bd_xlconcat_0_0"/>
-        </CompFileExtendedInfo>
-        <CompFileExtendedInfo CompFileName="ipmc_bd.bd" FileRelPathName="ip/ipmc_bd_axi_user_led_ctrl_0_1/ipmc_bd_axi_user_led_ctrl_0.xci">
-          <Proxy FileSetName="ipmc_bd_axi_user_led_ctrl_0"/>
-        </CompFileExtendedInfo>
-        <CompFileExtendedInfo CompFileName="ipmc_bd.bd" FileRelPathName="ip/ipmc_bd_debouncer_0_0_1/ipmc_bd_debouncer_0_0.xci">
-          <Proxy FileSetName="ipmc_bd_debouncer_0_0"/>
-        </CompFileExtendedInfo>
-        <CompFileExtendedInfo CompFileName="ipmc_bd.bd" FileRelPathName="ip/ipmc_bd_axi_gpio_0_0_1/ipmc_bd_axi_gpio_0_0.xci">
-          <Proxy FileSetName="ipmc_bd_axi_gpio_0_0"/>
-        </CompFileExtendedInfo>
-        <CompFileExtendedInfo CompFileName="ipmc_bd.bd" FileRelPathName="ip/ipmc_bd_ad7689_s_0_0_1/ipmc_bd_ad7689_s_0_0.xci">
-          <Proxy FileSetName="ipmc_bd_ad7689_s_0_0"/>
-        </CompFileExtendedInfo>
-        <CompFileExtendedInfo CompFileName="ipmc_bd.bd" FileRelPathName="ip/ipmc_bd_ad7689_s_1_0_1/ipmc_bd_ad7689_s_1_0.xci">
-          <Proxy FileSetName="ipmc_bd_ad7689_s_1_0"/>
-        </CompFileExtendedInfo>
-        <CompFileExtendedInfo CompFileName="ipmc_bd.bd" FileRelPathName="ip/ipmc_bd_xadc_wiz_0_0_1/ipmc_bd_xadc_wiz_0_0.xci">
-          <Proxy FileSetName="ipmc_bd_xadc_wiz_0_0"/>
-        </CompFileExtendedInfo>
-        <CompFileExtendedInfo CompFileName="ipmc_bd.bd" FileRelPathName="ip/ipmc_bd_xlconcat_adc_data_0/ipmc_bd_xlconcat_adc_data_0.xci">
-          <Proxy FileSetName="ipmc_bd_xlconcat_adc_data_0"/>
-        </CompFileExtendedInfo>
-        <CompFileExtendedInfo CompFileName="ipmc_bd.bd" FileRelPathName="ip/ipmc_bd_xlconcat_adc_vld_0/ipmc_bd_xlconcat_adc_vld_0.xci">
-          <Proxy FileSetName="ipmc_bd_xlconcat_adc_vld_0"/>
-        </CompFileExtendedInfo>
-        <CompFileExtendedInfo CompFileName="ipmc_bd.bd" FileRelPathName="ip/ipmc_bd_concat_HF_0/ipmc_bd_concat_HF_0.xci">
-          <Proxy FileSetName="ipmc_bd_concat_HF_0"/>
-        </CompFileExtendedInfo>
-        <CompFileExtendedInfo CompFileName="ipmc_bd.bd" FileRelPathName="ip/ipmc_bd_xlconcat_1_0_1/ipmc_bd_xlconcat_1_0.xci">
-          <Proxy FileSetName="ipmc_bd_xlconcat_1_0"/>
-        </CompFileExtendedInfo>
-        <CompFileExtendedInfo CompFileName="ipmc_bd.bd" FileRelPathName="ip/ipmc_bd_axi_gpio_esm_0_1/ipmc_bd_axi_gpio_esm_0.xci">
-          <Proxy FileSetName="ipmc_bd_axi_gpio_esm_0"/>
-        </CompFileExtendedInfo>
-        <CompFileExtendedInfo CompFileName="ipmc_bd.bd" FileRelPathName="ip/ipmc_bd_vio_HF_sim_0/ipmc_bd_vio_HF_sim_0.xci">
-          <Proxy FileSetName="ipmc_bd_vio_HF_sim_0"/>
-        </CompFileExtendedInfo>
-        <CompFileExtendedInfo CompFileName="ipmc_bd.bd" FileRelPathName="ip/ipmc_bd_ipmi_sensor_proc_0_0/ipmc_bd_ipmi_sensor_proc_0_0.xci">
-          <Proxy FileSetName="ipmc_bd_ipmi_sensor_proc_0_0"/>
-        </CompFileExtendedInfo>
-        <CompFileExtendedInfo CompFileName="ipmc_bd.bd" FileRelPathName="ip/ipmc_bd_xbar_0_1/ipmc_bd_xbar_0.xci">
-          <Proxy FileSetName="ipmc_bd_xbar_0"/>
-        </CompFileExtendedInfo>
-        <CompFileExtendedInfo CompFileName="ipmc_bd.bd" FileRelPathName="ip/ipmc_bd_xbar_2/ipmc_bd_xbar_2.xci">
-          <Proxy FileSetName="ipmc_bd_xbar_2"/>
-        </CompFileExtendedInfo>
-        <CompFileExtendedInfo CompFileName="ipmc_bd.bd" FileRelPathName="ip/ipmc_bd_axi_quad_spi_esm_0_1/ipmc_bd_axi_quad_spi_esm_0.xci">
-          <Proxy FileSetName="ipmc_bd_axi_quad_spi_esm_0"/>
-        </CompFileExtendedInfo>
-        <CompFileExtendedInfo CompFileName="ipmc_bd.bd" FileRelPathName="ip/ipmc_bd_axi_uartlite_esm_0_1/ipmc_bd_axi_uartlite_esm_0.xci">
-          <Proxy FileSetName="ipmc_bd_axi_uartlite_esm_0"/>
-        </CompFileExtendedInfo>
-        <CompFileExtendedInfo CompFileName="ipmc_bd.bd" FileRelPathName="ip/ipmc_bd_axi_gpio_0_1/ipmc_bd_axi_gpio_0_1.xci">
-          <Proxy FileSetName="ipmc_bd_axi_gpio_0_1"/>
-        </CompFileExtendedInfo>
       </File>
       <File Path="$PSRCDIR/sources_1/bd/ipmc_bd/hdl/ipmc_bd_wrapper.vhd">
         <FileInfo>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PSRCDIR/sources_1/new/debouncer.vhd">
+        <FileInfo>
+          <Attr Name="AutoDisabled" Val="1"/>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
@@ -446,346 +357,255 @@
     </Simulator>
   </Simulators>
   <Runs Version="1" Minor="10">
-    <Run Id="synth_1" Type="Ft3:Synth" SrcSet="sources_1" Part="xc7z020clg400-1" ConstrsSet="constrs_1" Description="Vivado Synthesis Defaults" WriteIncrSynthDcp="false" State="current" Dir="$PRUNDIR/synth_1" IncludeInArchive="true">
+    <Run Id="synth_1" Type="Ft3:Synth" SrcSet="sources_1" Part="xc7z020clg400-1" ConstrsSet="constrs_1" Description="Vivado Synthesis Defaults" WriteIncrSynthDcp="false" State="current" IncludeInArchive="true">
       <Strategy Version="1" Minor="2">
         <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2016"/>
         <Step Id="synth_design"/>
       </Strategy>
-      <GeneratedRun Dir="$PRUNDIR" File="gen_run.xml"/>
       <ReportStrategy Name="Vivado Synthesis Default Reports" Flow="Vivado Synthesis 2017"/>
       <Report Name="ROUTE_DESIGN.REPORT_METHODOLOGY" Enabled="1"/>
     </Run>
-    <Run Id="ipmc_bd_axi_atca_led_ctrl_0_synth_1" Type="Ft3:Synth" SrcSet="ipmc_bd_axi_atca_led_ctrl_0" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_axi_atca_led_ctrl_0" Description="Vivado Synthesis Defaults" WriteIncrSynthDcp="false" Dir="$PRUNDIR/ipmc_bd_axi_atca_led_ctrl_0_synth_1" IncludeInArchive="true">
+    <Run Id="ipmc_bd_axi_atca_led_ctrl_0_synth_1" Type="Ft3:Synth" SrcSet="ipmc_bd_axi_atca_led_ctrl_0" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_axi_atca_led_ctrl_0" Description="Vivado Synthesis Defaults" WriteIncrSynthDcp="false" IncludeInArchive="true">
       <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2018">
-          <Desc>Vivado Synthesis Defaults</Desc>
-        </StratHandle>
+        <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2018"/>
         <Step Id="synth_design"/>
       </Strategy>
-      <GeneratedRun Dir="$PRUNDIR" File="gen_run.xml"/>
       <ReportStrategy Name="Vivado Synthesis Default Reports" Flow="Vivado Synthesis 2018"/>
       <Report Name="ROUTE_DESIGN.REPORT_METHODOLOGY" Enabled="1"/>
     </Run>
-    <Run Id="ipmc_bd_mgmt_zone_ctrl_0_0_synth_1" Type="Ft3:Synth" SrcSet="ipmc_bd_mgmt_zone_ctrl_0_0" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_mgmt_zone_ctrl_0_0" Description="Vivado Synthesis Defaults" WriteIncrSynthDcp="false" Dir="$PRUNDIR/ipmc_bd_mgmt_zone_ctrl_0_0_synth_1" IncludeInArchive="true">
+    <Run Id="ipmc_bd_mgmt_zone_ctrl_0_0_synth_1" Type="Ft3:Synth" SrcSet="ipmc_bd_mgmt_zone_ctrl_0_0" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_mgmt_zone_ctrl_0_0" Description="Vivado Synthesis Defaults" WriteIncrSynthDcp="false" IncludeInArchive="true">
       <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2018">
-          <Desc>Vivado Synthesis Defaults</Desc>
-        </StratHandle>
+        <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2018"/>
         <Step Id="synth_design"/>
       </Strategy>
-      <GeneratedRun Dir="$PRUNDIR" File="gen_run.xml"/>
       <ReportStrategy Name="Vivado Synthesis Default Reports" Flow="Vivado Synthesis 2018"/>
       <Report Name="ROUTE_DESIGN.REPORT_METHODOLOGY" Enabled="1"/>
     </Run>
-    <Run Id="ipmc_bd_axi_iic_pim400_0_synth_1" Type="Ft3:Synth" SrcSet="ipmc_bd_axi_iic_pim400_0" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_axi_iic_pim400_0" Description="Vivado Synthesis Defaults" WriteIncrSynthDcp="false" Dir="$PRUNDIR/ipmc_bd_axi_iic_pim400_0_synth_1" IncludeInArchive="true">
+    <Run Id="ipmc_bd_axi_iic_pim400_0_synth_1" Type="Ft3:Synth" SrcSet="ipmc_bd_axi_iic_pim400_0" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_axi_iic_pim400_0" Description="Vivado Synthesis Defaults" WriteIncrSynthDcp="false" IncludeInArchive="true">
       <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2018">
-          <Desc>Vivado Synthesis Defaults</Desc>
-        </StratHandle>
+        <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2018"/>
         <Step Id="synth_design"/>
       </Strategy>
-      <GeneratedRun Dir="$PRUNDIR" File="gen_run.xml"/>
       <ReportStrategy Name="Vivado Synthesis Default Reports" Flow="Vivado Synthesis 2018"/>
       <Report Name="ROUTE_DESIGN.REPORT_METHODOLOGY" Enabled="1"/>
     </Run>
-    <Run Id="ipmc_bd_xbar_1_synth_1" Type="Ft3:Synth" SrcSet="ipmc_bd_xbar_1" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_xbar_1" Description="Vivado Synthesis Defaults" WriteIncrSynthDcp="false" Dir="$PRUNDIR/ipmc_bd_xbar_1_synth_1" IncludeInArchive="true">
+    <Run Id="ipmc_bd_xbar_1_synth_1" Type="Ft3:Synth" SrcSet="ipmc_bd_xbar_1" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_xbar_1" Description="Vivado Synthesis Defaults" WriteIncrSynthDcp="false" IncludeInArchive="true">
       <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2018">
-          <Desc>Vivado Synthesis Defaults</Desc>
-        </StratHandle>
+        <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2018"/>
         <Step Id="synth_design"/>
       </Strategy>
-      <GeneratedRun Dir="$PRUNDIR" File="gen_run.xml"/>
       <ReportStrategy Name="Vivado Synthesis Default Reports" Flow="Vivado Synthesis 2018"/>
       <Report Name="ROUTE_DESIGN.REPORT_METHODOLOGY" Enabled="1"/>
     </Run>
-    <Run Id="ipmc_bd_auto_pc_0_synth_1" Type="Ft3:Synth" SrcSet="ipmc_bd_auto_pc_0" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_auto_pc_0" Description="Vivado Synthesis Defaults" WriteIncrSynthDcp="false" Dir="$PRUNDIR/ipmc_bd_auto_pc_0_synth_1" IncludeInArchive="true">
+    <Run Id="ipmc_bd_auto_pc_0_synth_1" Type="Ft3:Synth" SrcSet="ipmc_bd_auto_pc_0" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_auto_pc_0" Description="Vivado Synthesis Defaults" WriteIncrSynthDcp="false" IncludeInArchive="true">
       <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2018">
-          <Desc>Vivado Synthesis Defaults</Desc>
-        </StratHandle>
+        <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2018"/>
         <Step Id="synth_design"/>
       </Strategy>
-      <GeneratedRun Dir="$PRUNDIR" File="gen_run.xml"/>
       <ReportStrategy Name="Vivado Synthesis Default Reports" Flow="Vivado Synthesis 2018"/>
       <Report Name="ROUTE_DESIGN.REPORT_METHODOLOGY" Enabled="1"/>
     </Run>
-    <Run Id="ipmc_bd_axi_iic_eeprom_0_0_synth_1" Type="Ft3:Synth" SrcSet="ipmc_bd_axi_iic_eeprom_0_0" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_axi_iic_eeprom_0_0" Description="Vivado Synthesis Defaults" WriteIncrSynthDcp="false" Dir="$PRUNDIR/ipmc_bd_axi_iic_eeprom_0_0_synth_1" IncludeInArchive="true">
+    <Run Id="ipmc_bd_axi_iic_eeprom_0_0_synth_1" Type="Ft3:Synth" SrcSet="ipmc_bd_axi_iic_eeprom_0_0" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_axi_iic_eeprom_0_0" Description="Vivado Synthesis Defaults" WriteIncrSynthDcp="false" IncludeInArchive="true">
       <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2018">
-          <Desc>Vivado Synthesis Defaults</Desc>
-        </StratHandle>
+        <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2018"/>
         <Step Id="synth_design"/>
       </Strategy>
-      <GeneratedRun Dir="$PRUNDIR" File="gen_run.xml"/>
       <ReportStrategy Name="Vivado Synthesis Default Reports" Flow="Vivado Synthesis 2018"/>
       <Report Name="ROUTE_DESIGN.REPORT_METHODOLOGY" Enabled="1"/>
     </Run>
-    <Run Id="ipmc_bd_proc_sys_reset_0_0_synth_1" Type="Ft3:Synth" SrcSet="ipmc_bd_proc_sys_reset_0_0" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_proc_sys_reset_0_0" Description="Vivado Synthesis Defaults" WriteIncrSynthDcp="false" Dir="$PRUNDIR/ipmc_bd_proc_sys_reset_0_0_synth_1" IncludeInArchive="true">
+    <Run Id="ipmc_bd_proc_sys_reset_0_0_synth_1" Type="Ft3:Synth" SrcSet="ipmc_bd_proc_sys_reset_0_0" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_proc_sys_reset_0_0" Description="Vivado Synthesis Defaults" WriteIncrSynthDcp="false" IncludeInArchive="true">
       <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2018">
-          <Desc>Vivado Synthesis Defaults</Desc>
-        </StratHandle>
+        <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2018"/>
         <Step Id="synth_design"/>
       </Strategy>
-      <GeneratedRun Dir="$PRUNDIR" File="gen_run.xml"/>
       <ReportStrategy Name="Vivado Synthesis Default Reports" Flow="Vivado Synthesis 2018"/>
       <Report Name="ROUTE_DESIGN.REPORT_METHODOLOGY" Enabled="1"/>
     </Run>
-    <Run Id="ipmc_bd_xlconcat_0_1_synth_1" Type="Ft3:Synth" SrcSet="ipmc_bd_xlconcat_0_1" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_xlconcat_0_1" Description="Vivado Synthesis Defaults" WriteIncrSynthDcp="false" Dir="$PRUNDIR/ipmc_bd_xlconcat_0_1_synth_1" IncludeInArchive="true">
+    <Run Id="ipmc_bd_xlconcat_0_1_synth_1" Type="Ft3:Synth" SrcSet="ipmc_bd_xlconcat_0_1" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_xlconcat_0_1" Description="Vivado Synthesis Defaults" WriteIncrSynthDcp="false" IncludeInArchive="true">
       <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2018">
-          <Desc>Vivado Synthesis Defaults</Desc>
-        </StratHandle>
+        <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2018"/>
         <Step Id="synth_design"/>
       </Strategy>
-      <GeneratedRun Dir="$PRUNDIR" File="gen_run.xml"/>
       <ReportStrategy Name="Vivado Synthesis Default Reports" Flow="Vivado Synthesis 2018"/>
       <Report Name="ROUTE_DESIGN.REPORT_METHODOLOGY" Enabled="1"/>
     </Run>
-    <Run Id="ipmc_bd_axi_uartlite_0_0_synth_1" Type="Ft3:Synth" SrcSet="ipmc_bd_axi_uartlite_0_0" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_axi_uartlite_0_0" Description="Vivado Synthesis Defaults" WriteIncrSynthDcp="false" Dir="$PRUNDIR/ipmc_bd_axi_uartlite_0_0_synth_1" IncludeInArchive="true">
+    <Run Id="ipmc_bd_axi_uartlite_0_0_synth_1" Type="Ft3:Synth" SrcSet="ipmc_bd_axi_uartlite_0_0" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_axi_uartlite_0_0" Description="Vivado Synthesis Defaults" WriteIncrSynthDcp="false" IncludeInArchive="true">
       <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2018">
-          <Desc>Vivado Synthesis Defaults</Desc>
-        </StratHandle>
+        <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2018"/>
         <Step Id="synth_design"/>
       </Strategy>
-      <GeneratedRun Dir="$PRUNDIR" File="gen_run.xml"/>
       <ReportStrategy Name="Vivado Synthesis Default Reports" Flow="Vivado Synthesis 2018"/>
       <Report Name="ROUTE_DESIGN.REPORT_METHODOLOGY" Enabled="1"/>
     </Run>
-    <Run Id="ipmc_bd_processing_system7_0_0_synth_1" Type="Ft3:Synth" SrcSet="ipmc_bd_processing_system7_0_0" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_processing_system7_0_0" Description="Vivado Synthesis Defaults" WriteIncrSynthDcp="false" Dir="$PRUNDIR/ipmc_bd_processing_system7_0_0_synth_1" IncludeInArchive="true">
+    <Run Id="ipmc_bd_processing_system7_0_0_synth_1" Type="Ft3:Synth" SrcSet="ipmc_bd_processing_system7_0_0" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_processing_system7_0_0" Description="Vivado Synthesis Defaults" WriteIncrSynthDcp="false" IncludeInArchive="true">
       <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2018">
-          <Desc>Vivado Synthesis Defaults</Desc>
-        </StratHandle>
+        <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2018"/>
         <Step Id="synth_design"/>
       </Strategy>
-      <GeneratedRun Dir="$PRUNDIR" File="gen_run.xml"/>
       <ReportStrategy Name="Vivado Synthesis Default Reports" Flow="Vivado Synthesis 2018"/>
       <Report Name="ROUTE_DESIGN.REPORT_METHODOLOGY" Enabled="1"/>
     </Run>
-    <Run Id="ipmc_bd_axi_jtag_0_0_synth_1" Type="Ft3:Synth" SrcSet="ipmc_bd_axi_jtag_0_0" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_axi_jtag_0_0" Description="Vivado Synthesis Defaults" WriteIncrSynthDcp="false" Dir="$PRUNDIR/ipmc_bd_axi_jtag_0_0_synth_1" IncludeInArchive="true">
+    <Run Id="ipmc_bd_axi_jtag_0_0_synth_1" Type="Ft3:Synth" SrcSet="ipmc_bd_axi_jtag_0_0" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_axi_jtag_0_0" Description="Vivado Synthesis Defaults" WriteIncrSynthDcp="false" IncludeInArchive="true">
       <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2018">
-          <Desc>Vivado Synthesis Defaults</Desc>
-        </StratHandle>
+        <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2018"/>
         <Step Id="synth_design"/>
       </Strategy>
-      <GeneratedRun Dir="$PRUNDIR" File="gen_run.xml"/>
       <ReportStrategy Name="Vivado Synthesis Default Reports" Flow="Vivado Synthesis 2018"/>
       <Report Name="ROUTE_DESIGN.REPORT_METHODOLOGY" Enabled="1"/>
     </Run>
-    <Run Id="ipmc_bd_xlconcat_0_0_synth_1" Type="Ft3:Synth" SrcSet="ipmc_bd_xlconcat_0_0" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_xlconcat_0_0" Description="Vivado Synthesis Defaults" WriteIncrSynthDcp="false" Dir="$PRUNDIR/ipmc_bd_xlconcat_0_0_synth_1" IncludeInArchive="true">
+    <Run Id="ipmc_bd_xlconcat_0_0_synth_1" Type="Ft3:Synth" SrcSet="ipmc_bd_xlconcat_0_0" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_xlconcat_0_0" Description="Vivado Synthesis Defaults" WriteIncrSynthDcp="false" IncludeInArchive="true">
       <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2018">
-          <Desc>Vivado Synthesis Defaults</Desc>
-        </StratHandle>
+        <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2018"/>
         <Step Id="synth_design"/>
       </Strategy>
-      <GeneratedRun Dir="$PRUNDIR" File="gen_run.xml"/>
       <ReportStrategy Name="Vivado Synthesis Default Reports" Flow="Vivado Synthesis 2018"/>
       <Report Name="ROUTE_DESIGN.REPORT_METHODOLOGY" Enabled="1"/>
     </Run>
-    <Run Id="ipmc_bd_axi_user_led_ctrl_0_synth_1" Type="Ft3:Synth" SrcSet="ipmc_bd_axi_user_led_ctrl_0" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_axi_user_led_ctrl_0" Description="Vivado Synthesis Defaults" WriteIncrSynthDcp="false" Dir="$PRUNDIR/ipmc_bd_axi_user_led_ctrl_0_synth_1" IncludeInArchive="true">
+    <Run Id="ipmc_bd_axi_user_led_ctrl_0_synth_1" Type="Ft3:Synth" SrcSet="ipmc_bd_axi_user_led_ctrl_0" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_axi_user_led_ctrl_0" Description="Vivado Synthesis Defaults" WriteIncrSynthDcp="false" IncludeInArchive="true">
       <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2018">
-          <Desc>Vivado Synthesis Defaults</Desc>
-        </StratHandle>
+        <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2018"/>
         <Step Id="synth_design"/>
       </Strategy>
-      <GeneratedRun Dir="$PRUNDIR" File="gen_run.xml"/>
       <ReportStrategy Name="Vivado Synthesis Default Reports" Flow="Vivado Synthesis 2018"/>
       <Report Name="ROUTE_DESIGN.REPORT_METHODOLOGY" Enabled="1"/>
     </Run>
-    <Run Id="ipmc_bd_debouncer_0_0_synth_1" Type="Ft3:Synth" SrcSet="ipmc_bd_debouncer_0_0" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_debouncer_0_0" Description="Vivado Synthesis Defaults" WriteIncrSynthDcp="false" Dir="$PRUNDIR/ipmc_bd_debouncer_0_0_synth_1" IncludeInArchive="true">
+    <Run Id="ipmc_bd_debouncer_0_0_synth_1" Type="Ft3:Synth" SrcSet="ipmc_bd_debouncer_0_0" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_debouncer_0_0" Description="Vivado Synthesis Defaults" WriteIncrSynthDcp="false" IncludeInArchive="true">
       <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2018">
-          <Desc>Vivado Synthesis Defaults</Desc>
-        </StratHandle>
+        <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2018"/>
         <Step Id="synth_design"/>
       </Strategy>
-      <GeneratedRun Dir="$PRUNDIR" File="gen_run.xml"/>
       <ReportStrategy Name="Vivado Synthesis Default Reports" Flow="Vivado Synthesis 2018"/>
       <Report Name="ROUTE_DESIGN.REPORT_METHODOLOGY" Enabled="1"/>
     </Run>
-    <Run Id="ipmc_bd_axi_gpio_0_0_synth_1" Type="Ft3:Synth" SrcSet="ipmc_bd_axi_gpio_0_0" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_axi_gpio_0_0" Description="Vivado Synthesis Defaults" WriteIncrSynthDcp="false" Dir="$PRUNDIR/ipmc_bd_axi_gpio_0_0_synth_1" IncludeInArchive="true">
+    <Run Id="ipmc_bd_axi_gpio_0_0_synth_1" Type="Ft3:Synth" SrcSet="ipmc_bd_axi_gpio_0_0" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_axi_gpio_0_0" Description="Vivado Synthesis Defaults" WriteIncrSynthDcp="false" IncludeInArchive="true">
       <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2018">
-          <Desc>Vivado Synthesis Defaults</Desc>
-        </StratHandle>
+        <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2018"/>
         <Step Id="synth_design"/>
       </Strategy>
-      <GeneratedRun Dir="$PRUNDIR" File="gen_run.xml"/>
       <ReportStrategy Name="Vivado Synthesis Default Reports" Flow="Vivado Synthesis 2018"/>
       <Report Name="ROUTE_DESIGN.REPORT_METHODOLOGY" Enabled="1"/>
     </Run>
-    <Run Id="ipmc_bd_ad7689_s_0_0_synth_1" Type="Ft3:Synth" SrcSet="ipmc_bd_ad7689_s_0_0" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_ad7689_s_0_0" Description="Vivado Synthesis Defaults" WriteIncrSynthDcp="false" Dir="$PRUNDIR/ipmc_bd_ad7689_s_0_0_synth_1" IncludeInArchive="true">
+    <Run Id="ipmc_bd_ad7689_s_0_0_synth_1" Type="Ft3:Synth" SrcSet="ipmc_bd_ad7689_s_0_0" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_ad7689_s_0_0" Description="Vivado Synthesis Defaults" WriteIncrSynthDcp="false" IncludeInArchive="true">
       <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2018">
-          <Desc>Vivado Synthesis Defaults</Desc>
-        </StratHandle>
+        <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2018"/>
         <Step Id="synth_design"/>
       </Strategy>
-      <GeneratedRun Dir="$PRUNDIR" File="gen_run.xml"/>
       <ReportStrategy Name="Vivado Synthesis Default Reports" Flow="Vivado Synthesis 2018"/>
       <Report Name="ROUTE_DESIGN.REPORT_METHODOLOGY" Enabled="1"/>
     </Run>
-    <Run Id="ipmc_bd_ad7689_s_1_0_synth_1" Type="Ft3:Synth" SrcSet="ipmc_bd_ad7689_s_1_0" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_ad7689_s_1_0" Description="Vivado Synthesis Defaults" WriteIncrSynthDcp="false" Dir="$PRUNDIR/ipmc_bd_ad7689_s_1_0_synth_1" IncludeInArchive="true">
+    <Run Id="ipmc_bd_ad7689_s_1_0_synth_1" Type="Ft3:Synth" SrcSet="ipmc_bd_ad7689_s_1_0" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_ad7689_s_1_0" Description="Vivado Synthesis Defaults" WriteIncrSynthDcp="false" IncludeInArchive="true">
       <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2018">
-          <Desc>Vivado Synthesis Defaults</Desc>
-        </StratHandle>
+        <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2018"/>
         <Step Id="synth_design"/>
       </Strategy>
-      <GeneratedRun Dir="$PRUNDIR" File="gen_run.xml"/>
       <ReportStrategy Name="Vivado Synthesis Default Reports" Flow="Vivado Synthesis 2018"/>
       <Report Name="ROUTE_DESIGN.REPORT_METHODOLOGY" Enabled="1"/>
     </Run>
-    <Run Id="ipmc_bd_xadc_wiz_0_0_synth_1" Type="Ft3:Synth" SrcSet="ipmc_bd_xadc_wiz_0_0" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_xadc_wiz_0_0" Description="Vivado Synthesis Defaults" WriteIncrSynthDcp="false" Dir="$PRUNDIR/ipmc_bd_xadc_wiz_0_0_synth_1" IncludeInArchive="true">
+    <Run Id="ipmc_bd_xadc_wiz_0_0_synth_1" Type="Ft3:Synth" SrcSet="ipmc_bd_xadc_wiz_0_0" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_xadc_wiz_0_0" Description="Vivado Synthesis Defaults" WriteIncrSynthDcp="false" IncludeInArchive="true">
       <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2018">
-          <Desc>Vivado Synthesis Defaults</Desc>
-        </StratHandle>
+        <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2018"/>
         <Step Id="synth_design"/>
       </Strategy>
-      <GeneratedRun Dir="$PRUNDIR" File="gen_run.xml"/>
       <ReportStrategy Name="Vivado Synthesis Default Reports" Flow="Vivado Synthesis 2018"/>
       <Report Name="ROUTE_DESIGN.REPORT_METHODOLOGY" Enabled="1"/>
     </Run>
-    <Run Id="ipmc_bd_xlconcat_adc_data_0_synth_1" Type="Ft3:Synth" SrcSet="ipmc_bd_xlconcat_adc_data_0" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_xlconcat_adc_data_0" Description="Vivado Synthesis Defaults" WriteIncrSynthDcp="false" Dir="$PRUNDIR/ipmc_bd_xlconcat_adc_data_0_synth_1" IncludeInArchive="true">
+    <Run Id="ipmc_bd_xlconcat_adc_data_0_synth_1" Type="Ft3:Synth" SrcSet="ipmc_bd_xlconcat_adc_data_0" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_xlconcat_adc_data_0" Description="Vivado Synthesis Defaults" WriteIncrSynthDcp="false" IncludeInArchive="true">
       <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2018">
-          <Desc>Vivado Synthesis Defaults</Desc>
-        </StratHandle>
+        <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2018"/>
         <Step Id="synth_design"/>
       </Strategy>
-      <GeneratedRun Dir="$PRUNDIR" File="gen_run.xml"/>
       <ReportStrategy Name="Vivado Synthesis Default Reports" Flow="Vivado Synthesis 2018"/>
       <Report Name="ROUTE_DESIGN.REPORT_METHODOLOGY" Enabled="1"/>
     </Run>
-    <Run Id="ipmc_bd_xlconcat_adc_vld_0_synth_1" Type="Ft3:Synth" SrcSet="ipmc_bd_xlconcat_adc_vld_0" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_xlconcat_adc_vld_0" Description="Vivado Synthesis Defaults" WriteIncrSynthDcp="false" Dir="$PRUNDIR/ipmc_bd_xlconcat_adc_vld_0_synth_1" IncludeInArchive="true">
+    <Run Id="ipmc_bd_xlconcat_adc_vld_0_synth_1" Type="Ft3:Synth" SrcSet="ipmc_bd_xlconcat_adc_vld_0" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_xlconcat_adc_vld_0" Description="Vivado Synthesis Defaults" WriteIncrSynthDcp="false" IncludeInArchive="true">
       <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2018">
-          <Desc>Vivado Synthesis Defaults</Desc>
-        </StratHandle>
+        <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2018"/>
         <Step Id="synth_design"/>
       </Strategy>
-      <GeneratedRun Dir="$PRUNDIR" File="gen_run.xml"/>
       <ReportStrategy Name="Vivado Synthesis Default Reports" Flow="Vivado Synthesis 2018"/>
       <Report Name="ROUTE_DESIGN.REPORT_METHODOLOGY" Enabled="1"/>
     </Run>
-    <Run Id="ipmc_bd_concat_HF_0_synth_1" Type="Ft3:Synth" SrcSet="ipmc_bd_concat_HF_0" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_concat_HF_0" Description="Vivado Synthesis Defaults" WriteIncrSynthDcp="false" Dir="$PRUNDIR/ipmc_bd_concat_HF_0_synth_1" IncludeInArchive="true">
+    <Run Id="ipmc_bd_concat_HF_0_synth_1" Type="Ft3:Synth" SrcSet="ipmc_bd_concat_HF_0" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_concat_HF_0" Description="Vivado Synthesis Defaults" WriteIncrSynthDcp="false" IncludeInArchive="true">
       <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2018">
-          <Desc>Vivado Synthesis Defaults</Desc>
-        </StratHandle>
+        <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2018"/>
         <Step Id="synth_design"/>
       </Strategy>
-      <GeneratedRun Dir="$PRUNDIR" File="gen_run.xml"/>
       <ReportStrategy Name="Vivado Synthesis Default Reports" Flow="Vivado Synthesis 2018"/>
       <Report Name="ROUTE_DESIGN.REPORT_METHODOLOGY" Enabled="1"/>
     </Run>
-    <Run Id="ipmc_bd_xlconcat_1_0_synth_1" Type="Ft3:Synth" SrcSet="ipmc_bd_xlconcat_1_0" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_xlconcat_1_0" Description="Vivado Synthesis Defaults" WriteIncrSynthDcp="false" Dir="$PRUNDIR/ipmc_bd_xlconcat_1_0_synth_1" IncludeInArchive="true">
+    <Run Id="ipmc_bd_xlconcat_1_0_synth_1" Type="Ft3:Synth" SrcSet="ipmc_bd_xlconcat_1_0" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_xlconcat_1_0" Description="Vivado Synthesis Defaults" WriteIncrSynthDcp="false" IncludeInArchive="true">
       <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2018">
-          <Desc>Vivado Synthesis Defaults</Desc>
-        </StratHandle>
+        <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2018"/>
         <Step Id="synth_design"/>
       </Strategy>
-      <GeneratedRun Dir="$PRUNDIR" File="gen_run.xml"/>
       <ReportStrategy Name="Vivado Synthesis Default Reports" Flow="Vivado Synthesis 2018"/>
       <Report Name="ROUTE_DESIGN.REPORT_METHODOLOGY" Enabled="1"/>
     </Run>
-    <Run Id="ipmc_bd_axi_gpio_esm_0_synth_1" Type="Ft3:Synth" SrcSet="ipmc_bd_axi_gpio_esm_0" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_axi_gpio_esm_0" Description="Vivado Synthesis Defaults" WriteIncrSynthDcp="false" Dir="$PRUNDIR/ipmc_bd_axi_gpio_esm_0_synth_1" IncludeInArchive="true">
+    <Run Id="ipmc_bd_axi_gpio_esm_0_synth_1" Type="Ft3:Synth" SrcSet="ipmc_bd_axi_gpio_esm_0" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_axi_gpio_esm_0" Description="Vivado Synthesis Defaults" WriteIncrSynthDcp="false" IncludeInArchive="true">
       <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2018">
-          <Desc>Vivado Synthesis Defaults</Desc>
-        </StratHandle>
+        <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2018"/>
         <Step Id="synth_design"/>
       </Strategy>
-      <GeneratedRun Dir="$PRUNDIR" File="gen_run.xml"/>
       <ReportStrategy Name="Vivado Synthesis Default Reports" Flow="Vivado Synthesis 2018"/>
       <Report Name="ROUTE_DESIGN.REPORT_METHODOLOGY" Enabled="1"/>
     </Run>
-    <Run Id="ipmc_bd_vio_HF_sim_0_synth_1" Type="Ft3:Synth" SrcSet="ipmc_bd_vio_HF_sim_0" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_vio_HF_sim_0" Description="Vivado Synthesis Defaults" WriteIncrSynthDcp="false" Dir="$PRUNDIR/ipmc_bd_vio_HF_sim_0_synth_1" IncludeInArchive="true">
+    <Run Id="ipmc_bd_vio_HF_sim_0_synth_1" Type="Ft3:Synth" SrcSet="ipmc_bd_vio_HF_sim_0" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_vio_HF_sim_0" Description="Vivado Synthesis Defaults" WriteIncrSynthDcp="false" IncludeInArchive="true">
       <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2018">
-          <Desc>Vivado Synthesis Defaults</Desc>
-        </StratHandle>
+        <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2018"/>
         <Step Id="synth_design"/>
       </Strategy>
-      <GeneratedRun Dir="$PRUNDIR" File="gen_run.xml"/>
       <ReportStrategy Name="Vivado Synthesis Default Reports" Flow="Vivado Synthesis 2018"/>
       <Report Name="ROUTE_DESIGN.REPORT_METHODOLOGY" Enabled="1"/>
     </Run>
-    <Run Id="ipmc_bd_ipmi_sensor_proc_0_0_synth_1" Type="Ft3:Synth" SrcSet="ipmc_bd_ipmi_sensor_proc_0_0" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_ipmi_sensor_proc_0_0" Description="Vivado Synthesis Defaults" WriteIncrSynthDcp="false" Dir="$PRUNDIR/ipmc_bd_ipmi_sensor_proc_0_0_synth_1" IncludeInArchive="true">
+    <Run Id="ipmc_bd_ipmi_sensor_proc_0_0_synth_1" Type="Ft3:Synth" SrcSet="ipmc_bd_ipmi_sensor_proc_0_0" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_ipmi_sensor_proc_0_0" Description="Vivado Synthesis Defaults" WriteIncrSynthDcp="false" IncludeInArchive="true">
       <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2018">
-          <Desc>Vivado Synthesis Defaults</Desc>
-        </StratHandle>
+        <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2018"/>
         <Step Id="synth_design"/>
       </Strategy>
-      <GeneratedRun Dir="$PRUNDIR" File="gen_run.xml"/>
       <ReportStrategy Name="Vivado Synthesis Default Reports" Flow="Vivado Synthesis 2018"/>
       <Report Name="ROUTE_DESIGN.REPORT_METHODOLOGY" Enabled="1"/>
     </Run>
-    <Run Id="ipmc_bd_xbar_0_synth_1" Type="Ft3:Synth" SrcSet="ipmc_bd_xbar_0" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_xbar_0" Description="Vivado Synthesis Defaults" WriteIncrSynthDcp="false" Dir="$PRUNDIR/ipmc_bd_xbar_0_synth_1" IncludeInArchive="true">
+    <Run Id="ipmc_bd_xbar_0_synth_1" Type="Ft3:Synth" SrcSet="ipmc_bd_xbar_0" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_xbar_0" Description="Vivado Synthesis Defaults" WriteIncrSynthDcp="false" IncludeInArchive="true">
       <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2018">
-          <Desc>Vivado Synthesis Defaults</Desc>
-        </StratHandle>
+        <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2018"/>
         <Step Id="synth_design"/>
       </Strategy>
-      <GeneratedRun Dir="$PRUNDIR" File="gen_run.xml"/>
       <ReportStrategy Name="Vivado Synthesis Default Reports" Flow="Vivado Synthesis 2018"/>
       <Report Name="ROUTE_DESIGN.REPORT_METHODOLOGY" Enabled="1"/>
     </Run>
-    <Run Id="ipmc_bd_xbar_2_synth_1" Type="Ft3:Synth" SrcSet="ipmc_bd_xbar_2" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_xbar_2" Description="Vivado Synthesis Defaults" WriteIncrSynthDcp="false" Dir="$PRUNDIR/ipmc_bd_xbar_2_synth_1" IncludeInArchive="true">
+    <Run Id="ipmc_bd_xbar_2_synth_1" Type="Ft3:Synth" SrcSet="ipmc_bd_xbar_2" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_xbar_2" Description="Vivado Synthesis Defaults" WriteIncrSynthDcp="false" IncludeInArchive="true">
       <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2018">
-          <Desc>Vivado Synthesis Defaults</Desc>
-        </StratHandle>
+        <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2018"/>
         <Step Id="synth_design"/>
       </Strategy>
-      <GeneratedRun Dir="$PRUNDIR" File="gen_run.xml"/>
       <ReportStrategy Name="Vivado Synthesis Default Reports" Flow="Vivado Synthesis 2018"/>
       <Report Name="ROUTE_DESIGN.REPORT_METHODOLOGY" Enabled="1"/>
     </Run>
-    <Run Id="ipmc_bd_axi_quad_spi_esm_0_synth_1" Type="Ft3:Synth" SrcSet="ipmc_bd_axi_quad_spi_esm_0" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_axi_quad_spi_esm_0" Description="Vivado Synthesis Defaults" WriteIncrSynthDcp="false" Dir="$PRUNDIR/ipmc_bd_axi_quad_spi_esm_0_synth_1" IncludeInArchive="true">
+    <Run Id="ipmc_bd_axi_quad_spi_esm_0_synth_1" Type="Ft3:Synth" SrcSet="ipmc_bd_axi_quad_spi_esm_0" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_axi_quad_spi_esm_0" Description="Vivado Synthesis Defaults" WriteIncrSynthDcp="false" IncludeInArchive="true">
       <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2018">
-          <Desc>Vivado Synthesis Defaults</Desc>
-        </StratHandle>
+        <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2018"/>
         <Step Id="synth_design"/>
       </Strategy>
-      <GeneratedRun Dir="$PRUNDIR" File="gen_run.xml"/>
       <ReportStrategy Name="Vivado Synthesis Default Reports" Flow="Vivado Synthesis 2018"/>
       <Report Name="ROUTE_DESIGN.REPORT_METHODOLOGY" Enabled="1"/>
     </Run>
-    <Run Id="ipmc_bd_axi_uartlite_esm_0_synth_1" Type="Ft3:Synth" SrcSet="ipmc_bd_axi_uartlite_esm_0" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_axi_uartlite_esm_0" Description="Vivado Synthesis Defaults" WriteIncrSynthDcp="false" Dir="$PRUNDIR/ipmc_bd_axi_uartlite_esm_0_synth_1" IncludeInArchive="true">
+    <Run Id="ipmc_bd_axi_uartlite_esm_0_synth_1" Type="Ft3:Synth" SrcSet="ipmc_bd_axi_uartlite_esm_0" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_axi_uartlite_esm_0" Description="Vivado Synthesis Defaults" WriteIncrSynthDcp="false" IncludeInArchive="true">
       <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2018">
-          <Desc>Vivado Synthesis Defaults</Desc>
-        </StratHandle>
+        <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2018"/>
         <Step Id="synth_design"/>
       </Strategy>
-      <GeneratedRun Dir="$PRUNDIR" File="gen_run.xml"/>
       <ReportStrategy Name="Vivado Synthesis Default Reports" Flow="Vivado Synthesis 2018"/>
       <Report Name="ROUTE_DESIGN.REPORT_METHODOLOGY" Enabled="1"/>
     </Run>
-    <Run Id="ipmc_bd_axi_gpio_0_1_synth_1" Type="Ft3:Synth" SrcSet="ipmc_bd_axi_gpio_0_1" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_axi_gpio_0_1" Description="Vivado Synthesis Defaults" WriteIncrSynthDcp="false" Dir="$PRUNDIR/ipmc_bd_axi_gpio_0_1_synth_1" IncludeInArchive="true">
+    <Run Id="ipmc_bd_axi_gpio_0_1_synth_1" Type="Ft3:Synth" SrcSet="ipmc_bd_axi_gpio_0_1" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_axi_gpio_0_1" Description="Vivado Synthesis Defaults" WriteIncrSynthDcp="false" IncludeInArchive="true">
       <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2018">
-          <Desc>Vivado Synthesis Defaults</Desc>
-        </StratHandle>
+        <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2018"/>
         <Step Id="synth_design"/>
       </Strategy>
-      <GeneratedRun Dir="$PRUNDIR" File="gen_run.xml"/>
       <ReportStrategy Name="Vivado Synthesis Default Reports" Flow="Vivado Synthesis 2018"/>
       <Report Name="ROUTE_DESIGN.REPORT_METHODOLOGY" Enabled="1"/>
     </Run>
-    <Run Id="impl_1" Type="Ft2:EntireDesign" Part="xc7z020clg400-1" ConstrsSet="constrs_1" Description="Default settings for Implementation." WriteIncrSynthDcp="false" State="current" Dir="$PRUNDIR/impl_1" SynthRun="synth_1" IncludeInArchive="true" GenFullBitstream="false">
+    <Run Id="impl_1" Type="Ft2:EntireDesign" Part="xc7z020clg400-1" ConstrsSet="constrs_1" Description="Default settings for Implementation." WriteIncrSynthDcp="false" State="current" SynthRun="synth_1" IncludeInArchive="true" GenFullBitstream="false">
       <Strategy Version="1" Minor="2">
         <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2016"/>
         <Step Id="init_design"/>
@@ -798,15 +618,12 @@
         <Step Id="post_route_phys_opt_design"/>
         <Step Id="write_bitstream"/>
       </Strategy>
-      <GeneratedRun Dir="$PRUNDIR" File="gen_run.xml"/>
       <ReportStrategy Name="Vivado Implementation Default Reports" Flow="Vivado Implementation 2017"/>
       <Report Name="ROUTE_DESIGN.REPORT_METHODOLOGY" Enabled="1"/>
     </Run>
     <Run Id="ipmc_bd_axi_atca_led_ctrl_0_impl_1" Type="Ft2:EntireDesign" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_axi_atca_led_ctrl_0" Description="Default settings for Implementation." WriteIncrSynthDcp="false" SynthRun="ipmc_bd_axi_atca_led_ctrl_0_synth_1" IncludeInArchive="false" GenFullBitstream="true">
       <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2018">
-          <Desc>Default settings for Implementation.</Desc>
-        </StratHandle>
+        <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2018"/>
         <Step Id="init_design"/>
         <Step Id="opt_design"/>
         <Step Id="power_opt_design"/>
@@ -822,9 +639,7 @@
     </Run>
     <Run Id="ipmc_bd_mgmt_zone_ctrl_0_0_impl_1" Type="Ft2:EntireDesign" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_mgmt_zone_ctrl_0_0" Description="Default settings for Implementation." WriteIncrSynthDcp="false" SynthRun="ipmc_bd_mgmt_zone_ctrl_0_0_synth_1" IncludeInArchive="false" GenFullBitstream="true">
       <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2018">
-          <Desc>Default settings for Implementation.</Desc>
-        </StratHandle>
+        <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2018"/>
         <Step Id="init_design"/>
         <Step Id="opt_design"/>
         <Step Id="power_opt_design"/>
@@ -840,9 +655,7 @@
     </Run>
     <Run Id="ipmc_bd_axi_iic_pim400_0_impl_1" Type="Ft2:EntireDesign" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_axi_iic_pim400_0" Description="Default settings for Implementation." WriteIncrSynthDcp="false" SynthRun="ipmc_bd_axi_iic_pim400_0_synth_1" IncludeInArchive="false" GenFullBitstream="true">
       <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2018">
-          <Desc>Default settings for Implementation.</Desc>
-        </StratHandle>
+        <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2018"/>
         <Step Id="init_design"/>
         <Step Id="opt_design"/>
         <Step Id="power_opt_design"/>
@@ -858,9 +671,7 @@
     </Run>
     <Run Id="ipmc_bd_xbar_1_impl_1" Type="Ft2:EntireDesign" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_xbar_1" Description="Default settings for Implementation." WriteIncrSynthDcp="false" SynthRun="ipmc_bd_xbar_1_synth_1" IncludeInArchive="false" GenFullBitstream="true">
       <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2018">
-          <Desc>Default settings for Implementation.</Desc>
-        </StratHandle>
+        <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2018"/>
         <Step Id="init_design"/>
         <Step Id="opt_design"/>
         <Step Id="power_opt_design"/>
@@ -876,9 +687,7 @@
     </Run>
     <Run Id="ipmc_bd_auto_pc_0_impl_1" Type="Ft2:EntireDesign" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_auto_pc_0" Description="Default settings for Implementation." WriteIncrSynthDcp="false" SynthRun="ipmc_bd_auto_pc_0_synth_1" IncludeInArchive="false" GenFullBitstream="true">
       <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2018">
-          <Desc>Default settings for Implementation.</Desc>
-        </StratHandle>
+        <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2018"/>
         <Step Id="init_design"/>
         <Step Id="opt_design"/>
         <Step Id="power_opt_design"/>
@@ -894,9 +703,7 @@
     </Run>
     <Run Id="ipmc_bd_axi_iic_eeprom_0_0_impl_1" Type="Ft2:EntireDesign" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_axi_iic_eeprom_0_0" Description="Default settings for Implementation." WriteIncrSynthDcp="false" SynthRun="ipmc_bd_axi_iic_eeprom_0_0_synth_1" IncludeInArchive="false" GenFullBitstream="true">
       <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2018">
-          <Desc>Default settings for Implementation.</Desc>
-        </StratHandle>
+        <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2018"/>
         <Step Id="init_design"/>
         <Step Id="opt_design"/>
         <Step Id="power_opt_design"/>
@@ -912,9 +719,7 @@
     </Run>
     <Run Id="ipmc_bd_proc_sys_reset_0_0_impl_1" Type="Ft2:EntireDesign" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_proc_sys_reset_0_0" Description="Default settings for Implementation." WriteIncrSynthDcp="false" SynthRun="ipmc_bd_proc_sys_reset_0_0_synth_1" IncludeInArchive="false" GenFullBitstream="true">
       <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2018">
-          <Desc>Default settings for Implementation.</Desc>
-        </StratHandle>
+        <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2018"/>
         <Step Id="init_design"/>
         <Step Id="opt_design"/>
         <Step Id="power_opt_design"/>
@@ -930,9 +735,7 @@
     </Run>
     <Run Id="ipmc_bd_xlconcat_0_1_impl_1" Type="Ft2:EntireDesign" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_xlconcat_0_1" Description="Default settings for Implementation." WriteIncrSynthDcp="false" SynthRun="ipmc_bd_xlconcat_0_1_synth_1" IncludeInArchive="false" GenFullBitstream="true">
       <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2018">
-          <Desc>Default settings for Implementation.</Desc>
-        </StratHandle>
+        <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2018"/>
         <Step Id="init_design"/>
         <Step Id="opt_design"/>
         <Step Id="power_opt_design"/>
@@ -948,9 +751,7 @@
     </Run>
     <Run Id="ipmc_bd_axi_uartlite_0_0_impl_1" Type="Ft2:EntireDesign" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_axi_uartlite_0_0" Description="Default settings for Implementation." WriteIncrSynthDcp="false" SynthRun="ipmc_bd_axi_uartlite_0_0_synth_1" IncludeInArchive="false" GenFullBitstream="true">
       <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2018">
-          <Desc>Default settings for Implementation.</Desc>
-        </StratHandle>
+        <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2018"/>
         <Step Id="init_design"/>
         <Step Id="opt_design"/>
         <Step Id="power_opt_design"/>
@@ -966,9 +767,7 @@
     </Run>
     <Run Id="ipmc_bd_processing_system7_0_0_impl_1" Type="Ft2:EntireDesign" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_processing_system7_0_0" Description="Default settings for Implementation." WriteIncrSynthDcp="false" SynthRun="ipmc_bd_processing_system7_0_0_synth_1" IncludeInArchive="false" GenFullBitstream="true">
       <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2018">
-          <Desc>Default settings for Implementation.</Desc>
-        </StratHandle>
+        <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2018"/>
         <Step Id="init_design"/>
         <Step Id="opt_design"/>
         <Step Id="power_opt_design"/>
@@ -984,9 +783,7 @@
     </Run>
     <Run Id="ipmc_bd_axi_jtag_0_0_impl_1" Type="Ft2:EntireDesign" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_axi_jtag_0_0" Description="Default settings for Implementation." WriteIncrSynthDcp="false" SynthRun="ipmc_bd_axi_jtag_0_0_synth_1" IncludeInArchive="false" GenFullBitstream="true">
       <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2018">
-          <Desc>Default settings for Implementation.</Desc>
-        </StratHandle>
+        <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2018"/>
         <Step Id="init_design"/>
         <Step Id="opt_design"/>
         <Step Id="power_opt_design"/>
@@ -1002,9 +799,7 @@
     </Run>
     <Run Id="ipmc_bd_xlconcat_0_0_impl_1" Type="Ft2:EntireDesign" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_xlconcat_0_0" Description="Default settings for Implementation." WriteIncrSynthDcp="false" SynthRun="ipmc_bd_xlconcat_0_0_synth_1" IncludeInArchive="false" GenFullBitstream="true">
       <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2018">
-          <Desc>Default settings for Implementation.</Desc>
-        </StratHandle>
+        <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2018"/>
         <Step Id="init_design"/>
         <Step Id="opt_design"/>
         <Step Id="power_opt_design"/>
@@ -1020,9 +815,7 @@
     </Run>
     <Run Id="ipmc_bd_axi_user_led_ctrl_0_impl_1" Type="Ft2:EntireDesign" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_axi_user_led_ctrl_0" Description="Default settings for Implementation." WriteIncrSynthDcp="false" SynthRun="ipmc_bd_axi_user_led_ctrl_0_synth_1" IncludeInArchive="false" GenFullBitstream="true">
       <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2018">
-          <Desc>Default settings for Implementation.</Desc>
-        </StratHandle>
+        <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2018"/>
         <Step Id="init_design"/>
         <Step Id="opt_design"/>
         <Step Id="power_opt_design"/>
@@ -1038,9 +831,7 @@
     </Run>
     <Run Id="ipmc_bd_debouncer_0_0_impl_1" Type="Ft2:EntireDesign" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_debouncer_0_0" Description="Default settings for Implementation." WriteIncrSynthDcp="false" SynthRun="ipmc_bd_debouncer_0_0_synth_1" IncludeInArchive="false" GenFullBitstream="true">
       <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2018">
-          <Desc>Default settings for Implementation.</Desc>
-        </StratHandle>
+        <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2018"/>
         <Step Id="init_design"/>
         <Step Id="opt_design"/>
         <Step Id="power_opt_design"/>
@@ -1056,9 +847,7 @@
     </Run>
     <Run Id="ipmc_bd_axi_gpio_0_0_impl_1" Type="Ft2:EntireDesign" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_axi_gpio_0_0" Description="Default settings for Implementation." WriteIncrSynthDcp="false" SynthRun="ipmc_bd_axi_gpio_0_0_synth_1" IncludeInArchive="false" GenFullBitstream="true">
       <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2018">
-          <Desc>Default settings for Implementation.</Desc>
-        </StratHandle>
+        <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2018"/>
         <Step Id="init_design"/>
         <Step Id="opt_design"/>
         <Step Id="power_opt_design"/>
@@ -1074,9 +863,7 @@
     </Run>
     <Run Id="ipmc_bd_ad7689_s_0_0_impl_1" Type="Ft2:EntireDesign" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_ad7689_s_0_0" Description="Default settings for Implementation." WriteIncrSynthDcp="false" SynthRun="ipmc_bd_ad7689_s_0_0_synth_1" IncludeInArchive="false" GenFullBitstream="true">
       <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2018">
-          <Desc>Default settings for Implementation.</Desc>
-        </StratHandle>
+        <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2018"/>
         <Step Id="init_design"/>
         <Step Id="opt_design"/>
         <Step Id="power_opt_design"/>
@@ -1092,9 +879,7 @@
     </Run>
     <Run Id="ipmc_bd_ad7689_s_1_0_impl_1" Type="Ft2:EntireDesign" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_ad7689_s_1_0" Description="Default settings for Implementation." WriteIncrSynthDcp="false" SynthRun="ipmc_bd_ad7689_s_1_0_synth_1" IncludeInArchive="false" GenFullBitstream="true">
       <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2018">
-          <Desc>Default settings for Implementation.</Desc>
-        </StratHandle>
+        <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2018"/>
         <Step Id="init_design"/>
         <Step Id="opt_design"/>
         <Step Id="power_opt_design"/>
@@ -1110,9 +895,7 @@
     </Run>
     <Run Id="ipmc_bd_xadc_wiz_0_0_impl_1" Type="Ft2:EntireDesign" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_xadc_wiz_0_0" Description="Default settings for Implementation." WriteIncrSynthDcp="false" SynthRun="ipmc_bd_xadc_wiz_0_0_synth_1" IncludeInArchive="false" GenFullBitstream="true">
       <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2018">
-          <Desc>Default settings for Implementation.</Desc>
-        </StratHandle>
+        <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2018"/>
         <Step Id="init_design"/>
         <Step Id="opt_design"/>
         <Step Id="power_opt_design"/>
@@ -1128,9 +911,7 @@
     </Run>
     <Run Id="ipmc_bd_xlconcat_adc_data_0_impl_1" Type="Ft2:EntireDesign" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_xlconcat_adc_data_0" Description="Default settings for Implementation." WriteIncrSynthDcp="false" SynthRun="ipmc_bd_xlconcat_adc_data_0_synth_1" IncludeInArchive="false" GenFullBitstream="true">
       <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2018">
-          <Desc>Default settings for Implementation.</Desc>
-        </StratHandle>
+        <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2018"/>
         <Step Id="init_design"/>
         <Step Id="opt_design"/>
         <Step Id="power_opt_design"/>
@@ -1146,9 +927,7 @@
     </Run>
     <Run Id="ipmc_bd_xlconcat_adc_vld_0_impl_1" Type="Ft2:EntireDesign" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_xlconcat_adc_vld_0" Description="Default settings for Implementation." WriteIncrSynthDcp="false" SynthRun="ipmc_bd_xlconcat_adc_vld_0_synth_1" IncludeInArchive="false" GenFullBitstream="true">
       <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2018">
-          <Desc>Default settings for Implementation.</Desc>
-        </StratHandle>
+        <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2018"/>
         <Step Id="init_design"/>
         <Step Id="opt_design"/>
         <Step Id="power_opt_design"/>
@@ -1164,9 +943,7 @@
     </Run>
     <Run Id="ipmc_bd_concat_HF_0_impl_1" Type="Ft2:EntireDesign" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_concat_HF_0" Description="Default settings for Implementation." WriteIncrSynthDcp="false" SynthRun="ipmc_bd_concat_HF_0_synth_1" IncludeInArchive="false" GenFullBitstream="true">
       <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2018">
-          <Desc>Default settings for Implementation.</Desc>
-        </StratHandle>
+        <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2018"/>
         <Step Id="init_design"/>
         <Step Id="opt_design"/>
         <Step Id="power_opt_design"/>
@@ -1182,9 +959,7 @@
     </Run>
     <Run Id="ipmc_bd_xlconcat_1_0_impl_1" Type="Ft2:EntireDesign" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_xlconcat_1_0" Description="Default settings for Implementation." WriteIncrSynthDcp="false" SynthRun="ipmc_bd_xlconcat_1_0_synth_1" IncludeInArchive="false" GenFullBitstream="true">
       <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2018">
-          <Desc>Default settings for Implementation.</Desc>
-        </StratHandle>
+        <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2018"/>
         <Step Id="init_design"/>
         <Step Id="opt_design"/>
         <Step Id="power_opt_design"/>
@@ -1200,9 +975,7 @@
     </Run>
     <Run Id="ipmc_bd_axi_gpio_esm_0_impl_1" Type="Ft2:EntireDesign" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_axi_gpio_esm_0" Description="Default settings for Implementation." WriteIncrSynthDcp="false" SynthRun="ipmc_bd_axi_gpio_esm_0_synth_1" IncludeInArchive="false" GenFullBitstream="true">
       <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2018">
-          <Desc>Default settings for Implementation.</Desc>
-        </StratHandle>
+        <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2018"/>
         <Step Id="init_design"/>
         <Step Id="opt_design"/>
         <Step Id="power_opt_design"/>
@@ -1218,9 +991,7 @@
     </Run>
     <Run Id="ipmc_bd_vio_HF_sim_0_impl_1" Type="Ft2:EntireDesign" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_vio_HF_sim_0" Description="Default settings for Implementation." WriteIncrSynthDcp="false" SynthRun="ipmc_bd_vio_HF_sim_0_synth_1" IncludeInArchive="false" GenFullBitstream="true">
       <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2018">
-          <Desc>Default settings for Implementation.</Desc>
-        </StratHandle>
+        <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2018"/>
         <Step Id="init_design"/>
         <Step Id="opt_design"/>
         <Step Id="power_opt_design"/>
@@ -1236,9 +1007,7 @@
     </Run>
     <Run Id="ipmc_bd_ipmi_sensor_proc_0_0_impl_1" Type="Ft2:EntireDesign" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_ipmi_sensor_proc_0_0" Description="Default settings for Implementation." WriteIncrSynthDcp="false" SynthRun="ipmc_bd_ipmi_sensor_proc_0_0_synth_1" IncludeInArchive="false" GenFullBitstream="true">
       <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2018">
-          <Desc>Default settings for Implementation.</Desc>
-        </StratHandle>
+        <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2018"/>
         <Step Id="init_design"/>
         <Step Id="opt_design"/>
         <Step Id="power_opt_design"/>
@@ -1254,9 +1023,7 @@
     </Run>
     <Run Id="ipmc_bd_xbar_0_impl_1" Type="Ft2:EntireDesign" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_xbar_0" Description="Default settings for Implementation." WriteIncrSynthDcp="false" SynthRun="ipmc_bd_xbar_0_synth_1" IncludeInArchive="false" GenFullBitstream="true">
       <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2018">
-          <Desc>Default settings for Implementation.</Desc>
-        </StratHandle>
+        <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2018"/>
         <Step Id="init_design"/>
         <Step Id="opt_design"/>
         <Step Id="power_opt_design"/>
@@ -1272,9 +1039,7 @@
     </Run>
     <Run Id="ipmc_bd_xbar_2_impl_1" Type="Ft2:EntireDesign" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_xbar_2" Description="Default settings for Implementation." WriteIncrSynthDcp="false" SynthRun="ipmc_bd_xbar_2_synth_1" IncludeInArchive="false" GenFullBitstream="true">
       <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2018">
-          <Desc>Default settings for Implementation.</Desc>
-        </StratHandle>
+        <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2018"/>
         <Step Id="init_design"/>
         <Step Id="opt_design"/>
         <Step Id="power_opt_design"/>
@@ -1290,9 +1055,7 @@
     </Run>
     <Run Id="ipmc_bd_axi_quad_spi_esm_0_impl_1" Type="Ft2:EntireDesign" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_axi_quad_spi_esm_0" Description="Default settings for Implementation." WriteIncrSynthDcp="false" SynthRun="ipmc_bd_axi_quad_spi_esm_0_synth_1" IncludeInArchive="false" GenFullBitstream="true">
       <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2018">
-          <Desc>Default settings for Implementation.</Desc>
-        </StratHandle>
+        <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2018"/>
         <Step Id="init_design"/>
         <Step Id="opt_design"/>
         <Step Id="power_opt_design"/>
@@ -1308,9 +1071,7 @@
     </Run>
     <Run Id="ipmc_bd_axi_uartlite_esm_0_impl_1" Type="Ft2:EntireDesign" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_axi_uartlite_esm_0" Description="Default settings for Implementation." WriteIncrSynthDcp="false" SynthRun="ipmc_bd_axi_uartlite_esm_0_synth_1" IncludeInArchive="false" GenFullBitstream="true">
       <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2018">
-          <Desc>Default settings for Implementation.</Desc>
-        </StratHandle>
+        <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2018"/>
         <Step Id="init_design"/>
         <Step Id="opt_design"/>
         <Step Id="power_opt_design"/>
@@ -1326,9 +1087,7 @@
     </Run>
     <Run Id="ipmc_bd_axi_gpio_0_1_impl_1" Type="Ft2:EntireDesign" Part="xc7z020clg400-1" ConstrsSet="ipmc_bd_axi_gpio_0_1" Description="Default settings for Implementation." WriteIncrSynthDcp="false" SynthRun="ipmc_bd_axi_gpio_0_1_synth_1" IncludeInArchive="false" GenFullBitstream="true">
       <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2018">
-          <Desc>Default settings for Implementation.</Desc>
-        </StratHandle>
+        <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2018"/>
         <Step Id="init_design"/>
         <Step Id="opt_design"/>
         <Step Id="power_opt_design"/>
