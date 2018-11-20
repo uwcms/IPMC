@@ -301,5 +301,5 @@ void ThresholdSensor::rearm() {
 	this->last_value = NAN;
 	this->active_thresholds = 0;
 	xSemaphoreGive(this->value_mutex);
-	this->log.log(stdsprintf("Sensor %s rearmed!", this->sensor_identifier()), LogTree::LOG_INFO);
+	this->log.log(stdsprintf("Sensor %s rearmed!", this->sensor_identifier().c_str()), LogTree::LOG_INFO);
 }
