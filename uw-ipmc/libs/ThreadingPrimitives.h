@@ -185,7 +185,7 @@ public:
 	 * @param timeout The timeout for immediate acquisition (default 'forever')
 	 * @throw except::timeout_error Immediate acquisition timed out.
 	 */
-	MutexGuard(SemaphoreHandle_t &mutex, bool immediate, const TickType_t timeout = portMAX_DELAY)
+	MutexGuard(const SemaphoreHandle_t &mutex, bool immediate, const TickType_t timeout = portMAX_DELAY)
 		: mutex(mutex) {
 		if (immediate)
 			this->acquire(timeout);
@@ -235,7 +235,7 @@ public:
 			throw except::deadlock_error("xSemaphoreGive*() did not return pdTRUE when releasing MutexGuard.");
 	}
 protected:
-	SemaphoreHandle_t mutex; ///< The mutex managed.
+	const SemaphoreHandle_t mutex; ///< The mutex managed.
 };
 
 /**
