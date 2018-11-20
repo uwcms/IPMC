@@ -29,7 +29,7 @@
 // Global variables used to track exception traces.
 static std::map<void*, std::shared_ptr<BackTrace>>* __exception_backtrace_log = nullptr;
 static StaticSemaphore_t __eb_mutex_buffer;
-static SemaphoreHandle_t __eb_mutex = nullptr;
+static volatile SemaphoreHandle_t __eb_mutex = nullptr;
 
 static void init_backtrace_mutex() {
 	if (__eb_mutex)
