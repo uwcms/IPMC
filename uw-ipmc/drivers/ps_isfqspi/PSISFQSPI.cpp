@@ -10,6 +10,7 @@
 #include <drivers/ps_isfqspi/PSISFQSPI.h>
 #include <libs/printf.h>
 #include <libs/except.h>
+#include <libs/ThreadingPrimitives.h>
 
 #include "xparameters.h"
 
@@ -155,6 +156,8 @@ IsfWriteBuffer(NULL), IsfReadBuffer(NULL) {
 }
 
 PS_ISFQSPI::~PS_ISFQSPI() {
+	abort(); // Destruction not fully supported (no Mutex/Queue cleanup)
+
 	// Disconnect from the interrupt controller
 	XScuGic_Disable(&xInterruptController, this->IntrId);
 	XScuGic_Disconnect(&xInterruptController, this->IntrId);
@@ -174,7 +177,7 @@ u8* PS_ISFQSPI::ReadPage(u32 Address)
 	XIsf_ReadParam ReadParam;
 	const XIsf_ReadOperation Command = XISF_QUAD_OP_FAST_READ; // If the flash changes, this might need to change too.
 
-	xSemaphoreTake(this->mutex, portMAX_DELAY);
+	MutexGuard<false> lock(this->mutex, true);
 
 	/*
 	 * Set the
@@ -196,10 +199,8 @@ u8* PS_ISFQSPI::ReadPage(u32 Address)
 	}
 
 	// Perform the Read operation
-	if (XIsf_Read(&(this->IsfInst), Command, (void*) &ReadParam) != XST_SUCCESS) {
-		xSemaphoreGive(this->mutex);
+	if (XIsf_Read(&(this->IsfInst), Command, (void*) &ReadParam) != XST_SUCCESS)
 		return NULL;
-	}
 
 	// Block on the queue, waiting for irq to signal transfer completion
 	trans_st_t trans_st;
@@ -218,8 +219,6 @@ u8* PS_ISFQSPI::ReadPage(u32 Address)
 		this->error_byte_count++;
 		rc = false;
 	}
-
-	xSemaphoreGive(this->mutex);
 
 	if (rc)
 		return &(this->IsfReadBuffer[ReadParam.NumDummyBytes + XISF_CMD_SEND_EXTRA_BYTES]);
@@ -239,7 +238,7 @@ bool PS_ISFQSPI::WritePage(u32 Address, u8 *WriteBuf)
 	XIsf_WriteParam WriteParam;
 	const XIsf_WriteOperation Command = XISF_QUAD_IP_PAGE_WRITE; // If the flash changes, this might need to change too.
 
-	xSemaphoreTake(this->mutex, portMAX_DELAY);
+	MutexGuard<false> lock(this->mutex, true);
 
 	/*
 	 * Set the
@@ -253,7 +252,6 @@ bool PS_ISFQSPI::WritePage(u32 Address, u8 *WriteBuf)
 
 	// Perform the Write operation
 	if (XIsf_Write(&(this->IsfInst), Command, (void*) &WriteParam) != XST_SUCCESS) {
-		xSemaphoreGive(this->mutex);
 		return false;
 	}
 
@@ -274,8 +272,6 @@ bool PS_ISFQSPI::WritePage(u32 Address, u8 *WriteBuf)
 		this->error_byte_count++;
 		rc = false;
 	}
-
-	xSemaphoreGive(this->mutex);
 
 	return rc;
 }
@@ -290,13 +286,11 @@ bool PS_ISFQSPI::WritePage(u32 Address, u8 *WriteBuf)
  */
 bool PS_ISFQSPI::BulkErase()
 {
-	xSemaphoreTake(this->mutex, portMAX_DELAY);
+	MutexGuard<false> lock(this->mutex, true);
 
 	// Perform the bulk Erase operation
-	if (XIsf_Erase(&(this->IsfInst), XISF_BULK_ERASE, 0) != XST_SUCCESS) {
-		xSemaphoreGive(this->mutex);
+	if (XIsf_Erase(&(this->IsfInst), XISF_BULK_ERASE, 0) != XST_SUCCESS)
 		return false;
-	}
 
 	// Block on the queue, waiting for irq to signal transfer completion
 	trans_st_t trans_st;
@@ -315,8 +309,6 @@ bool PS_ISFQSPI::BulkErase()
 		this->error_byte_count++;
 		rc = false;
 	}
-
-	xSemaphoreGive(this->mutex);
 
 	return rc;
 }
@@ -329,13 +321,11 @@ bool PS_ISFQSPI::BulkErase()
  */
 bool PS_ISFQSPI::SectorErase(u32 Address)
 {
-	xSemaphoreTake(this->mutex, portMAX_DELAY);
+	MutexGuard<false> lock(this->mutex, true);
 
 	// Perform the bulk Erase operation
-	if (XIsf_Erase(&(this->IsfInst), XISF_SECTOR_ERASE, Address) != XST_SUCCESS) {
-		xSemaphoreGive(this->mutex);
+	if (XIsf_Erase(&(this->IsfInst), XISF_SECTOR_ERASE, Address) != XST_SUCCESS)
 		return false;
-	}
 
 	// Block on the queue, waiting for irq to signal transfer completion
 	trans_st_t trans_st;
@@ -354,8 +344,6 @@ bool PS_ISFQSPI::SectorErase(u32 Address)
 		this->error_byte_count++;
 		rc = false;
 	}
-
-	xSemaphoreGive(this->mutex);
 
 	return rc;
 }

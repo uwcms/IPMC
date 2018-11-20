@@ -114,14 +114,15 @@ public:
 		 * \param queue  The FreeRTOS queue used as an inbox by the temple.
 		 */
 		void temple_subscribe(QueueHandle_t queue) {
-			xSemaphoreTake(this->mutex, portMAX_DELAY);
+			MutexGuard<false> lock(this->mutex, true);
 			this->inboxes.push_back(queue);
+			auto inbox_size = this->inboxes.size();
+			lock.release();
 			this->log_root.log(
 					stdsprintf(
 							"Messenger<%s>(\"%s\") had a Temple subscribe.  Now with %d temples.",
-							this->type_name.c_str(), this->address.c_str(), this->inboxes.size()),
+							this->type_name.c_str(), this->address.c_str(), inbox_size),
 					LogTree::LOG_INFO);
-			xSemaphoreGive(this->mutex);
 		}
 		friend class Temple;
 
@@ -131,14 +132,15 @@ public:
 		 * \param queue  The FreeRTOS queue used as an inbox by the temple.
 		 */
 		void temple_unsubscribe(QueueHandle_t queue) {
-			xSemaphoreTake(this->mutex, portMAX_DELAY);
+			MutexGuard<false> lock(this->mutex, true);
 			this->inboxes.remove(queue);
+			auto inbox_size = this->inboxes.size();
+			lock.release();
 			this->log_root.log(
 					stdsprintf(
 							"Messenger<%s>(\"%s\") had a Temple unsubscribe.  Now with %d temples.",
-							this->type_name.c_str(), this->address.c_str(), this->inboxes.size()),
+							this->type_name.c_str(), this->address.c_str(), inbox_size),
 					LogTree::LOG_INFO);
-			xSemaphoreGive(this->mutex);
 		}
 		friend class Temple;
 
@@ -194,16 +196,17 @@ public:
 		 * \return          A handle to unregister the callback.
 		 */
 		uint32_t callback_subscribe(callback_t callback) {
-			xSemaphoreTake(this->mutex, portMAX_DELAY);
+			MutexGuard<false> lock(this->mutex, true);
 			while (!this->callbacks.insert(std::make_pair(++this->last_cbid, callback)).second)
 				;
 			uint32_t cbid = this->last_cbid;
+			auto inboxes_size = this->inboxes.size();
+			lock.release();
 			this->log_root.log(
 					stdsprintf(
 							"Messenger<%s>(\"%s\") had a callback explicitly subscribe.  Now with %d callbacks and %d temples.",
-							this->type_name.c_str(), this->address.c_str(), this->callbacks.size(), this->inboxes.size()),
+							this->type_name.c_str(), this->address.c_str(), this->callbacks.size(), inboxes_size),
 					LogTree::LOG_INFO);
-			xSemaphoreGive(this->mutex);
 			return cbid;
 		};
 
@@ -215,14 +218,15 @@ public:
 		 * \return                 true if the callback was removed, else false.
 		 */
 		bool callback_unsubscribe(uint32_t callback_handle) {
-			xSemaphoreTake(this->mutex, portMAX_DELAY);
+			MutexGuard<false> lock(this->mutex, true);
 			size_t n_erased = this->callbacks.erase(callback_handle);
+			auto inboxes_size = this->inboxes.size();
+			lock.release();
 			this->log_root.log(
 					stdsprintf(
 							"Messenger<%s>(\"%s\") had a callback explicitly unsubscribe.  Now with %d callbacks and %d temples.",
-							this->type_name.c_str(), this->address.c_str(), this->callbacks.size(), this->inboxes.size()),
+							this->type_name.c_str(), this->address.c_str(), this->callbacks.size(), inboxes_size),
 					LogTree::LOG_INFO);
-			xSemaphoreGive(this->mutex);
 			return (bool)n_erased;
 		};
 
@@ -232,7 +236,7 @@ public:
 		 * \param content  The message to be delivered.
 		 */
 		void send(std::shared_ptr<T> content) {
-			xSemaphoreTake(this->mutex, portMAX_DELAY);
+			MutexGuard<false> lock(this->mutex, true);
 			std::list<QueueHandle_t> targets(this->inboxes); // Take a copy to work through.
 
 			this->deliveries.increment();
@@ -341,7 +345,6 @@ public:
 					deadlock_alert_triggered = true;
 				}
 			}
-			xSemaphoreGive(this->mutex);
 
 			this->log_root.log(this->delivery_made_log_message.c_str(), LogTree::LOG_TRACE);
 		}
@@ -451,10 +454,9 @@ public:
 		 */
 		template <typename T> void subscribe(Messenger<T> *messenger) {
 			configASSERT(messenger);
-			xSemaphoreTake(this->mutex, portMAX_DELAY);
+			MutexGuard<false> lock(this->mutex, true);
 			this->subscriptions.push_back(static_cast<Hermes*>(messenger));
 			messenger->temple_subscribe(this->queue);
-			xSemaphoreGive(this->mutex);
 		}
 
 		/**
@@ -463,10 +465,9 @@ public:
 		 */
 		template <typename T> void unsubscribe(Messenger<T> *messenger) {
 			configASSERT(messenger);
-			xSemaphoreTake(this->mutex, portMAX_DELAY);
+			MutexGuard<false> lock(this->mutex, true);
 			messenger->temple_unsubscribe(this->queue);
 			this->subscriptions.remove(static_cast<Hermes*>(messenger));
-			xSemaphoreGive(this->mutex);
 		}
 
 		/**
@@ -559,7 +560,7 @@ public:
 			if (new_mutex)
 				vSemaphoreDelete(new_mutex);
 		}
-		xSemaphoreTake(SkyRoad::mutex, portMAX_DELAY);
+		MutexGuard<false> lock(SkyRoad::mutex, true);
 		if (!SkyRoad::phonebook)
 			SkyRoad::phonebook = new std::map<std::string, Hermes*>();
 		if (!SkyRoad::log_root)
@@ -588,7 +589,7 @@ public:
 			SkyRoad::phonebook->insert(std::pair<std::string, Hermes*>(ret->address, ret));
 			SkyRoad::log_registration->log(stdsprintf("Messenger<%s>(\"%s\") was created.", ret->type_name.c_str(), ret->address.c_str()), LogTree::LOG_INFO);
 		}
-		xSemaphoreGive(SkyRoad::mutex);
+		lock.release();
 		SkyRoad::log_registration->log(stdsprintf("Messenger<%s>(\"%s\") was retrieved.", ret->type_name.c_str(), ret->address.c_str()), LogTree::LOG_DIAGNOSTIC);
 		return ret;
 	};

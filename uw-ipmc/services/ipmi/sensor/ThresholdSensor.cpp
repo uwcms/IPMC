@@ -127,23 +127,19 @@ static void process_threshold(uint16_t &state, uint8_t bit, bool going_high, uin
  * @param value The new sensor value
  */
 void ThresholdSensor::update_value(const float value) {
-	xSemaphoreTake(this->value_mutex, portMAX_DELAY);
+	MutexGuard<false> lock(this->value_mutex, true);
 	this->last_value = value;
 
-	if (value == NAN) {
-		xSemaphoreGive(this->value_mutex);
+	if (value == NAN)
 		return;
-	}
 
 	std::shared_ptr<const SensorDataRecordReadableSensor> sdr = std::dynamic_pointer_cast<const SensorDataRecordReadableSensor>(device_sdr_repo.find(this->sdr_key));
 	if (!sdr) {
 		this->logunique.log_unique(stdsprintf("Unable to locate a readable (Type 01/02) sensor %s in the Device SDR Repository!  Thresholds not updated!", this->sensor_identifier().c_str()), LogTree::LOG_ERROR);
-		xSemaphoreGive(this->value_mutex);
 		return;
 	}
 	if (sdr->event_type_reading_code() != SensorDataRecordSensor::EVENT_TYPE_THRESHOLD_SENSOR) {
 		this->logunique.log_unique(stdsprintf("Sensor %s is not a Threshold type sensor in the Device SDR Repository!  Thresholds not updated!", this->sensor_identifier().c_str()), LogTree::LOG_ERROR);
-		xSemaphoreGive(this->value_mutex);
 		return;
 	}
 
@@ -184,7 +180,7 @@ void ThresholdSensor::update_value(const float value) {
 	process_threshold(this->active_thresholds, 10, false, this->thresholds.unr, hystl, byteval, events);
 	process_threshold(this->active_thresholds, 11, true,  this->thresholds.unr, hysth, byteval, events);
 
-	xSemaphoreGive(this->value_mutex);
+	lock.release();
 
 	static const std::vector<std::string> threshold_names{
 		"LNC going-low",
@@ -252,11 +248,11 @@ void ThresholdSensor::update_value(const float value) {
  */
 ThresholdSensor::Value ThresholdSensor::get_value() const {
 	Value value;
-	xSemaphoreTake(this->value_mutex, portMAX_DELAY);
+	MutexGuard<false> lock(this->value_mutex, true);
 	value.float_value = this->last_value;
 	value.byte_value = 0xFF;
 	value.active_thresholds = this->active_thresholds;
-	xSemaphoreGive(this->value_mutex);
+	lock.release();
 	if (value.float_value == NAN)
 		return value;
 	std::shared_ptr<const SensorDataRecordSensor> sdr = std::dynamic_pointer_cast<const SensorDataRecordSensor>(device_sdr_repo.find(this->sdr_key));
@@ -297,9 +293,9 @@ void ThresholdSensor::rearm() {
 	/* Clearing our value and IPMI events such that the next update will do
 	 * everything that is needed of us.
 	 */
-	xSemaphoreTake(this->value_mutex, portMAX_DELAY);
+	MutexGuard<false> lock(this->value_mutex, true);
 	this->last_value = NAN;
 	this->active_thresholds = 0;
-	xSemaphoreGive(this->value_mutex);
+	lock.release();
 	this->log.log(stdsprintf("Sensor %s rearmed!", this->sensor_identifier().c_str()), LogTree::LOG_INFO);
 }

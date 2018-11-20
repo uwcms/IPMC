@@ -7,6 +7,7 @@
 
 #include <libs/ANSICode.h>
 #include <libs/printf.h>
+#include <libs/ThreadingPrimitives.h>
 #include <IPMC.h>
 
 /**
@@ -70,19 +71,13 @@ enum ANSICode::ParseState ANSICode::parse() {
 			if (param_buf.empty())
 				this->parameters.push_back(0);
 			else {
-				init_stdlib_mutex();
-				xSemaphoreTake(stdlib_mutex, portMAX_DELAY);
 				this->parameters.push_back(atoi(param_buf.c_str()));
-				xSemaphoreGive(stdlib_mutex);
 				param_buf.clear();
 			}
 		}
 		else if ( ('A' <= *it && *it <= 'Z') || ('a' <= *it && *it <= 'z') || (*it == '~') ) {
 			if (!param_buf.empty()) {
-				init_stdlib_mutex();
-				xSemaphoreTake(stdlib_mutex, portMAX_DELAY);
 				this->parameters.push_back(atoi(param_buf.c_str()));
-				xSemaphoreGive(stdlib_mutex);
 				param_buf.clear();
 			}
 

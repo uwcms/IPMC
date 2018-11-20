@@ -84,8 +84,13 @@ bool ConsoleSvc::write(const std::string data, TickType_t timeout) {
 	if (this->shutdown)
 		return true; // Discard.
 	AbsoluteTimeout abstimeout(timeout);
-	if (!xSemaphoreTake(this->linebuf_mutex, abstimeout.get_timeout()))
+	MutexGuard<false> lock(this->linebuf_mutex, false);
+	try {
+		lock.acquire(abstimeout.get_timeout());
+	}
+	catch (except::timeout_error &e) {
 		return false;
+	}
 
 	std::string writebuf = data; // Make a copy, since we'll consume it later.
 
@@ -126,7 +131,6 @@ bool ConsoleSvc::write(const std::string data, TickType_t timeout) {
 	out += this->linebuf.refresh();
 	out += this->linebuf.set_cursor(input_cursor);
 	this->raw_write(out.data(), out.size(), abstimeout.get_timeout());
-	xSemaphoreGive(this->linebuf_mutex);
 	return true;
 }
 
@@ -138,7 +142,7 @@ void ConsoleSvc::_run_thread() {
 #endif
 
 	// We will hold this semaphore as the rule, not the exception, releasing it only for other transactions.
-	xSemaphoreTake(this->linebuf_mutex, portMAX_DELAY);
+	MutexGuard<false> lock(this->linebuf_mutex, true);
 
 	if (this->echo)
 		this->raw_write(this->linebuf.prompt.data(), this->linebuf.prompt.size(), portMAX_DELAY);
@@ -159,9 +163,9 @@ void ConsoleSvc::_run_thread() {
 		char readbuf[128];
 		if (this->shutdown)
 			break;
-		xSemaphoreGive(this->linebuf_mutex);
+		lock.release();
 		ssize_t bytes_read = this->raw_read(readbuf, 128, portMAX_DELAY, this->read_data_timeout);
-		xSemaphoreTake(this->linebuf_mutex, portMAX_DELAY);
+		lock.acquire();
 		if (this->shutdown)
 			break;
 		if (bytes_read < 0) {
@@ -208,7 +212,7 @@ void ConsoleSvc::_run_thread() {
 				if (!cmdbuf.empty()) {
 					log_input.log(cmdbuf, LogTree::LOG_INFO);
 					history.record_entry(cmdbuf);
-					xSemaphoreGive(this->linebuf_mutex);
+					lock.release();
 					try {
 						if (!this->parser.parse(this->weakself.lock(), cmdbuf))
 							this->write("Unknown command!\n", portMAX_DELAY);
@@ -225,7 +229,7 @@ void ConsoleSvc::_run_thread() {
 						this->logtree.log(diag, LogTree::LOG_TRACE);
 						this->write(diag+"\n");
 					}
-					xSemaphoreTake(this->linebuf_mutex, portMAX_DELAY);
+					lock.acquire();
 				}
 			}
 			else if (*it == '\n') {
@@ -368,7 +372,7 @@ void ConsoleSvc::_run_thread() {
 						this->raw_write(echobuf.data(), echobuf.size(), portMAX_DELAY);
 					echobuf.clear();
 
-					xSemaphoreGive(this->linebuf_mutex);
+					lock.release();
 					try {
 						this->parser.parse(this->weakself.lock(), std::string("ANSI_") + ansi_code.name);
 					}
@@ -384,7 +388,7 @@ void ConsoleSvc::_run_thread() {
 						this->logtree.log(diag, LogTree::LOG_TRACE);
 						this->write(diag+"\n");
 					}
-					xSemaphoreTake(this->linebuf_mutex, portMAX_DELAY);
+					lock.acquire();
 				}
 				ansi_code.buffer.clear();
 			}
@@ -396,7 +400,6 @@ void ConsoleSvc::_run_thread() {
 			this->raw_write(echobuf.data(), echobuf.size(), portMAX_DELAY);
 		echobuf.clear();
 	}
-	xSemaphoreGive(this->linebuf_mutex);
 	this->shutdown_complete();
 }
 

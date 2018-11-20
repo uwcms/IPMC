@@ -89,15 +89,11 @@ struct PersistentStorageHeader {
  */
 u16 PersistentStorage::get_section_version(u16 section_id) {
 	xEventGroupWaitBits(this->storage_loaded, 1, 0, pdTRUE, portMAX_DELAY);
-	xSemaphoreTake(this->index_mutex, portMAX_DELAY);
+	MutexGuard<false> lock(this->index_mutex, true);
 	struct PersistentStorageIndexRecord *index = reinterpret_cast<struct PersistentStorageIndexRecord *>(this->data + sizeof(struct PersistentStorageHeader));
-	for (int i = 0; index[i].id != PersistentStorageAllocations::RESERVED_END_OF_INDEX; ++i) {
-		if (index[i].id == section_id) {
-			xSemaphoreGive(this->index_mutex);
+	for (int i = 0; index[i].id != PersistentStorageAllocations::RESERVED_END_OF_INDEX; ++i)
+		if (index[i].id == section_id)
 			return index[i].version;
-		}
-	}
-	xSemaphoreGive(this->index_mutex);
 	return 0;
 }
 
@@ -109,7 +105,7 @@ u16 PersistentStorage::get_section_version(u16 section_id) {
  */
 void PersistentStorage::set_section_version(u16 section_id, u16 section_version) {
 	xEventGroupWaitBits(this->storage_loaded, 1, 0, pdTRUE, portMAX_DELAY);
-	xSemaphoreTake(this->index_mutex, portMAX_DELAY);
+	MutexGuard<false> lock(this->index_mutex, true);
 	struct PersistentStorageIndexRecord *index = reinterpret_cast<struct PersistentStorageIndexRecord *>(this->data + sizeof(struct PersistentStorageHeader));
 	for (int i = 0; index[i].id != PersistentStorageAllocations::RESERVED_END_OF_INDEX; ++i) {
 		if (index[i].id == section_id) {
@@ -117,7 +113,7 @@ void PersistentStorage::set_section_version(u16 section_id, u16 section_version)
 			this->logtree.log(stdsprintf("PersistentStorage set section[%04hx].version = %04hx", section_id, section_version), LogTree::LOG_INFO);
 		}
 	}
-	xSemaphoreGive(this->index_mutex);
+	lock.release();
 	this->flush_index();
 }
 
@@ -136,7 +132,7 @@ void *PersistentStorage::get_section(u16 section_id, u16 section_version, u16 se
 	if (section_id == PersistentStorageAllocations::RESERVED_END_OF_INDEX)
 		std::domain_error("It is not possible to request the section \"RESERVED_END_OF_INDEX\".");
 	xEventGroupWaitBits(this->storage_loaded, 1, 0, pdTRUE, portMAX_DELAY);
-	xSemaphoreTake(this->index_mutex, portMAX_DELAY);
+	MutexGuard<false> lock(this->index_mutex, true);
 	struct PersistentStorageIndexRecord *index = reinterpret_cast<struct PersistentStorageIndexRecord *>(this->data + sizeof(struct PersistentStorageHeader));
 
 	u16 section_pgcount = page_count(section_size, this->eeprom.page_size);
@@ -145,15 +141,13 @@ void *PersistentStorage::get_section(u16 section_id, u16 section_version, u16 se
 		if (index[i].id == section_id) {
 			if (index[i].version != section_version) {
 				this->logtree.log(stdsprintf("Version mismatch retrieving persistent storage section 0x%04hx: %hu requested, %hu present.", section_id, section_version, index[i].version), LogTree::LOG_ERROR);
-				xSemaphoreGive(this->index_mutex);
 				return NULL;
 			}
 			if (index[i].pgcount < section_pgcount) {
 				this->logtree.log(stdsprintf("Size mismatch retrieving persistent storage section 0x%04hx: %hu pages requested, %hu pages present.", section_id, section_pgcount, index[i].pgcount), LogTree::LOG_ERROR);
-				xSemaphoreGive(this->index_mutex);
 				return NULL;
 			}
-			xSemaphoreGive(this->index_mutex);
+			lock.release();
 			this->logtree.log(stdsprintf("Persistent storage section[%04hx] (version = %04hx) retrieved.", section_id, section_version), LogTree::LOG_DIAGNOSTIC);
 			return this->data + (index[i].pgoff * this->eeprom.page_size);
 		}
@@ -191,7 +185,6 @@ void *PersistentStorage::get_section(u16 section_id, u16 section_version, u16 se
 	if (allocpg < minimum_page) {
 		// We failed to find a valid allocation.
 		this->logtree.log(stdsprintf("Unable to allocate %hu contiguous pages for persistent storage section 0x%04hx.", section_pgcount, section_id), LogTree::LOG_ERROR);
-		xSemaphoreGive(this->index_mutex);
 		return NULL;
 	}
 	else {
@@ -205,7 +198,7 @@ void *PersistentStorage::get_section(u16 section_id, u16 section_version, u16 se
 		index[i+1].id = PersistentStorageAllocations::RESERVED_END_OF_INDEX;
 
 		this->logtree.log(stdsprintf("Persistent storage section[0x%04hx] (version = %hu) allocated at 0x%04hx for %hu pages.", section_id, section_version, index[i].pgoff, index[i].pgcount), LogTree::LOG_DIAGNOSTIC);
-		xSemaphoreGive(this->index_mutex);
+		lock.release();
 		this->flush_index();
 		return this->data + (index[i].pgoff * this->eeprom.page_size);
 	}
@@ -219,7 +212,7 @@ void *PersistentStorage::get_section(u16 section_id, u16 section_version, u16 se
 void PersistentStorage::delete_section(u16 section_id) {
 	xEventGroupWaitBits(this->storage_loaded, 1, 0, pdTRUE, portMAX_DELAY);
 	struct PersistentStorageIndexRecord *index = reinterpret_cast<struct PersistentStorageIndexRecord *>(this->data + sizeof(struct PersistentStorageHeader));
-	xSemaphoreTake(this->index_mutex, portMAX_DELAY);
+	MutexGuard<false> lock(this->index_mutex, true);
 	for (int i = 0; index[i].id != PersistentStorageAllocations::RESERVED_END_OF_INDEX; ++i) {
 		if (index[i].id == section_id) {
 			this->logtree.log(stdsprintf("Deleting persistent storage allocation for section 0x%04hx (version %hu) at 0x%04hx, freeing %hu pages.", index[i].id, index[i].version, index[i].pgoff, index[i].pgcount), LogTree::LOG_NOTICE);
@@ -228,7 +221,7 @@ void PersistentStorage::delete_section(u16 section_id) {
 			i--; // Recheck this index, it's not the same record anymore.
 		}
 	}
-	xSemaphoreGive(this->index_mutex);
+	lock.release();
 	this->flush_index();
 }
 
@@ -239,11 +232,11 @@ void PersistentStorage::delete_section(u16 section_id) {
 std::vector<struct PersistentStorage::PersistentStorageIndexRecord> PersistentStorage::list_sections() {
 	xEventGroupWaitBits(this->storage_loaded, 1, 0, pdTRUE, portMAX_DELAY);
 	struct PersistentStorageIndexRecord *index = reinterpret_cast<struct PersistentStorageIndexRecord *>(this->data + sizeof(struct PersistentStorageHeader));
-	xSemaphoreTake(this->index_mutex, portMAX_DELAY);
+	MutexGuard<false> lock(this->index_mutex, true);
 	std::vector<struct PersistentStorageIndexRecord> sections;
 	for (int i = 0; index[i].id != PersistentStorageAllocations::RESERVED_END_OF_INDEX; ++i)
 		sections.push_back(index[i]);
-	xSemaphoreGive(this->index_mutex);
+	lock.release();
 	return std::move(sections);
 }
 
@@ -270,7 +263,7 @@ void PersistentStorage::flush(void *start, size_t len, std::function<void(void)>
 	u32 start_addr = reinterpret_cast<u8*>(start) - this->data;
 	u32 end_addr = start_addr + len;
 	this->logtree.log(stdsprintf("Requesting flush of range [%lu, %lu)", start_addr, end_addr), LogTree::LOG_DIAGNOSTIC);
-	xSemaphoreTake(this->flushq_mutex, portMAX_DELAY);
+	MutexGuard<false> lock(this->index_mutex, true);
 	FlushRequest req(start_addr, end_addr, completion_cb);
 	if (!this->flushq.empty() && this->flushq.top().index_flush && !!req.complete) {
 		// The current top task is an index flush, and we're blocking on a callback.  Make sure it has inherited our priority.
@@ -288,7 +281,6 @@ void PersistentStorage::flush(void *start, size_t len, std::function<void(void)>
 			vTaskPrioritySet(this->flushtask, myprio);
 	}
 	xTaskNotifyGive(this->flushtask);
-	xSemaphoreGive(this->flushq_mutex);
 }
 
 /**
@@ -297,18 +289,18 @@ void PersistentStorage::flush(void *start, size_t len, std::function<void(void)>
  * \note This will take the index_mutex to auto-calculate the index length.
  */
 void PersistentStorage::flush_index() {
-	xSemaphoreTake(this->index_mutex, portMAX_DELAY);
+	MutexGuard<false> indexlock(this->index_mutex, true);
 	struct PersistentStorageIndexRecord *index = reinterpret_cast<struct PersistentStorageIndexRecord *>(this->data + sizeof(struct PersistentStorageHeader));
 	int i;
 	for (i = 0; index[i].id != 0; ++i)
 		;
 	++i; // We want i to be the length of index, but we bailed from the loop on, not after, the terminator.
 	u32 index_length = sizeof(PersistentStorageHeader) + i*sizeof(PersistentStorageIndexRecord);
-	xSemaphoreGive(this->index_mutex);
+	indexlock.release();
 
 	this->logtree.log(stdsprintf("Requesting flush of index (length %lu)", index_length), LogTree::LOG_DIAGNOSTIC);
 
-	xSemaphoreTake(this->flushq_mutex, portMAX_DELAY);
+	MutexGuard<false> flushlock(this->flushq_mutex, true);
 	if (!this->flushq.empty() && this->flushq.top().index_flush) {
 		// We already have an index refresh on top, just check the bounds.
 		FlushRequest existing = this->flushq.top();
@@ -328,7 +320,6 @@ void PersistentStorage::flush_index() {
 	}
 	// We didn't do any priority update of our own on the thread, as we don't mind this being background until pushed by a later flush.
 	xTaskNotifyGive(this->flushtask);
-	xSemaphoreGive(this->flushq_mutex);
 }
 
 /**
@@ -396,11 +387,10 @@ void PersistentStorage::run_flush_thread() {
 	while (true) {
 		if (!ulTaskNotifyTake(pdTRUE, next_bg_flush.get_timeout())) {
 			// Nothing new.  Let's enqueue a full flush.
-			xSemaphoreTake(this->flushq_mutex, portMAX_DELAY);
+			MutexGuard<false> flushlock(this->flushq_mutex, true);
 			// NULL callback means our current priority is irrelevant.
 			this->flushq.emplace(0, this->eeprom.size, std::function<void(void)>());
 			next_bg_flush.timeout64 = get_tick64() + this->flush_ticks;
-			xSemaphoreGive(this->flushq_mutex);
 		}
 
 		bool changed = false;
@@ -414,26 +404,26 @@ void PersistentStorage::run_flush_thread() {
 				configASSERT(0); // We're done.  We can't trust our cache or comparisons.
 			}
 
-			xSemaphoreTake(this->flushq_mutex, portMAX_DELAY);
+			MutexGuard<false> flushlock(this->flushq_mutex, true);
 			FlushRequest request = this->flushq.top();
 			this->flushq.pop();
 			if (!!request.complete || request.index_flush) // Index flushes inherit priority but don't have completion callbacks.
 				vTaskPrioritySet(NULL, request.process_priority); // Someone's blocking, therefore inherit.
 			else
 				vTaskPrioritySet(NULL, TASK_PRIORITY_BACKGROUND); // Noone's blocking, therefore disinherit.
-			xSemaphoreGive(this->flushq_mutex);
+			flushlock.release();
 
 			if (this->do_flush_range(request.start, request.end))
 				changed = true;
 			if (!!request.complete)
 				request.complete(); // Notify
 
-			xSemaphoreTake(this->flushq_mutex, portMAX_DELAY);
+			flushlock.acquire();
 			if (this->flushq.empty()) {
 				vTaskPrioritySet(NULL, TASK_PRIORITY_BACKGROUND); // Disinherit before waiting.
 				done = true;
 			}
-			xSemaphoreGive(this->flushq_mutex);
+			flushlock.release();
 		}
 		if (changed)
 			this->logtree.log("Changes to persistent storage have been flushed to EEPROM.", LogTree::LOG_INFO);

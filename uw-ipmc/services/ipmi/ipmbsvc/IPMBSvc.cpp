@@ -128,10 +128,10 @@ void IPMBSvc::send(std::shared_ptr<IPMI_MSG> msg, response_cb_t response_cb) {
 		 * attempting to transmit a message physically onto the bus.  This
 		 * should keep wait times here to a minimum.
 		 */
-		xSemaphoreTake(this->sendq_mutex, portMAX_DELAY);
+		MutexGuard<false> lock(this->sendq_mutex, true);
 		this->outgoing_messages.emplace_back(msg, response_cb);
 		this->stat_sendq_highwater.high_water(this->outgoing_messages.size());
-		xSemaphoreGive(this->sendq_mutex);
+		lock.release();
 		xSemaphoreGive(this->sendq_notify_sem);
 		this->log_messages_out.log(std::string("Message enqueued for transmit on ") + this->name + ": " + msg->format(), LogTree::LOG_DIAGNOSTIC);
 	}
@@ -206,7 +206,7 @@ void IPMBSvc::run_thread() {
 			if (inmsg.netFn & 1) {
 				// Pair responses to stop retransmissions.
 				bool paired = false;
-				xSemaphoreTake(this->sendq_mutex, portMAX_DELAY);
+				MutexGuard<false> lock(this->sendq_mutex, true);
 				for (auto it = this->outgoing_messages.begin(); it != this->outgoing_messages.end(); ++it) {
 					if (it->msg->match_reply(inmsg)) {
 						paired = true;
@@ -215,15 +215,15 @@ void IPMBSvc::run_thread() {
 						if (it->response_cb) {
 							response_cb_t response_cb = it->response_cb;
 							std::shared_ptr<IPMI_MSG> msg = it->msg;
-							xSemaphoreGive(this->sendq_mutex);
+							lock.release();
 							response_cb(msg, std::make_shared<IPMI_MSG>(inmsg));
-							xSemaphoreTake(this->sendq_mutex, portMAX_DELAY);
+							lock.acquire();
 						}
 						this->outgoing_messages.erase(it); // Success!
 						break; // Done.
 					}
 				}
-				xSemaphoreGive(this->sendq_mutex);
+				lock.release();
 				if (!paired) {
 					this->stat_unexpected_replies.increment();
 					this->log_messages_in.log(std::string("Unexpected response received on ") + this->name + " (erroneous retry?): " + inmsg.format(), LogTree::LOG_NOTICE);
@@ -256,7 +256,7 @@ void IPMBSvc::run_thread() {
 		}
 
 		// Figure out whether we have any timeouts to wait on next.
-		xSemaphoreTake(this->sendq_mutex, portMAX_DELAY);
+		MutexGuard<false> lock(this->sendq_mutex, true);
 		this->stat_sendq_highwater.high_water(this->outgoing_messages.size());
 		next_wait.timeout64 = UINT64_MAX;
 		for (auto it = this->outgoing_messages.begin(); it != this->outgoing_messages.end(); ) {
@@ -268,9 +268,9 @@ void IPMBSvc::run_thread() {
 					if (it->response_cb) {
 						response_cb_t response_cb = it->response_cb;
 						std::shared_ptr<IPMI_MSG> msg = it->msg;
-						xSemaphoreGive(this->sendq_mutex);
+						lock.release();
 						response_cb(msg, NULL);
-						xSemaphoreTake(this->sendq_mutex, portMAX_DELAY);
+						lock.acquire();
 					}
 					it = this->outgoing_messages.erase(it);
 					continue;
@@ -280,7 +280,7 @@ void IPMBSvc::run_thread() {
 
 				// We don't want to hold the mutex while waiting on the bus.
 				std::shared_ptr<IPMI_MSG> wireout_msg = it->msg;
-				xSemaphoreGive(this->sendq_mutex);
+				lock.release();
 				bool success;
 				if (wireout_msg->rsSA == this->ipmb_address && wireout_msg->rsLUN == 0) {
 					// TODO: Support an understanding of what LUN is local to us. (Also in general rqLUN.)
@@ -295,7 +295,7 @@ void IPMBSvc::run_thread() {
 					// This is a normal outgoing message, deliver it.
 					success = this->ipmb->send_message(*wireout_msg, it->retry_count);
 				}
-				xSemaphoreTake(this->sendq_mutex, portMAX_DELAY);
+				lock.acquire();
 
 				if (success && (it->msg->netFn & 1) /* response message */) {
 					// Sent!  We don't retry responses, so we're done!
@@ -347,7 +347,6 @@ void IPMBSvc::run_thread() {
 				next_wait = it->next_retry;
 			++it;
 		}
-		xSemaphoreGive(this->sendq_mutex);
 	}
 }
 

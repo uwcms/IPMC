@@ -11,6 +11,7 @@
 #include <FreeRTOS.h>
 #include <semphr.h>
 #include <functional>
+#include <libs/ThreadingPrimitives.h>
 
 /**
  * A generic I2C driver interface.
@@ -58,9 +59,8 @@ public:
 	 * @param lambda_func The lambda function to run
 	 **/
 	inline virtual void chain(std::function<void(void)> lambda_func) final {
-		xSemaphoreTake(this->mutex, portMAX_DELAY);
+		MutexGuard<false> lock(this->mutex, true);
 		lambda_func();
-		xSemaphoreGive(this->mutex);
 	}
 
 private:
