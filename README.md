@@ -29,7 +29,7 @@ An XVC end-point is always running on the IPMC and is accessible by Ethernet. An
 
 First make sure the IPMC is reachable from the machine that will host the Hardware Server, normally the same machine where Vivado is running for convenience. ```network.status``` can be used on the IPMC to check the current IP which can the be used with ```ping```.
 
-Then, source Vivado and run ```hw_server -e 'set auto-open-servers xilinx-xvc:<IPMC-IP-ADDRESS>'``` where ```<IPMC-IP-ADDRESS>``` is the target IPMC address. This will start the Hardware Server on port 3121 (default) and, when connected with Vivado, it will detect the XVC chain transparently as if it was a local dongle.
+Then, source Vivado and run ```hw_server -e 'set auto-open-servers xilinx-xvc:<IPMC-IP-ADDRESS>:2542'``` where ```<IPMC-IP-ADDRESS>``` is the target IPMC address. This will start the Hardware Server on port 3121 (default) and, when connected with Vivado, it will detect the XVC chain transparently as if it was a local dongle.
 
 A different port can be used if multiple Hardware Servers need to run in parallel by adding the argument ```-s TCP::<PORT>``` where ```<PORT>``` is the desired TCP/IP port.
 
