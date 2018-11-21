@@ -1,7 +1,7 @@
 #include <libs/SkyRoad.h>
 
 // Static storage locations for SkyRoad static variables.
-volatile SemaphoreHandle_t SkyRoad::mutex;
+SemaphoreHandle_t SkyRoad::mutex;
 volatile uint32_t SkyRoad::anonymizer_inc = 0;
 std::map<std::string, SkyRoad::Hermes*> * volatile SkyRoad::phonebook = NULL;;
 StatCounter SkyRoad::Hermes::global_deliveries("skyroad.global.deliveries");

@@ -29,22 +29,7 @@
 // Global variables used to track exception traces.
 static std::map<void*, std::shared_ptr<BackTrace>>* __exception_backtrace_log = nullptr;
 static StaticSemaphore_t __eb_mutex_buffer;
-static volatile SemaphoreHandle_t __eb_mutex = nullptr;
-
-static void init_backtrace_mutex() {
-	if (__eb_mutex)
-		return;
-	taskENTER_CRITICAL();
-	if (__eb_mutex) {
-		// Another thread took over
-		taskEXIT_CRITICAL();
-		return;
-	}
-
-	__eb_mutex = xSemaphoreCreateMutexStatic(&__eb_mutex_buffer);
-
-	taskEXIT_CRITICAL();
-}
+static SemaphoreHandle_t __eb_mutex = nullptr;
 
 struct unwind_idx {
 	unsigned long addr_offset;	///< prel31
@@ -213,14 +198,14 @@ void __wrap___cxa_throw(void *ex, void *info, void (*dest)(void *)) {
 		trace->name = NULL;
 	}
 
-	init_backtrace_mutex();
-	xSemaphoreTake(__eb_mutex, portMAX_DELAY);
+	safe_init_static_mutex(__eb_mutex, false, &__eb_mutex_buffer);
+	MutexGuard<false> lock(__eb_mutex, true);
 	// Add the new trace to the log.
 	if (!__exception_backtrace_log)
 		__exception_backtrace_log = new std::map<void*, std::shared_ptr<BackTrace>>();
 
 	(*__exception_backtrace_log)[ex] = trace;
-	xSemaphoreGive(__eb_mutex);
+	lock.release();
 
 	__real___cxa_throw(ex,info,dest);
 }
@@ -228,10 +213,10 @@ void __wrap___cxa_throw(void *ex, void *info, void (*dest)(void *)) {
 void __real___cxa_free_exception(void *ex);
 
 void __wrap___cxa_free_exception(void *ex) {
-	xSemaphoreTake(__eb_mutex, portMAX_DELAY);
+	MutexGuard<false> lock(__eb_mutex, true);
 	// The exception is no longer in play, remove it.
 	__exception_backtrace_log->erase(ex);
-	xSemaphoreGive(__eb_mutex);
+	lock.release();
 
 	__real___cxa_free_exception(ex);
 }
@@ -253,8 +238,8 @@ BackTrace* BackTrace::traceException(void *ex) {
 
 	BackTrace* r = nullptr;
 
-	init_backtrace_mutex();
-	xSemaphoreTake(__eb_mutex, portMAX_DELAY);
+	safe_init_static_mutex(__eb_mutex, false, &__eb_mutex_buffer);
+	MutexGuard<false> lock(__eb_mutex, true);
 
 	// Find the trace record.
 	if (!__exception_backtrace_log) {
@@ -266,8 +251,6 @@ BackTrace* BackTrace::traceException(void *ex) {
 			r = &*trace;
 		}
 	}
-
-	xSemaphoreGive(__eb_mutex);
 	return r;
 }
 

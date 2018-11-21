@@ -315,13 +315,12 @@ CommandParser::CompletionResult CommandParser::complete(const std::string &comma
 
 bool CommandParser::CommandParameters::parse_one(const std::string &arg, xint32_t *x32val) {
 	char *endptr = NULL;
-	init_stdlib_mutex();
-	xSemaphoreTake(stdlib_mutex, portMAX_DELAY);
+	safe_init_static_mutex(stdlib_mutex, false);
+	MutexGuard<false> lock(stdlib_mutex, true);
 	errno = 0;
     *x32val = strtoul(arg.c_str(), &endptr, 16);
 	if (errno)
 		endptr = NULL;
-	xSemaphoreGive(stdlib_mutex);
     return (endptr && *endptr == '\0');
 }
 
@@ -343,13 +342,12 @@ bool CommandParser::CommandParameters::parse_one(const std::string &arg, xint8_t
 
 bool CommandParser::CommandParameters::parse_one(const std::string &arg, uint32_t *u32val) {
 	char *endptr = NULL;
-	init_stdlib_mutex();
-	xSemaphoreTake(stdlib_mutex, portMAX_DELAY);
+	safe_init_static_mutex(stdlib_mutex, false);
+	MutexGuard<false> lock(stdlib_mutex, true);
 	errno = 0;
     *u32val = strtoul(arg.c_str(), &endptr, 0);
 	if (errno)
 		endptr = NULL;
-	xSemaphoreGive(stdlib_mutex);
     return (endptr && *endptr == '\0');
 }
 
@@ -371,13 +369,12 @@ bool CommandParser::CommandParameters::parse_one(const std::string &arg, uint8_t
 
 bool CommandParser::CommandParameters::parse_one(const std::string &arg, long int *lintval) {
 	char *endptr = NULL;
-	init_stdlib_mutex();
-	xSemaphoreTake(stdlib_mutex, portMAX_DELAY);
+	safe_init_static_mutex(stdlib_mutex, false);
+	MutexGuard<false> lock(stdlib_mutex, true);
 	errno = 0;
 	*lintval = strtol(arg.c_str(), &endptr, 0);
 	if (errno)
 		endptr = NULL;
-	xSemaphoreGive(stdlib_mutex);
 	return (endptr && *endptr == '\0');
 }
 
@@ -421,13 +418,12 @@ bool CommandParser::CommandParameters::parse_one(const std::string &arg, bool *b
 
 bool CommandParser::CommandParameters::parse_one(const std::string &arg, double *dblval) {
 	char *endptr = NULL;
-	init_stdlib_mutex();
-	xSemaphoreTake(stdlib_mutex, portMAX_DELAY);
+	safe_init_static_mutex(stdlib_mutex, false);
+	MutexGuard<false> lock(stdlib_mutex, true);
 	errno = 0;
 	*dblval = strtod(arg.c_str(), &endptr);
 	if (errno)
 		endptr = NULL;
-	xSemaphoreGive(stdlib_mutex);
 	return (endptr && *endptr == '\0');
 }
 

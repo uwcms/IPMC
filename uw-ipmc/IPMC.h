@@ -82,7 +82,7 @@ std::string generate_banner();
 
 // From libwrap.cc
 void init_stdlib_mutex();
-extern volatile SemaphoreHandle_t stdlib_mutex;
+extern SemaphoreHandle_t stdlib_mutex;
 
 // From version.cc
 extern const long int GIT_SHORT_INT;
