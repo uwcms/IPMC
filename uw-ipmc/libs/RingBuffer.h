@@ -39,14 +39,9 @@ public:
 
 	///! Cleans and resets the ring buffer.
 	void reset() {
-		if (!IN_INTERRUPT())
-			portENTER_CRITICAL();
-
+		CriticalGuard critical(true);
 		next_read_idx = 0;
 		next_write_idx = 0;
-
-		if (!IN_INTERRUPT())
-			portEXIT_CRITICAL();
 	}
 
 	/**
@@ -58,8 +53,7 @@ public:
 	 */
 	size_t write(const T *data, size_t len) {
 		size_t i = 0;
-		if (!IN_INTERRUPT())
-			portENTER_CRITICAL();
+		CriticalGuard critical(true);
 
 		if (this->full()) {
 			// Do nothing, buffer is full!
@@ -97,10 +91,6 @@ public:
 			this->next_write_idx += copy_cnt; // Will never wrap
 			i = copy_cnt;
 		}
-
-		if (!IN_INTERRUPT())
-			portEXIT_CRITICAL();
-
 		return i;
 	}
 
@@ -113,8 +103,7 @@ public:
 	 */
 	size_t read(T *data, size_t len) {
 		size_t i = 0;
-		if (!IN_INTERRUPT())
-			portENTER_CRITICAL();
+		CriticalGuard critical(true);
 
 		if (this->empty()) {
 			// No data available, do nothing.
@@ -141,10 +130,6 @@ public:
 				i += this->read(&data[copy_cnt], len - copy_cnt);
 			}
 		}
-
-		if (!IN_INTERRUPT())
-			portEXIT_CRITICAL();
-
 		return i;
 	}
 
@@ -154,6 +139,7 @@ public:
 	 * \return The number of items currently stored in the ring buffer.
 	 */
 	inline size_t length() {
+		CriticalGuard critical(true);
 		return (this->next_write_idx - this->next_read_idx) & this->maxlen;
 	}
 
@@ -163,6 +149,7 @@ public:
 	 * \return The maximum number of items which may be stored in the ring buffer.
 	 */
 	inline size_t maxlength() {
+		CriticalGuard critical(true);
 		return this->maxlen;
 	}
 
@@ -171,6 +158,7 @@ public:
 	 * \return true if the ring buffer is empty, otherwise false
 	 */
 	inline bool empty() {
+		CriticalGuard critical(true);
 		return this->next_read_idx == this->next_write_idx;
 	}
 	/**
@@ -178,6 +166,7 @@ public:
 	 * \return true if the ring buffer is full, otherwise false
 	 */
 	inline bool full() {
+		CriticalGuard critical(true);
 		return (this->length() == this->maxlength());
 	}
 
@@ -204,8 +193,7 @@ public:
 	 */
 	void setup_dma_input(T **data_start,
 			size_t *maxitems) {
-		if (!IN_INTERRUPT())
-			portENTER_CRITICAL();
+		CriticalGuard critical(true);
 
 		if (this->full()) {
 			*maxitems = 0;
@@ -232,9 +220,6 @@ public:
 			// would equal next_write_idx and the buffer would be "empty".
 			*maxitems = this->next_read_idx - this->next_write_idx - 1;
 		}
-
-		if (!IN_INTERRUPT())
-			portEXIT_CRITICAL();
 	}
 
 	/**
@@ -250,14 +235,9 @@ public:
 	 */
 	void notify_dma_input_occurred(
 			size_t items) {
-		if (!IN_INTERRUPT())
-			portENTER_CRITICAL();
-
+		CriticalGuard critical(true);
 		configASSERT(this->length() + items <= this->maxlength());
 		this->next_write_idx = (this->next_write_idx + items) & this->maxlen;
-
-		if (!IN_INTERRUPT())
-			portEXIT_CRITICAL();
 	}
 
 	/**
@@ -283,8 +263,7 @@ public:
 	 */
 	void setup_dma_output(T **data_start,
 			size_t *maxitems) {
-		if (!IN_INTERRUPT())
-			portENTER_CRITICAL();
+		CriticalGuard critical(true);
 
 		if (this->empty()) {
 			*maxitems = 0;
@@ -297,9 +276,6 @@ public:
 			*data_start = &(this->buffer[this->next_read_idx]);
 			*maxitems = this->buflen - this->next_read_idx;
 		}
-
-		if (!IN_INTERRUPT())
-			portEXIT_CRITICAL();
 	}
 
 	/**
@@ -315,14 +291,10 @@ public:
 	 */
 	void notify_dma_output_occurred(
 			size_t items) {
-		if (!IN_INTERRUPT())
-			portENTER_CRITICAL();
+		CriticalGuard critical(true);
 
 		configASSERT(items <= this->length());
 		this->next_read_idx = (this->next_read_idx + items) & this->maxlen;
-
-		if (!IN_INTERRUPT())
-			portEXIT_CRITICAL();
 	}
 
 	/**
