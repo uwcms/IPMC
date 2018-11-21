@@ -242,6 +242,9 @@ protected:
 
 /**
  * A ScopedGuard servicing FreeRTOS critical sections.
+ *
+ * \note This guard is ISR safe (it performs no heap allocation and will act as
+ *       a NOOP when in an interrupt).
  */
 class CriticalGuard : public ScopedGuard {
 public:
@@ -321,13 +324,9 @@ protected:
 };
 
 static inline uint64_t get_tick64() {
-	if (!IN_INTERRUPT())
-		taskENTER_CRITICAL();
+	CriticalGuard critical(true);
 	extern volatile uint64_t uwipmc_tick64_count;
-	uint64_t ret = uwipmc_tick64_count;
-	if (!IN_INTERRUPT())
-		taskEXIT_CRITICAL();
-	return ret;
+	return uwipmc_tick64_count;
 }
 
 void *trampoline_prepare(std::function<void(void)> cb);

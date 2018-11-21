@@ -41,9 +41,7 @@ TickType_t AbsoluteTimeout::get_timeout() {
 	if (this->timeout64 == UINT64_MAX)
 		return portMAX_DELAY;
 
-	if (!IN_INTERRUPT())
-		taskENTER_CRITICAL();
-
+	CriticalGuard critical(true);
 	uint64_t now64 = get_tick64();
 	TickType_t ret;
 	if (this->timeout64 <= now64) {
@@ -55,8 +53,6 @@ TickType_t AbsoluteTimeout::get_timeout() {
 	else {
 		ret = this->timeout64 - now64; // Block until timeout, it's within TickType_t.
 	}
-	if (!IN_INTERRUPT())
-		taskEXIT_CRITICAL();
 	return ret;
 }
 

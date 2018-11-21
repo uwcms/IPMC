@@ -81,8 +81,7 @@ void TraceBuffer::log(const char *label, size_t label_len, enum LogTree::LogLeve
 	// The record must fit in the buffer.
 	configASSERT(record_length <= this->buf->total_length);
 
-	if (!IN_INTERRUPT())
-		taskENTER_CRITICAL();
+	CriticalGuard critical(true);
 
 	uint32_t next_offset;
 	struct TraceRecord *rec;
@@ -114,7 +113,4 @@ void TraceBuffer::log(const char *label, size_t label_len, enum LogTree::LogLeve
 	memcpy(rec->data + label_len, data, data_len);
 
 	this->buf->last_record = next_offset;
-
-	if (!IN_INTERRUPT())
-		taskEXIT_CRITICAL();
 }

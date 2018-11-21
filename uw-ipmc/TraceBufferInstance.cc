@@ -1,5 +1,6 @@
 #include <FreeRTOS.h>
 #include <drivers/tracebuffer/TraceBuffer.h>
+#include <libs/ThreadingPrimitives.h>
 
 #define TRACEBUFFER_SIZE (1*1024*1024)
 
@@ -25,7 +26,7 @@ TraceBuffer& get_tracebuffer() {
 	if (trace_buffer)
 		return *trace_buffer;
 
-	portENTER_CRITICAL();
+	CriticalGuard critical(true);
 	/* Sadly can't get away with doing this in advance, because it'll modify the
 	 * static array.  Luckily it's a quick operation.
 	 *
@@ -35,6 +36,5 @@ TraceBuffer& get_tracebuffer() {
 	 */
 	if (!trace_buffer)
 		trace_buffer = new (tracebuffer_object_memory) TraceBuffer(tracebuffer_contents, TRACEBUFFER_SIZE);
-	portEXIT_CRITICAL();
 	return *trace_buffer;
 }

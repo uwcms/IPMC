@@ -60,9 +60,9 @@ volatile uint64_t _time_in_us = 0;
 int _gettimeofday( struct timeval *tv, struct timezone *tz )
 {
 	// Make a non-volatile local copy
-	taskENTER_CRITICAL();
+	CriticalGuard critical(true);
 	uint64_t time_us = _time_in_us;
-	taskEXIT_CRITICAL();
+	critical.release();
 
 	tv->tv_sec = time_us / 1000000;   // convert to seconds
 	tv->tv_usec = time_us % 1000000;  // get remaining microseconds
