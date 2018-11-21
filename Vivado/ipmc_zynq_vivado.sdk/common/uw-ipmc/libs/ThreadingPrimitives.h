@@ -166,6 +166,7 @@ public:
 	 * @return true if the guard is acquired, else false
 	 */
 	virtual bool is_acquired() { return this->acquired; };
+
 protected:
 	bool acquired; ///< Indicate whether this ScopedGuard is acquired.
 };
@@ -234,6 +235,7 @@ public:
 		if (ret != pdTRUE)
 			throw except::deadlock_error("xSemaphoreGive*() did not return pdTRUE when releasing MutexGuard.");
 	}
+
 protected:
 	const SemaphoreHandle_t mutex; ///< The mutex managed.
 };

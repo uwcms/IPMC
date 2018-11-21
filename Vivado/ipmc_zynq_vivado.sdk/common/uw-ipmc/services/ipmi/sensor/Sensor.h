@@ -47,6 +47,7 @@ public:
 	///@}
 
 	std::string sensor_identifier() const;
+
 protected:
 	bool _all_events_disabled; ///< All IPMI events from this sensor are disabled.
 	bool _sensor_scanning_disabled; ///< Sensor scanning is disabled for this sensor.
