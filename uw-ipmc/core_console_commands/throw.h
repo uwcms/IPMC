@@ -33,7 +33,6 @@ public:
 		console->write(trace.toString());
 
 		//throw std::exception();
-
 	}
 };
 
