@@ -323,6 +323,39 @@ protected:
 	bool guard_actually_held; ///< Track whether the guard we're releasing was held to begin with.
 };
 
+/**
+ * Ensure the provided mutex is initialized and ready for use.
+ *
+ * \note Not ISR safe (why are you calling it from an ISR?)
+ *
+ * @param mutex The mutex to ensure initialization of
+ * @param recursive true if the mutex should be recursive else false
+ * @param memory The memory block to allocate the semaphore in, or NULL for heap
+ */
+static inline void safe_init_static_mutex(volatile SemaphoreHandle_t &mutex, bool recursive, StaticSemaphore_t *memory=NULL) {
+	// Fast check.  False negatives possible, but not false positives.
+	if (mutex)
+		return;
+
+	CriticalGuard critical(true);
+	// Slow check.  Clear up prior false negatives.
+	if (mutex)
+		return;
+
+	if (memory) {
+		if (recursive)
+			mutex = xSemaphoreCreateRecursiveMutexStatic(memory);
+		else
+			mutex = xSemaphoreCreateMutexStatic(memory);
+	}
+	else {
+		if (recursive)
+			mutex = xSemaphoreCreateRecursiveMutex();
+		else
+			mutex = xSemaphoreCreateMutex();
+	}
+}
+
 static inline uint64_t get_tick64() {
 	CriticalGuard critical(true);
 	extern volatile uint64_t uwipmc_tick64_count;

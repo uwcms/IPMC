@@ -5,6 +5,7 @@
 #include <alloca.h>
 #include <FreeRTOS.h>
 #include <semphr.h>
+#include <libs/ThreadingPrimitives.h>
 
 /**
  * Mirror sprintf() but returning a std::string.
@@ -55,7 +56,7 @@ void init_stdlib_mutex(); // From libwrap.cc
  * @return The demangled form of name, or name if an error occurred.
  */
 std::string cxa_demangle(const char *name) {
-	init_stdlib_mutex();
+	safe_init_static_mutex(stdlib_mutex, false);
 	size_t length = 0;
 	int status = 0;
 	std::string result(name);

@@ -549,17 +549,7 @@ public:
 		if (topic.find("/") != std::string::npos) // Don't allow re-lookup of an anonymized name.
 			throw std::domain_error("Messenger names cannot contain '/', consider using '.'.");
 
-		if (!SkyRoad::mutex) {
-			SemaphoreHandle_t new_mutex = xSemaphoreCreateMutex();
-			CriticalGuard critical(true);
-			if (!SkyRoad::mutex) {
-				SkyRoad::mutex = new_mutex;
-				new_mutex = NULL;
-			}
-			critical.release();
-			if (new_mutex)
-				vSemaphoreDelete(new_mutex);
-		}
+		safe_init_static_mutex(SkyRoad::mutex, false);
 		MutexGuard<false> lock(SkyRoad::mutex, true);
 		if (!SkyRoad::phonebook)
 			SkyRoad::phonebook = new std::map<std::string, Hermes*>();
@@ -595,7 +585,7 @@ public:
 	};
 
 protected:
-	static volatile SemaphoreHandle_t mutex; ///< A mutex protecting the phonebook.
+	static SemaphoreHandle_t mutex; ///< A mutex protecting the phonebook.
 	static volatile uint32_t anonymizer_inc; ///< An auto-increment for the anonymize=true option to register_topic().
 	static std::map<std::string, Hermes*> * volatile phonebook; ///< A mapping of all existing messengers.
 

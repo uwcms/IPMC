@@ -71,7 +71,7 @@ int _gettimeofday( struct timeval *tv, struct timezone *tz )
 
 } // extern "C"
 
-volatile SemaphoreHandle_t stdlib_mutex = NULL;
+SemaphoreHandle_t stdlib_mutex = NULL;
 
 void *__wrap_malloc(size_t size) {
 	// The FreeRTOS pvPortMalloc/vPortFree are not ISR safe, only critical safe.
@@ -134,21 +134,6 @@ void *__wrap_realloc(void *ptr, size_t size) {
 	return newptr;
 }
 
-void init_stdlib_mutex() {
-	if (stdlib_mutex)
-		return;
-	SemaphoreHandle_t sem = xSemaphoreCreateMutex();
-	configASSERT(sem);
-	taskENTER_CRITICAL();
-	if (!stdlib_mutex) {
-		stdlib_mutex = sem;
-		sem = NULL;
-	}
-	taskEXIT_CRITICAL();
-	if (sem)
-		vSemaphoreDelete(sem);
-}
-
 int __wrap_printf(const char *format, ...) {
     va_list args;
     va_start(args, format);
@@ -158,23 +143,23 @@ int __wrap_printf(const char *format, ...) {
 }
 
 int __wrap_sprintf(char *str, const char *format, ...) {
-	init_stdlib_mutex();
+	safe_init_static_mutex(stdlib_mutex, false);
 	va_list args;
 	va_start(args, format);
-	xSemaphoreTake(stdlib_mutex, portMAX_DELAY);
+	MutexGuard<false> lock(stdlib_mutex, true);
 	int ret = __real_vsprintf(str, format, args);
-	xSemaphoreGive(stdlib_mutex);
+	lock.release();
 	va_end(args);
 	return ret;
 }
 
 int __wrap_snprintf(char *str, size_t size, const char *format, ...) {
-	init_stdlib_mutex();
+	safe_init_static_mutex(stdlib_mutex, false);
 	va_list args;
 	va_start(args, format);
-	xSemaphoreTake(stdlib_mutex, portMAX_DELAY);
+	MutexGuard<false> lock(stdlib_mutex, true);
 	int ret = __real_vsnprintf(str, size, format, args);
-	xSemaphoreGive(stdlib_mutex);
+	lock.release();
 	va_end(args);
 	return ret;
 }
@@ -216,19 +201,15 @@ int __wrap_vprintf(const char *format, va_list ap) {
 }
 
 int __wrap_vsprintf(char *str, const char *format, va_list ap) {
-	init_stdlib_mutex();
-	xSemaphoreTake(stdlib_mutex, portMAX_DELAY);
-	int ret = vsprintf(str, format, ap);
-	xSemaphoreGive(stdlib_mutex);
-	return ret;
+	safe_init_static_mutex(stdlib_mutex, false);
+	MutexGuard<false> lock(stdlib_mutex, true);
+	return vsprintf(str, format, ap);
 }
 
 int __wrap_vsnprintf(char *str, size_t size, const char *format, va_list ap) {
-	init_stdlib_mutex();
-	xSemaphoreTake(stdlib_mutex, portMAX_DELAY);
-	int ret = __real_vsnprintf(str, size, format, ap);
-	xSemaphoreGive(stdlib_mutex);
-	return ret;
+	safe_init_static_mutex(stdlib_mutex, false);
+	MutexGuard<false> lock(stdlib_mutex, true);
+	return __real_vsnprintf(str, size, format, ap);
 }
 
 void __wrap_xil_printf( const char8 *ctrl1, ...) {
@@ -315,22 +296,10 @@ unsigned __wrap_sleep(unsigned int seconds) {
 	return 0;
 }
 
-static volatile SemaphoreHandle_t librsa_mutex = NULL;
+static SemaphoreHandle_t librsa_mutex = NULL;
 
 void __wrap_sha_256(const unsigned char *in, const unsigned int size, unsigned char *out) {
-	if (!librsa_mutex) {
-		SemaphoreHandle_t sem = xSemaphoreCreateMutex();
-		configASSERT(sem);
-		taskENTER_CRITICAL();
-		if (!librsa_mutex) {
-			librsa_mutex = sem;
-			sem = NULL;
-		}
-		taskEXIT_CRITICAL();
-		if (sem)
-			vSemaphoreDelete(sem);
-	}
-	xSemaphoreTake(librsa_mutex, portMAX_DELAY);
+	safe_init_static_mutex(librsa_mutex, false);
+	MutexGuard<false> lock(librsa_mutex, true);
 	__real_sha_256(in, size, out);
-	xSemaphoreGive(librsa_mutex);
 }

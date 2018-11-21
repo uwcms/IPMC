@@ -40,7 +40,7 @@ public:
 protected:
     volatile uint64_t count; ///< The count counted.
 
-	static volatile SemaphoreHandle_t mutex; ///< A mutex to protect the registry.
+	static SemaphoreHandle_t mutex; ///< A mutex to protect the registry.
 	static std::map< std::string, StatCounter* > * volatile registry; ///< A global registry of Stat Counters.
 };
 

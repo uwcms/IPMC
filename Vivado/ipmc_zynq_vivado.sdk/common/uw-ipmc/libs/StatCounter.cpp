@@ -26,27 +26,15 @@
  */
 StatCounter::StatCounter(std::string name)
   : name(stdsprintf("%s/%08x", name.c_str(), reinterpret_cast<unsigned int>(this))), count(0) {
-	if (!StatCounter::mutex) {
-		SemaphoreHandle_t sem = xSemaphoreCreateMutex();
-		CriticalGuard critical(true);
-		if (!StatCounter::mutex) {
-			StatCounter::mutex = sem;
-			sem = NULL;
-		}
-		critical.release();
-		if (sem)
-			vSemaphoreDelete(sem);
-	}
-	SemaphoreHandle_t nvmutex = const_cast<SemaphoreHandle_t>(StatCounter::mutex);
-	MutexGuard<false> lock(nvmutex, true);
+	safe_init_static_mutex(StatCounter::mutex, false);
+	MutexGuard<false> lock(StatCounter::mutex, true);
 	if (!StatCounter::registry)
 		StatCounter::registry = new std::map< std::string, StatCounter* >();
 	StatCounter::registry->insert(std::make_pair(this->name, this));
 }
 
 StatCounter::~StatCounter() {
-	SemaphoreHandle_t nvmutex = const_cast<SemaphoreHandle_t>(StatCounter::mutex);
-	MutexGuard<false> lock(nvmutex, true);
+	MutexGuard<false> lock(StatCounter::mutex, true);
 	StatCounter::registry->erase(this->name);
 }
 
@@ -165,5 +153,5 @@ uint64_t StatCounter::low_water(uint64_t val) {
 }
 
 // Static storage locations for StatCounter static variables.
-volatile SemaphoreHandle_t StatCounter::mutex;
+SemaphoreHandle_t StatCounter::mutex;
 std::map< std::string, StatCounter* > * volatile StatCounter::registry = NULL;
