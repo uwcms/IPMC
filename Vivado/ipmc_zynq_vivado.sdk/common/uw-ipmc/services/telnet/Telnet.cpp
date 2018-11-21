@@ -14,6 +14,7 @@
 #include <drivers/network/ServerSocket.h>
 #include <services/console/TelnetConsoleSvc.h>
 #include <services/persistentstorage/PersistentStorage.h>
+#include <libs/ThreadingPrimitives.h>
 #include <libs/printf.h>
 
 #include <functional>
@@ -77,9 +78,9 @@ TelnetClient::TelnetClient(std::shared_ptr<Socket> s, LogTree &logtree, Semaphor
 	if (!s)
 		throw std::runtime_error("A valid socket must be supplied.");
 	configASSERT(connection_pool_limiter);
-	taskENTER_CRITICAL();
+	CriticalGuard critical(true);
 	this->session_serial = this->next_session_serial++;
-	taskEXIT_CRITICAL();
+	critical.release();
 	xTaskCreate(_thread_telnetc, stdsprintf("telnetd.%x", this->session_serial).c_str(), UWIPMC_STANDARD_STACK_SIZE, this, TASK_PRIORITY_INTERACTIVE, NULL);
 }
 
@@ -126,9 +127,9 @@ static void telnet_shutdown_cleanup(Telnet::TelnetConsoleSvc &svc, CommandParser
  * Get the current bad password timeout delay.
  */
 uint64_t TelnetClient::get_badpass_timeout() {
-	taskENTER_CRITICAL(); // No atomic 64bit ops.
+	CriticalGuard critical(true); // No atomic 64bit ops.
 	uint64_t pressure = TelnetClient::bad_password_pressure;
-	taskEXIT_CRITICAL();
+	critical.release();
 	uint64_t critical_pressure = get_tick64() + 60*configTICK_RATE_HZ;
 	if (pressure > critical_pressure)
 		return pressure - critical_pressure;
@@ -142,12 +143,11 @@ volatile uint64_t TelnetClient::bad_password_pressure = 0;
  * Increment the current bad password timeout delay.
  */
 void TelnetClient::inc_badpass_timeout() {
-	taskENTER_CRITICAL(); // No atomic 64bit ops.
+	CriticalGuard critical(true); // No atomic 64bit ops.
 	const uint64_t now64 = get_tick64();
 	if (TelnetClient::bad_password_pressure < now64)
 		TelnetClient::bad_password_pressure = now64;
 	TelnetClient::bad_password_pressure += 10*configTICK_RATE_HZ; // Push the pressure 10s into the future.
-	taskEXIT_CRITICAL();
 }
 
 static void telnet_log_handler(std::shared_ptr<ConsoleSvc> console, LogTree &logtree, const std::string &message, enum LogTree::LogLevel level) {
@@ -241,9 +241,9 @@ void TelnetClient::thread_telnetc() {
 						4,
 						std::bind(telnet_shutdown_cleanup, std::placeholders::_1, telnet_command_parser, log_filter, this->connection_pool_limiter, this->socket->getSocketAddress())
 				);
-				taskENTER_CRITICAL();
+				CriticalGuard critical(true);
 				log_filter->handler = std::bind(telnet_log_handler, console, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
-				taskEXIT_CRITICAL();
+				critical.release();
 				std::shared_ptr<ConsoleCommand_logout> logoutcmd = std::make_shared<ConsoleCommand_logout>(console);
 				telnet_command_parser->register_command("logout", logoutcmd);
 				telnet_command_parser->register_command("exit", logoutcmd);

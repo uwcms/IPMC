@@ -12,6 +12,7 @@
 #include "xuartlite_l.h"
 #include <libs/printf.h>
 #include <libs/except.h>
+#include <libs/ThreadingPrimitives.h>
 
 extern XScuGic xInterruptController;
 
@@ -96,8 +97,8 @@ size_t PL_UART::write(const u8 *buf, size_t len, TickType_t timeout) {
 
 	// If the UART driver was idle (TX fifo empty) then send a single byte to jolt the interrupt routine
 	// Note: Not multithread safe needs to be wrapped in mutexes
-	portENTER_CRITICAL();
 	{
+		CriticalGuard critical(true);
 		uint8_t StatusRegister = XUartLite_GetStatusReg(UartLite.RegBaseAddress);
 		if ((StatusRegister & XUL_SR_TX_FIFO_EMPTY) != 0) {
 			// Just write a single byte to trigger the UART interrupt
@@ -106,7 +107,6 @@ size_t PL_UART::write(const u8 *buf, size_t len, TickType_t timeout) {
 			XUartLite_WriteReg(this->UartLite.RegBaseAddress, XUL_TX_FIFO_OFFSET, d);
 		}
 	}
-	portEXIT_CRITICAL();
 
 	// Not all data has been sent, take care of that, this time with a timeout
 	if (len > count) {

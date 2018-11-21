@@ -551,12 +551,12 @@ public:
 
 		if (!SkyRoad::mutex) {
 			SemaphoreHandle_t new_mutex = xSemaphoreCreateMutex();
-			taskENTER_CRITICAL();
+			CriticalGuard critical(true);
 			if (!SkyRoad::mutex) {
 				SkyRoad::mutex = new_mutex;
 				new_mutex = NULL;
 			}
-			taskEXIT_CRITICAL();
+			critical.release();
 			if (new_mutex)
 				vSemaphoreDelete(new_mutex);
 		}

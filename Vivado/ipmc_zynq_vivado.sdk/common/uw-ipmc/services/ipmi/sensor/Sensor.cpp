@@ -11,6 +11,7 @@
 #include <services/ipmi/sdr/SensorDataRecordReadableSensor.h>
 #include <services/ipmi/sdr/SensorDataRecord01.h>
 #include <services/ipmi/ipmbsvc/IPMBSvc.h>
+#include <libs/ThreadingPrimitives.h>
 #include <libs/printf.h>
 #include <libs/except.h>
 #include <IPMC.h>
@@ -45,10 +46,10 @@ void Sensor::send_event(enum EventDirection direction, const std::vector<uint8_t
 		return;
 	}
 
-	portENTER_CRITICAL();
 	EventReceiver er;
+	CriticalGuard critical(true);
 	memcpy(&er, &ipmi_event_receiver, sizeof(EventReceiver));
-	portEXIT_CRITICAL();
+	critical.release();
 
 	if (!ipmi_event_receiver.ipmb || ipmi_event_receiver.addr == 0xFF /* Disabled */) {
 		this->logunique.log_unique(stdsprintf("There is not yet an IPMI Event Receiver.  Discarding events on sensor \"%s\".", sdr->id_string().c_str()), LogTree::LOG_DIAGNOSTIC);

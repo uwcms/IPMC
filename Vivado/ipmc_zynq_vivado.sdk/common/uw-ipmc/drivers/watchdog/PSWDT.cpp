@@ -59,7 +59,7 @@ PS_WDT::~PS_WDT() {
 
 void PS_WDT::_run_thread() {
 	// We really don't want this interrupted.
-	portENTER_CRITICAL();
+	CriticalGuard critical(true);
 
 	/* Default clock is CPU_1x.  According to Vivado the WDT clock is: Requested=133.333Mhz, Actual=111.111Mhz
 	 *
@@ -74,7 +74,7 @@ void PS_WDT::_run_thread() {
 	XWdtPs_Start(&this->wdt);
 	XWdtPs_RestartWdt(&this->wdt);
 
-	portEXIT_CRITICAL();
+	critical.release();
 
 	while (true) {
 		vTaskDelay(configTICK_RATE_HZ); // On a five second reset, we can service once per second.
@@ -134,7 +134,7 @@ void PS_WDT::_run_thread() {
  * @return A (inactive) slot handle.
  */
 PS_WDT::slot_handle_t PS_WDT::register_slot(uint32_t lifetime) {
-	portENTER_CRITICAL();
+	CriticalGuard critical(true);
 	if (this->free_slot >= this->num_slots)
 		throw std::domain_error("No free PS_WDT slots.");
 	u8 slotid = this->free_slot++;
@@ -143,7 +143,6 @@ PS_WDT::slot_handle_t PS_WDT::register_slot(uint32_t lifetime) {
 	slot.lifetime = lifetime;
 	slot.config_cksum = ((~((static_cast<uint64_t>(slot.enabled)<<32)|static_cast<uint64_t>(slot.lifetime))) ^ (slotkey_lshifted1>>1));
 	slot.timeout_cksum = ((~slot.timeout) ^ (slotkey_lshifted1>>1));
-	portEXIT_CRITICAL();
 	return 0x80000000|(slotid<<24)|((~slotid)<<16)|slotid;
 }
 
@@ -156,7 +155,7 @@ void PS_WDT::activate_slot(slot_handle_t slot_handle) {
 	u8 slotid = slot_handle & 0xff;
 	if (slot_handle != (0x80000000|(slotid<<24)|((~slotid)<<16)|slotid)) // Valid?
 		throw std::out_of_range(std::string("Invalid PS_WDT slot: ") + std::to_string(slotid));
-	portENTER_CRITICAL();
+	CriticalGuard critical(true);
 	struct wdtslot &slot = this->slots[slotid];
 	if (slot.config_cksum != ((~((static_cast<uint64_t>(slot.enabled)<<32)|static_cast<uint64_t>(slot.lifetime))) ^ (slotkey_lshifted1>>1))) {
 		if (this->global_canary) {
@@ -171,7 +170,7 @@ void PS_WDT::activate_slot(slot_handle_t slot_handle) {
 	slot.timeout_cksum = ((~slot.timeout) ^ (slotkey_lshifted1>>1));
 	strncpy(const_cast<char*>(slot.last_serviced_by), pcTaskGetName(NULL), configMAX_TASK_NAME_LEN);
 	slot.last_serviced_by[configMAX_TASK_NAME_LEN-1] = '\0'; // Terminate, just in case.
-	portEXIT_CRITICAL();
+	critical.release();
 	this->log.log(stdsprintf("Watchdog slot %hhu activated by %s.", slotid, slot.last_serviced_by), LogTree::LOG_INFO);
 }
 
@@ -185,7 +184,7 @@ void PS_WDT::deactivate_slot(slot_handle_t slot_handle, uint32_t deactivate_code
 	u8 slotid = slot_handle & 0xff;
 	if (slot_handle != (0x80000000|(slotid<<24)|((~slotid)<<16)|slotid)) // Valid?
 		throw std::out_of_range(std::string("Invalid PS_WDT slot: ") + std::to_string(slotid));
-	portENTER_CRITICAL();
+	CriticalGuard critical(true);
 	struct wdtslot &slot = this->slots[slotid];
 	if (deactivate_code != (deactivate_code_lshifted1>>1)) {
 		this->global_canary = 0; // Break.
@@ -203,7 +202,7 @@ void PS_WDT::deactivate_slot(slot_handle_t slot_handle, uint32_t deactivate_code
 	slot.config_cksum = ((~((static_cast<uint64_t>(slot.enabled)<<32)|static_cast<uint64_t>(slot.lifetime))) ^ (slotkey_lshifted1>>1));
 	strncpy(const_cast<char*>(slot.last_serviced_by), pcTaskGetName(NULL), configMAX_TASK_NAME_LEN);
 	slot.last_serviced_by[configMAX_TASK_NAME_LEN-1] = '\0'; // Terminate, just in case.
-	portEXIT_CRITICAL();
+	critical.release();
 	this->log.log(stdsprintf("Watchdog slot %hhu deactivated by %s.", slotid, pcTaskGetName(NULL)), LogTree::LOG_INFO);
 }
 
@@ -216,7 +215,7 @@ void PS_WDT::service_slot(slot_handle_t slot_handle) {
 	u8 slotid = slot_handle & 0xff;
 	if (slot_handle != (0x80000000|(slotid<<24)|((~slotid)<<16)|slotid)) // Valid?
 		throw std::out_of_range(std::string("Invalid PS_WDT slot: ") + std::to_string(slotid));
-	portENTER_CRITICAL();
+	CriticalGuard critical(true);
 	struct wdtslot &slot = this->slots[slotid];
 	if (slot.config_cksum != ((~((static_cast<uint64_t>(slot.enabled)<<32)|static_cast<uint64_t>(slot.lifetime))) ^ (slotkey_lshifted1>>1))) {
 		if (this->global_canary) {
@@ -236,7 +235,7 @@ void PS_WDT::service_slot(slot_handle_t slot_handle) {
 	slot.timeout_cksum = ((~slot.timeout) ^ (slotkey_lshifted1>>1));
 	strncpy(const_cast<char*>(slot.last_serviced_by), pcTaskGetName(NULL), configMAX_TASK_NAME_LEN);
 	slot.last_serviced_by[configMAX_TASK_NAME_LEN-1] = '\0'; // Terminate, just in case.
-	portEXIT_CRITICAL();
+	critical.release();
 	this->log.log(stdsprintf("Watchdog slot %hhu serviced by %s.", slotid, pcTaskGetName(NULL)), LogTree::LOG_DIAGNOSTIC);
 }
 

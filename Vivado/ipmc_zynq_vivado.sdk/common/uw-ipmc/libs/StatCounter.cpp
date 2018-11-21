@@ -28,12 +28,12 @@ StatCounter::StatCounter(std::string name)
   : name(stdsprintf("%s/%08x", name.c_str(), reinterpret_cast<unsigned int>(this))), count(0) {
 	if (!StatCounter::mutex) {
 		SemaphoreHandle_t sem = xSemaphoreCreateMutex();
-		taskENTER_CRITICAL();
+		CriticalGuard critical(true);
 		if (!StatCounter::mutex) {
 			StatCounter::mutex = sem;
 			sem = NULL;
 		}
-		taskEXIT_CRITICAL();
+		critical.release();
 		if (sem)
 			vSemaphoreDelete(sem);
 	}
@@ -59,12 +59,8 @@ StatCounter::~StatCounter() {
  * @return The current counter value.
  */
 uint64_t StatCounter::get() {
-	if (!IN_INTERRUPT())
-		taskENTER_CRITICAL();
-	uint64_t ret = this->count;
-	if (!IN_INTERRUPT())
-		taskEXIT_CRITICAL();
-	return ret;
+	CriticalGuard critical(true);
+	return this->count;
 }
 
 /**
@@ -90,12 +86,9 @@ uint64_t StatCounter::fast_get() {
  * @return    The old counter value.
  */
 uint64_t StatCounter::set(uint64_t val) {
-	if (!IN_INTERRUPT())
-		taskENTER_CRITICAL();
+	CriticalGuard critical(true);
 	uint64_t ret = this->count;
 	this->count = val;
-	if (!IN_INTERRUPT())
-		taskEXIT_CRITICAL();
 	return ret;
 }
 
@@ -110,15 +103,12 @@ uint64_t StatCounter::set(uint64_t val) {
  * @return    The previous counter value.
  */
 uint64_t StatCounter::increment(uint64_t inc) {
-	if (!IN_INTERRUPT())
-		taskENTER_CRITICAL();
+	CriticalGuard critical(true);
 	uint64_t ret = this->count;
 	if ((UINT64_MAX - inc) <= this->count)
 		this->count = UINT64_MAX;
 	else
 		this->count += inc;
-	if (!IN_INTERRUPT())
-		taskEXIT_CRITICAL();
 	return ret;
 }
 
@@ -133,15 +123,12 @@ uint64_t StatCounter::increment(uint64_t inc) {
  * @return    The previous counter value.
  */
 uint64_t StatCounter::decrement(uint64_t dec) {
-	if (!IN_INTERRUPT())
-		taskENTER_CRITICAL();
+	CriticalGuard critical(true);
 	uint64_t ret = this->count;
 	if (dec > this->count)
 		this->count = 0;
 	else
 		this->count -= dec;
-	if (!IN_INTERRUPT())
-		taskEXIT_CRITICAL();
 	return ret;
 }
 
@@ -154,13 +141,10 @@ uint64_t StatCounter::decrement(uint64_t dec) {
  * @return    The previous counter value.
  */
 uint64_t StatCounter::high_water(uint64_t val) {
-	if (!IN_INTERRUPT())
-		taskENTER_CRITICAL();
+	CriticalGuard critical(true);
 	uint64_t ret = this->count;
 	if (this->count < val)
 		this->count = val;
-	if (!IN_INTERRUPT())
-		taskEXIT_CRITICAL();
 	return ret;
 }
 
@@ -173,13 +157,10 @@ uint64_t StatCounter::high_water(uint64_t val) {
  * @return    The previous counter value.
  */
 uint64_t StatCounter::low_water(uint64_t val) {
-	if (!IN_INTERRUPT())
-		taskENTER_CRITICAL();
+	CriticalGuard critical(true);
 	uint64_t ret = this->count;
 	if (this->count > val)
 		this->count = val;
-	if (!IN_INTERRUPT())
-		taskEXIT_CRITICAL();
 	return ret;
 }
 

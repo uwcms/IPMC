@@ -57,9 +57,10 @@ InfluxDB::~InfluxDB() {
 
 void InfluxDB::setConfig(const Config &config) {
 	MutexGuard<false> lock(this->flushMutex, true);
-	taskENTER_CRITICAL();
+
+	CriticalGuard critical(true);
 	memcpy(this->config, &config, sizeof(Config));
-	taskEXIT_CRITICAL();
+	critical.release();
 
 	this->flushTicks = pdMS_TO_TICKS(this->config->flushInterval * 1000);
 }
