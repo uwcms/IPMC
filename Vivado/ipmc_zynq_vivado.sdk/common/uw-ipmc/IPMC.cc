@@ -82,29 +82,33 @@ PS_WDT *SWDT;
 PS_UART *uart_ps0;
 MGMT_Zone *mgmt_zones[XPAR_MGMT_ZONE_CTRL_0_MZ_CNT];
 PS_ISFQSPI *isfqspi;
+XGpioPs gpiops;
+
+LogTree LOG("ipmc");
+LogTree::Filter *console_log_filter;
+
+SPI_EEPROM *eeprom_mac;
+SPI_EEPROM *eeprom_data;
+PersistentStorage *persistent_storage;
+
+CommandParser console_command_parser;
+std::shared_ptr<UARTConsoleSvc> console_service;
+
 IPMBSvc *ipmb0;
 EventReceiver ipmi_event_receiver;
-Network *network;
 IPMICommandParser *ipmi_command_parser;
 SensorDataRepository sdr_repo;
 SensorDataRepository device_sdr_repo;
 SensorSet ipmc_sensors(&device_sdr_repo);
-XGpioPs gpiops;
-LogTree LOG("ipmc");
-LogTree::Filter *console_log_filter;
-SPI_EEPROM *eeprom_mac;
-SPI_EEPROM *eeprom_data;
-PersistentStorage *persistent_storage;
-u8 mac_address[6];
-CommandParser console_command_parser;
-std::shared_ptr<UARTConsoleSvc> console_service;
-InfluxDB *influxdbclient;
+PL_GPIO *handle_gpio;
+LED_Controller atcaLEDs;
 
+u8 mac_address[6];
+Network *network;
+InfluxDB *influxdbclient;
 TelnetServer *telnet;
 
 ESM *esm;
-PL_GPIO *handle_gpio;
-LED_Controller atcaLEDs;
 
 AD7689 *adc[2];
 
