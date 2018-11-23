@@ -2,7 +2,7 @@
 
 namespace {
 
-/// A debugging command to transition between M-states.
+/// A debugging command to transition between M-states. (Hotswap Sensor Only!)
 class ConsoleCommand_transition : public CommandParser::Command {
 public:
 	virtual std::string get_helptext(const std::string &command) const {
