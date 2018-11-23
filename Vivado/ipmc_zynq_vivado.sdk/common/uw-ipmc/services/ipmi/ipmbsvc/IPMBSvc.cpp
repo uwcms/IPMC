@@ -767,4 +767,6 @@ void IPMBSvc::register_console_commands(CommandParser &parser, const std::string
  */
 void IPMBSvc::deregister_console_commands(CommandParser &parser, const std::string &prefix) {
 	parser.register_command(prefix + "sendmsg", NULL);
+	parser.register_command(prefix + "enumerate_fru_storages", NULL);
+	parser.register_command(prefix + "dump_fru_storage", NULL);
 }
