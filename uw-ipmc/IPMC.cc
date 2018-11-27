@@ -511,9 +511,9 @@ void init_fru_area() {
 	board_info.push_back(0x01); // Format Version
 	board_info.push_back(0x00); // Length Placeholder
 	board_info.push_back(25);   // Language Code (English)
-	board_info.push_back(0x00); // Mfg Date/Time (Unspecified
-	board_info.push_back(0x00); // Mfg Date/Time (Unspecified
-	board_info.push_back(0x00); // Mfg Date/Time (Unspecified
+	board_info.push_back(0x00); // Mfg Date/Time (Unspecified)
+	board_info.push_back(0x00); // Mfg Date/Time (Unspecified)
+	board_info.push_back(0x00); // Mfg Date/Time (Unspecified)
 	tlstring = encode_ipmi_type_length_field("University of Wisconsin");
 	board_info.insert(board_info.end(), tlstring.begin(), tlstring.end()); // Board Mfgr.
 	tlstring = encode_ipmi_type_length_field("ZYNQ IPMC");
