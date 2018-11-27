@@ -520,7 +520,7 @@ void init_fru_area() {
 	board_info.insert(board_info.end(), tlstring.begin(), tlstring.end()); // Board Product Name
 	tlstring = encode_ipmi_type_length_field(std::to_string(IPMC_SERIAL));
 	board_info.insert(board_info.end(), tlstring.begin(), tlstring.end()); // Board Serial
-	tlstring = encode_ipmi_type_length_field(std::string("ELM1 Rev") + std::to_string(IPMC_HW_REVISION));
+	tlstring = encode_ipmi_type_length_field(std::string("IPMC Rev") + std::to_string(IPMC_HW_REVISION));
 	board_info.insert(board_info.end(), tlstring.begin(), tlstring.end()); // Board Part Number
 	tlstring = encode_ipmi_type_length_field(GIT_DESCRIBE);
 	board_info.insert(board_info.end(), tlstring.begin(), tlstring.end()); // FRU File ID (in our case generating software)
@@ -541,7 +541,7 @@ void init_fru_area() {
 	product_info.insert(product_info.end(), tlstring.begin(), tlstring.end()); // Mfgr Name
 	tlstring = encode_ipmi_type_length_field("ZYNQ IPMC");
 	product_info.insert(product_info.end(), tlstring.begin(), tlstring.end()); // Product Name
-	tlstring = encode_ipmi_type_length_field(std::string("ELM1 Rev") + std::to_string(IPMC_HW_REVISION));
+	tlstring = encode_ipmi_type_length_field(std::string("IPMC Rev") + std::to_string(IPMC_HW_REVISION));
 	product_info.insert(product_info.end(), tlstring.begin(), tlstring.end()); // Product Part/Model Number
 	tlstring = encode_ipmi_type_length_field(std::to_string(IPMC_HW_REVISION));
 	product_info.insert(product_info.end(), tlstring.begin(), tlstring.end()); // Product Version
