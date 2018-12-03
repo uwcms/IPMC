@@ -38,7 +38,7 @@ public:
 		uint8_t unr;
 	} thresholds;
 
-	virtual void update_value(const float value);
+	virtual void update_value(const float value, uint64_t value_max_age=UINT64_MAX);
 
 	/// A threshold sensor current value state.
 	typedef struct {
@@ -54,6 +54,7 @@ public:
 protected:
 	uint16_t active_thresholds; ///< Currently active thresholds.
 	float last_value; ///< The last value stored.
+	uint64_t value_expiration; ///< The timestamp at which the value is no longer valid.
 	SemaphoreHandle_t value_mutex; ///< A mutex protecting value fields.
 };
 
