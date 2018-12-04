@@ -475,6 +475,7 @@ bool PersistentStorage::do_flush_range(u32 start, u32 end) {
  * @return The stored data
  */
 std::vector<uint8_t> VariablePersistentAllocation::get_data() {
+	MutexGuard<false> lock(this->mutex, true);
 	uint16_t version = this->storage.get_section_version(this->id);
 	if (version == 0)
 		return std::vector<uint8_t>(); // No storage.
@@ -498,6 +499,7 @@ std::vector<uint8_t> VariablePersistentAllocation::get_data() {
  * @return true on success, else failure
  */
 bool VariablePersistentAllocation::set_data(const std::vector<uint8_t> &data, std::function<void(void)> flush_completion_cb) {
+	MutexGuard<false> lock(this->mutex, true);
 	uint16_t version = this->storage.get_section_version(this->id);
 	if (version == 0 || version == 1) {
 		uint8_t *pdata = NULL;
