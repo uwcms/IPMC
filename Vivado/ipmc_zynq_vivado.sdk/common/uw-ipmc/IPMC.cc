@@ -172,7 +172,7 @@ void driver_init(bool use_pl) {
 	// This has to be lower, so the serial number has been read by the time we register (or not register) set_serial.
 	register_core_console_commands(console_command_parser);
 
-	UWTaskCreate("init_sdr", TASK_PRIORITY_SERVICE, std::bind(init_device_sdrs, false));
+	init_device_sdrs(false);
 
 	XGpioPs_Config* gpiops_config = XGpioPs_LookupConfig(XPAR_PS7_GPIO_0_DEVICE_ID);
 	configASSERT(XST_SUCCESS == XGpioPs_CfgInitialize(&gpiops, gpiops_config, gpiops_config->BaseAddr));
@@ -492,16 +492,18 @@ static void init_device_sdrs(bool reinit) {
 
 #undef ADD_TO_REPO
 
-	VariablePersistentAllocation sdr_persist(*persistent_storage, PersistentStorageAllocations::WISC_SDR_REPOSITORY);
-	// If not reinitializing, merge in saved configuration, overwriting matching records.
-	if (!reinit)
-		device_sdr_repo.u8import(sdr_persist.get_data());
+	UWTaskCreate("persist_sdr", TASK_PRIORITY_SERVICE, [reinit]() -> void {
+		VariablePersistentAllocation sdr_persist(*persistent_storage, PersistentStorageAllocations::WISC_SDR_REPOSITORY);
+		// If not reinitializing, merge in saved configuration, overwriting matching records.
+		if (!reinit)
+			device_sdr_repo.u8import(sdr_persist.get_data());
 
-	// Store the newly initialized Device SDRs
-	sdr_persist.set_data(device_sdr_repo.u8export());
+		// Store the newly initialized Device SDRs
+		sdr_persist.set_data(device_sdr_repo.u8export());
 
-	// I think these needta be imported to the main SDR repo too?
-	sdr_repo.add(device_sdr_repo, 0);
+		// I think these needta be imported to the main SDR repo too?
+		sdr_repo.add(device_sdr_repo, 0);
+	});
 }
 
 void init_fru_area() {
