@@ -109,13 +109,18 @@ public:
 	 * @param allocation_id The allocation ID this helper manages.
 	 */
 	VariablePersistentAllocation(PersistentStorage &storage, u16 allocation_id)
-		: storage(storage), id(allocation_id) { };
-	virtual ~VariablePersistentAllocation() { };
+		: storage(storage), id(allocation_id) {
+		configASSERT(this->mutex = xSemaphoreCreateMutex());
+	};
+	virtual ~VariablePersistentAllocation() {
+		vSemaphoreDelete(this->mutex);
+	};
 	std::vector<uint8_t> get_data();
 	bool set_data(const std::vector<uint8_t> &data, std::function<void(void)> flush_completion_cb=NULL);
 protected:
 	PersistentStorage &storage; ///< The PersistentStorage containing the allocation.
 	u16 id; ///< The ID of the allocation managed by this mechanism.
+	SemaphoreHandle_t mutex; ///< A mutex serializing operations on this allocation.
 };
 
 #ifndef PERSISTENT_STORAGE_ALLOCATE
