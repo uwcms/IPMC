@@ -146,13 +146,8 @@ void driver_init(bool use_pl) {
 	// Initialize the watchdog.
 	SWDT = new PS_WDT(XPAR_PS7_WDT_0_DEVICE_ID, 8, LOG["watchdog"], watchdog_ontrip);
 
-	/* Initialize the UART console.
-	 *
-	 * We use a largeish output buffer to avoid overruns during the startup
-	 * sequence, since it can't be flushed properly until interrupts are enabled
-	 * when the FreeRTOS scheduler starts.  We've got the space.
-	 */
-	uart_ps0 = new PS_UART(XPAR_PS7_UART_0_DEVICE_ID, XPAR_PS7_UART_0_INTR, 4096, 32768);
+	// Initialize the UART console.
+	uart_ps0 = new PS_UART(XPAR_PS7_UART_0_DEVICE_ID, XPAR_PS7_UART_0_INTR, 4096, 4096);
 	console_log_filter = new LogTree::Filter(LOG, console_log_handler, LogTree::LOG_NOTICE);
 	console_log_filter->register_console_commands(console_command_parser);
 	LOG["console_log_command"].register_console_commands(console_command_parser);
