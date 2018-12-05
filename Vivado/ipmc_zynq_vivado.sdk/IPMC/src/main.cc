@@ -241,9 +241,13 @@ int main() {
 
 	//std::terminate();
 
+	init_complete = xEventGroupCreate();
+
 	UWTaskCreate("init", TASK_PRIORITY_WATCHDOG, []() -> void {
 		driver_init(true);
+		xEventGroupSetBits(init_complete, 0x01);
 		ipmc_service_init();
+		xEventGroupSetBits(init_complete, 0x02);
 		LOG.log(std::string("\n") + generate_banner(), LogTree::LOG_NOTICE); // This is the ONLY place that should EVER log directly to LOG rather than a subtree.
 	});
 

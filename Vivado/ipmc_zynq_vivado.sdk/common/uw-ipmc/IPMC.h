@@ -23,6 +23,10 @@ const u8 IPMC_FW_REVISION[2] = { 0, 1 }; // 0.1 (Max: 63.99, see Get Device ID)
 extern u8 IPMC_HW_REVISION;
 extern uint16_t IPMC_SERIAL;
 
+struct EventGroupDef_t;
+typedef struct EventGroupDef_t * EventGroupHandle_t;
+extern EventGroupHandle_t init_complete;
+
 class PS_WDT;
 extern PS_WDT *SWDT;
 

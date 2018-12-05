@@ -8,6 +8,8 @@
 #include <FreeRTOS.h>
 #include <IPMC.h>
 #include <task.h>
+#include <semphr.h>
+#include <event_groups.h>
 #include <algorithm>
 #include <functional>
 #include <alloca.h>
@@ -77,6 +79,14 @@ extern "C" {
 
 u8 IPMC_HW_REVISION = 1; // TODO: Detect, Update, etc
 uint16_t IPMC_SERIAL = 0xffff;
+
+/**
+ * A FreeRTOS EventGroup initialized by main() before the scheduler starts.
+ *
+ * [1] 1b = ipmc_service_init() has exited.
+ * [0] 1b = driver_init() has exited.
+ */
+EventGroupHandle_t init_complete;
 
 PS_WDT *SWDT;
 PS_UART *uart_ps0;
