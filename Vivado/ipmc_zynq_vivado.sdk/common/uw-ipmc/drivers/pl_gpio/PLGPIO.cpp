@@ -9,6 +9,7 @@
 #include "xparameters.h"
 #include <libs/printf.h>
 #include <libs/except.h>
+#include <libs/ThreadingPrimitives.h>
 
 PL_GPIO::PL_GPIO(uint16_t DeviceId)
 : InterruptBasedDriver(), callback(nullptr) {
@@ -38,6 +39,11 @@ PL_GPIO::PL_GPIO(uint16_t DeviceId, uint32_t IntrId)
 		XGpio_InterruptGlobalEnable(&(this->Gpio));
 	}
 }
+
+void PL_GPIO::setIRQCallback(std::function<void(uint32_t)> func) {
+	CriticalGuard critical(true); // We can't have this assignment interrupted, but it's not atomic
+	this->callback = func;
+};
 
 void PL_GPIO::_InterruptHandler() {
 	/* Clear the Interrupt */
