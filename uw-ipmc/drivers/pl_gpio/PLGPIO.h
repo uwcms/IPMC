@@ -12,6 +12,7 @@
 #include <task.h>
 #include <drivers/InterruptBasedDriver.h>
 #include "xgpio.h"
+#include <functional>
 
 // TODO: Have a generic class GPIO where channels do not exists so that PL and PS GPIOs can coexist.
 
@@ -144,7 +145,7 @@ public:
 	};
 
 	///! Set the IRQ callback when the value of a channel changes.
-	inline void setIRQCallback(void (func)(uint32_t c)) { this->callback = func; };
+	void setIRQCallback(std::function<void(uint32_t)> func);
 
 	///! Check if the IP supports interrupts
 	inline bool supportsInterrupts() { return this->Gpio.InterruptPresent; };
@@ -154,7 +155,7 @@ protected:
 
 private:
 	XGpio Gpio; ///< Internal use only.
-	void (*callback)(uint32_t); ///< Internal use only.
+	std::function<void(uint32_t)> callback; ///< Internal use only.
 };
 
 
