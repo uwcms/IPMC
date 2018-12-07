@@ -36,7 +36,7 @@ public:
 	const std::string name; ///< The name used for this IPMB in StatCounter or Task names, as well as log messages.
 	IPMICommandParser *command_parser; ///< The command parser used for incoming messages.
 
-	IPMBSvc(IPMB *ipmb, uint8_t ipmb_address, IPMICommandParser *command_parser, LogTree &logtree, const std::string name, PS_WDT *wdt);
+	IPMBSvc(IPMB *ipmb, uint8_t ipmb_address, IPMICommandParser *command_parser, LogTree &logtree, const std::string name, PS_WDT *wdt, bool wait_for_service_init=true);
 	virtual ~IPMBSvc();
 
 	static uint8_t lookup_ipmb_address(const int gpios[8]);
