@@ -29,8 +29,7 @@ IPMICMD_INDEX_REGISTER(Write_FRU_Data);
 // SDR Device Commands
 
 static void ipmicmd_Get_SDR_Repository_Info(IPMBSvc &ipmb, const IPMI_MSG &message) {
-	std::shared_ptr<IPMI_MSG> reply = std::make_shared<IPMI_MSG>();
-	message.prepare_reply(*reply);
+	std::shared_ptr<IPMI_MSG> reply = message.prepare_reply();
 	reply->data[0] = IPMI::Completion::Success;
 	reply->data[1] = 0x51; // SDR Version (Spec 2.0: 51h)
 	reply->data[2] = 0; // Record Count LSB TODO

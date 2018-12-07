@@ -1,32 +1,29 @@
 #include <services/ipmi/IPMI.h>
 #include <services/ipmi/ipmbsvc/IPMBSvc.h>
+#include <services/ipmi/MStateMachine.h>
 #include "IPMICmd_Index.h"
 
 // AdvancedTCA
 
-#define ASSERT_PICMG_IDENTIFIER(ipmb, message) \
+#define RETURN_ERROR(ipmb, message, completion_code) \
 	do { \
-		if (message.data_len < 1 || message.data[0] != 0) { \
-			std::shared_ptr<IPMI_MSG> assert_picmg_identifier_failed = std::make_shared<IPMI_MSG>(); \
-			message.prepare_reply(*assert_picmg_identifier_failed); \
-			assert_picmg_identifier_failed->data[0] = IPMI::Completion::Invalid_Data_Field_In_Request; \
-			assert_picmg_identifier_failed->data_len = 1; \
-			ipmb.send(assert_picmg_identifier_failed); \
-			return; \
-		} \
+		ipmb.send(message.prepare_reply(std::vector<uint8_t>{completion_code})); \
+		return; \
 	} while (0)
+
+#define ASSERT_PICMG_IDENTIFIER(ipmb, message) \
+	if (message.data_len < 1 || message.data[0] != 0) \
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Invalid_Data_Field_In_Request)
 
 static void ipmicmd_Get_PICMG_Properties(IPMBSvc &ipmb, const IPMI_MSG &message) {
 	ASSERT_PICMG_IDENTIFIER(ipmb, message);
-	std::shared_ptr<IPMI_MSG> reply = std::make_shared<IPMI_MSG>();
-	message.prepare_reply(*reply);
-	reply->data[0] = IPMI::Completion::Success;
-	reply->data[1] = 0; // PICMG Identifier (spec requires 0)
-	reply->data[2] = 0x32; // PICMG Extension Version
-	reply->data[3] = 0; // Max FRU Device ID // TODO
-	reply->data[4] = 0; // FRU Device ID for IPM Controller (spec requires 0)
-	reply->data_len = 5;
-	ipmb.send(reply);
+	ipmb.send(message.prepare_reply(std::vector<uint8_t>{
+		IPMI::Completion::Success,
+		0, // PICMG Identifier (spec requires 0)
+		0x32, // PICMG Extension Version
+		0, // Max FRU Device ID // TODO
+		0, // FRU Device ID for IPM Controller (spec requires 0)
+	}));
 }
 IPMICMD_INDEX_REGISTER(Get_PICMG_Properties);
 
