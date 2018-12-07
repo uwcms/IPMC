@@ -27,7 +27,7 @@
  * \param name           Used for StatCounter, Messenger and thread name.
  * \param wdt            The watchdog instance to register & service.
  */
-IPMBSvc::IPMBSvc(IPMB *ipmb, uint8_t ipmb_address, IPMICommandParser *command_parser, LogTree &logtree, const std::string name, PS_WDT *wdt) :
+IPMBSvc::IPMBSvc(IPMB *ipmb, uint8_t ipmb_address, IPMICommandParser *command_parser, LogTree &logtree, const std::string name, PS_WDT *wdt, bool wait_for_service_init) :
 		ipmb_address(ipmb_address),
 		name(name),
 		command_parser(command_parser),
@@ -69,7 +69,11 @@ IPMBSvc::IPMBSvc(IPMB *ipmb, uint8_t ipmb_address, IPMICommandParser *command_pa
 		this->wdt->activate_slot(this->wdt_slot);
 	}
 
-	this->task = UWTaskCreate(name, TASK_PRIORITY_DRIVER, [this]() -> void { this->run_thread(); });
+	this->task = UWTaskCreate(name, TASK_PRIORITY_DRIVER, [this, wait_for_service_init]() -> void {
+		if (wait_for_service_init)
+			xEventGroupWaitBits(init_complete, 0x3, pdFALSE, pdTRUE, portMAX_DELAY);
+		this->run_thread();
+	});
 }
 
 IPMBSvc::~IPMBSvc() {
