@@ -16,5 +16,5 @@ void ipmicmd_default(IPMBSvc &ipmb, const IPMI_MSG &message) {
 		logtree.log(stdsprintf("Unimplemented and unknown IPMI command received: %s", message.format().c_str()), LogTree::LOG_NOTICE);
 	}
 
-	ipmb.send(message.prepare_reply(std::vector<uint8_t>{IPMI::Completion::Invalid_Command}));
+	ipmb.send(message.prepare_reply({IPMI::Completion::Invalid_Command}));
 }

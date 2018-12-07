@@ -7,7 +7,7 @@
 
 #define RETURN_ERROR(ipmb, message, completion_code) \
 	do { \
-		ipmb.send(message.prepare_reply(std::vector<uint8_t>{completion_code})); \
+		ipmb.send(message.prepare_reply({completion_code})); \
 		return; \
 	} while (0)
 
@@ -17,7 +17,7 @@
 
 static void ipmicmd_Get_PICMG_Properties(IPMBSvc &ipmb, const IPMI_MSG &message) {
 	ASSERT_PICMG_IDENTIFIER(ipmb, message);
-	ipmb.send(message.prepare_reply(std::vector<uint8_t>{
+	ipmb.send(message.prepare_reply({
 		IPMI::Completion::Success,
 		0, // PICMG Identifier (spec requires 0)
 		0x32, // PICMG Extension Version
