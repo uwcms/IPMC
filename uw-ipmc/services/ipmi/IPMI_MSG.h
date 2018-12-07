@@ -39,8 +39,8 @@ public:
 
 	bool parse_message(uint8_t *msg, uint8_t len, uint8_t LocalIPMBAddress);
 	int unparse_message(uint8_t *msg, uint8_t maxlen) const;
-	void prepare_reply(IPMI_MSG &reply, std::vector<uint8_t> reply_data=std::vector<uint8_t>()) const __attribute__((deprecated));
-	std::shared_ptr<IPMI_MSG> prepare_reply(std::vector<uint8_t> reply_data=std::vector<uint8_t>()) const;
+	void prepare_reply(IPMI_MSG &reply, const std::vector<uint8_t> &reply_data=std::vector<uint8_t>()) const __attribute__((deprecated));
+	std::shared_ptr<IPMI_MSG> prepare_reply(const std::vector<uint8_t> &reply_data=std::vector<uint8_t>()) const;
 	bool match(const IPMI_MSG &other) const;
 	bool match_reply(const IPMI_MSG &response) const;
 	std::string format(bool describe=true) const;

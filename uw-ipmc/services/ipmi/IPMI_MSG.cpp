@@ -23,8 +23,11 @@ IPMI_MSG::IPMI_MSG(uint8_t rqLUN, uint8_t rqSA, uint8_t rsLUN, uint8_t rsSA, uin
 	: rsSA(rsSA), netFn(netFn), rsLUN(rsLUN), rqSA(rqSA), rqSeq(0), rqLUN(rqLUN), cmd(cmd), data_len(data.size()), broadcast(false), duplicate(false) {
 	if (data.size() > max_data_len)
 		throw std::domain_error(stdsprintf("Only up to %hhu bytes of IPMI message data are supported.", max_data_len));
-	for (std::vector<uint8_t>::size_type i = 0; i < data.size(); ++i)
+	unsigned int i = 0;
+	for (; i < data.size(); ++i)
 		this->data[i] = data[i];
+	for (; i < IPMI_MSG::max_data_len; ++i)
+		this->data[i] = 0;
 	this->data_len = data.size();
 };
 
@@ -104,7 +107,7 @@ int IPMI_MSG::unparse_message(uint8_t *msg, uint8_t maxlen) const {
  *
  * \note You may call msg.reply(msg)
  */
-void IPMI_MSG::prepare_reply(IPMI_MSG &reply, std::vector<uint8_t> reply_data) const {
+void IPMI_MSG::prepare_reply(IPMI_MSG &reply, const std::vector<uint8_t> &reply_data) const {
 	if (reply_data.size() > max_data_len)
 		throw std::domain_error(stdsprintf("Only up to %hhu bytes of IPMI message data are supported.", max_data_len));
 	uint8_t rsSA = this->rqSA;
@@ -119,13 +122,16 @@ void IPMI_MSG::prepare_reply(IPMI_MSG &reply, std::vector<uint8_t> reply_data) c
 	reply.cmd = this->cmd;
 	reply.rqSeq = this->rqSeq;
 	reply.broadcast = false;
-	for (unsigned int i = 0; i < IPMI_MSG::max_data_len; ++i)
-		reply.data[i] = (i < reply_data.size() ? reply_data[i] : 0);
+	unsigned int i = 0;
+	for (; i < reply_data.size(); ++i)
+		reply.data[i] = reply_data[i];
+	for (; i < IPMI_MSG::max_data_len; ++i)
+		reply.data[i] = 0;
 	reply.data_len = reply_data.size();
 }
 
 /// \overload
-std::shared_ptr<IPMI_MSG> IPMI_MSG::prepare_reply(std::vector<uint8_t> reply_data) const {
+std::shared_ptr<IPMI_MSG> IPMI_MSG::prepare_reply(const std::vector<uint8_t> &reply_data) const {
 	return std::make_shared<IPMI_MSG>(this->rsLUN, this->rsSA, this->rqLUN, this->rqSA, this->netFn|1, this->cmd, reply_data);
 }
 
