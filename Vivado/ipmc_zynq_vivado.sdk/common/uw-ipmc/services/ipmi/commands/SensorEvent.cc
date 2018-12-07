@@ -11,7 +11,7 @@ static void ipmicmd_Set_Event_Receiver(IPMBSvc &ipmb, const IPMI_MSG &message) {
 	ipmi_event_receiver.addr = message.data[0];
 	ipmi_event_receiver.lun  = message.data[1] & 0x03;
 
-	ipmb.send(message.prepare_reply(std::vector<uint8_t>{IPMI::Completion::Success}));
+	ipmb.send(message.prepare_reply({IPMI::Completion::Success}));
 
 	SensorSet::container_type all_sensors(ipmc_sensors);
 	for (auto it = all_sensors.begin(), eit = all_sensors.end(); it != eit; ++it)
