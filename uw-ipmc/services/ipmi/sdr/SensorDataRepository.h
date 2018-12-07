@@ -30,6 +30,7 @@ public:
 	/// We inherit our size_type from our underlying std::vector.
 	typedef std::vector< std::shared_ptr<SensorDataRecord> >::size_type size_type;
 	size_type size() const;
+	explicit operator std::vector< std::shared_ptr<SensorDataRecord> >() const;
 
 	std::vector<uint8_t> u8export() const;
 	bool u8import(const std::vector<uint8_t> &data, uint8_t reservation = 0);
@@ -38,7 +39,7 @@ public:
 	 * Returns the current reservation id for this repository.
 	 * @return the current reservation id for this repository
 	 */
-	uint8_t get_current_reservation() const { return this->reservation; };
+	uint8_t get_current_reservation() const;
 	uint8_t reserve();
 
 protected:
