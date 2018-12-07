@@ -31,13 +31,11 @@ SensorDataRepository::~SensorDataRepository() {
  * @return true if the operation was executed, false if the reservation was invalid
  */
 bool SensorDataRepository::add(const SensorDataRecord &record, uint8_t reservation) {
-	xSemaphoreTakeRecursive(this->mutex, portMAX_DELAY);
+	MutexGuard<true> lock(this->mutex, true);
 	if (!reservation)
 		reservation = this->reserve();
-	if (reservation != this->reservation) {
-		xSemaphoreGiveRecursive(this->mutex);
+	if (reservation != this->reservation)
 		return false;
-	}
 	/* Ensure we have our own copy, and that it is valid.
 	 * Retrievals are const, and we want modifications to be done by replacement.
 	 */
@@ -57,7 +55,6 @@ bool SensorDataRepository::add(const SensorDataRecord &record, uint8_t reservati
 			this->records.push_back(interpreted);
 		}
 	}
-	xSemaphoreGiveRecursive(this->mutex);
 	return true;
 }
 
@@ -71,16 +68,13 @@ bool SensorDataRepository::add(const SensorDataRecord &record, uint8_t reservati
  * @return true if the operation was executed, false if the reservation was invalid
  */
 bool SensorDataRepository::add(const SensorDataRepository &sdrepository, uint8_t reservation) {
-	xSemaphoreTakeRecursive(this->mutex, portMAX_DELAY);
+	MutexGuard<true> lock(this->mutex, true);
 	if (!reservation)
 		reservation = this->reserve();
-	if (reservation != this->reservation) {
-		xSemaphoreGiveRecursive(this->mutex);
+	if (reservation != this->reservation)
 		return false;
-	}
 	for (auto it = sdrepository.records.begin(), eit = sdrepository.records.end(); it != eit; ++it)
 		this->add(**it, reservation);
-	xSemaphoreGiveRecursive(this->mutex);
 	return true;
 }
 
@@ -94,17 +88,14 @@ bool SensorDataRepository::add(const SensorDataRepository &sdrepository, uint8_t
  * @return true if the operation was executed, false if the reservation was invalid
  */
 bool SensorDataRepository::remove(uint16_t id, uint8_t reservation) {
-	xSemaphoreTakeRecursive(this->mutex, portMAX_DELAY);
+	MutexGuard<true> lock(this->mutex, true);
 	if (!reservation)
 		reservation = this->reserve();
-	if (reservation != this->reservation) {
-		xSemaphoreGiveRecursive(this->mutex);
+	if (reservation != this->reservation)
 		return false;
-	}
 	if (id <= this->records.size())
 		this->records.erase(std::next(this->records.begin(), id));
 	this->renumber();
-	xSemaphoreGiveRecursive(this->mutex);
 	return true;
 }
 
@@ -119,13 +110,11 @@ bool SensorDataRepository::remove(uint16_t id, uint8_t reservation) {
  * @return true if the operation was executed, false if the reservation was invalid
  */
 bool SensorDataRepository::remove(const SensorDataRecord &record, uint8_t reservation) {
-	xSemaphoreTakeRecursive(this->mutex, portMAX_DELAY);
+	MutexGuard<true> lock(this->mutex, true);
 	if (!reservation)
 		reservation = this->reserve();
-	if (reservation != this->reservation) {
-		xSemaphoreGiveRecursive(this->mutex);
+	if (reservation != this->reservation)
 		return false;
-	}
 	for (auto it = this->records.begin(); it != this->records.end(); /* below */) {
 		if (**it == record)
 			it = this->records.erase(it);
@@ -133,7 +122,6 @@ bool SensorDataRepository::remove(const SensorDataRecord &record, uint8_t reserv
 			++it;
 	}
 	this->renumber();
-	xSemaphoreGiveRecursive(this->mutex);
 	return true;
 }
 
@@ -146,15 +134,12 @@ bool SensorDataRepository::remove(const SensorDataRecord &record, uint8_t reserv
  * @return true if the operation was executed, false if the reservation was invalid
  */
 bool SensorDataRepository::clear(uint8_t reservation) {
-	xSemaphoreTakeRecursive(this->mutex, portMAX_DELAY);
+	MutexGuard<true> lock(this->mutex, true);
 	if (!reservation)
 		reservation = this->reserve();
-	if (reservation != this->reservation) {
-		xSemaphoreGiveRecursive(this->mutex);
+	if (reservation != this->reservation)
 		return false;
-	}
 	this->records.clear();
-	xSemaphoreGiveRecursive(this->mutex);
 	return true;
 }
 
@@ -165,14 +150,10 @@ bool SensorDataRepository::clear(uint8_t reservation) {
  * @return A std::shared_ptr<SensorDataRecord> containing a specialized SDR subclass.
  */
 std::shared_ptr<const SensorDataRecord> SensorDataRepository::get(uint16_t id) const {
-	xSemaphoreTakeRecursive(this->mutex, portMAX_DELAY);
-	if (id >= this->records.size()) {
-		xSemaphoreGiveRecursive(this->mutex);
+	MutexGuard<true> lock(this->mutex, true);
+	if (id >= this->records.size())
 		return NULL;
-	}
-	auto ret = this->records.at(id);
-	xSemaphoreGiveRecursive(this->mutex);
-	return ret;
+	return this->records.at(id);
 }
 
 /**
@@ -182,15 +163,10 @@ std::shared_ptr<const SensorDataRecord> SensorDataRepository::get(uint16_t id) c
  * @return A std::shared_ptr<SensorDataRecord> containing a specialized SDR subclass.
  */
 std::shared_ptr<const SensorDataRecord> SensorDataRepository::find(const std::vector<uint8_t> &key) const {
-	xSemaphoreTakeRecursive(this->mutex, portMAX_DELAY);
-	for (auto it = this->records.begin(), eit = this->records.end(); it != eit; ++it) {
-		if ((*it)->record_key() == key) {
-			auto ret = *it;
-			xSemaphoreGiveRecursive(this->mutex);
-			return ret;
-		}
-	}
-	xSemaphoreGiveRecursive(this->mutex);
+	MutexGuard<true> lock(this->mutex, true);
+	for (auto it = this->records.begin(), eit = this->records.end(); it != eit; ++it)
+		if ((*it)->record_key() == key)
+			return *it;
 	return NULL;
 }
 
@@ -200,10 +176,8 @@ std::shared_ptr<const SensorDataRecord> SensorDataRepository::find(const std::ve
  * @return The number of records in this container
  */
 SensorDataRepository::size_type SensorDataRepository::size() const {
-	xSemaphoreTakeRecursive(this->mutex, portMAX_DELAY);
-	auto ret = this->records.size();
-	xSemaphoreGiveRecursive(this->mutex);
-	return ret;
+	MutexGuard<true> lock(this->mutex, true);
+	return this->records.size();
 }
 
 /**
@@ -214,7 +188,7 @@ SensorDataRepository::size_type SensorDataRepository::size() const {
  * @return The SDR repository contents in binary form
  */
 std::vector<uint8_t> SensorDataRepository::u8export() const {
-	xSemaphoreTakeRecursive(this->mutex, portMAX_DELAY);
+	MutexGuard<true> lock(this->mutex, true);
 	std::vector<uint8_t> output;
 	for (auto it = this->records.begin(), eit = this->records.end(); it != eit; ++it) {
 		SensorDataRecord &record = **it;
@@ -223,7 +197,6 @@ std::vector<uint8_t> SensorDataRepository::u8export() const {
 		output.push_back(record.sdr_data.size());
 		output.insert(output.end(), record.sdr_data.begin(), record.sdr_data.end());
 	}
-	xSemaphoreGiveRecursive(this->mutex);
 	return output;
 }
 
@@ -237,13 +210,11 @@ std::vector<uint8_t> SensorDataRepository::u8export() const {
  * @return true if the operation was executed, false if the reservation was invalid
  */
 bool SensorDataRepository::u8import(const std::vector<uint8_t> &data, uint8_t reservation) {
-	xSemaphoreTakeRecursive(this->mutex, portMAX_DELAY);
+	MutexGuard<true> lock(this->mutex, true);
 	if (!reservation)
 		reservation = this->reserve();
-	if (reservation != this->reservation) {
-		xSemaphoreGiveRecursive(this->mutex);
+	if (reservation != this->reservation)
 		return false;
-	}
 	std::vector<uint8_t>::size_type cur = 0;
 	while (cur < data.size()) {
 		uint8_t record_length = data[cur];
@@ -254,7 +225,6 @@ bool SensorDataRepository::u8import(const std::vector<uint8_t> &data, uint8_t re
 		std::shared_ptr<SensorDataRecord> sdr = SensorDataRecord::interpret(sdrdata);
 		this->add(*sdr, reservation);
 	}
-	xSemaphoreGiveRecursive(this->mutex);
 	return true;
 }
 
@@ -263,21 +233,18 @@ bool SensorDataRepository::u8import(const std::vector<uint8_t> &data, uint8_t re
  * @return the new reservation id
  */
 uint8_t SensorDataRepository::reserve() {
-	xSemaphoreTakeRecursive(this->mutex, portMAX_DELAY);
+	MutexGuard<true> lock(this->mutex, true);
 	this->reservation += 1; // Auto-wrap from uint8_t.
 	if (this->reservation == 0)
 		this->reservation += 1; // We don't want to give out reservation 0.
-	auto ret = this->reservation;
-	xSemaphoreGiveRecursive(this->mutex);
-	return ret;
+	return this->reservation;
 }
 
 /**
  * Renumber the SDRs in the repository after changes
  */
 void SensorDataRepository::renumber() {
-	xSemaphoreTakeRecursive(this->mutex, portMAX_DELAY);
+	MutexGuard<true> lock(this->mutex, true);
 	for (std::vector< std::shared_ptr<SensorDataRecord> >::size_type i = 0; i < this->records.size(); ++i)
 		this->records.at(i)->record_id(i);
-	xSemaphoreGiveRecursive(this->mutex);
 }
