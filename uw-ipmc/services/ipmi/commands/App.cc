@@ -7,8 +7,7 @@
 // IPM Device “Global” Commands
 
 static void ipmicmd_Get_Device_ID(IPMBSvc &ipmb, const IPMI_MSG &message) {
-	std::shared_ptr<IPMI_MSG> reply = std::make_shared<IPMI_MSG>();
-	message.prepare_reply(*reply);
+	std::shared_ptr<IPMI_MSG> reply = message.prepare_reply();
 	reply->data[0] = IPMI::Completion::Success;
 	reply->data[1] = 0; // Device ID (00 = Unspecified) TODO
 	reply->data[2] |= 1<<7; // Device provides Device SDRs
