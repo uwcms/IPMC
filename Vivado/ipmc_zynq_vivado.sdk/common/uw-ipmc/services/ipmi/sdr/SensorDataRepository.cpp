@@ -181,6 +181,16 @@ SensorDataRepository::size_type SensorDataRepository::size() const {
 }
 
 /**
+ * Export our database for external iteration or analysis.
+ *
+ * @return A copy of the internal database.
+ */
+SensorDataRepository::operator std::vector< std::shared_ptr<SensorDataRecord> >() const {
+	MutexGuard<true> lock(this->mutex, true);
+	return std::vector< std::shared_ptr<SensorDataRecord> >(this->records);
+}
+
+/**
  * Export the data from this SDR repository as a u8 vector.
  *
  * \warning This will potentially discard invalid SDR records from the repository.
@@ -226,6 +236,15 @@ bool SensorDataRepository::u8import(const std::vector<uint8_t> &data, uint8_t re
 		this->add(*sdr, reservation);
 	}
 	return true;
+}
+
+/**
+ * Returns the ID of the current reservation.
+ * @return the current reservation id
+ */
+uint8_t SensorDataRepository::get_current_reservation() const {
+	MutexGuard<true> lock(this->mutex, true);
+	return this->reservation;
 }
 
 /**
