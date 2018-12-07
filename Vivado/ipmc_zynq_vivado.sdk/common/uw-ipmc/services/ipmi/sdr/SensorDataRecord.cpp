@@ -67,14 +67,14 @@ std::shared_ptr<SensorDataRecord> SensorDataRecord::interpret(const std::vector<
 uint16_t SensorDataRecord::record_id() const {
 	if (this->sdr_data.size() < 2)
 		throw invalid_sdr_error("Truncated SDR");
-	return (this->sdr_data[0] << 8) | this->sdr_data[1];
+	return (this->sdr_data[1] << 8) | this->sdr_data[0];
 }
 
 void SensorDataRecord::record_id(uint16_t record_id) {
 	if (this->sdr_data.size() < 2)
 		throw invalid_sdr_error("Truncated SDR");
-	this->sdr_data[0] = record_id >> 8;
-	this->sdr_data[1] = record_id & 0xff;
+	this->sdr_data[1] = record_id >> 8;
+	this->sdr_data[0] = record_id & 0xff;
 }
 
 uint8_t SensorDataRecord::record_version() const {
