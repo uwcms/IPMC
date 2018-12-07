@@ -751,6 +751,26 @@ public:
 
 	//virtual std::vector<std::string> complete(const CommandParser::CommandParameters &parameters) const { };
 };
+
+class ConsoleCommand_status : public CommandParser::Command {
+public:
+	IPMBSvc &ipmb;
+	ConsoleCommand_status(IPMBSvc &ipmb) : ipmb(ipmb) { };
+
+	virtual std::string get_helptext(const std::string &command) const {
+		return stdsprintf(
+					"%s\n"
+					"\n"
+					"Get the IPMBSvc status.\n", command.c_str());
+	}
+
+	virtual void execute(std::shared_ptr<ConsoleSvc> console,
+			const CommandParser::CommandParameters &parameters) {
+		console->write(stdsprintf("IPMB Address: 0x%02hhx\n", this->ipmb.ipmb_address));
+	}
+
+	//virtual std::vector<std::string> complete(const CommandParser::CommandParameters &parameters) const { };
+};
 } // anonymous namespace
 
 /**
@@ -762,6 +782,7 @@ void IPMBSvc::register_console_commands(CommandParser &parser, const std::string
 	parser.register_command(prefix + "sendmsg", std::make_shared<ConsoleCommand_sendmsg>(*this));
 	parser.register_command(prefix + "enumerate_fru_storages", std::make_shared<ConsoleCommand_enumerate_fru_storages>(*this));
 	parser.register_command(prefix + "dump_fru_storage", std::make_shared<ConsoleCommand_dump_fru_storage>(*this));
+	parser.register_command(prefix + "status", std::make_shared<ConsoleCommand_status>(*this));
 }
 
 /**
@@ -773,4 +794,5 @@ void IPMBSvc::deregister_console_commands(CommandParser &parser, const std::stri
 	parser.register_command(prefix + "sendmsg", NULL);
 	parser.register_command(prefix + "enumerate_fru_storages", NULL);
 	parser.register_command(prefix + "dump_fru_storage", NULL);
+	parser.register_command(prefix + "status", NULL);
 }
