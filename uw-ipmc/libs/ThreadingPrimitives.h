@@ -186,7 +186,7 @@ public:
 	 * @param timeout The timeout for immediate acquisition (default 'forever')
 	 * @throw except::timeout_error Immediate acquisition timed out.
 	 */
-	MutexGuard(const SemaphoreHandle_t &mutex, bool immediate, const TickType_t timeout = portMAX_DELAY)
+	MutexGuard(const SemaphoreHandle_t &mutex, bool immediate = true, const TickType_t timeout = portMAX_DELAY)
 		: mutex(mutex) {
 		if (immediate)
 			this->acquire(timeout);

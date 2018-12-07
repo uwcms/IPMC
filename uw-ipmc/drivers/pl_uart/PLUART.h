@@ -11,8 +11,9 @@
 #include <stdio.h>
 #include <FreeRTOS.h>
 #include <semphr.h>
-#include <stream_buffer.h>
+#include <libs/RingBuffer.h>
 #include <drivers/generics/UART.h>
+#include <drivers/InterruptBasedDriver.h>
 #include "xuartlite.h"
 
 // TODO: Remove UartLite dependencies, which is barely used and is just consuming space
@@ -20,7 +21,7 @@
 /**
  * A FreeRTOS interrupt based driver for Xilinx UartLite IP core.
  */
-class PL_UART : public UART {
+class PL_UART : public UART, protected InterruptBasedDriver {
 public:
 	/**
 	 * Create a PL based UART interface.
@@ -42,13 +43,16 @@ public:
 	bool clear();
 
 private:
-	static void _InterruptHandler(PL_UART *uart);
-
+	void _InterruptHandler();		///< Internal interrupt handler for UART IRQ.
+	void _Recv();
+	void _Send();
 	XUartLite UartLite; ///< Internal use only.
-	uint32_t IntrId; ///< Internal use only.
 
-	StreamBufferHandle_t recvstream; ///< Internal use only.
-	StreamBufferHandle_t sendstream; ///< Internal use only.
+	RingBuffer<u8> inbuf;  			///< The input buffer.
+	RingBuffer<u8> outbuf; 			///< The output buffer.
+
+	WaitList readwait;     			///< A waitlist for blocking read operations.
+	WaitList writewait;    			///< A waitlist for blocking write operations.
 };
 
 #endif /* SRC_COMMON_UW_IPMC_DRIVERS_PL_UART_PLUART_H_ */
