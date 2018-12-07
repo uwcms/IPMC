@@ -132,7 +132,9 @@ void IPMI_MSG::prepare_reply(IPMI_MSG &reply, const std::vector<uint8_t> &reply_
 
 /// \overload
 std::shared_ptr<IPMI_MSG> IPMI_MSG::prepare_reply(const std::vector<uint8_t> &reply_data) const {
-	return std::make_shared<IPMI_MSG>(this->rsLUN, this->rsSA, this->rqLUN, this->rqSA, this->netFn|1, this->cmd, reply_data);
+	std::shared_ptr<IPMI_MSG> rpl = std::make_shared<IPMI_MSG>(this->rsLUN, this->rsSA, this->rqLUN, this->rqSA, this->netFn|1, this->cmd, reply_data);
+	rpl->rqSeq = this->rqSeq;
+	return rpl;
 }
 
 /**
