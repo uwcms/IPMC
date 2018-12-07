@@ -25,6 +25,7 @@ IPMI_MSG::IPMI_MSG(uint8_t rqLUN, uint8_t rqSA, uint8_t rsLUN, uint8_t rsSA, uin
 		throw std::domain_error(stdsprintf("Only up to %hhu bytes of IPMI message data are supported.", max_data_len));
 	for (std::vector<uint8_t>::size_type i = 0; i < data.size(); ++i)
 		this->data[i] = data[i];
+	this->data_len = data.size();
 };
 
 /**
