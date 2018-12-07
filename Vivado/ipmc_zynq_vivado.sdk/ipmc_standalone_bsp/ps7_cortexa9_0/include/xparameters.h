@@ -392,8 +392,8 @@
 
 /* Definitions for peripheral IPMI_SENSOR_PROC_0 */
 #define XPAR_IPMI_SENSOR_PROC_0_DEVICE_ID 0
-#define XPAR_IPMI_SENSOR_PROC_0_S_AXI_BASEADDR 0x50000000
-#define XPAR_IPMI_SENSOR_PROC_0_S_AXI_HIGHADDR 0x500FFFFF
+#define XPAR_IPMI_SENSOR_PROC_0_S_AXI_BASEADDR 0x43C60000
+#define XPAR_IPMI_SENSOR_PROC_0_S_AXI_HIGHADDR 0x43C6FFFF
 #define XPAR_IPMI_SENSOR_PROC_0_SENSOR_CNT 18
 #define XPAR_IPMI_SENSOR_PROC_0_SENSOR_DATA_WIDTH 16
 
@@ -617,29 +617,6 @@
 #define XPAR_XSPIPS_0_BASEADDR 0xE0006000
 #define XPAR_XSPIPS_0_HIGHADDR 0xE0006FFF
 #define XPAR_XSPIPS_0_SPI_CLK_FREQ_HZ 166666672
-
-
-/******************************************************************/
-
-/* Definitions for driver SYSMON */
-#define XPAR_XSYSMON_NUM_INSTANCES 1U
-
-/* Definitions for peripheral XADC_WIZ_0 */
-#define XPAR_XADC_WIZ_0_IP_TYPE 0U
-#define XPAR_XADC_WIZ_0_DEVICE_ID 0U
-#define XPAR_XADC_WIZ_0_BASEADDR 0x43C60000U
-#define XPAR_XADC_WIZ_0_HIGHADDR 0x43C6FFFFU
-#define XPAR_XADC_WIZ_0_INCLUDE_INTR 1U
-
-
-/******************************************************************/
-
-/* Canonical definitions for peripheral XADC_WIZ_0 */
-#define XPAR_SYSMON_0_IP_TYPE 0U
-#define XPAR_SYSMON_0_DEVICE_ID XPAR_XADC_WIZ_0_DEVICE_ID
-#define XPAR_SYSMON_0_BASEADDR 0x43C60000U
-#define XPAR_SYSMON_0_HIGHADDR 0x43C6FFFFU
-#define XPAR_SYSMON_0_INCLUDE_INTR 1U
 
 
 /******************************************************************/

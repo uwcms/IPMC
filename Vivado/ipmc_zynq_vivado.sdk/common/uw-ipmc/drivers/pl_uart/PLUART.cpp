@@ -14,36 +14,93 @@
 #include <libs/except.h>
 #include <libs/ThreadingPrimitives.h>
 
-extern XScuGic xInterruptController;
-
-void PL_UART::_InterruptHandler(PL_UART *uart)
+void PL_UART::_InterruptHandler()
 {
 	// Note: Interrupts won't be disabled while running this interrupt.
 	// If nesting is enabled that this cause problems.
 
-	// Read status register
-	uint8_t StatusRegister = XUartLite_GetStatusReg(uart->UartLite.RegBaseAddress);
-	uint8_t data = 0;
-
-	while ((StatusRegister & (XUL_SR_RX_FIFO_FULL | XUL_SR_RX_FIFO_VALID_DATA)) != 0) {
-		data = XUartLite_ReadReg(uart->UartLite.RegBaseAddress, XUL_RX_FIFO_OFFSET);
-		xStreamBufferSendFromISR(uart->recvstream, &data, 1, NULL);
-
-		StatusRegister = XUartLite_GetStatusReg(uart->UartLite.RegBaseAddress);
-	}
-
-	while (((StatusRegister & XUL_SR_TX_FIFO_EMPTY) != 0) &&
-			(xStreamBufferReceiveFromISR(uart->sendstream, &data, 1, NULL) > 0)) {
-		XUartLite_WriteReg(uart->UartLite.RegBaseAddress, XUL_TX_FIFO_OFFSET, data);
-
-		StatusRegister = XUartLite_GetStatusReg(uart->UartLite.RegBaseAddress);
-	}
+	this->_Recv();
+	this->_Send();
 
 	// TODO: Do error detection, inc. streambuffer full
 }
 
+void PL_UART::_Recv() {
+	// Read status register
+	uint8_t StatusRegister = XUartLite_GetStatusReg(this->UartLite.RegBaseAddress);
+
+	if ((StatusRegister & (XUL_SR_RX_FIFO_FULL | XUL_SR_RX_FIFO_VALID_DATA)) != 0) {
+		u8 *ptr;
+		size_t maxBytes;
+		size_t byteCount = 0;
+
+		// Request DMA pointer from ring buffer
+		this->inbuf.setup_dma_input(&ptr, &maxBytes);
+
+		do {
+			uint8_t data = XUartLite_ReadReg(this->UartLite.RegBaseAddress, XUL_RX_FIFO_OFFSET);
+
+			if ((maxBytes != 0) && (maxBytes == byteCount)) {
+				// DMA completely filled but we still have data to read, attempt to get a new DMA pointer
+				// If there is no space in ring buffer maxBytes will be zero and it will still flush the RX FIFO
+				this->inbuf.notify_dma_input_occurred(byteCount);
+
+				this->inbuf.setup_dma_input(&ptr, &maxBytes);
+				byteCount = 0;
+			}
+
+			if (maxBytes > byteCount) {
+				ptr[byteCount++] = data;
+			}
+
+			StatusRegister = XUartLite_GetStatusReg(this->UartLite.RegBaseAddress);
+		} while ((StatusRegister & (XUL_SR_RX_FIFO_FULL | XUL_SR_RX_FIFO_VALID_DATA)) != 0);
+
+		// Report to DMA how many words were filled
+		this->inbuf.notify_dma_input_occurred(byteCount);
+
+		this->readwait.wake(); // Wake read function if bytes were received successfully
+	}
+}
+
+void PL_UART::_Send() {
+	// Read status register
+	uint8_t StatusRegister = XUartLite_GetStatusReg(this->UartLite.RegBaseAddress);
+
+	if (((StatusRegister & XUL_SR_TX_FIFO_EMPTY) != 0) && !this->outbuf.empty()) {
+		u8 *ptr;
+		size_t maxBytes;
+		size_t byteCount = 0;
+
+		// Request DMA pointer from ring buffer
+		this->outbuf.setup_dma_output(&ptr, &maxBytes);
+
+		do {
+			if (byteCount == maxBytes) {
+				// Possible DMA buffer roll
+				this->outbuf.notify_dma_output_occurred(byteCount);
+				byteCount = 0;
+
+				if (this->outbuf.empty()) break;
+
+				this->outbuf.setup_dma_output(&ptr, &maxBytes);
+			}
+
+			XUartLite_WriteReg(this->UartLite.RegBaseAddress, XUL_TX_FIFO_OFFSET, ptr[byteCount++]);
+
+			StatusRegister = XUartLite_GetStatusReg(this->UartLite.RegBaseAddress);
+		} while ((StatusRegister & XUL_SR_TX_FIFO_EMPTY) != 0);
+
+		// Report back how many bytes were actually written to DMA
+		if (byteCount)
+			this->outbuf.notify_dma_output_occurred(byteCount);
+
+		this->writewait.wake();  // Wake write function if bytes were sent successfully
+	}
+}
+
 PL_UART::PL_UART(uint16_t DeviceId, uint32_t IntrId, size_t ibufsize, size_t obufsize) :
-IntrId(IntrId) {
+InterruptBasedDriver(IntrId, 0x3), inbuf(RingBuffer<u8>(ibufsize)), outbuf(RingBuffer<u8>(obufsize)) {
 	// Initialize the UartLite driver so that it's ready to use.
 	if (XST_SUCCESS != XUartLite_Initialize(&(this->UartLite), DeviceId))
 		throw except::hardware_error(stdsprintf("Unable to initialize PL_UART(%hu, %lu, ...)", DeviceId, IntrId));
@@ -52,71 +109,86 @@ IntrId(IntrId) {
 	if (XST_SUCCESS != XUartLite_SelfTest(&(this->UartLite)))
 		throw except::hardware_error(stdsprintf("Self-test failed for PL_UART(%hu, %lu, ...)", DeviceId, IntrId));
 
-	// UartLite interrupt works differently than expected, adjust trigger type.
-	uint8_t priority, trigger;
-	XScuGic_GetPriorityTriggerType(&xInterruptController, this->IntrId, &priority, &trigger);
-	XScuGic_SetPriorityTriggerType(&xInterruptController, this->IntrId, priority, 0x3);
-
-	// Connect the driver to the interrupt subsystem.
-	if (XST_SUCCESS !=
-			XScuGic_Connect(&xInterruptController, this->IntrId, (Xil_InterruptHandler)PL_UART::_InterruptHandler, (void*)this))
-		throw except::hardware_error(stdsprintf("Unable to connect PL_UART(%hu, %lu, ...) to the GIC.", DeviceId, IntrId));
-	XScuGic_Enable(&xInterruptController, this->IntrId);
-
-	this->recvstream = xStreamBufferCreate(ibufsize, 0);
-	configASSERT(this->recvstream);
-	this->sendstream = xStreamBufferCreate(obufsize, 0);
-	configASSERT(this->sendstream);
-
 	// Enable the interrupt of UartLite so that interrupts will occur.
 	XUartLite_EnableInterrupt(&(this->UartLite));
 }
 
 PL_UART::~PL_UART() {
-	// Disable the interrupts associated with UartLite
-	XScuGic_Disable(&xInterruptController, this->IntrId);
-	XScuGic_Disconnect(&xInterruptController, this->IntrId);
-
-	// Destroy streams
-	vStreamBufferDelete(this->recvstream);
-	vStreamBufferDelete(this->sendstream);
 }
 
 size_t PL_UART::read(u8 *buf, size_t len, TickType_t timeout, TickType_t data_timeout) {
-	// By setting the trigger level on the buffer stream it allows to set a proper timeout
-	xStreamBufferSetTriggerLevel(this->recvstream, len);
-	return xStreamBufferReceive(this->recvstream, buf, len, timeout);
+	configASSERT(!(IN_INTERRUPT() || IN_CRITICAL())); // Don't allow in interrupts and critical regions
+
+	AbsoluteTimeout abstimeout(timeout);
+	AbsoluteTimeout abs_data_timeout(data_timeout);
+	size_t bytesread = 0;
+	while (bytesread < len) {
+		/* We join the readwait queue now, because if we did this later we would
+		 * have problems with a race condition between the read attempt and
+		 * starting the wait.  We can cancel it later with a wait(timeout=0).
+		 */
+		WaitList::Subscription sub;
+		sub = this->readwait.join();
+
+		/* Entering a critical section to strongly pair the read and interrupt
+		 * re-enable.
+		 */
+		this->disableInterrupts();
+
+		size_t batch_bytesread = this->inbuf.read(buf+bytesread, len-bytesread);
+
+		this->enableInterrupts();
+
+		bytesread += batch_bytesread;
+
+
+		if (bytesread == len)
+			break;
+		if (bytesread && abs_data_timeout < abstimeout)
+			abstimeout = abs_data_timeout; // We have data, so if we have a data_timeout, we're now on it instead.
+		if (!sub.wait(abstimeout.get_timeout()))
+			break; // Timed out.
+	}
+	return bytesread;
 }
 
 size_t PL_UART::write(const u8 *buf, size_t len, TickType_t timeout) {
-	// Sanity check
-	if (len <= 0) return 0;
+	configASSERT(!(IN_INTERRUPT() || IN_CRITICAL())); // Don't allow in interrupts and critical regions
 
-	// Fill the stream buffer with as much data as possible and return right away
-	size_t count = xStreamBufferSend(this->sendstream, buf, len, 0);
+	AbsoluteTimeout abstimeout(timeout);
+	size_t byteswritten = 0;
+	while (byteswritten < len) {
+		/* We join the writewait queue now, because if we did this later we
+		 * would have problems with a race condition between the write attempt
+		 * and starting the wait.  We can cancel it later with a
+		 * wait(timeout=0).
+		 */
+		WaitList::Subscription sub;
+		sub = this->writewait.join();
 
-	// If the UART driver was idle (TX fifo empty) then send a single byte to jolt the interrupt routine
-	// Note: Not multithread safe needs to be wrapped in mutexes
-	{
-		CriticalGuard critical(true);
-		uint8_t StatusRegister = XUartLite_GetStatusReg(UartLite.RegBaseAddress);
-		if ((StatusRegister & XUL_SR_TX_FIFO_EMPTY) != 0) {
-			// Just write a single byte to trigger the UART interrupt
-			uint8_t d = 0;
-			xStreamBufferReceive(this->sendstream, &d, 1, 0);
-			XUartLite_WriteReg(this->UartLite.RegBaseAddress, XUL_TX_FIFO_OFFSET, d);
+		size_t batch_byteswritten = this->outbuf.write(buf+byteswritten, len-byteswritten);
+		if (batch_byteswritten) {
+			this->disableInterrupts();
+
+			this->_Send();
+
+			this->enableInterrupts();
 		}
-	}
+		byteswritten += batch_byteswritten;
 
-	// Not all data has been sent, take care of that, this time with a timeout
-	if (len > count) {
-		count += xStreamBufferSend(this->sendstream, buf+count, len-count, timeout);
+		if (byteswritten == len)
+			break;
+		if (!sub.wait(abstimeout.get_timeout()))
+			break; // Timed out.
 	}
-
-	return count;
+	return byteswritten;
 }
 
 bool PL_UART::clear() {
-	return (xStreamBufferReset(this->recvstream) == pdPASS);
+	this->disableInterrupts();
+	this->inbuf.reset();
+	this->enableInterrupts();
+
+	return true;
 }
 
