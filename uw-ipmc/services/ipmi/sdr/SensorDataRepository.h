@@ -13,9 +13,10 @@
 #include <vector>
 #include <memory>
 #include <stdint.h>
+#include <time.h>
 #include <services/ipmi/sdr/SensorDataRecord.h>
 
-class SensorDataRepository {
+class SensorDataRepository final {
 public:
 	SensorDataRepository();
 	virtual ~SensorDataRepository();
@@ -32,6 +33,8 @@ public:
 	size_type size() const;
 	explicit operator std::vector< std::shared_ptr<SensorDataRecord> >() const;
 
+	time_t last_update_timestamp();
+
 	std::vector<uint8_t> u8export() const;
 	bool u8import(const std::vector<uint8_t> &data, uint8_t reservation = 0);
 
@@ -42,6 +45,7 @@ public:
 protected:
 	reservation_t reservation; ///< The current reservation number for this repository
 	std::vector< std::shared_ptr<SensorDataRecord> > records; ///< The actual SDRs
+	time_t last_update_ts; ///< The timestamp of the last update.
 	void renumber();
 	SemaphoreHandle_t mutex; ///< A mutex to protect repository operations.
 };
