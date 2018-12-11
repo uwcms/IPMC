@@ -208,9 +208,13 @@ SensorDataRepository::size_type SensorDataRepository::size() const {
  *
  * @return A copy of the internal database.
  */
-SensorDataRepository::operator std::vector< std::shared_ptr<SensorDataRecord> >() const {
+SensorDataRepository::operator std::vector< std::shared_ptr<const SensorDataRecord> >() const {
 	MutexGuard<true> lock(this->mutex, true);
-	return std::vector< std::shared_ptr<SensorDataRecord> >(this->records);
+	std::vector< std::shared_ptr<const SensorDataRecord> > ret;
+	// We're doing a shallow copy so we need to const-ify our output records.
+	for (auto it = this->records.begin(), eit = this->records.end(); it != eit; ++it)
+		ret.push_back(*it);
+	return ret;
 }
 
 /**
