@@ -31,7 +31,7 @@ public:
 	/// We inherit our size_type from our underlying std::vector.
 	typedef std::vector< std::shared_ptr<SensorDataRecord> >::size_type size_type;
 	size_type size() const;
-	explicit operator std::vector< std::shared_ptr<SensorDataRecord> >() const;
+	explicit operator std::vector< std::shared_ptr<const SensorDataRecord> >() const;
 
 	time_t last_update_timestamp();
 

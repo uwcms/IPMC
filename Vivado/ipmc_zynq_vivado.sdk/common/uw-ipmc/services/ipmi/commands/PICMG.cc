@@ -114,7 +114,7 @@ IPMICMD_INDEX_REGISTER(Set_FRU_Activation);
 
 static void ipmicmd_Get_Device_Locator_Record_ID(IPMBSvc &ipmb, const IPMI_MSG &message) {
 	ASSERT_PICMG_IDENTIFIER(ipmb, message);
-	const std::vector< std::shared_ptr<SensorDataRecord> > device_sdr_repo_vector(device_sdr_repo);
+	const std::vector< std::shared_ptr<const SensorDataRecord> > device_sdr_repo_vector(device_sdr_repo);
 	for (auto it = device_sdr_repo_vector.begin(), eit = device_sdr_repo_vector.end(); it != eit; ++it) {
 		if ((*it)->record_type() != 0x12)
 			continue;
