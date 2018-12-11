@@ -35,15 +35,12 @@ public:
 	std::vector<uint8_t> u8export() const;
 	bool u8import(const std::vector<uint8_t> &data, uint8_t reservation = 0);
 
-	/**
-	 * Returns the current reservation id for this repository.
-	 * @return the current reservation id for this repository
-	 */
-	uint8_t get_current_reservation() const;
-	uint8_t reserve();
+	typedef uint16_t reservation_t;
+	reservation_t get_current_reservation() const;
+	reservation_t reserve();
 
 protected:
-	uint8_t reservation; ///< The current reservation number for this repository
+	reservation_t reservation; ///< The current reservation number for this repository
 	std::vector< std::shared_ptr<SensorDataRecord> > records; ///< The actual SDRs
 	void renumber();
 	SemaphoreHandle_t mutex; ///< A mutex to protect repository operations.

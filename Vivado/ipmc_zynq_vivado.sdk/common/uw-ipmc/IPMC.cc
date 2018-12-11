@@ -381,7 +381,7 @@ void ipmc_service_init() {
  * Initialize Device SDRs for this controller.
  */
 static void init_device_sdrs(bool reinit) {
-	uint8_t reservation = device_sdr_repo.reserve();
+	SensorDataRepository::reservation_t reservation = device_sdr_repo.reserve();
 
 #define ADD_TO_REPO(sdr) while (!device_sdr_repo.add(sdr, reservation)) { reservation = device_sdr_repo.reserve(); }
 

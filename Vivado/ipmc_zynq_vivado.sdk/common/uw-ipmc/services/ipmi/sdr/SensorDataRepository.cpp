@@ -242,7 +242,7 @@ bool SensorDataRepository::u8import(const std::vector<uint8_t> &data, uint8_t re
  * Returns the ID of the current reservation.
  * @return the current reservation id
  */
-uint8_t SensorDataRepository::get_current_reservation() const {
+SensorDataRepository::reservation_t SensorDataRepository::get_current_reservation() const {
 	MutexGuard<true> lock(this->mutex, true);
 	return this->reservation;
 }
@@ -251,7 +251,7 @@ uint8_t SensorDataRepository::get_current_reservation() const {
  * Reserves the repository, returning the new reservation id.
  * @return the new reservation id
  */
-uint8_t SensorDataRepository::reserve() {
+SensorDataRepository::reservation_t SensorDataRepository::reserve() {
 	MutexGuard<true> lock(this->mutex, true);
 	this->reservation += 1; // Auto-wrap from uint8_t.
 	if (this->reservation == 0)
