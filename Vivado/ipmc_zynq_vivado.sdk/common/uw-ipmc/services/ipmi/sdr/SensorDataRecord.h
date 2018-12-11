@@ -52,6 +52,7 @@ public:
 	virtual void record_id(uint16_t record_id);
 	virtual uint8_t record_version() const;
 	virtual uint8_t record_type() const;
+	virtual uint8_t record_length() const;
 
 	/**
 	 * Get the record key bytes for this SensorDataRecord subclass.
@@ -72,6 +73,8 @@ public:
 	virtual bool operator!=(const SensorDataRecord &b) const {
 		return !(*this == b);
 	}
+
+	virtual bool identical_content(const SensorDataRecord &b, bool compare_record_id) const;
 };
 
 #endif /* SRC_COMMON_UW_IPMC_SERVICES_IPMI_SDR_SENSORDATARECORD_H_ */

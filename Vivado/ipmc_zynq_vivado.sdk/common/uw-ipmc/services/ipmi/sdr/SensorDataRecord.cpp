@@ -24,6 +24,8 @@
 void SensorDataRecord::validate() const {
 	if (this->sdr_data.size() < 5)
 		throw invalid_sdr_error("This SDR is shorter than the required headers.");
+	if ((255 - this->sdr_data[4]) < 5)
+		throw invalid_sdr_error("This SDR claims to be too long.");
 	if (this->sdr_data.size() < (5U + this->sdr_data[4]))
 		throw invalid_sdr_error("This SDR is shorter than specified in the header");
 }
@@ -87,4 +89,38 @@ uint8_t SensorDataRecord::record_type() const {
 	if (this->sdr_data.size() < 4)
 		throw invalid_sdr_error("Truncated SDR");
 	return this->sdr_data[3];
+}
+
+uint8_t SensorDataRecord::record_length() const {
+	this->validate();
+	return 5U + this->sdr_data[4];
+}
+
+/**
+ * Check whether two SensorDataRecords have identical content (but not
+ * necessarily identical internal extra fields (use a == on .sdr_data for that).
+ *
+ * @param b the record to compare to
+ * @param compare_record_id true if record_ids must also match
+ * @return true if the records are identical, else false
+ */
+bool SensorDataRecord::identical_content(const SensorDataRecord &b, bool compare_record_id) const {
+	this->validate();
+	b.validate();
+	uint8_t rl = this->record_length();
+	if (rl != b.record_length())
+		return false;
+
+	// Copy all record body bytes
+	std::vector<uint8_t> adata = std::vector<uint8_t>(this->sdr_data.begin(), std::next(this->sdr_data.begin(), rl));
+	std::vector<uint8_t> bdata = std::vector<uint8_t>(b.sdr_data.begin(), std::next(b.sdr_data.begin(), rl));
+
+	if (!compare_record_id) {
+		// Nullify both record IDs.
+		adata[0] = 0;
+		adata[1] = 0;
+		bdata[0] = 0;
+		bdata[1] = 0;
+	}
+	return adata == bdata;
 }
