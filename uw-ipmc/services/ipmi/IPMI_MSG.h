@@ -21,7 +21,7 @@
  */
 class IPMI_MSG {
 public:
-	static const uint8_t max_data_len = 32-5; ///< The max length of command data.  (IPMI message max length 32, minus 5 (maybe 6?, but conservative.) bytes of header)
+	static const uint8_t max_data_len = 32-1-5; ///< The max length of command data.  (IPMI message max length 32, minus one byte of address, minus 5 bytes of header)
 	uint8_t rsSA;               ///< (byte 0)       The responder slave address.
 	uint8_t netFn;              ///< (byte 1[7:2])  The network function of the command.
 	uint8_t rsLUN;              ///< (byte 1[1:0])  The responder LUN.
