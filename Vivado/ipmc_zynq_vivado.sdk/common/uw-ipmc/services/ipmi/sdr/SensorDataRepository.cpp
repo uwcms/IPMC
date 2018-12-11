@@ -9,7 +9,7 @@
 #include <libs/ThreadingPrimitives.h>
 
 SensorDataRepository::SensorDataRepository()
-	: reservation(0) {
+	: reservation(0), last_update_ts(0) {
 	this->mutex = xSemaphoreCreateRecursiveMutex();
 	configASSERT(this->mutex);
 }
@@ -45,6 +45,8 @@ bool SensorDataRepository::add(const SensorDataRecord &record, uint8_t reservati
 		for (size_type i = 0; i < this->records.size(); ++i) {
 			if (*this->records[i] == *interpreted) {
 				interpreted->record_id(i);
+				if (!this->records[i]->identical_content(*interpreted, true))
+					this->last_update_ts = time(NULL);
 				this->records[i] = interpreted;
 				replaced = true;
 				break;
@@ -53,6 +55,7 @@ bool SensorDataRepository::add(const SensorDataRecord &record, uint8_t reservati
 		if (!replaced) {
 			interpreted->record_id(this->records.size());
 			this->records.push_back(interpreted);
+			this->last_update_ts = time(NULL);
 		}
 	}
 	return true;
@@ -96,6 +99,7 @@ bool SensorDataRepository::remove(uint16_t id, uint8_t reservation) {
 	if (id <= this->records.size())
 		this->records.erase(std::next(this->records.begin(), id));
 	this->renumber();
+	this->last_update_ts = time(NULL);
 	return true;
 }
 
@@ -122,6 +126,7 @@ bool SensorDataRepository::remove(const SensorDataRecord &record, uint8_t reserv
 			++it;
 	}
 	this->renumber();
+	this->last_update_ts = time(NULL);
 	return true;
 }
 
@@ -140,7 +145,25 @@ bool SensorDataRepository::clear(uint8_t reservation) {
 	if (reservation != this->reservation)
 		return false;
 	this->records.clear();
+	this->last_update_ts = time(NULL);
 	return true;
+}
+
+/**
+ * Retrieve the last update timestamp for the repository.
+ *
+ * @return the last update timestamp for the repository
+ */
+time_t SensorDataRepository::last_update_timestamp() {
+	MutexGuard<true> lock(this->mutex, true);
+
+	// If possible & necessary, update a relative-to-boot timestamp to "now".
+	if (this->last_update_ts <= 0x20000000) {
+		time_t now = time(NULL);
+		if (now > 0x20000000)
+			this->last_update_ts = now;
+	}
+	return this->last_update_ts;
 }
 
 /**
@@ -200,6 +223,15 @@ SensorDataRepository::operator std::vector< std::shared_ptr<SensorDataRecord> >(
 std::vector<uint8_t> SensorDataRepository::u8export() const {
 	MutexGuard<true> lock(this->mutex, true);
 	std::vector<uint8_t> output;
+
+	// Export Update Timestamp
+	time_t last_update_ts = this->last_update_ts;
+	if (last_update_ts <= 0x20000000)
+		last_update_ts = 0; // We don't want to persist a boot-relative TS.  It'd be a lie soon after next boot.
+	for (size_t i = 0; i < sizeof(time_t); ++i)
+		output.push_back((this->last_update_ts >> (8*i)) & 0xFF);
+
+	// Export Records
 	for (auto it = this->records.begin(), eit = this->records.end(); it != eit; ++it) {
 		SensorDataRecord &record = **it;
 		if (record.sdr_data.size() == 0 || record.sdr_data.size() > 255)
@@ -225,7 +257,18 @@ bool SensorDataRepository::u8import(const std::vector<uint8_t> &data, uint8_t re
 		reservation = this->reserve();
 	if (reservation != this->reservation)
 		return false;
+
+	// Retrieve Update Timestamp
+	if (data.size() < sizeof(time_t))
+		return false;
 	std::vector<uint8_t>::size_type cur = 0;
+	time_t last_update_ts = 0;
+	for (; cur < sizeof(time_t); ++cur)
+		last_update_ts |= data[cur] << (cur*8);
+	if (last_update_ts > this->last_update_ts)
+		this->last_update_ts = last_update_ts;
+
+	// Import Records
 	while (cur < data.size()) {
 		uint8_t record_length = data[cur];
 		if (record_length == 0)
@@ -233,7 +276,8 @@ bool SensorDataRepository::u8import(const std::vector<uint8_t> &data, uint8_t re
 		std::vector<uint8_t> sdrdata(std::next(data.begin(), cur+1), std::next(data.begin(), cur+1+record_length));
 		cur += 1+record_length;
 		std::shared_ptr<SensorDataRecord> sdr = SensorDataRecord::interpret(sdrdata);
-		this->add(*sdr, reservation);
+		if (sdr)
+			this->add(*sdr, reservation);
 	}
 	return true;
 }
