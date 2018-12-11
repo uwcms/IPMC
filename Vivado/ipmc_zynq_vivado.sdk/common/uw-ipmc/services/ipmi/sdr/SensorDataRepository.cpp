@@ -253,7 +253,7 @@ SensorDataRepository::reservation_t SensorDataRepository::get_current_reservatio
  */
 SensorDataRepository::reservation_t SensorDataRepository::reserve() {
 	MutexGuard<true> lock(this->mutex, true);
-	this->reservation += 1; // Auto-wrap from uint8_t.
+	this->reservation += 1; // Auto-wrap from uint16_t.
 	if (this->reservation == 0)
 		this->reservation += 1; // We don't want to give out reservation 0.
 	return this->reservation;
