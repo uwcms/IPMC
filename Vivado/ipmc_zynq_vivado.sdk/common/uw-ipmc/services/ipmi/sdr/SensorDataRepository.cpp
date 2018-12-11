@@ -245,6 +245,8 @@ std::vector<uint8_t> SensorDataRepository::u8export() const {
 /**
  * Import the data from the supplied u8 vector, merging with this SDR repository.
  *
+ * \note Invalid records are silently discarded.
+ *
  * @param data The SDR repository contents in binary form
  * @param reservation The current reservation (or 0 to oneshot reserve for this
  *                    operation).  If this does not match the current
@@ -260,7 +262,7 @@ bool SensorDataRepository::u8import(const std::vector<uint8_t> &data, uint8_t re
 
 	// Retrieve Update Timestamp
 	if (data.size() < sizeof(time_t))
-		return false;
+		return true;
 	std::vector<uint8_t>::size_type cur = 0;
 	time_t last_update_ts = 0;
 	for (; cur < sizeof(time_t); ++cur)
