@@ -80,6 +80,15 @@ void SensorDataRecordSensor::id_string(std::string val) {
 	this->sdr_data.insert(this->sdr_data.end(), ext_data.begin(), ext_data.end());
 }
 
+std::vector<uint8_t> SensorDataRecordSensor::u8export(uint8_t self_ipmb_addr, uint8_t self_ipmb_channel) {
+	std::vector<uint8_t> out = SensorDataRecord::u8export(self_ipmb_addr, self_ipmb_channel);
+	if (out[5] == 0)
+		out[5] = self_ipmb_addr;
+	if ((out[6] & 0xf0) == 0)
+		out[6] |= self_ipmb_channel << 4;
+	return out;
+}
+
 uint8_t SensorDataRecordSensor::_get_ext_data_offset() const {
 	return this->_get_id_string_offset() + ipmi_type_length_field_get_length(std::vector<uint8_t>(std::next(this->sdr_data.begin(), this->_get_id_string_offset()), this->sdr_data.end()));
 }

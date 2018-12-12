@@ -97,6 +97,22 @@ uint8_t SensorDataRecord::record_length() const {
 }
 
 /**
+ * Export this SDR as a byte string suitable for Get SDR commands.
+ *
+ * The returned record will have the specified owner IPMB address and channel if
+ * supported and relevant.
+ *
+ * @param self_ipmb_addr Local IPMB address
+ * @param self_ipmb_lun Local IPMB channel
+ * @return A u8 vector suitable for Get SDR commands
+ */
+std::vector<uint8_t> SensorDataRecord::u8export(uint8_t self_ipmb_addr, uint8_t self_ipmb_channel) {
+	this->validate();
+	std::vector<uint8_t> out = std::vector<uint8_t>(this->sdr_data.begin(), std::next(this->sdr_data.begin(), this->record_length()));
+	return out;
+}
+
+/**
  * Check whether two SensorDataRecords have identical content (but not
  * necessarily identical internal extra fields (use a == on .sdr_data for that).
  *

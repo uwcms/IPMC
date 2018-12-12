@@ -74,6 +74,7 @@ public:
 		return !(*this == b);
 	}
 
+	virtual std::vector<uint8_t> u8export(uint8_t self_ipmb_addr=0, uint8_t self_ipmb_channel=0);
 	virtual bool identical_content(const SensorDataRecord &b, bool compare_record_id) const;
 };
 
