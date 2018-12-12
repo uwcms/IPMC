@@ -1,6 +1,13 @@
 #include <services/ipmi/IPMI.h>
 #include <services/ipmi/ipmbsvc/IPMBSvc.h>
+#include <services/ipmi/sdr/SensorDataRepository.h>
 #include "IPMICmd_Index.h"
+
+#define RETURN_ERROR(ipmb, message, completion_code) \
+	do { \
+		ipmb.send(message.prepare_reply({completion_code})); \
+		return; \
+	} while (0)
 
 // FRU Device Commands
 
@@ -45,12 +52,13 @@ static void ipmicmd_Get_SDR_Repository_Info(IPMBSvc &ipmb, const IPMI_MSG &messa
 	reply->data[12] = 0; // Most Recent Deletion Timestamp[2]
 	reply->data[13] = 0; // Most Recent Deletion Timestamp[3]
 	reply->data[14] = 0; // Operation Support
-	reply->data[14] |= 0<<7; // [7]   Repository has not been overflowed by an Add
-	reply->data[14] |= 0<<5; // [6:5] Repository does not specify support for modal or non-modal update.
-	reply->data[14] |= 0<<3; // [3]   Delete SDR Command Not Supported
-	reply->data[14] |= 0<<2; // [2]   Partial Add Command Not Supported
-	reply->data[14] |= 0<<1; // [1]   Reserve SDR Repository Command Not Supported
-	reply->data[14] |= 0<<0; // [0]   Get SDR Repository Allocation Information Command Not Supported
+	if (sdr_repo.size() >= 0xFFFE)
+		reply->data[14] |= 1<<7; // [7]   Repository has been overflowed by an Add
+	reply->data[14] |= 1<<5; // [6:5] Repository supports non-modal update only.
+	reply->data[14] |= 1<<3; // [3]   Delete SDR Command Supported
+	reply->data[14] |= 1<<2; // [2]   Partial Add Command Supported
+	reply->data[14] |= 1<<1; // [1]   Reserve SDR Repository Command Supported
+	reply->data[14] |= 0<<0; // [0]   0b = Get SDR Repository Allocation Information Command Not Supported
 	reply->data_len = 15;
 	ipmb.send(reply);
 }
@@ -63,19 +71,41 @@ static void ipmicmd_Get_SDR_Repository_Allocation_Info(IPMBSvc &ipmb, const IPMI
 IPMICMD_INDEX_REGISTER(Get_SDR_Repository_Allocation_Info);
 #endif
 
-#if 0 // Unimplemented.
 static void ipmicmd_Reserve_SDR_Repository_Storage(IPMBSvc &ipmb, const IPMI_MSG &message) {
-	// TODO: Required. PICMG 3.0 REQ 3.353
+	// Required. PICMG 3.0 REQ 3.353
+	uint16_t reservation = sdr_repo.reserve();
+	ipmb.send(message.prepare_reply({IPMI::Completion::Success, static_cast<uint8_t>(reservation & 0xFF), static_cast<uint8_t>(reservation >> 8)}));
 }
 IPMICMD_INDEX_REGISTER(Reserve_SDR_Repository_Storage);
-#endif
 
-#if 0 // Unimplemented.
 static void ipmicmd_Get_SDR(IPMBSvc &ipmb, const IPMI_MSG &message) {
-	// Unimplemented.
+	if (message.data_len != 6)
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Request_Data_Length_Invalid);
+	uint16_t reservation = (message.data[1] << 8) | message.data[0];
+	if (reservation && reservation != sdr_repo.get_current_reservation())
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Reservation_Cancelled);
+	uint16_t record_id = (message.data[3] << 8) | message.data[2];
+	if (record_id == 0xFFFF)
+		record_id = sdr_repo.size() - 1;
+	std::shared_ptr<const SensorDataRecord> record = sdr_repo.get(record_id);
+	if (!record)
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Requested_Sensor_Data_Or_Record_Not_Present);
+	uint16_t next_record = record_id + 1;
+	if (next_record >= sdr_repo.size())
+		next_record = 0xFFFF;
+	std::vector<uint8_t> reply{IPMI::Completion::Success, static_cast<uint8_t>(next_record & 0xFF), static_cast<uint8_t>(next_record >> 8)};
+	std::vector<uint8_t> sdrdata = record->u8export(message.rsSA, 0);
+	int i = message.data[4]; // offset
+	int limit = message.data[4] + message.data[5] /* bytes to read */;
+	if (limit > sdrdata.size())
+		limit = sdrdata.size();
+	for (; i < limit; ++i)
+		reply.push_back(sdrdata[i]);
+	if (reply.size() > IPMI_MSG::max_data_len)
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Cannot_Return_Requested_Number_Of_Data_Bytes);
+	ipmb.send(message.prepare_reply(reply));
 }
 IPMICMD_INDEX_REGISTER(Get_SDR);
-#endif
 
 #if 0 // Unimplemented.
 static void ipmicmd_Add_SDR(IPMBSvc &ipmb, const IPMI_MSG &message) {
