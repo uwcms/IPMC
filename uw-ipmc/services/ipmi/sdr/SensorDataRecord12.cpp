@@ -89,3 +89,12 @@ void SensorDataRecord12::id_string(std::string val) {
 	for (auto it = val.begin(), eit = val.end(); it != eit; ++it)
 		this->sdr_data.push_back(static_cast<uint8_t>(*it));
 }
+
+std::vector<uint8_t> SensorDataRecord12::u8export(uint8_t self_ipmb_addr, uint8_t self_ipmb_channel) {
+	std::vector<uint8_t> out = SensorDataRecord::u8export(self_ipmb_addr, self_ipmb_channel);
+	if (out[5] == 0)
+		out[5] = self_ipmb_addr;
+	if ((out[6] & 0x0f) == 0)
+		out[6] |= self_ipmb_channel;
+	return out;
+}

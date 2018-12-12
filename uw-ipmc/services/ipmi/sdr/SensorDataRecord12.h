@@ -63,6 +63,7 @@ public:
 
 #undef SDR_FIELD
 	///@}
+	virtual std::vector<uint8_t> u8export(uint8_t self_ipmb_addr=0, uint8_t self_ipmb_channel=0);
 };
 
 #endif /* SRC_COMMON_UW_IPMC_SERVICES_IPMI_SDR_SENSORDATARECORDSENSOR_H_ */
