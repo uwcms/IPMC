@@ -6,8 +6,8 @@
 extern std::map<uint16_t, IPMICommandParser::ipmi_cmd_handler_t> *ipmicmd_index;
 
 #define IPMICMD_INDEX_REGISTER(cmd) \
-	static void _ipmicmd_index_register_ ## cmd() __attribute__((constructor(1000))); \
-	static void _ipmicmd_index_register_ ## cmd() { \
+	static void _auto_ipmicmd_index_register_ ## cmd() __attribute__((constructor(1000))); \
+	static void _auto_ipmicmd_index_register_ ## cmd() { \
 		if (!ipmicmd_index) \
 			ipmicmd_index = new std::map<uint16_t, IPMICommandParser::ipmi_cmd_handler_t>(); \
 		(*ipmicmd_index)[IPMI::cmd] = ipmicmd_ ## cmd; \
