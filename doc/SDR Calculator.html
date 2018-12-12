@@ -747,7 +747,7 @@ function recalculate(eventsource) {
 	sensor.initialize_blank("${document.getElementById('sensor-name').value}");
 	sensor.sensor_owner_id(0); // Tag as "self". This will be auto-calculated in "Get SDR" commands.
 	sensor.sensor_owner_channel(0); // See above.
-	sensor.sensor_owner_lun(0); // See above.
+	sensor.sensor_owner_lun(0); // Generally zero
 	sensor.sensor_number(${document.getElementById('sensor-number').value || '/* TODO */'});
 	sensor.entity_id(0x0); // TODO
 	sensor.entity_instance(0x60); // TODO
