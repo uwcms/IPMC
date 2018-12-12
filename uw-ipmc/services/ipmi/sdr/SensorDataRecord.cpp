@@ -106,7 +106,7 @@ uint8_t SensorDataRecord::record_length() const {
  * @param self_ipmb_lun Local IPMB channel
  * @return A u8 vector suitable for Get SDR commands
  */
-std::vector<uint8_t> SensorDataRecord::u8export(uint8_t self_ipmb_addr, uint8_t self_ipmb_channel) {
+std::vector<uint8_t> SensorDataRecord::u8export(uint8_t self_ipmb_addr, uint8_t self_ipmb_channel) const {
 	this->validate();
 	std::vector<uint8_t> out = std::vector<uint8_t>(this->sdr_data.begin(), std::next(this->sdr_data.begin(), this->record_length()));
 	return out;

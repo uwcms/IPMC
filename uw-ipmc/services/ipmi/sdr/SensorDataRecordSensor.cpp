@@ -80,7 +80,7 @@ void SensorDataRecordSensor::id_string(std::string val) {
 	this->sdr_data.insert(this->sdr_data.end(), ext_data.begin(), ext_data.end());
 }
 
-std::vector<uint8_t> SensorDataRecordSensor::u8export(uint8_t self_ipmb_addr, uint8_t self_ipmb_channel) {
+std::vector<uint8_t> SensorDataRecordSensor::u8export(uint8_t self_ipmb_addr, uint8_t self_ipmb_channel) const {
 	std::vector<uint8_t> out = SensorDataRecord::u8export(self_ipmb_addr, self_ipmb_channel);
 	if (out[5] == 0)
 		out[5] = self_ipmb_addr;
