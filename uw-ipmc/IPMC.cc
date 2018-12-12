@@ -47,7 +47,6 @@
 #include <drivers/tracebuffer/TraceBuffer.h>
 #include <drivers/ipmb/IPMBPair.h>
 #include <drivers/ipmb/PSIPMB.h>
-#include <drivers/mgmt_zone/MGMTZone.h>
 #include <drivers/pim400/PIM400.h>
 #include <drivers/esm/ESM.h>
 #include <drivers/ad7689/AD7689.h>
@@ -67,6 +66,7 @@ extern "C" {
 #include <services/ipmi/sensor/Sensor.h>
 #include <services/ipmi/sensor/HotswapSensor.h>
 #include <services/ipmi/sensor/ThresholdSensor.h>
+#include <services/ipmi/MStateMachine.h>
 #include <services/persistentstorage/PersistentStorage.h>
 #include <services/console/UARTConsoleSvc.h>
 #include <services/influxdb/InfluxDB.h>
@@ -75,6 +75,7 @@ extern "C" {
 #include <services/xvcserver/XVCServer.h>
 #include <services/sntp/sntp.h>
 #include <services/ftp/FTPServer.h>
+#include <PayloadManager.h>
 
 
 u8 IPMC_HW_REVISION = 1; // TODO: Detect, Update, etc
@@ -90,7 +91,6 @@ EventGroupHandle_t init_complete;
 
 PS_WDT *SWDT;
 PS_UART *uart_ps0;
-MGMT_Zone *mgmt_zones[XPAR_MGMT_ZONE_CTRL_0_MZ_CNT];
 PS_ISFQSPI *isfqspi;
 XGpioPs gpiops;
 
@@ -110,8 +110,10 @@ IPMICommandParser *ipmi_command_parser;
 SensorDataRepository sdr_repo;
 SensorDataRepository device_sdr_repo;
 SensorSet ipmc_sensors(&device_sdr_repo);
+MStateMachine *mstatemachine = NULL;
 PL_GPIO *handle_gpio;
 LED_Controller atcaLEDs;
+PayloadManager *payload_manager = NULL;
 
 u8 mac_address[6];
 Network *network;
@@ -212,55 +214,7 @@ void driver_init(bool use_pl) {
 
 		xadc = new PS_XADC(XPAR_XADCPS_0_DEVICE_ID);
 
-		for (int i = 0; i < XPAR_MGMT_ZONE_CTRL_0_MZ_CNT; ++i)
-			mgmt_zones[i] = new MGMT_Zone(XPAR_MGMT_ZONE_CTRL_0_DEVICE_ID, i);
-
-		std::vector<MGMT_Zone::OutputConfig> pen_config;
-		uint64_t hf_mask = 0
-				| (1<<0) // PGOOD_2V5ETH
-				| (1<<1) // PGOOD_1V0ETH
-				| (1<<2) // PGOOD_3V3PYLD
-				| (1<<3) // PGOOD_5V0PYLD
-				| (1<<4);// PGOOD_1V2PHY
-#warning "Hardfault Safety is Disabled (Hacked out)"
-		hf_mask = 0; // XXX Disable Hardfault Safety
-		mgmt_zones[0]->set_hardfault_mask(hf_mask, 140);
-		mgmt_zones[0]->get_pen_config(pen_config);
-		for (int i = 0; i < 6; ++i) {
-			pen_config[i].active_high = true;
-			pen_config[i].drive_enabled = true;
-		}
-		// +12VPYLD
-		pen_config[0].enable_delay = 10;
-		// +2V5ETH
-		pen_config[1].enable_delay = 200;
-		// +1V0ETH
-		pen_config[2].enable_delay = 20;
-		// +3V3PYLD
-		// +1V8PYLD
-		// +3V3FFTX_TX
-		// +3V3FFTX_RX
-		// +3V3FFRX_TX
-		// +3V3FFRX_RX
-		pen_config[3].enable_delay = 30;
-		// +5V0PYLD
-		pen_config[4].enable_delay = 30;
-		// +1V2PHY
-		pen_config[5].enable_delay = 40;
-		mgmt_zones[0]->set_pen_config(pen_config);
-		mgmt_zones[0]->set_power_state(MGMT_Zone::ON); // Immediately power up.  Xil ethernet driver asserts otherwise.
-
-		hf_mask = 0
-				| (1<<5);// ELM_PFAIL
-#warning "Hardfault Safety is Disabled (Hacked out)"
-		hf_mask = 0; // XXX Disable Hardfault Safety
-		mgmt_zones[1]->set_hardfault_mask(hf_mask, 150);
-		mgmt_zones[1]->get_pen_config(pen_config);
-		// ELM_PWR_EN_I
-		pen_config[6].active_high = true;
-		pen_config[6].drive_enabled = true;
-		pen_config[6].enable_delay = 50;
-		mgmt_zones[1]->set_pen_config(pen_config);
+		handle_gpio = new PL_GPIO(XPAR_AXI_GPIO_0_DEVICE_ID, XPAR_FABRIC_AXI_GPIO_0_IP2INTC_IRPT_INTR);
 	}
 }
 
@@ -288,18 +242,28 @@ void ipmc_service_init() {
 	esm = new ESM(esm_uart, esm_reset, esm_flash, esm_flash_reset);
 	esm->register_console_commands(console_command_parser, "esm.");
 
-	handle_gpio = new PL_GPIO(XPAR_AXI_GPIO_0_DEVICE_ID, XPAR_FABRIC_AXI_GPIO_0_IP2INTC_IRPT_INTR);
-	handle_gpio->setIRQCallback([](uint32_t pin) -> void {
-		// This is an IRQ, so act fast!
-		bool isPressed = handle_gpio->isPinSet(0);
+	{
+		mstatemachine = new MStateMachine(std::dynamic_pointer_cast<HotswapSensor>(ipmc_sensors.find_by_name("Hotswap")), LOG["mstatemachine"]);
+		mstatemachine->register_console_commands(console_command_parser, "");
 
-		LED_Controller_SetOnOff(&atcaLEDs, 0, isPressed);
+		// Since we can't do this processing in the ISR itself, we'll have to settle for this.
+		SemaphoreHandle_t handle_isr_sem = xSemaphoreCreateBinary();
+		UWTaskCreate("handle_switch", TASK_PRIORITY_SERVICE, [handle_isr_sem]() -> void {
+			// Wait for IPMC initialization to complete.
+			// The first time we update the physical handle state, the MStateMachine startup lock is cleared.
+			xEventGroupWaitBits(init_complete, 0x03, pdFALSE, pdTRUE, portMAX_DELAY);
 
-		xTimerPendFunctionCallFromISR([]( void *ptr, uint32_t x) -> void {
-			if (x) printf("Handle is pressed!");
-			else printf("Handle is released!");
-		}, NULL, isPressed, NULL);
-	});
+			while (1) {
+				xSemaphoreTake(handle_isr_sem, pdMS_TO_TICKS(100));
+
+				bool isPressed = handle_gpio->isPinSet(0);
+				LED_Controller_SetOnOff(&atcaLEDs, 0, isPressed);
+				mstatemachine->physical_handle_state(isPressed ? MStateMachine::HANDLE_CLOSED : MStateMachine::HANDLE_OPEN);
+			}
+		});
+		handle_gpio->setIRQCallback([handle_isr_sem](uint32_t pin) -> void { xSemaphoreGive(handle_isr_sem); });
+	}
+	payload_manager = new PayloadManager(mstatemachine, LOG["payload_manager"]);
 
 	// Last services should be network related
 	network = new Network(LOG["network"], mac_address, [](Network *network) {
@@ -441,7 +405,7 @@ static void init_device_sdrs(bool reinit) {
 		sensor.initialize_blank("Payload 3.3V");
 		sensor.sensor_owner_id(0); // Tag as "self". This will be auto-calculated in "Get SDR" commands.
 		sensor.sensor_owner_channel(0); // See above.
-		sensor.sensor_owner_lun(0); // See above.
+		sensor.sensor_owner_lun(0); // Generally zero
 		sensor.sensor_number(2);
 		sensor.entity_id(0x0); // TODO
 		sensor.entity_instance(0x60); // TODO
@@ -509,6 +473,34 @@ static void init_device_sdrs(bool reinit) {
 		// I think these needta be imported to the main SDR repo too?
 		sdr_repo.add(device_sdr_repo, 0);
 	});
+}
+
+/**
+ * Generate the appropriate headers (up to and excluding Record Format Version)
+ * and add the PICMG multirecord to the provided FRU Data vector.
+ *
+ * @param fruarea The FRU Data area to be appended
+ * @param mrdata The multirecord to be added
+ * @param last_record true if the "end of list" flag should be set on this record, else false
+ * @param record_format The record format, if not default
+ */
+static void add_PICMG_multirecord (std::vector<uint8_t> &fruarea, std::vector<uint8_t> mrdata, bool last_record, uint8_t record_format=2) {
+	static const std::vector<uint8_t> mrheader{
+		0xC0, // "OEM", specified
+		0x00, // [7] 1b=EOL (set later);  [3:0] record_format (set later)
+		0, // Length (placeholder)
+		0, // Record checksum (placeholder)
+		0, // Header checksum (placeholder)
+		0x5A, // Mfgr: PICMG, specified
+		0x31, // Mfgr: PICMG, specified
+		0x00, // Mfgr: PICMG, specified
+	};
+	mrdata.insert(mrdata.begin(), mrheader.begin(), mrheader.end());
+	mrdata[1] = (last_record ? 0x80 : 0) | record_format;
+	mrdata[2] = mrdata.size();
+	mrdata[3] = ipmi_checksum(std::vector<uint8_t>(std::next(mrdata.begin(), 5), mrdata.end()));
+	mrdata[4] = ipmi_checksum(std::vector<uint8_t>(mrdata.begin(), std::next(mrdata.begin(), 5)));
+	fruarea.insert(fruarea.end(), mrdata.begin(), mrdata.end());
 }
 
 void init_fru_area() {
@@ -581,23 +573,13 @@ void init_fru_area() {
 	frudata.insert(frudata.end(), board_info.begin(), board_info.end());
 	frudata.insert(frudata.end(), product_info.begin(), product_info.end());
 
-	std::vector<uint8_t> multirecord;
-	multirecord.clear();
-	multirecord.push_back(0xC0); // "OEM", specified
-	multirecord.push_back(0x02); // Not end of list, format 02 (specified)
-	multirecord.push_back(0); // length (placeholder)
-	multirecord.push_back(0); // record checksum (placeholder)
-	multirecord.push_back(0); // header checksum (placeholder)
-	multirecord.push_back(0x5A); // PICMG, specified
-	multirecord.push_back(0x31); // PICMG, specified
-	multirecord.push_back(0x00); // PICMG, specified
-	multirecord.push_back(0x16); // PICMG Record ID, specified
-	multirecord.push_back(0); // Version, specified
-	multirecord.push_back(30); // ceil(35/1.2) // Current Draw, 35W
-	multirecord[2] = multirecord.size();
-	multirecord[3] = ipmi_checksum(std::vector<uint8_t>(std::next(multirecord.begin(), 5), multirecord.end()));
-	multirecord[4] = ipmi_checksum(std::vector<uint8_t>(multirecord.begin(), std::next(multirecord.begin(), 5)));
-	frudata.insert(frudata.end(), multirecord.begin(), multirecord.end());
+	/* Carrier Activation and Current Management record
+	 * ...not that we have any AMC modules.
+	 *
+	 * This is supposed to specify the maximum power we can provide to our AMCs,
+	 * and be used for validating our AMC modules' power requirements.
+	 */
+	add_PICMG_multirecord(frudata, std::vector<uint8_t>{0, 0x17, 0x3f /* ~75W for all AMCs (and self..?) */, 5}, false);
 }
 
 // TODO: Will be moved (see #19)
@@ -730,7 +712,6 @@ static void tracebuffer_log_handler(LogTree &logtree, const std::string &message
 	TRACE.log(logtree.path.data(), logtree.path.size(), level, message.data(), message.size());
 }
 
-#include "core_console_commands/backend_power.h"
 #include "core_console_commands/date.h"
 #include "core_console_commands/flash_info.h"
 #include "core_console_commands/ps.h"
@@ -738,7 +719,6 @@ static void tracebuffer_log_handler(LogTree &logtree, const std::string &message
 #include "core_console_commands/setauth.h"
 #include "core_console_commands/set_serial.h"
 #include "core_console_commands/throw.h"
-#include "core_console_commands/transition.h"
 #include "core_console_commands/upload.h"
 #include "core_console_commands/uptime.h"
 #include "core_console_commands/version.h"
@@ -748,14 +728,12 @@ static void register_core_console_commands(CommandParser &parser) {
 	console_command_parser.register_command("date", std::make_shared<ConsoleCommand_date>());
 	console_command_parser.register_command("version", std::make_shared<ConsoleCommand_version>());
 	console_command_parser.register_command("ps", std::make_shared<ConsoleCommand_ps>());
-	console_command_parser.register_command("backend_power", std::make_shared<ConsoleCommand_backend_power>());
 	console_command_parser.register_command("restart", std::make_shared<ConsoleCommand_restart>());
 	console_command_parser.register_command("flash_info", std::make_shared<ConsoleCommand_flash_info>());
 	console_command_parser.register_command("setauth", std::make_shared<ConsoleCommand_setauth>());
 	if (IPMC_SERIAL == 0 || IPMC_SERIAL == 0xFFFF) // The serial is settable only if unset.  This implements lock on write (+reboot).
 		console_command_parser.register_command("set_serial", std::make_shared<ConsoleCommand_set_serial>());
 	console_command_parser.register_command("upload", std::make_shared<ConsoleCommand_upload>());
-	console_command_parser.register_command("transition", std::make_shared<ConsoleCommand_transition>());
 	console_command_parser.register_command("throw", std::make_shared<ConsoleCommand_throw>());
 	console_command_parser.register_command("trace", std::make_shared<ConsoleCommand_trace>());
 }
