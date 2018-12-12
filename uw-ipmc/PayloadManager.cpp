@@ -13,7 +13,6 @@
 
 PayloadManager::PayloadManager(MStateMachine *mstate_machine, LogTree &log)
 	: mstate_machine(mstate_machine), log(log) {
-
 	for (int i = 0; i < XPAR_MGMT_ZONE_CTRL_0_MZ_CNT; ++i)
 		this->mgmt_zones[i] = new MGMT_Zone(XPAR_MGMT_ZONE_CTRL_0_DEVICE_ID, i);
 
@@ -64,7 +63,6 @@ PayloadManager::PayloadManager(MStateMachine *mstate_machine, LogTree &log)
 	pen_config[6].drive_enabled = true;
 	pen_config[6].enable_delay = 50;
 	this->mgmt_zones[1]->set_pen_config(pen_config);
-
 }
 
 PayloadManager::~PayloadManager() {
