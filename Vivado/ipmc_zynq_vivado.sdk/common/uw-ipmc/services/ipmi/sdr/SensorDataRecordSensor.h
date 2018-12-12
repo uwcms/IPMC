@@ -58,7 +58,7 @@ public:
 
 #undef SDR_FIELD
 
-	virtual std::vector<uint8_t> u8export(uint8_t self_ipmb_addr=0, uint8_t self_ipmb_channel=0);
+	virtual std::vector<uint8_t> u8export(uint8_t self_ipmb_addr=0, uint8_t self_ipmb_channel=0) const;
 
 protected:
 	virtual uint8_t _get_id_string_offset() const = 0;
