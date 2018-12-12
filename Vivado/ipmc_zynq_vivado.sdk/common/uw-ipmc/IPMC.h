@@ -38,6 +38,10 @@ class IPMBSvc;
 class IPMICommandParser;
 extern IPMBSvc *ipmb0;
 extern IPMICommandParser *ipmi_command_parser;
+class MStateMachine;
+extern MStateMachine *mstatemachine;
+class PayloadManager;
+extern PayloadManager *payload_manager;
 
 typedef struct {
 	IPMBSvc *ipmb;

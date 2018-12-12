@@ -2,6 +2,7 @@
 #include <services/ipmi/ipmbsvc/IPMBSvc.h>
 #include <services/ipmi/sdr/SensorDataRepository.h>
 #include <services/ipmi/MStateMachine.h>
+#include <PayloadManager.h>
 #include "IPMICmd_Index.h"
 
 // AdvancedTCA
@@ -91,26 +92,66 @@ static void ipmicmd_Set_IPMB_State(IPMBSvc &ipmb, const IPMI_MSG &message) {
 IPMICMD_INDEX_REGISTER(Set_IPMB_State);
 #endif
 
-#if 0 // Unimplemented.
 static void ipmicmd_Set_FRU_Activation_Policy(IPMBSvc &ipmb, const IPMI_MSG &message) {
 	ASSERT_PICMG_IDENTIFIER(ipmb, message);
+	if (message.data_len != 4 || message.data[1] != 0)
+		// Not enough parameters, or asking for FRU != 0.  We dont have one of those.
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Parameter_Out_Of_Range);
+	if (!mstatemachine)
+		// Not yet initialized (we got an IPMI message before ipmc_service_init() completed)
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Node_Busy);
+
+	bool act_locked = mstatemachine->activation_locked();
+	bool deact_locked = mstatemachine->deactivation_locked();
+	if (message.data[2] & 0x01)
+		act_locked = message.data[3] & 0x01;
+	if (message.data[2] & 0x02)
+		deact_locked = message.data[3] & 0x02;
+	mstatemachine->set_activation_lock(act_locked, deact_locked);
+	ipmb.send(message.prepare_reply({IPMI::Completion::Success, 0}));
 }
 IPMICMD_INDEX_REGISTER(Set_FRU_Activation_Policy);
-#endif
 
-#if 0 // Unimplemented.
 static void ipmicmd_Get_FRU_Activation_Policy(IPMBSvc &ipmb, const IPMI_MSG &message) {
 	ASSERT_PICMG_IDENTIFIER(ipmb, message);
+	if (message.data_len != 2 || message.data[1] != 0)
+		// Not enough parameters, or asking for FRU != 0.  We dont have one of those.
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Parameter_Out_Of_Range);
+	if (!mstatemachine)
+		// Not yet initialized (we got an IPMI message before ipmc_service_init() completed)
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Node_Busy);
+	std::shared_ptr<IPMI_MSG> reply = message.prepare_reply({IPMI::Completion::Success, 0, 0});
+	if (mstatemachine->deactivation_locked())
+		reply->data[2] |= 0x02;
+	if (mstatemachine->activation_locked())
+		reply->data[2] |= 0x01;
+	ipmb.send(reply);
 }
 IPMICMD_INDEX_REGISTER(Get_FRU_Activation_Policy);
-#endif
 
-#if 0 // Unimplemented.
 static void ipmicmd_Set_FRU_Activation(IPMBSvc &ipmb, const IPMI_MSG &message) {
 	ASSERT_PICMG_IDENTIFIER(ipmb, message);
+	if (message.data_len != 3 || message.data[1] != 0)
+		// Not enough parameters, or asking for FRU != 0.  We dont have one of those.
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Parameter_Out_Of_Range);
+	if (!mstatemachine)
+		// Not yet initialized (we got an IPMI message before ipmc_service_init() completed)
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Node_Busy);
+	if (message.data[2] == 0) {
+		// Deactivate FRU
+		mstatemachine->deactivate_fru();
+	}
+	else if (message.data[2] == 1) {
+		// Activate FRU
+		mstatemachine->activate_fru();
+	}
+	else {
+		// What?
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Parameter_Out_Of_Range);
+	}
+	ipmb.send(message.prepare_reply({IPMI::Completion::Success, 0}));
 }
 IPMICMD_INDEX_REGISTER(Set_FRU_Activation);
-#endif
 
 static void ipmicmd_Get_Device_Locator_Record_ID(IPMBSvc &ipmb, const IPMI_MSG &message) {
 	ASSERT_PICMG_IDENTIFIER(ipmb, message);
@@ -140,28 +181,91 @@ static void ipmicmd_Get_Port_State(IPMBSvc &ipmb, const IPMI_MSG &message) {
 IPMICMD_INDEX_REGISTER(Get_Port_State);
 #endif
 
-#if 0 // Unimplemented.
 static void ipmicmd_Compute_Power_Properties(IPMBSvc &ipmb, const IPMI_MSG &message) {
 	ASSERT_PICMG_IDENTIFIER(ipmb, message);
+	if (message.data_len != 2 || message.data[1] != 0)
+		// Not enough parameters, or asking for FRU != 0.  We dont have one of those.
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Parameter_Out_Of_Range);
+	if (!payload_manager)
+		// Not yet initialized (we got an IPMI message before ipmc_service_init() completed)
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Node_Busy);
+	PayloadManager::PowerProperties properties = payload_manager->get_power_properties(message.data[1], true);
+	ipmb.send(message.prepare_reply({IPMI::Completion::Success, 0, properties.spanned_slots, properties.controller_location}));
 }
 IPMICMD_INDEX_REGISTER(Compute_Power_Properties);
-#endif
 
-#if 0 // Unimplemented.
 static void ipmicmd_Set_Power_Level(IPMBSvc &ipmb, const IPMI_MSG &message) {
 	ASSERT_PICMG_IDENTIFIER(ipmb, message);
+	if (message.data_len != 4 || message.data[1] != 0)
+		// Not enough parameters, or asking for FRU != 0.  We don't have one of those.
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Parameter_Out_Of_Range);
+	if (!payload_manager)
+		// Not yet initialized (we got an IPMI message before ipmc_service_init() completed)
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Node_Busy);
+
+	PayloadManager::PowerProperties properties = payload_manager->get_power_properties(message.data[1], false);
+	uint8_t new_power_level = properties.current_power_level;
+	if (message.data[2] != 0xFF)
+		new_power_level = message.data[2];
+	else if (message.data[3] == 1)
+		new_power_level = properties.desired_power_level;
+
+	if (properties.current_power_level != new_power_level) {
+		try {
+			payload_manager->set_power_level(message.data[1], new_power_level);
+		}
+		catch (std::domain_error &e) {
+			RETURN_ERROR(ipmb, message, IPMI::Completion::Parameter_Out_Of_Range);
+		}
+	}
+
+	ipmb.send(message.prepare_reply({IPMI::Completion::Success, 0}));
 }
 IPMICMD_INDEX_REGISTER(Set_Power_Level);
-#endif
 
-#if 0 // Unimplemented.
 static void ipmicmd_Get_Power_Level(IPMBSvc &ipmb, const IPMI_MSG &message) {
 	ASSERT_PICMG_IDENTIFIER(ipmb, message);
+	if (message.data_len != 3 || message.data[1] != 0)
+		// Not enough parameters, or asking for FRU != 0.  We dont have one of those.
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Parameter_Out_Of_Range);
+	if (!payload_manager)
+		// Not yet initialized (we got an IPMI message before ipmc_service_init() completed)
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Node_Busy);
+
+	PayloadManager::PowerProperties properties = payload_manager->get_power_properties(message.data[1], false);
+
+	std::shared_ptr<IPMI_MSG> reply = message.prepare_reply({IPMI::Completion::Success, 0, 0, 0, 0});
+	if (properties.dynamic_reconfiguration)
+		reply->data[2] |= 0x80;
+	reply->data[3] = properties.delay_to_stable_power;
+	reply->data[4] = properties.power_multiplier;
+
+	if (message.data[2] > 3)
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Parameter_Out_Of_Range);
+
+	if (message.data[2] == 0) // Steady state levels
+		reply->data[2] |= properties.current_power_level;
+	else if (message.data[2] & 1) // Desired levels
+		reply->data[2] |= properties.desired_power_level;
+
+	if ((message.data[2] & 2) == 0) {
+		// Any steady
+		for (std::vector<uint8_t>::size_type i = 0; i < properties.power_levels.size(); ++i)
+			reply->data[5+i] = properties.power_levels[i];
+		reply->data_len = 5+properties.power_levels.size();
+	}
+
+	if ((message.data[2] & 2) == 2) {
+		// Any early
+		for (std::vector<uint8_t>::size_type i = 0; i < properties.early_power_levels.size(); ++i)
+			reply->data[5+i] = properties.early_power_levels[i];
+		reply->data_len = 5+properties.early_power_levels.size();
+	}
+	ipmb.send(reply);
 }
 IPMICMD_INDEX_REGISTER(Get_Power_Level);
-#endif
 
-#if 0 // Unimplemented.
+#if 0 // Unimplemented. TODO
 static void ipmicmd_Renegotiate_Power(IPMBSvc &ipmb, const IPMI_MSG &message) {
 	ASSERT_PICMG_IDENTIFIER(ipmb, message);
 }
