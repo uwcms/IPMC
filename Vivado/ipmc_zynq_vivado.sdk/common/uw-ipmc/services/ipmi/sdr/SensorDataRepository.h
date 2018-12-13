@@ -15,19 +15,23 @@
 #include <stdint.h>
 #include <time.h>
 #include <services/ipmi/sdr/SensorDataRecord.h>
+#include <libs/except.h>
 
 class SensorDataRepository final {
 public:
 	SensorDataRepository();
 	virtual ~SensorDataRepository();
 
-	bool add(const SensorDataRecord &record, uint8_t reservation);
-	bool add(const SensorDataRepository &sdrepository, uint8_t reservation);
-	bool remove(uint16_t id, uint8_t reservation);
-	bool remove(const SensorDataRecord &record, uint8_t reservation);
-	bool clear(uint8_t reservation);
-	std::shared_ptr<const SensorDataRecord> get(uint16_t id) const;
-	std::shared_ptr<const SensorDataRecord> find(const std::vector<uint8_t> &key) const;
+	DEFINE_LOCAL_GENERIC_EXCEPTION(reservation_cancelled_error, std::runtime_error)
+	typedef uint16_t reservation_t;
+
+	void add(const SensorDataRecord &record, reservation_t reservation);
+	void add(const SensorDataRepository &sdrepository, reservation_t reservation);
+	void remove(uint16_t id, reservation_t reservation);
+	void remove(const SensorDataRecord &record, reservation_t reservation);
+	void clear(reservation_t reservation);
+	std::shared_ptr<const SensorDataRecord> get(uint16_t id, reservation_t reservation=0) const;
+	std::shared_ptr<const SensorDataRecord> find(const std::vector<uint8_t> &key, reservation_t reservation=0) const;
 	/// We inherit our size_type from our underlying std::vector.
 	typedef std::vector< std::shared_ptr<SensorDataRecord> >::size_type size_type;
 	size_type size() const;
@@ -36,9 +40,8 @@ public:
 	time_t last_update_timestamp();
 
 	std::vector<uint8_t> u8export() const;
-	bool u8import(const std::vector<uint8_t> &data, uint8_t reservation = 0);
+	bool u8import(const std::vector<uint8_t> &data, reservation_t reservation = 0);
 
-	typedef uint16_t reservation_t;
 	reservation_t get_current_reservation() const;
 	reservation_t reserve();
 
@@ -47,6 +50,7 @@ protected:
 	std::vector< std::shared_ptr<SensorDataRecord> > records; ///< The actual SDRs
 	time_t last_update_ts; ///< The timestamp of the last update.
 	void renumber();
+	void assert_reservation(reservation_t &reservation);
 	SemaphoreHandle_t mutex; ///< A mutex to protect repository operations.
 };
 

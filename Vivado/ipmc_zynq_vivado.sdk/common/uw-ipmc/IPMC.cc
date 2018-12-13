@@ -341,13 +341,25 @@ void ipmc_service_init() {
 	network->register_console_commands(console_command_parser, "network.");
 }
 
+static void add_to_sdr_repo(SensorDataRepository &repo, const SensorDataRecord &sdr, SensorDataRepository::reservation_t &reservation) {
+	while (true) {
+		try {
+			repo.add(sdr, reservation);
+			return;
+		}
+		catch (SensorDataRepository::reservation_cancelled_error) {
+			reservation = repo.reserve();
+		}
+	}
+}
+
 /**
  * Initialize Device SDRs for this controller.
  */
 static void init_device_sdrs(bool reinit) {
 	SensorDataRepository::reservation_t reservation = device_sdr_repo.reserve();
 
-#define ADD_TO_REPO(sdr) while (!device_sdr_repo.add(sdr, reservation)) { reservation = device_sdr_repo.reserve(); }
+#define ADD_TO_REPO(sdr) add_to_sdr_repo(device_sdr_repo, sdr, reservation)
 
 	{
 		// Management Controller Device Locator Record for ourself.

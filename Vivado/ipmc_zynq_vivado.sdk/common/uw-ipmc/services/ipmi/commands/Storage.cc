@@ -82,12 +82,16 @@ static void ipmicmd_Get_SDR(IPMBSvc &ipmb, const IPMI_MSG &message) {
 	if (message.data_len != 6)
 		RETURN_ERROR(ipmb, message, IPMI::Completion::Request_Data_Length_Invalid);
 	uint16_t reservation = (message.data[1] << 8) | message.data[0];
-	if (reservation && reservation != sdr_repo.get_current_reservation())
-		RETURN_ERROR(ipmb, message, IPMI::Completion::Reservation_Cancelled);
 	uint16_t record_id = (message.data[3] << 8) | message.data[2];
 	if (record_id == 0xFFFF)
 		record_id = sdr_repo.size() - 1;
-	std::shared_ptr<const SensorDataRecord> record = sdr_repo.get(record_id);
+	std::shared_ptr<const SensorDataRecord> record;
+	try {
+		record = sdr_repo.get(record_id);
+	}
+	catch (SensorDataRepository::reservation_cancelled_error) {
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Reservation_Cancelled);
+	}
 	if (!record)
 		RETURN_ERROR(ipmb, message, IPMI::Completion::Requested_Sensor_Data_Or_Record_Not_Present);
 	uint16_t next_record = record_id + 1;
