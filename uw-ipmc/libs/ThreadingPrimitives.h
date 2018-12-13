@@ -249,9 +249,8 @@ protected:
 class CriticalGuard : public ScopedGuard {
 public:
 	/**
-	 * Lock the desired mutex.
-	 * @param mutex Pre-initialized mutex that will be managed.
-	 * @param immediate If true, acquire the mutex immediately.
+	 * Enter a critical section
+	 * @param immediate If true, enter the critical section immediately.
 	 */
 	CriticalGuard(bool immediate) {
 		if (immediate)
@@ -276,6 +275,44 @@ public:
 		this->acquired = false;
 		if (!IN_INTERRUPT())
 			portEXIT_CRITICAL();
+	}
+};
+
+/**
+ * A ScopedGuard servicing FreeRTOS vTaskSuspendAll.
+ *
+ * \note This guard is ISR safe (it performs no heap allocation and will act as
+ *       a NOOP when in an interrupt).
+ */
+class SuspendGuard : public ScopedGuard {
+public:
+	/**
+	 * Suspend the scheduler
+	 * @param immediate If true, suspend the scheduler immediately.
+	 */
+	SuspendGuard(bool immediate) {
+		if (immediate)
+			this->acquire();
+	};
+	virtual ~SuspendGuard() {
+		if (this->acquired)
+			this->release();
+	};
+
+	virtual void acquire() {
+		if (this->acquired)
+			throw except::deadlock_error("Attempted to acquire() a SuspendGuard that was already held.");
+		if (!IN_INTERRUPT())
+			vTaskSuspendAll();
+		this->acquired = true;
+	}
+
+	virtual void release() {
+		if (!this->acquired)
+			throw except::deadlock_error("Attempted to release() a SuspendGuard that was not held.");
+		this->acquired = false;
+		if (!IN_INTERRUPT())
+			xTaskResumeAll();
 	}
 };
 
