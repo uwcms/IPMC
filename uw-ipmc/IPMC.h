@@ -55,6 +55,8 @@ extern SensorDataRepository sdr_repo;
 extern SensorDataRepository device_sdr_repo;
 class SensorSet;
 extern SensorSet ipmc_sensors;
+extern SemaphoreHandle_t fru_data_mutex;
+extern std::vector<uint8_t> fru_data;
 
 extern LogTree LOG;
 extern LogTree::Filter *console_log_filter;

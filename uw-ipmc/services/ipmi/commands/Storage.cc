@@ -1,6 +1,7 @@
 #include <services/ipmi/IPMI.h>
 #include <services/ipmi/ipmbsvc/IPMBSvc.h>
 #include <services/ipmi/sdr/SensorDataRepository.h>
+#include <libs/ThreadingPrimitives.h>
 #include "IPMICmd_Index.h"
 
 #define RETURN_ERROR(ipmb, message, completion_code) \
@@ -11,27 +12,66 @@
 
 // FRU Device Commands
 
-#if 0 // Unimplemented.
+#define FRU_AREA_SIZE 1024
+
 static void ipmicmd_Get_FRU_Inventory_Area_Info(IPMBSvc &ipmb, const IPMI_MSG &message) {
-	// Unimplemented.
+	if (message.data_len != 1)
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Invalid_Data_Field_In_Request);
+	if (message.data[0] != 0) // We only support one FRU Device
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Parameter_Out_Of_Range);
+	// We'll claim a perfectly reasonable FRU_AREA_SIZE byte FRU Data Area
+	ipmb.send(message.prepare_reply({IPMI::Completion::Success, (FRU_AREA_SIZE & 0xFF), (FRU_AREA_SIZE >> 8), 0}));
 }
 IPMICMD_INDEX_REGISTER(Get_FRU_Inventory_Area_Info);
-#endif
 
-#if 0 // Unimplemented.
 static void ipmicmd_Read_FRU_Data(IPMBSvc &ipmb, const IPMI_MSG &message) {
-	// Unimplemented.
+	if (message.data_len != 4)
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Invalid_Data_Field_In_Request);
+	if (message.data[0] != 0) // We only support one FRU Device
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Parameter_Out_Of_Range);
+
+	uint16_t offset = (message.data[2] << 8) | message.data[1];
+	uint8_t read_count = message.data[3];
+	if (1+read_count > IPMI_MSG::max_data_len)
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Cannot_Return_Requested_Number_Of_Data_Bytes);
+	if (offset >= FRU_AREA_SIZE)
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Cannot_Return_Requested_Number_Of_Data_Bytes);
+	std::vector<uint8_t> reply{IPMI::Completion::Success, 0};
+	safe_init_static_mutex(fru_data_mutex, false);
+	MutexGuard<false> lock(fru_data_mutex, true);
+	int i = offset;
+	for (; i < offset+read_count && i < fru_data.size(); ++i)
+		reply.push_back(fru_data[i]); // Return data
+	for (; i < offset+read_count && i < FRU_AREA_SIZE; ++i)
+		reply.push_back(0); // Fill it out with 0s.
+	lock.release();
+	reply[1] = reply.size() - 2;
+	ipmb.send(message.prepare_reply(reply));
 }
 IPMICMD_INDEX_REGISTER(Read_FRU_Data);
-#endif
 
-#if 0 // Unimplemented.
 static void ipmicmd_Write_FRU_Data(IPMBSvc &ipmb, const IPMI_MSG &message) {
-	// Unimplemented.
+	if (message.data_len < 3)
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Invalid_Data_Field_In_Request);
+	if (message.data[0] != 0) // We only support one FRU Device
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Parameter_Out_Of_Range);
+
+	uint16_t offset = (message.data[2] << 8) | message.data[1];
+	std::vector<uint8_t> write_bytes(message.data+3, message.data+message.data_len);
+	safe_init_static_mutex(fru_data_mutex, false);
+	MutexGuard<false> lock(fru_data_mutex, true);
+	if (fru_data.size() < offset + write_bytes.size())
+		fru_data.resize(offset + write_bytes.size(), 0);
+	uint8_t bytes_written = 0;
+	for (auto it = write_bytes.begin(), eit = write_bytes.end(); it != eit; ++it) {
+		if (offset > FRU_AREA_SIZE)
+			break; // We claim to be a perfectly reasonable FRU_AREA_SIZE byte area.  Enforce it.
+		fru_data[offset + bytes_written++] = *it;
+	}
+	lock.release();
+	ipmb.send(message.prepare_reply({IPMI::Completion::Success, bytes_written}));
 }
 IPMICMD_INDEX_REGISTER(Write_FRU_Data);
-#endif
-
 
 // SDR Device Commands
 

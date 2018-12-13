@@ -110,6 +110,8 @@ IPMICommandParser *ipmi_command_parser;
 SensorDataRepository sdr_repo;
 SensorDataRepository device_sdr_repo;
 SensorSet ipmc_sensors(&device_sdr_repo);
+SemaphoreHandle_t fru_data_mutex;
+std::vector<uint8_t> fru_data;
 MStateMachine *mstatemachine = NULL;
 PL_GPIO *handle_gpio;
 LED_Controller atcaLEDs;
@@ -129,6 +131,7 @@ PS_XADC *xadc;
 bool firmwareUpdateFailed = false;
 
 static void init_device_sdrs(bool reinit=false);
+static void init_fru_data(bool reinit=false);
 static void tracebuffer_log_handler(LogTree &logtree, const std::string &message, enum LogTree::LogLevel level);
 static void register_core_console_commands(CommandParser &parser);
 static void console_log_handler(LogTree &logtree, const std::string &message, enum LogTree::LogLevel level);
@@ -180,6 +183,7 @@ void driver_init(bool use_pl) {
 	register_core_console_commands(console_command_parser);
 
 	init_device_sdrs(false);
+	init_fru_data(false);
 
 	XGpioPs_Config* gpiops_config = XGpioPs_LookupConfig(XPAR_PS7_GPIO_0_DEVICE_ID);
 	configASSERT(XST_SUCCESS == XGpioPs_CfgInitialize(&gpiops, gpiops_config, gpiops_config->BaseAddr));
@@ -515,7 +519,7 @@ static void add_PICMG_multirecord (std::vector<uint8_t> &fruarea, std::vector<ui
 	fruarea.insert(fruarea.end(), mrdata.begin(), mrdata.end());
 }
 
-void init_fru_area() {
+void init_fru_data(bool reinit) {
 	std::vector<uint8_t> tlstring;
 
 	std::vector<uint8_t> board_info;
@@ -570,20 +574,19 @@ void init_fru_area() {
 	product_info.push_back(ipmi_checksum(product_info));
 
 
-	std::vector<uint8_t> frudata;
-	frudata.resize(8);
-	frudata[0] = 0x01; // Common Header Format Version
-	frudata[1] = 0x00; // Internal Use Area Offset (multiple of 8 bytes)
-	frudata[2] = 0x00; // Chassis Info Area Offset (multiple of 8 bytes)
-	frudata[3] = 0x01; // Board Area Offset (multiple of 8 bytes)
-	frudata[4] = 0x01 + board_info.size()/8; // Product Info Area Offset (multiple of 8 bytes)
-	frudata[5] = 0x01 + board_info.size()/8 + product_info.size()/8; // Multi-Record Area Offset (multiple of 8 bytes)
-	frudata[6] = 0x00; // PAD, write as 00h
-	frudata[7] = 0x00;
-	frudata[7] = ipmi_checksum(frudata); // Checksum
+	fru_data.resize(8);
+	fru_data[0] = 0x01; // Common Header Format Version
+	fru_data[1] = 0x00; // Internal Use Area Offset (multiple of 8 bytes)
+	fru_data[2] = 0x00; // Chassis Info Area Offset (multiple of 8 bytes)
+	fru_data[3] = 0x01; // Board Area Offset (multiple of 8 bytes)
+	fru_data[4] = 0x01 + board_info.size()/8; // Product Info Area Offset (multiple of 8 bytes)
+	fru_data[5] = 0x01 + board_info.size()/8 + product_info.size()/8; // Multi-Record Area Offset (multiple of 8 bytes)
+	fru_data[6] = 0x00; // PAD, write as 00h
+	fru_data[7] = 0x00;
+	fru_data[7] = ipmi_checksum(fru_data); // Checksum
 
-	frudata.insert(frudata.end(), board_info.begin(), board_info.end());
-	frudata.insert(frudata.end(), product_info.begin(), product_info.end());
+	fru_data.insert(fru_data.end(), board_info.begin(), board_info.end());
+	fru_data.insert(fru_data.end(), product_info.begin(), product_info.end());
 
 	/* Carrier Activation and Current Management record
 	 * ...not that we have any AMC modules.
@@ -591,7 +594,21 @@ void init_fru_area() {
 	 * This is supposed to specify the maximum power we can provide to our AMCs,
 	 * and be used for validating our AMC modules' power requirements.
 	 */
-	add_PICMG_multirecord(frudata, std::vector<uint8_t>{0, 0x17, 0x3f /* ~75W for all AMCs (and self..?) */, 5}, false);
+	add_PICMG_multirecord(fru_data, std::vector<uint8_t>{0, 0x17, 0x3f /* ~75W for all AMCs (and self..?) */, 5}, true);
+
+	UWTaskCreate("persist_fru", TASK_PRIORITY_SERVICE, [reinit]() -> void {
+		safe_init_static_mutex(fru_data_mutex, false);
+		MutexGuard<false> lock(fru_data_mutex, true);
+		VariablePersistentAllocation fru_persist(*persistent_storage, PersistentStorageAllocations::WISC_FRU_DATA);
+
+		// If not reinitializing, and there's an area to read, replace ours, else write.
+		std::vector<uint8_t> persist_data = fru_persist.get_data();
+		if (persist_data.size() && !reinit)
+			fru_data = persist_data;
+
+		// Store the newly initialized Device SDRs
+		fru_persist.set_data(fru_data);
+	});
 }
 
 // TODO: Will be moved (see #19)
