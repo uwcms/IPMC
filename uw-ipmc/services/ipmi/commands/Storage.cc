@@ -1,6 +1,7 @@
 #include <services/ipmi/IPMI.h>
 #include <services/ipmi/ipmbsvc/IPMBSvc.h>
 #include <services/ipmi/sdr/SensorDataRepository.h>
+#include <services/persistentstorage/PersistentStorage.h>
 #include <libs/ThreadingPrimitives.h>
 #include "IPMICmd_Index.h"
 
@@ -68,6 +69,7 @@ static void ipmicmd_Write_FRU_Data(IPMBSvc &ipmb, const IPMI_MSG &message) {
 			break; // We claim to be a perfectly reasonable FRU_AREA_SIZE byte area.  Enforce it.
 		fru_data[offset + bytes_written++] = *it;
 	}
+	VariablePersistentAllocation(*persistent_storage, PersistentStorageAllocations::WISC_FRU_DATA).set_data(fru_data);
 	lock.release();
 	ipmb.send(message.prepare_reply({IPMI::Completion::Success, bytes_written}));
 }
