@@ -182,9 +182,6 @@ std::shared_ptr<IPMI_MSG> IPMBSvc::send_sync(std::shared_ptr<IPMI_MSG> msg) {
 }
 
 void IPMBSvc::run_thread() {
-	SkyRoad::Temple temple;
-	xQueueAddToSet(temple.get_queue(), this->qset);
-
 	AbsoluteTimeout next_wait(UINT64_MAX);
 	while (true) {
 		if (this->wdt) {
