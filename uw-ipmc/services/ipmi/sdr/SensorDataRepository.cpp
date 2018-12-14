@@ -93,15 +93,20 @@ void SensorDataRepository::add(const SensorDataRepository &sdrepository, reserva
  * @param reservation The current reservation (or 0 to oneshot reserve for this
  *                    operation).  If this does not match the current
  *                    reservation, the operation will not complete.
+ * @return true if a record was removed else false
  * @throw reservation_cancelled_error
  */
-void SensorDataRepository::remove(uint16_t id, reservation_t reservation) {
+bool SensorDataRepository::remove(uint16_t id, reservation_t reservation) {
 	MutexGuard<true> lock(this->mutex, true);
 	this->assert_reservation(reservation);
-	if (id <= this->records.size())
+	bool removed = false;
+	if (id <= this->records.size()) {
 		this->records.erase(std::next(this->records.begin(), id));
+		removed = true;
+	}
 	this->renumber();
 	this->last_update_ts = time(NULL);
+	return removed;
 }
 
 /**
@@ -112,19 +117,25 @@ void SensorDataRepository::remove(uint16_t id, reservation_t reservation) {
  * @param reservation The current reservation (or 0 to oneshot reserve for this
  *                    operation).  If this does not match the current
  *                    reservation, the operation will not complete.
+ * @return true if at least one record was removed else false
  * @throw reservation_cancelled_error
  */
-void SensorDataRepository::remove(const SensorDataRecord &record, reservation_t reservation) {
+bool SensorDataRepository::remove(const SensorDataRecord &record, reservation_t reservation) {
 	MutexGuard<true> lock(this->mutex, true);
 	this->assert_reservation(reservation);
+	bool removed = false;
 	for (auto it = this->records.begin(); it != this->records.end(); /* below */) {
-		if (**it == record)
+		if (**it == record) {
 			it = this->records.erase(it);
-		else
+			removed = true;
+		}
+		else {
 			++it;
+		}
 	}
 	this->renumber();
 	this->last_update_ts = time(NULL);
+	return removed;
 }
 
 /**
