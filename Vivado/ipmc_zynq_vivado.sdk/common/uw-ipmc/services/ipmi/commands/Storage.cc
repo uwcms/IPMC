@@ -108,7 +108,7 @@ IPMICMD_INDEX_REGISTER(Get_SDR_Repository_Info);
 
 #if 0 // Unimplemented.
 static void ipmicmd_Get_SDR_Repository_Allocation_Info(IPMBSvc &ipmb, const IPMI_MSG &message) {
-	// TODO: Required? PICMG 3.0 REQ 3.351
+	// Unimplemented
 }
 IPMICMD_INDEX_REGISTER(Get_SDR_Repository_Allocation_Info);
 #endif
