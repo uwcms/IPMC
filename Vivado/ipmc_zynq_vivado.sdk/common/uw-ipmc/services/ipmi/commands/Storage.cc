@@ -156,7 +156,27 @@ IPMICMD_INDEX_REGISTER(Get_SDR);
 
 static void ipmicmd_Add_SDR(IPMBSvc &ipmb, const IPMI_MSG &message) {
 	std::vector<uint8_t> sdrdata(message.data, message.data+message.data_len);
-	sdr_repo.add(*SensorDataRecord::interpret(sdrdata), 0);
+	std::shared_ptr<SensorDataRecord> record = SensorDataRecord::interpret(sdrdata);
+	if (!record) {
+		std::string error = "A partial add for SDR data";
+		for (auto it = sdrdata.begin(), eit = sdrdata.end(); it != eit; ++it)
+			error += stdsprintf(" %02hhx", *it);
+		error += " was rejected because we could not interpret it.";
+		ipmb.logroot["commands"].log(error, LogTree::LOG_WARNING);
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Invalid_Data_Field_In_Request);
+	}
+	try {
+		record->validate();
+	}
+	catch (SensorDataRecord::invalid_sdr_error) {
+		std::string error = "A partial add for SDR data";
+		for (auto it = sdrdata.begin(), eit = sdrdata.end(); it != eit; ++it)
+			error += stdsprintf(" %02hhx", *it);
+		error += " was rejected because we could not validate it.";
+		ipmb.logroot["commands"].log(error, LogTree::LOG_WARNING);
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Invalid_Data_Field_In_Request);
+	}
+	sdr_repo.add(*record, 0);
 	ipmb.send(message.prepare_reply({IPMI::Completion::Success}));
 }
 IPMICMD_INDEX_REGISTER(Add_SDR);
@@ -231,7 +251,16 @@ static void ipmicmd_Partial_Add_SDR(IPMBSvc &ipmb, const IPMI_MSG &message) {
 			RETURN_ERROR(ipmb, message, IPMI::Completion::Invalid_Data_Field_In_Request);
 		}
 		try {
+			record->validate();
 			record_id = sdr_repo.add(*record, reservation);
+		}
+		catch (SensorDataRecord::invalid_sdr_error) {
+			std::string error = "A partial add for SDR data";
+			for (auto it = partial.begin(), eit = partial.end(); it != eit; ++it)
+				error += stdsprintf(" %02hhx", *it);
+			error += " was rejected because we could not validate it.";
+			ipmb.logroot["commands"].log(error, LogTree::LOG_WARNING);
+			RETURN_ERROR(ipmb, message, IPMI::Completion::Invalid_Data_Field_In_Request);
 		}
 		catch (SensorDataRepository::reservation_cancelled_error) {
 			RETURN_ERROR(ipmb, message, IPMI::Completion::Reservation_Cancelled);
