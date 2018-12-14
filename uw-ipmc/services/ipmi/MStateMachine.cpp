@@ -12,7 +12,7 @@
 #include <libs/printf.h>
 
 MStateMachine::MStateMachine(std::shared_ptr<HotswapSensor> hotswap_sensor, LogTree &log)
-	: _mstate(1), hotswap_sensor(hotswap_sensor), log(log),
+	: deactivate_payload(NULL), _mstate(1), hotswap_sensor(hotswap_sensor), log(log),
 	  _activation_locked(false), _deactivation_locked(false), _startup_locked(true),
 	  _override_handle_state(HANDLE_NULL), _physical_handle_state(HANDLE_OPEN) {
 	this->mutex = xSemaphoreCreateRecursiveMutex();
@@ -166,8 +166,10 @@ void MStateMachine::reevaluate(enum ActivationRequest activation_request, enum H
 		}
 		break;
 	case 6:
-		// We must now wait for the (Shelf-driven) un-negotiation of power and E-Keying.
-		// this->transition(1, HotswapSensor::TRANS_NORMAL);
+		// Deactivation of backend power & discard of E-Keyed interfaces is managed by us.
+		if (this->deactivate_payload)
+			this->deactivate_payload();
+		this->transition(1, HotswapSensor::TRANS_NORMAL);
 		break;
 	case 7:
 		throw std::logic_error("We can't exactly be claiming to be M7 on our own.");

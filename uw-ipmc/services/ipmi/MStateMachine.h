@@ -14,6 +14,7 @@
 #include <services/ipmi/sensor/HotswapSensor.h>
 #include <libs/LogTree.h>
 #include <memory>
+#include <functional>
 
 /**
  * A state machine handling IPMI M-State management and activation.
@@ -61,6 +62,8 @@ public:
 
 	virtual void register_console_commands(CommandParser &parser, const std::string &prefix);
 	virtual void deregister_console_commands(CommandParser &parser, const std::string &prefix);
+
+	std::function<void(void)> deactivate_payload; ///< A function used to deactivate the payload.
 
 protected:
 	SemaphoreHandle_t mutex; ///< Mutex protecting internal state.
