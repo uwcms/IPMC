@@ -25,7 +25,8 @@ public:
 	DEFINE_LOCAL_GENERIC_EXCEPTION(reservation_cancelled_error, std::runtime_error)
 	typedef uint16_t reservation_t;
 
-	void add(const SensorDataRecord &record, reservation_t reservation);
+	DEFINE_LOCAL_GENERIC_EXCEPTION(sdr_invalid_error, std::runtime_error)
+	uint16_t add(const SensorDataRecord &record, reservation_t reservation);
 	void add(const SensorDataRepository &sdrepository, reservation_t reservation);
 	void remove(uint16_t id, reservation_t reservation);
 	void remove(const SensorDataRecord &record, reservation_t reservation);

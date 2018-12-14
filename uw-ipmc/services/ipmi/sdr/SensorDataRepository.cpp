@@ -23,15 +23,15 @@ SensorDataRepository::~SensorDataRepository() {
  * Add a Sensor Data Record to this repository.  If another record with the same
  * type and key bytes already exists, it will be replaced.
  *
- * \warning If a record cannot be parsed it will not be added.
- *
  * @param record The record to add
  * @param reservation The current reservation (or 0 to oneshot reserve for this
  *                    operation).  If this does not match the current
  *                    reservation, the operation will not complete.
+ * @return The record ID of the inserted record.
  * @throw reservation_cancelled_error
+ * @throw sdr_invalid_error
  */
-void SensorDataRepository::add(const SensorDataRecord &record, reservation_t reservation) {
+uint16_t SensorDataRepository::add(const SensorDataRecord &record, reservation_t reservation) {
 	MutexGuard<true> lock(this->mutex, true);
 	this->assert_reservation(reservation);
 	/* Ensure we have our own copy, and that it is valid.
@@ -55,11 +55,17 @@ void SensorDataRepository::add(const SensorDataRecord &record, reservation_t res
 			this->records.push_back(interpreted);
 			this->last_update_ts = time(NULL);
 		}
+		return interpreted->record_id();
+	}
+	else {
+		throw sdr_invalid_error("The provided SDR could not be interpreted.");
 	}
 }
 
 /**
  * Add all records in the specified Sensor Data Repository to this repository.
+ *
+ * \note SDRs which could not be interpreted will not be added.
  *
  * @param sdrepository The record to add
  * @param reservation The current reservation (or 0 to oneshot reserve for this
@@ -70,8 +76,14 @@ void SensorDataRepository::add(const SensorDataRecord &record, reservation_t res
 void SensorDataRepository::add(const SensorDataRepository &sdrepository, reservation_t reservation) {
 	MutexGuard<true> lock(this->mutex, true);
 	this->assert_reservation(reservation);
-	for (auto it = sdrepository.records.begin(), eit = sdrepository.records.end(); it != eit; ++it)
-		this->add(**it, reservation);
+	for (auto it = sdrepository.records.begin(), eit = sdrepository.records.end(); it != eit; ++it) {
+		try {
+			this->add(**it, reservation);
+		}
+		catch (sdr_invalid_error) {
+			// Skip record.
+		}
+	}
 }
 
 /**
