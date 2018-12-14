@@ -153,19 +153,92 @@ static void ipmicmd_Get_SDR(IPMBSvc &ipmb, const IPMI_MSG &message) {
 }
 IPMICMD_INDEX_REGISTER(Get_SDR);
 
-#if 0 // Unimplemented.
 static void ipmicmd_Add_SDR(IPMBSvc &ipmb, const IPMI_MSG &message) {
-	// Unimplemented.
+	std::vector<uint8_t> sdrdata(message.data, message.data+message.data_len);
+	sdr_repo.add(*SensorDataRecord::interpret(sdrdata), 0);
+	ipmb.send(message.prepare_reply({IPMI::Completion::Success}));
 }
 IPMICMD_INDEX_REGISTER(Add_SDR);
-#endif
 
-#if 0 // Unimplemented.
 static void ipmicmd_Partial_Add_SDR(IPMBSvc &ipmb, const IPMI_MSG &message) {
-	// Unimplemented.
+	if (message.data_len < 7)
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Request_Data_Length_Invalid);
+	uint16_t reservation = (message.data[1] << 8) | message.data[0];
+	uint16_t record_id = (message.data[3] << 8) | message.data[2];
+	uint8_t offset = message.data[3];
+	bool commit = message.data[4] & 1;
+	std::vector<uint8_t> sdrdata(message.data+7, message.data+message.data_len);
+
+	if (reservation != sdr_repo.get_current_reservation())
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Reservation_Cancelled);
+
+	// Create a static map of partial adds.
+	// This may be called from two IPMBs simultaneously.  Be safe.
+	static SemaphoreHandle_t partials_mutex = NULL;
+	safe_init_static_mutex(partials_mutex, false);
+	MutexGuard<false> lock(partials_mutex, true);
+	static uint16_t last_reservation = 0;
+	static std::map< uint8_t, std::vector<uint8_t> > partials;
+
+	// If the reservation has changed, all partials are now invalid.
+	if (reservation != last_reservation)
+		partials.clear();
+	last_reservation = reservation;
+
+	// If the record id is 0x0000 and the offset is 0, create it.
+	if (record_id == 0 && offset == 0) {
+		for (uint8_t rid = 0xFE; rid; --rid) {
+			if (!partials.count(rid)) {
+				record_id = 0xFF00 | rid;
+				partials.insert(std::make_pair(rid, std::vector<uint8_t>()));
+				break;
+			}
+		}
+	}
+
+	// Verify that the given target is a known partial.
+	if ((record_id & 0xFF00) != 0xFF || !partials.count(record_id & 0xFF))
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Requested_Sensor_Data_Or_Record_Not_Present);
+
+	// We know we have a target in partials.
+	std::vector<uint8_t> &partial = partials.at(record_id & 0xFF);
+	if (partial.size() != offset) // We're writing somewhere other than the immediate end.
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Invalid_Data_Field_In_Request);
+
+	// Append the data, since the offset could only be the end.
+	partial.insert(partial.end(), sdrdata.begin(), sdrdata.end());
+
+	if (commit) {
+		if (partial.size() >= 5) {
+			// We have a length so we can actually do the length check.
+			if (partial.size() != (5U + partial[4])) {
+				std::string error = "A partial add for SDR data";
+				for (auto it = partial.begin(), eit = partial.end(); it != eit; ++it)
+					error += stdsprintf(" %02hhx", *it);
+				error += " does not match the length specified in the record.";
+				ipmb.logroot["commands"].log(error, LogTree::LOG_WARNING);
+				RETURN_ERROR(ipmb, message, 0x80 /* Specified in message definition as: Rejected due to size mismatch */);
+			}
+		}
+		std::shared_ptr<SensorDataRecord> record = SensorDataRecord::interpret(partial);
+		if (!record) {
+			std::string error = "A partial add for SDR data";
+			for (auto it = partial.begin(), eit = partial.end(); it != eit; ++it)
+				error += stdsprintf(" %02hhx", *it);
+			error += " was rejected because we could not interpret it.";
+			ipmb.logroot["commands"].log(error, LogTree::LOG_WARNING);
+			RETURN_ERROR(ipmb, message, IPMI::Completion::Invalid_Data_Field_In_Request);
+		}
+		try {
+			record_id = sdr_repo.add(*record, reservation);
+		}
+		catch (SensorDataRepository::reservation_cancelled_error) {
+			RETURN_ERROR(ipmb, message, IPMI::Completion::Reservation_Cancelled);
+		}
+	}
+	ipmb.send(message.prepare_reply({IPMI::Completion::Success, static_cast<uint8_t>(record_id & 0xff), static_cast<uint8_t>(record_id >> 8)}));
 }
 IPMICMD_INDEX_REGISTER(Partial_Add_SDR);
-#endif
 
 #if 0 // Unimplemented.
 static void ipmicmd_Delete_SDR(IPMBSvc &ipmb, const IPMI_MSG &message) {
