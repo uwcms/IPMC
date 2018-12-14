@@ -78,25 +78,26 @@ IPMICMD_INDEX_REGISTER(Write_FRU_Data);
 // SDR Device Commands
 
 static void ipmicmd_Get_SDR_Repository_Info(IPMBSvc &ipmb, const IPMI_MSG &message) {
+	time_t last_update = sdr_repo.last_update_timestamp();
 	std::shared_ptr<IPMI_MSG> reply = message.prepare_reply();
 	reply->data[0] = IPMI::Completion::Success;
 	reply->data[1] = 0x51; // SDR Version (Spec 2.0: 51h)
-	reply->data[2] = 0; // Record Count LSB TODO
-	reply->data[3] = 0; // Record Count MSB TODO
+	reply->data[2] = sdr_repo.size() & 0xff; // Record Count LSB
+	reply->data[3] = sdr_repo.size() >> 8;   // Record Count MSB
 	reply->data[4] = 0xff; // Free Space LSB (0xffff = unspecified)
 	reply->data[5] = 0xff; // Free Space MSB (0xffff = unspecified)
-	reply->data[6] = 0; // Most Recent Addition Timestamp[0]
-	reply->data[7] = 0; // Most Recent Addition Timestamp[1]
-	reply->data[8] = 0; // Most Recent Addition Timestamp[2]
-	reply->data[9] = 0; // Most Recent Addition Timestamp[3]
-	reply->data[10] = 0; // Most Recent Deletion Timestamp[0]
-	reply->data[11] = 0; // Most Recent Deletion Timestamp[1]
-	reply->data[12] = 0; // Most Recent Deletion Timestamp[2]
-	reply->data[13] = 0; // Most Recent Deletion Timestamp[3]
+	reply->data[6] = (last_update >>  0) & 0xff; // Most Recent Addition Timestamp[0]
+	reply->data[7] = (last_update >>  8) & 0xff; // Most Recent Addition Timestamp[1]
+	reply->data[8] = (last_update >> 16) & 0xff; // Most Recent Addition Timestamp[2]
+	reply->data[9] = (last_update >> 24) & 0xff; // Most Recent Addition Timestamp[3]
+	reply->data[10] = (last_update >>  0) & 0xff; // Most Recent Deletion Timestamp[0]
+	reply->data[11] = (last_update >>  8) & 0xff; // Most Recent Deletion Timestamp[1]
+	reply->data[12] = (last_update >> 16) & 0xff; // Most Recent Deletion Timestamp[2]
+	reply->data[13] = (last_update >> 24) & 0xff; // Most Recent Deletion Timestamp[3]
 	reply->data[14] = 0; // Operation Support
 	if (sdr_repo.size() >= 0xFFFE)
 		reply->data[14] |= 1<<7; // [7]   Repository has been overflowed by an Add
-	reply->data[14] |= 1<<5; // [6:5] Repository supports non-modal update only.
+	reply->data[14] |= 1<<5; // [6:5] 01b = Repository supports non-modal update only.
 	reply->data[14] |= 1<<3; // [3]   Delete SDR Command Supported
 	reply->data[14] |= 1<<2; // [2]   Partial Add Command Supported
 	reply->data[14] |= 1<<1; // [1]   Reserve SDR Repository Command Supported
