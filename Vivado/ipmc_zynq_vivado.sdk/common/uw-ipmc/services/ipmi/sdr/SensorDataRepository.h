@@ -28,8 +28,8 @@ public:
 	DEFINE_LOCAL_GENERIC_EXCEPTION(sdr_invalid_error, std::runtime_error)
 	uint16_t add(const SensorDataRecord &record, reservation_t reservation);
 	void add(const SensorDataRepository &sdrepository, reservation_t reservation);
-	void remove(uint16_t id, reservation_t reservation);
-	void remove(const SensorDataRecord &record, reservation_t reservation);
+	bool remove(uint16_t id, reservation_t reservation);
+	bool remove(const SensorDataRecord &record, reservation_t reservation);
 	void clear(reservation_t reservation);
 	std::shared_ptr<const SensorDataRecord> get(uint16_t id, reservation_t reservation=0) const;
 	std::shared_ptr<const SensorDataRecord> find(const std::vector<uint8_t> &key, reservation_t reservation=0) const;

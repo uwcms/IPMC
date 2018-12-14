@@ -240,19 +240,42 @@ static void ipmicmd_Partial_Add_SDR(IPMBSvc &ipmb, const IPMI_MSG &message) {
 }
 IPMICMD_INDEX_REGISTER(Partial_Add_SDR);
 
-#if 0 // Unimplemented.
 static void ipmicmd_Delete_SDR(IPMBSvc &ipmb, const IPMI_MSG &message) {
-	// Unimplemented.
+	if (message.data_len != 4)
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Request_Data_Length_Invalid);
+	uint16_t reservation = (message.data[1] << 8) | message.data[0];
+	uint16_t record_id = (message.data[3] << 8) | message.data[2];
+	if (reservation != sdr_repo.get_current_reservation())
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Reservation_Cancelled);
+	try {
+		if (!sdr_repo.remove(record_id, reservation))
+			RETURN_ERROR(ipmb, message, IPMI::Completion::Requested_Sensor_Data_Or_Record_Not_Present);
+	}
+	catch (SensorDataRepository::reservation_cancelled_error) {
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Reservation_Cancelled);
+	}
+	ipmb.send(message.prepare_reply({IPMI::Completion::Success, message.data[2], message.data[3]}));
 }
 IPMICMD_INDEX_REGISTER(Delete_SDR);
-#endif
 
-#if 0 // Unimplemented.
 static void ipmicmd_Clear_SDR_Repository(IPMBSvc &ipmb, const IPMI_MSG &message) {
-	// Unimplemented.
+	if (message.data_len != 6)
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Request_Data_Length_Invalid);
+	uint16_t reservation = (message.data[1] << 8) | message.data[0];
+	if (reservation != sdr_repo.get_current_reservation())
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Reservation_Cancelled);
+	if (message.data[2] != 'C' || message.data[3] != 'L' || message.data[4] != 'R')
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Invalid_Data_Field_In_Request);
+
+	try {
+		sdr_repo.clear(reservation);
+	}
+	catch (SensorDataRepository::reservation_cancelled_error) {
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Reservation_Cancelled);
+	}
+	ipmb.send(message.prepare_reply({IPMI::Completion::Success}));
 }
 IPMICMD_INDEX_REGISTER(Clear_SDR_Repository);
-#endif
 
 #if 0 // Unimplemented.
 static void ipmicmd_Get_SDR_Repository_Time(IPMBSvc &ipmb, const IPMI_MSG &message) {
