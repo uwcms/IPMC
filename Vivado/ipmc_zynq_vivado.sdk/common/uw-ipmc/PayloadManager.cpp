@@ -16,6 +16,9 @@ PayloadManager::PayloadManager(MStateMachine *mstate_machine, LogTree &log)
 	for (int i = 0; i < XPAR_MGMT_ZONE_CTRL_0_MZ_CNT; ++i)
 		this->mgmt_zones[i] = new MGMT_Zone(XPAR_MGMT_ZONE_CTRL_0_DEVICE_ID, i);
 
+	SuspendGuard suspend(true);
+	this->mstate_machine->deactivate_payload = [this]() -> void { this->set_power_level(0, 0); };
+	suspend.release();
 
 	std::vector<MGMT_Zone::OutputConfig> pen_config;
 	uint64_t hf_mask = 0
@@ -75,6 +78,10 @@ PayloadManager::~PayloadManager() {
 		this->mgmt_zones[i]->set_power_state(MGMT_Zone::KILL);
 		delete this->mgmt_zones[i];
 	}
+
+	SuspendGuard suspend(true);
+	this->mstate_machine->deactivate_payload = NULL;
+	suspend.release();
 }
 
 /**
