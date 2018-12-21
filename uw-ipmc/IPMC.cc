@@ -186,7 +186,7 @@ void driver_init(bool use_pl) {
 	register_core_console_commands(console_command_parser);
 
 	init_device_sdrs(false);
-	init_fru_data(false);
+	init_fru_data(true);
 
 	XGpioPs_Config* gpiops_config = XGpioPs_LookupConfig(XPAR_PS7_GPIO_0_DEVICE_ID);
 	configASSERT(XST_SUCCESS == XGpioPs_CfgInitialize(&gpiops, gpiops_config, gpiops_config->BaseAddr));
@@ -611,17 +611,17 @@ void init_fru_data(bool reinit) {
 		 * [23:20] = 0 (Link Type Extension (10/100/1000BASE-T (four-pair)))
 		 * [19:12] = 1 (Link Type (From PICMG 3.0 Table 3-52))
 		 * [11: 0] = Link Designator (from PICMG 3.0 Table 3-51)
-		 *           [ 11] = 1 (Port 3 Included)
-		 *           [ 10] = 1 (Port 2 Included)
-		 *           [  9] = 1 (Port 1 Included)
+		 *           [ 11] = 1 (Port 3 Excluded)
+		 *           [ 10] = 1 (Port 2 Excluded)
+		 *           [  9] = 1 (Port 1 Excluded)
 		 *           [  8] = 1 (Port 0 Included)
 		 *           [7:6] = 0 (Base Interface)
 		 *           [5:0] = 1 (Channel 1)
 		 */
-		0x00, // [31:24]
-		0x00, // [23:16]
-		0x1F, // [15: 8]
 		0x01, // [ 7: 0]
+		0x11, // [15: 8]
+		0x00, // [23:16]
+		0x00, // [31:24]
 
 		/* Link Descriptor 2: 1G to Hub Slots (2 of 2)
 		 * [31:24] = 0 (Single Channel Link (No Grouping))
@@ -635,10 +635,10 @@ void init_fru_data(bool reinit) {
 		 *           [7:6] = 0 (Base Interface)
 		 *           [5:0] = 2 (Channel 2)
 		 */
-		0x00, // [31:24]
-		0x00, // [23:16]
-		0x1F, // [15: 8]
 		0x02, // [ 7: 0]
+		0x11, // [15: 8]
+		0x00, // [23:16]
+		0x00, // [31:24]
 		}, true);
 
 	UWTaskCreate("persist_fru", TASK_PRIORITY_SERVICE, [reinit]() -> void {
