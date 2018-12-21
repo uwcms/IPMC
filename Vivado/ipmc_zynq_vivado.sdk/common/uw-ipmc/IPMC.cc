@@ -162,7 +162,10 @@ void driver_init(bool use_pl) {
 	SWDT = new PS_WDT(XPAR_PS7_WDT_0_DEVICE_ID, 8, LOG["watchdog"], watchdog_ontrip);
 
 	// Initialize the UART console.
-	uart_ps0 = new PS_UART(XPAR_PS7_UART_0_DEVICE_ID, XPAR_PS7_UART_0_INTR, 4096, 4096);
+	/* We use a large outbuf to prevent bursts of log messages (such as IPMI
+	 * logs from FRU Data reads) from overflowing.
+	 */
+	uart_ps0 = new PS_UART(XPAR_PS7_UART_0_DEVICE_ID, XPAR_PS7_UART_0_INTR, 4096, 1<<16);
 	console_log_filter = new LogTree::Filter(LOG, console_log_handler, LogTree::LOG_NOTICE);
 	console_log_filter->register_console_commands(console_command_parser);
 	LOG["console_log_command"].register_console_commands(console_command_parser);
@@ -498,7 +501,7 @@ static void init_device_sdrs(bool reinit) {
  * @param fruarea The FRU Data area to be appended
  * @param mrdata The multirecord to be added
  * @param last_record true if the "end of list" flag should be set on this record, else false
- * @param record_format The record format, if not default
+ * @param record_format The record format version, if not default
  */
 static void add_PICMG_multirecord (std::vector<uint8_t> &fruarea, std::vector<uint8_t> mrdata, bool last_record, uint8_t record_format=2) {
 	static const std::vector<uint8_t> mrheader{
@@ -594,7 +597,49 @@ void init_fru_data(bool reinit) {
 	 * This is supposed to specify the maximum power we can provide to our AMCs,
 	 * and be used for validating our AMC modules' power requirements.
 	 */
-	add_PICMG_multirecord(fru_data, std::vector<uint8_t>{0, 0x17, 0x3f /* ~75W for all AMCs (and self..?) */, 5}, true);
+	add_PICMG_multirecord(fru_data, std::vector<uint8_t>{0x17, 0, 0x3f /* ~75W for all AMCs (and self..?) */, 5}, false);
+
+	/* Board Point-to-Point Connectivity Record
+	 *
+	 */
+	add_PICMG_multirecord(fru_data, std::vector<uint8_t>{0x14, 0,
+		0, // No OEM GUIDs defined here.
+		// No OEM GUIDs defined here.
+
+		/* Link Descriptor 1: 1G to Hub Slots (1 of 2)
+		 * [31:24] = 0 (Single Channel Link (No Grouping))
+		 * [23:20] = 0 (Link Type Extension (10/100/1000BASE-T (four-pair)))
+		 * [19:12] = 1 (Link Type (From PICMG 3.0 Table 3-52))
+		 * [11: 0] = Link Designator (from PICMG 3.0 Table 3-51)
+		 *           [ 11] = 1 (Port 3 Included)
+		 *           [ 10] = 1 (Port 2 Included)
+		 *           [  9] = 1 (Port 1 Included)
+		 *           [  8] = 1 (Port 0 Included)
+		 *           [7:6] = 0 (Base Interface)
+		 *           [5:0] = 1 (Channel 1)
+		 */
+		0x00, // [31:24]
+		0x00, // [23:16]
+		0x1F, // [15: 8]
+		0x01, // [ 7: 0]
+
+		/* Link Descriptor 2: 1G to Hub Slots (2 of 2)
+		 * [31:24] = 0 (Single Channel Link (No Grouping))
+		 * [23:20] = 0 (Link Type Extension (10/100/1000BASE-T (four-pair)))
+		 * [19:12] = 1 (Link Type (From PICMG 3.0 Table 3-52))
+		 * [11: 0] = Link Designator (from PICMG 3.0 Table 3-51)
+		 *           [ 11] = 1 (Port 3 Included)
+		 *           [ 10] = 1 (Port 2 Included)
+		 *           [  9] = 1 (Port 1 Included)
+		 *           [  8] = 1 (Port 0 Included)
+		 *           [7:6] = 0 (Base Interface)
+		 *           [5:0] = 2 (Channel 2)
+		 */
+		0x00, // [31:24]
+		0x00, // [23:16]
+		0x1F, // [15: 8]
+		0x02, // [ 7: 0]
+		}, true);
 
 	UWTaskCreate("persist_fru", TASK_PRIORITY_SERVICE, [reinit]() -> void {
 		safe_init_static_mutex(fru_data_mutex, false);
