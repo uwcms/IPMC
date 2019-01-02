@@ -516,7 +516,7 @@ static void add_PICMG_multirecord (std::vector<uint8_t> &fruarea, std::vector<ui
 	};
 	mrdata.insert(mrdata.begin(), mrheader.begin(), mrheader.end());
 	mrdata[1] = (last_record ? 0x80 : 0) | record_format;
-	mrdata[2] = mrdata.size();
+	mrdata[2] = mrdata.size() - 5 /* Apparently this is record DATA length. */;
 	mrdata[3] = ipmi_checksum(std::vector<uint8_t>(std::next(mrdata.begin(), 5), mrdata.end()));
 	mrdata[4] = ipmi_checksum(std::vector<uint8_t>(mrdata.begin(), std::next(mrdata.begin(), 5)));
 	fruarea.insert(fruarea.end(), mrdata.begin(), mrdata.end());
@@ -597,7 +597,7 @@ void init_fru_data(bool reinit) {
 	 * This is supposed to specify the maximum power we can provide to our AMCs,
 	 * and be used for validating our AMC modules' power requirements.
 	 */
-	add_PICMG_multirecord(fru_data, std::vector<uint8_t>{0x17, 0, 0x3f /* ~75W for all AMCs (and self..?) */, 5}, false);
+	//add_PICMG_multirecord(fru_data, std::vector<uint8_t>{0x17, 0, 0x3f /* ~75W for all AMCs (and self..?) LSB */, 0 /* MSB */, 5, 0}, false);
 
 	/* Board Point-to-Point Connectivity Record
 	 *
@@ -653,6 +653,12 @@ void init_fru_data(bool reinit) {
 
 		// Store the newly initialized Device SDRs
 		fru_persist.set_data(fru_data);
+		std::string out;
+#if 0
+		for (auto it = fru_data.begin(), eit = fru_data.end(); it != eit; ++it)
+			out += stdsprintf("%02hhx", *it);
+		printf("FRU Data \"%s\"\n", out.c_str());
+#endif
 	});
 }
 
