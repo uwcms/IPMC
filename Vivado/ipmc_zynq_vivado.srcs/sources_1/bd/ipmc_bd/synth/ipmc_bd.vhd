@@ -1,8 +1,8 @@
 --Copyright 1986-2018 Xilinx, Inc. All Rights Reserved.
 ----------------------------------------------------------------------------------
 --Tool Version: Vivado v.2018.2 (lin64) Build 2258646 Thu Jun 14 20:02:38 MDT 2018
---Date        : Fri Dec  7 16:21:27 2018
---Host        : beck.hep.wisc.edu running 64-bit CentOS Linux release 7.5.1804 (Core)
+--Date        : Fri Jan  4 11:38:11 2019
+--Host        : beck.hep.wisc.edu running 64-bit CentOS Linux release 7.6.1810 (Core)
 --Command     : generate_target ipmc_bd.bd
 --Design      : ipmc_bd
 --Purpose     : IP block netlist
@@ -2650,7 +2650,7 @@ entity ipmc_bd_axi_interconnect_0_0 is
 end ipmc_bd_axi_interconnect_0_0;
 
 architecture STRUCTURE of ipmc_bd_axi_interconnect_0_0 is
-  component ipmc_bd_xbar_1 is
+  component ipmc_bd_xbar_2 is
   port (
     aclk : in STD_LOGIC;
     aresetn : in STD_LOGIC;
@@ -2693,7 +2693,7 @@ architecture STRUCTURE of ipmc_bd_axi_interconnect_0_0 is
     m_axi_rvalid : in STD_LOGIC_VECTOR ( 11 downto 0 );
     m_axi_rready : out STD_LOGIC_VECTOR ( 11 downto 0 )
   );
-  end component ipmc_bd_xbar_1;
+  end component ipmc_bd_xbar_2;
   signal M00_ACLK_1 : STD_LOGIC;
   signal M00_ARESETN_1 : STD_LOGIC;
   signal M01_ACLK_1 : STD_LOGIC;
@@ -4106,7 +4106,7 @@ s00_couplers: entity work.s00_couplers_imp_1UC1GY4
       S_AXI_wstrb(3 downto 0) => axi_interconnect_0_to_s00_couplers_WSTRB(3 downto 0),
       S_AXI_wvalid => axi_interconnect_0_to_s00_couplers_WVALID
     );
-xbar: component ipmc_bd_xbar_1
+xbar: component ipmc_bd_xbar_2
      port map (
       aclk => axi_interconnect_0_ACLK_net,
       aresetn => axi_interconnect_0_ARESETN_net,
@@ -4428,7 +4428,7 @@ entity ipmc_bd_axi_interconnect_0_1 is
 end ipmc_bd_axi_interconnect_0_1;
 
 architecture STRUCTURE of ipmc_bd_axi_interconnect_0_1 is
-  component ipmc_bd_xbar_2 is
+  component ipmc_bd_xbar_0 is
   port (
     aclk : in STD_LOGIC;
     aresetn : in STD_LOGIC;
@@ -4471,7 +4471,7 @@ architecture STRUCTURE of ipmc_bd_axi_interconnect_0_1 is
     m_axi_rvalid : in STD_LOGIC_VECTOR ( 1 downto 0 );
     m_axi_rready : out STD_LOGIC_VECTOR ( 1 downto 0 )
   );
-  end component ipmc_bd_xbar_2;
+  end component ipmc_bd_xbar_0;
   signal M00_ACLK_1 : STD_LOGIC;
   signal M00_ARESETN_1 : STD_LOGIC;
   signal M01_ACLK_1 : STD_LOGIC;
@@ -4777,7 +4777,7 @@ s00_couplers: entity work.s00_couplers_imp_3NSNUP
       S_AXI_wstrb(3 downto 0) => axi_interconnect_0_to_s00_couplers_WSTRB(3 downto 0),
       S_AXI_wvalid(0) => axi_interconnect_0_to_s00_couplers_WVALID(0)
     );
-xbar: component ipmc_bd_xbar_2
+xbar: component ipmc_bd_xbar_0
      port map (
       aclk => axi_interconnect_0_ACLK_net,
       aresetn => axi_interconnect_0_ARESETN_net,
@@ -4928,7 +4928,7 @@ entity ipmc_bd_axi_interconnect_1_0 is
 end ipmc_bd_axi_interconnect_1_0;
 
 architecture STRUCTURE of ipmc_bd_axi_interconnect_1_0 is
-  component ipmc_bd_xbar_0 is
+  component ipmc_bd_xbar_1 is
   port (
     aclk : in STD_LOGIC;
     aresetn : in STD_LOGIC;
@@ -4971,7 +4971,7 @@ architecture STRUCTURE of ipmc_bd_axi_interconnect_1_0 is
     m_axi_rvalid : in STD_LOGIC_VECTOR ( 2 downto 0 );
     m_axi_rready : out STD_LOGIC_VECTOR ( 2 downto 0 )
   );
-  end component ipmc_bd_xbar_0;
+  end component ipmc_bd_xbar_1;
   signal M00_ACLK_1 : STD_LOGIC;
   signal M00_ARESETN_1 : STD_LOGIC;
   signal M01_ACLK_1 : STD_LOGIC;
@@ -5373,7 +5373,7 @@ s00_couplers: entity work.s00_couplers_imp_4LPQ0F
       S_AXI_wstrb(3 downto 0) => axi_interconnect_1_to_s00_couplers_WSTRB(3 downto 0),
       S_AXI_wvalid(0) => axi_interconnect_1_to_s00_couplers_WVALID(0)
     );
-xbar: component ipmc_bd_xbar_0
+xbar: component ipmc_bd_xbar_1
      port map (
       aclk => axi_interconnect_1_ACLK_net,
       aresetn => axi_interconnect_1_ARESETN_net,
@@ -5489,7 +5489,7 @@ entity elm_imp_187VCIK is
 end elm_imp_187VCIK;
 
 architecture STRUCTURE of elm_imp_187VCIK is
-  component ipmc_bd_axi_gpio_0_1 is
+  component ipmc_bd_axi_gpio_elm_0 is
   port (
     s_axi_aclk : in STD_LOGIC;
     s_axi_aresetn : in STD_LOGIC;
@@ -5515,8 +5515,8 @@ architecture STRUCTURE of elm_imp_187VCIK is
     gpio_io_o : out STD_LOGIC_VECTOR ( 3 downto 0 );
     gpio_io_t : out STD_LOGIC_VECTOR ( 3 downto 0 )
   );
-  end component ipmc_bd_axi_gpio_0_1;
-  component ipmc_bd_axi_uartlite_0_0 is
+  end component ipmc_bd_axi_gpio_elm_0;
+  component ipmc_bd_axi_uartlite_elm_0 is
   port (
     s_axi_aclk : in STD_LOGIC;
     s_axi_aresetn : in STD_LOGIC;
@@ -5541,7 +5541,7 @@ architecture STRUCTURE of elm_imp_187VCIK is
     rx : in STD_LOGIC;
     tx : out STD_LOGIC
   );
-  end component ipmc_bd_axi_uartlite_0_0;
+  end component ipmc_bd_axi_uartlite_elm_0;
   component ipmc_bd_xlconcat_0_1 is
   port (
     In0 : in STD_LOGIC_VECTOR ( 0 to 0 );
@@ -5642,7 +5642,7 @@ begin
   S00_AXI_0_rvalid(0) <= Conn1_RVALID(0);
   S00_AXI_0_wready(0) <= Conn1_WREADY(0);
   intr(1 downto 0) <= xlconcat_0_dout(1 downto 0);
-axi_gpio_elm: component ipmc_bd_axi_gpio_0_1
+axi_gpio_elm: component ipmc_bd_axi_gpio_elm_0
      port map (
       gpio_io_i(3 downto 0) => Conn2_TRI_I(3 downto 0),
       gpio_io_o(3 downto 0) => Conn2_TRI_O(3 downto 0),
@@ -5732,7 +5732,7 @@ axi_interconnect_0: entity work.ipmc_bd_axi_interconnect_0_1
       S00_AXI_wstrb(3 downto 0) => Conn1_WSTRB(3 downto 0),
       S00_AXI_wvalid(0) => Conn1_WVALID(0)
     );
-axi_uartlite_elm: component ipmc_bd_axi_uartlite_0_0
+axi_uartlite_elm: component ipmc_bd_axi_uartlite_elm_0
      port map (
       interrupt => axi_uartlite_elm_interrupt,
       rx => Conn3_RxD,
@@ -6294,7 +6294,7 @@ entity ipmc_bd is
     pwr_status : in STD_LOGIC_VECTOR ( 5 downto 0 )
   );
   attribute CORE_GENERATION_INFO : string;
-  attribute CORE_GENERATION_INFO of ipmc_bd : entity is "ipmc_bd,IP_Integrator,{x_ipVendor=xilinx.com,x_ipLibrary=BlockDiagram,x_ipName=ipmc_bd,x_ipVersion=1.00.a,x_ipLanguage=VHDL,numBlks=54,numReposBlks=29,numNonXlnxBlks=7,numHierBlks=25,maxHierDepth=0,numSysgenBlks=0,numHlsBlks=0,numHdlrefBlks=1,numPkgbdBlks=0,bdsource=USER,da_axi4_cnt=3,da_board_cnt=2,da_clkrst_cnt=1,synth_mode=OOC_per_IP}";
+  attribute CORE_GENERATION_INFO of ipmc_bd : entity is "ipmc_bd,IP_Integrator,{x_ipVendor=xilinx.com,x_ipLibrary=BlockDiagram,x_ipName=ipmc_bd,x_ipVersion=1.00.a,x_ipLanguage=VHDL,numBlks=54,numReposBlks=29,numNonXlnxBlks=7,numHierBlks=25,maxHierDepth=0,numSysgenBlks=0,numHlsBlks=0,numHdlrefBlks=1,numPkgbdBlks=0,bdsource=USER,synth_mode=OOC_per_IP}";
   attribute HW_HANDOFF : string;
   attribute HW_HANDOFF of ipmc_bd : entity is "ipmc_bd.hwdef";
 end ipmc_bd;
@@ -6591,13 +6591,6 @@ architecture STRUCTURE of ipmc_bd is
     gpio_io_i : in STD_LOGIC_VECTOR ( 0 to 0 )
   );
   end component ipmc_bd_axi_gpio_0_0;
-  component ipmc_bd_debouncer_0_0 is
-  port (
-    CLK_IN : in STD_LOGIC;
-    SIG_IN : in STD_LOGIC;
-    SIG_OUT : out STD_LOGIC
-  );
-  end component ipmc_bd_debouncer_0_0;
   component ipmc_bd_ad7689_s_0_0 is
   port (
     spi_ncs0 : out STD_LOGIC;
@@ -6719,7 +6712,16 @@ architecture STRUCTURE of ipmc_bd is
     s_axi_aresetn : in STD_LOGIC
   );
   end component ipmc_bd_ipmi_sensor_proc_0_0;
+  component ipmc_bd_debouncer_0_3 is
+  port (
+    ARESETN_IN : in STD_LOGIC;
+    CLK_IN : in STD_LOGIC;
+    SIG_IN : in STD_LOGIC;
+    SIG_OUT : out STD_LOGIC
+  );
+  end component ipmc_bd_debouncer_0_3;
   signal ARESETN_1 : STD_LOGIC_VECTOR ( 0 to 0 );
+  signal HNDL_SW_1 : STD_LOGIC;
   signal S00_AXI_0_1_ARADDR : STD_LOGIC_VECTOR ( 31 downto 0 );
   signal S00_AXI_0_1_ARPROT : STD_LOGIC_VECTOR ( 2 downto 0 );
   signal S00_AXI_0_1_ARREADY : STD_LOGIC_VECTOR ( 0 to 0 );
@@ -7168,6 +7170,7 @@ begin
   ESM_RESET_tri_o(1 downto 0) <= esm_ESM_RESET_TRI_O(1 downto 0);
   ESM_RESET_tri_t(1 downto 0) <= esm_ESM_RESET_TRI_T(1 downto 0);
   ESM_UART_txd <= esm_ESM_UART_TxD;
+  HNDL_SW_1 <= HNDL_SW;
   PIM400_I2C_scl_o <= axi_iic_0_IIC_SCL_O;
   PIM400_I2C_scl_t <= axi_iic_0_IIC_SCL_T;
   PIM400_I2C_sda_o <= axi_iic_0_IIC_SDA_O;
@@ -7713,10 +7716,11 @@ concat_HF: component ipmc_bd_concat_HF_0
       In1(45 downto 0) => vio_HF_sim_probe_out0(45 downto 0),
       dout(63 downto 0) => concat_HF_dout(63 downto 0)
     );
-debouncer_0: component ipmc_bd_debouncer_0_0
+debouncer_0: component ipmc_bd_debouncer_0_3
      port map (
-      CLK_IN => proc_sys_reset_0_peripheral_aresetn(0),
-      SIG_IN => HNDL_SW,
+      ARESETN_IN => proc_sys_reset_0_peripheral_aresetn(0),
+      CLK_IN => processing_system7_0_FCLK_CLK0,
+      SIG_IN => HNDL_SW_1,
       SIG_OUT => debouncer_0_SIG_OUT
     );
 elm: entity work.elm_imp_187VCIK

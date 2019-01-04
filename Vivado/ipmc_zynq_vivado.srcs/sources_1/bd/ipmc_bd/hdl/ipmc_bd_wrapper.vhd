@@ -1,8 +1,8 @@
 --Copyright 1986-2018 Xilinx, Inc. All Rights Reserved.
 ----------------------------------------------------------------------------------
 --Tool Version: Vivado v.2018.2 (lin64) Build 2258646 Thu Jun 14 20:02:38 MDT 2018
---Date        : Fri Dec  7 16:21:27 2018
---Host        : beck.hep.wisc.edu running 64-bit CentOS Linux release 7.5.1804 (Core)
+--Date        : Fri Jan  4 11:38:12 2019
+--Host        : beck.hep.wisc.edu running 64-bit CentOS Linux release 7.6.1810 (Core)
 --Command     : generate_target ipmc_bd_wrapper.bd
 --Design      : ipmc_bd_wrapper
 --Purpose     : IP block netlist

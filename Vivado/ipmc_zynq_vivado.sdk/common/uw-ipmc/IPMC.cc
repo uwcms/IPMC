@@ -268,7 +268,7 @@ void ipmc_service_init() {
 				mstatemachine->physical_handle_state(isPressed ? MStateMachine::HANDLE_CLOSED : MStateMachine::HANDLE_OPEN);
 			}
 		});
-		handle_gpio->setIRQCallback([handle_isr_sem](uint32_t pin) -> void { xSemaphoreGive(handle_isr_sem); });
+		handle_gpio->setIRQCallback([handle_isr_sem](uint32_t pin) -> void { xSemaphoreGiveFromISR(handle_isr_sem, NULL); });
 	}
 	payload_manager = new PayloadManager(mstatemachine, LOG["payload_manager"]);
 
