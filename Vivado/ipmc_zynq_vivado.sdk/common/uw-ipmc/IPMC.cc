@@ -128,16 +128,12 @@ PS_XADC *xadc;
 PL_LED *atcaLEDs;
 LED *blueLED;
 
-bool firmwareUpdateFailed = false;
-
 static void init_device_sdrs(bool reinit=false);
 static void init_fru_data(bool reinit=false);
 static void tracebuffer_log_handler(LogTree &logtree, const std::string &message, enum LogTree::LogLevel level);
 static void register_core_console_commands(CommandParser &parser);
 static void console_log_handler(LogTree &logtree, const std::string &message, enum LogTree::LogLevel level);
 static void watchdog_ontrip();
-static size_t flash_read(uint8_t *buf, size_t size);
-static size_t flash_write(uint8_t *buf, size_t size);
 
 /** Stage 1 driver initialization.
  *
@@ -185,12 +181,8 @@ void driver_init(bool use_pl) {
 	// This has to be lower, so the serial number has been read by the time we register (or not register) set_serial.
 	register_core_console_commands(console_command_parser);
 
-	/* SDRs must be initialized here so sensors are available to link up with
-	 * their drivers.  FRU Data will be done later, once the PayloadManager is
-	 * initialized.  The IPMBSvc thread does not proceed until service init is
-	 * done.
-	 */
 	init_device_sdrs(false);
+	init_fru_data(true);
 
 	XGpioPs_Config* gpiops_config = XGpioPs_LookupConfig(XPAR_PS7_GPIO_0_DEVICE_ID);
 	configASSERT(XST_SUCCESS == XGpioPs_CfgInitialize(&gpiops, gpiops_config, gpiops_config->BaseAddr));
@@ -287,19 +279,6 @@ void ipmc_service_init() {
 	}
 	payload_manager = new PayloadManager(mstatemachine, LOG["payload_manager"]);
 
-	/* SDRs must be initialized earlier so sensors are available to link up with
-	 * their drivers.  FRU Data will be done here, once the PayloadManager is
-	 * initialized.  The IPMBSvc thread does not proceed until service init is
-	 * done.
-	 *
-	 * If the `reinit` parameter is set to true, changes to the FRU Data area
-	 * stored in persistent storage will be replaced on startup, otherwise
-	 * FRU Data will be created only if it is absent.  In that case it is the
-	 * system operator's responsibility to ensure FRU Data is reinitialized or
-	 * updated as necessary.
-	 */
-	init_fru_data(true);
-
 	// Last services should be network related
 	network = new Network(LOG["network"], mac_address, [](Network *network) {
 		// Network Ready callback, start primary services
@@ -318,7 +297,7 @@ void ipmc_service_init() {
 		new XVCServer(XPAR_AXI_JTAG_0_BASEADDR);
 
 		// Start FTP server
-		VFS::addFile("virtual/flash.bin", VFS::File(flash_read, flash_write, 16 * 1024 * 1024));
+		VFS::addFile("virtual/flash.bin", PS_ISFQSPI::createFlashFile(isfqspi, 16 * 1024 * 1024));
 		VFS::addFile("virtual/esm.bin", esm->createFlashFile());
 		new FTPServer(Auth::ValidateCredentials);
 
@@ -619,48 +598,55 @@ void init_fru_data(bool reinit) {
 	fru_data.insert(fru_data.end(), board_info.begin(), board_info.end());
 	fru_data.insert(fru_data.end(), product_info.begin(), product_info.end());
 
-	/* Board Point-to-Point Connectivity Record
-	 *
-	 * This block of code will generate this automatically based on the E-Keying
-	 * link descriptors provided by the payload manager.  It does not need to be
-	 * customized by a board integrator.  E-Keying link descriptions should be
-	 * defined in the Payload Manager instead.
-	 */
-	{
-		std::vector<uint8_t> bp2pcr{0x14, 0, 0};
-		for (uint8_t i = 0xF0; i < 0xFF; ++i) {
-			try {
-				std::vector<uint8_t> guid = PayloadManager::LinkDescriptor::lookup_oem_LinkType_guid(i);
-				bp2pcr[2]++; // Increment number of GUIDs in record.
-				bp2pcr.insert(bp2pcr.end(), guid.begin(), guid.end()); // Add GUID to record.
-			}
-			catch (std::out_of_range) {
-				break;
-			}
-		}
-		configASSERT(payload_manager); // We should be called only after this is initialized.
-		std::vector<PayloadManager::LinkDescriptor> links = payload_manager->get_links();
-		for (auto it = links.begin(), eit = links.end(); it != eit; ++it) {
-			if (bp2pcr.size() > 255 /* record data limit */ - 3 /* MultiRec OEM ID header */ - 4 /* next link descriptor size */ - 1 /* safety margin */) {
-				// We filled up this record we need to start a new one.
-				add_PICMG_multirecord(fru_data, bp2pcr, false);
-				// Start new record, zero GUIDs in further records, they all fit in one (barely).
-				bp2pcr = std::vector<uint8_t>{0x14, 0, 0};
-			}
-			std::vector<uint8_t> ld_vec(*it);
-			bp2pcr.insert(bp2pcr.end(), ld_vec.begin(), ld_vec.end());
-		}
-		// We have at least one link or at least one GUID, or just need to say we have none.
-		add_PICMG_multirecord(fru_data, bp2pcr, false /* We are not the last record in the FRU Data. */);
-	}
-
 	/* Carrier Activation and Current Management record
 	 * ...not that we have any AMC modules.
 	 *
 	 * This is supposed to specify the maximum power we can provide to our AMCs,
 	 * and be used for validating our AMC modules' power requirements.
 	 */
-	add_PICMG_multirecord(fru_data, std::vector<uint8_t>{0x17, 0, 0x3f /* ~75W for all AMCs (and self..?) LSB */, 0 /* MSB */, 5, 0}, true);
+	//add_PICMG_multirecord(fru_data, std::vector<uint8_t>{0x17, 0, 0x3f /* ~75W for all AMCs (and self..?) LSB */, 0 /* MSB */, 5, 0}, false);
+
+	/* Board Point-to-Point Connectivity Record
+	 *
+	 */
+	add_PICMG_multirecord(fru_data, std::vector<uint8_t>{0x14, 0,
+		0, // No OEM GUIDs defined here.
+		// No OEM GUIDs defined here.
+
+		/* Link Descriptor 1: 1G to Hub Slots (1 of 2)
+		 * [31:24] = 0 (Single Channel Link (No Grouping))
+		 * [23:20] = 0 (Link Type Extension (10/100/1000BASE-T (four-pair)))
+		 * [19:12] = 1 (Link Type (From PICMG 3.0 Table 3-52))
+		 * [11: 0] = Link Designator (from PICMG 3.0 Table 3-51)
+		 *           [ 11] = 1 (Port 3 Excluded)
+		 *           [ 10] = 1 (Port 2 Excluded)
+		 *           [  9] = 1 (Port 1 Excluded)
+		 *           [  8] = 1 (Port 0 Included)
+		 *           [7:6] = 0 (Base Interface)
+		 *           [5:0] = 1 (Channel 1)
+		 */
+		0x01, // [ 7: 0]
+		0x11, // [15: 8]
+		0x00, // [23:16]
+		0x00, // [31:24]
+
+		/* Link Descriptor 2: 1G to Hub Slots (2 of 2)
+		 * [31:24] = 0 (Single Channel Link (No Grouping))
+		 * [23:20] = 0 (Link Type Extension (10/100/1000BASE-T (four-pair)))
+		 * [19:12] = 1 (Link Type (From PICMG 3.0 Table 3-52))
+		 * [11: 0] = Link Designator (from PICMG 3.0 Table 3-51)
+		 *           [ 11] = 1 (Port 3 Included)
+		 *           [ 10] = 1 (Port 2 Included)
+		 *           [  9] = 1 (Port 1 Included)
+		 *           [  8] = 1 (Port 0 Included)
+		 *           [7:6] = 0 (Base Interface)
+		 *           [5:0] = 2 (Channel 2)
+		 */
+		0x02, // [ 7: 0]
+		0x11, // [15: 8]
+		0x00, // [23:16]
+		0x00, // [31:24]
+		}, true);
 
 	UWTaskCreate("persist_fru", TASK_PRIORITY_SERVICE, [reinit]() -> void {
 		safe_init_static_mutex(fru_data_mutex, false);
@@ -681,99 +667,6 @@ void init_fru_data(bool reinit) {
 		printf("FRU Data \"%s\"\n", out.c_str());
 #endif
 	});
-}
-
-// TODO: Will be moved (see #19)
-static size_t flash_read(uint8_t *buf, size_t size) {
-	size_t totalsize = isfqspi->GetTotalSize();
-	size_t pagesize = isfqspi->GetPageSize();
-	int pagecount = totalsize / pagesize;
-
-	for (int i = 0; i < pagecount; i++) {
-		size_t addr = i * pagesize;
-		uint8_t* ptr = isfqspi->ReadPage(addr);
-		memcpy(buf + addr, ptr, pagesize);
-	}
-
-	return totalsize;
-}
-
-// TODO: Will be moved (see #19)
-static size_t flash_write(uint8_t *buf, size_t size) {
-	// Validate the bin file before writing
-	BootFileValidationReturn r = validateBootFile(buf, size);
-	if (r != BFV_VALID) {
-		// File is invalid!
-		printf("Received bin file has errors: %s. Aborting firmware update.",
-				getBootFileValidationErrorString(r));
-		return 0;
-	} else {
-		printf("Bin file is valid, proceeding with update.");
-	}
-
-	// Write the buffer to flash
-	const size_t baseaddr = 0x0;
-
-	size_t rem = size % isfqspi->GetPageSize();
-	size_t pages = size / isfqspi->GetPageSize() + (size? 1 : 0);
-
-	for (size_t i = 0; i < pages; i++) {
-		size_t addr = i * isfqspi->GetPageSize();
-		if (addr % isfqspi->GetSectorSize() == 0) {
-			// This is the first page of a new sector, so erase the sector
-			printf("Erasing sector 0x%08x..", addr + baseaddr);
-			if (!isfqspi->SectorErase(addr + baseaddr)) {
-				// Failed to erase
-				printf("Failed to erase 0x%08x. Write to flash failed.", addr + baseaddr);
-				firmwareUpdateFailed = true;
-				return addr;
-			}
-		}
-
-		if ((i == (pages-1)) && (rem != 0)) {
-			// Last page, avoid a memory leak
-			uint8_t tmpbuf[isfqspi->GetPageSize()];
-			memset(tmpbuf, 0xFFFFFFFF, isfqspi->GetPageSize());
-
-			memcpy(tmpbuf, buf + addr, rem);
-
-			if (!isfqspi->WritePage(addr + baseaddr, tmpbuf)) {
-				// Failed to write page
-				printf("Failed to write page 0x%08x. Write to flash failed.", addr + baseaddr);
-				firmwareUpdateFailed = true;
-				return addr;
-			}
-		} else {
-			if (!isfqspi->WritePage(addr + baseaddr, buf + addr)) {
-				// Failed to write page
-				printf("Failed to write page 0x%08x. Write to flash failed.", addr + baseaddr);
-				firmwareUpdateFailed = true;
-				return addr;
-			}
-		}
-	}
-
-	// Verify
-	for (int i = 0; i < pages; i++) {
-		size_t addr = i * isfqspi->GetPageSize();
-		uint8_t* ptr = isfqspi->ReadPage(addr + baseaddr);
-		int ret = 0;
-		if ((i == (pages-1)) && (rem != 0)) {
-			// Last page
-			ret = memcmp(ptr, buf + addr, rem);
-		} else {
-			ret = memcmp(ptr, buf + addr, isfqspi->GetPageSize());
-		}
-		if (ret != 0) {
-			printf("Page 0x%08x is different. Verification failed.", addr + baseaddr);
-			firmwareUpdateFailed = true;
-			return addr;
-		}
-	}
-
-	printf("Flash image updated and verified successfully.");
-	firmwareUpdateFailed = false;
-	return size;
 }
 
 void* operator new(std::size_t n) {

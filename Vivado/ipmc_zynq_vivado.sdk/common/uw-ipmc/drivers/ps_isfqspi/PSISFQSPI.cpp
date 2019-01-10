@@ -1,5 +1,5 @@
 /*
- * PSISFQSPI.cpp
+ * PSisfqspi->cpp
  *
  *  Created on: Feb 13, 2018
  *      Author: mpv
@@ -11,6 +11,7 @@
 #include <libs/printf.h>
 #include <libs/except.h>
 #include <libs/ThreadingPrimitives.h>
+#include "libs/XilinxImage.h"
 
 #include "xparameters.h"
 
@@ -375,4 +376,101 @@ void PS_ISFQSPI::_HandleInterrupt(u32 event_status, u32 byte_count) {
 	xQueueSendFromISR(this->irq_sync_q, &trans_st, pdFALSE);
 }
 
+PS_ISFQSPI* PS_ISFQSPI::isfqspi = nullptr;
+bool PS_ISFQSPI::firmwareUpdateFailed = false;
 
+size_t PS_ISFQSPI::flash_read(uint8_t *buf, size_t size) {
+	size_t totalsize = PS_ISFQSPI::isfqspi->GetTotalSize();
+	size_t pagesize = PS_ISFQSPI::isfqspi->GetPageSize();
+	int pagecount = totalsize / pagesize;
+
+	for (int i = 0; i < pagecount; i++) {
+		size_t addr = i * pagesize;
+		uint8_t* ptr = PS_ISFQSPI::isfqspi->ReadPage(addr);
+		memcpy(buf + addr, ptr, pagesize);
+	}
+
+	return totalsize;
+}
+
+size_t PS_ISFQSPI::flash_write(uint8_t *buf, size_t size) {
+	// Validate the bin file before writing
+	BootFileValidationReturn r = validateBootFile(buf, size);
+	if (r != BFV_VALID) {
+		// File is invalid!
+		printf("Received bin file has errors: %s. Aborting firmware update.",
+				getBootFileValidationErrorString(r));
+		return 0;
+	} else {
+		printf("Bin file is valid, proceeding with update.");
+	}
+
+	// Write the buffer to flash
+	const size_t baseaddr = 0x0;
+
+	size_t rem = size % PS_ISFQSPI::isfqspi->GetPageSize();
+	size_t pages = size / PS_ISFQSPI::isfqspi->GetPageSize() + (size? 1 : 0);
+
+	for (size_t i = 0; i < pages; i++) {
+		size_t addr = i * PS_ISFQSPI::isfqspi->GetPageSize();
+		if (addr % PS_ISFQSPI::isfqspi->GetSectorSize() == 0) {
+			// This is the first page of a new sector, so erase the sector
+			printf("Erasing sector 0x%08x..", addr + baseaddr);
+			if (!PS_ISFQSPI::isfqspi->SectorErase(addr + baseaddr)) {
+				// Failed to erase
+				printf("Failed to erase 0x%08x. Write to flash failed.", addr + baseaddr);
+				PS_ISFQSPI::firmwareUpdateFailed = true;
+				return addr;
+			}
+		}
+
+		if ((i == (pages-1)) && (rem != 0)) {
+			// Last page, avoid a memory leak
+			uint8_t tmpbuf[PS_ISFQSPI::isfqspi->GetPageSize()];
+			memset(tmpbuf, 0xFFFFFFFF, PS_ISFQSPI::isfqspi->GetPageSize());
+
+			memcpy(tmpbuf, buf + addr, rem);
+
+			if (!PS_ISFQSPI::isfqspi->WritePage(addr + baseaddr, tmpbuf)) {
+				// Failed to write page
+				printf("Failed to write page 0x%08x. Write to flash failed.", addr + baseaddr);
+				PS_ISFQSPI::firmwareUpdateFailed = true;
+				return addr;
+			}
+		} else {
+			if (!PS_ISFQSPI::isfqspi->WritePage(addr + baseaddr, buf + addr)) {
+				// Failed to write page
+				printf("Failed to write page 0x%08x. Write to flash failed.", addr + baseaddr);
+				PS_ISFQSPI::firmwareUpdateFailed = true;
+				return addr;
+			}
+		}
+	}
+
+	// Verify
+	for (size_t i = 0; i < pages; i++) {
+		size_t addr = i * PS_ISFQSPI::isfqspi->GetPageSize();
+		uint8_t* ptr = PS_ISFQSPI::isfqspi->ReadPage(addr + baseaddr);
+		int ret = 0;
+		if ((i == (pages-1)) && (rem != 0)) {
+			// Last page
+			ret = memcmp(ptr, buf + addr, rem);
+		} else {
+			ret = memcmp(ptr, buf + addr, PS_ISFQSPI::isfqspi->GetPageSize());
+		}
+		if (ret != 0) {
+			printf("Page 0x%08x is different. Verification failed.", addr + baseaddr);
+			PS_ISFQSPI::firmwareUpdateFailed = true;
+			return addr;
+		}
+	}
+
+	printf("Flash image updated and verified successfully.");
+	PS_ISFQSPI::firmwareUpdateFailed = false;
+	return size;
+}
+
+VFS::File PS_ISFQSPI::createFlashFile(PS_ISFQSPI *isfqspi, size_t bytes) {
+	PS_ISFQSPI::isfqspi = isfqspi;
+	return VFS::File(flash_read, flash_write, bytes);
+}
