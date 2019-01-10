@@ -11,13 +11,57 @@
 #include <services/console/ConsoleSvc.h>
 #include <exception>
 
+/**
+ * Instantiate the PayloadManager and perform all required initialization.
+ *
+ * @param mstate_machine The MStateMachine to register
+ * @param log The LogTree to use
+ */
 PayloadManager::PayloadManager(MStateMachine *mstate_machine, LogTree &log)
 	: mstate_machine(mstate_machine), log(log) {
+	configASSERT(this->mutex = xSemaphoreCreateRecursiveMutex());
+
+	/* Here we define E-Keying links.  These will be checked by the Shelf Manager
+	 * and enabled with an IPMI command which routes to the update_link_enable
+	 * method of this PayloadManager.  Once the appropriate link has been enabled,
+	 * you are free to power it up and start communication on it.  According to
+	 * the specifications, you should not enable a link that has not been enabled
+	 * through E-Keying, and must disable any link that has been subsequently
+	 * disabled through E-Keying.
+	 *
+	 * The IPMC will automatically generate FRU Data records for these links,
+	 * as a part of the FRU Data initialization, however if the list of link
+	 * descriptors is changed, it may be necessary to delete or update the
+	 * persistent FRU Data storage in EEPROM, using the eeprom.delete_section
+	 * console commands prior to the firmware upgrade (or other reboot).
+	 */
+
+	// Define E-Keying Links: 1G to Hub Slots
+	this->links.push_back(LinkDescriptor(0, 0, 1, 1, LinkDescriptor::IF_BASE, 1));
+	this->links.push_back(LinkDescriptor(0, 0, 1, 1, LinkDescriptor::IF_BASE, 2));
+
+	// Set up Management Zones
 	for (int i = 0; i < XPAR_MGMT_ZONE_CTRL_0_MZ_CNT; ++i)
 		this->mgmt_zones[i] = new MGMT_Zone(XPAR_MGMT_ZONE_CTRL_0_DEVICE_ID, i);
 
 	SuspendGuard suspend(true);
-	this->mstate_machine->deactivate_payload = [this]() -> void { this->set_power_level(0, 0); };
+	this->mstate_machine->deactivate_payload = [this]() -> void {
+		// Turn off power.
+		this->set_power_level(0, 0);
+
+		// Disable all E-Keying links.
+		// (IPMI commands will not be sent for this when proceeding through M6)
+		std::vector<LinkDescriptor> links = this->get_links();
+		for (auto it = links.begin(), eit = links.end(); it != eit; ++it) {
+			if (it->enabled) {
+				it->enabled = false;
+				this->update_link_enable(*it);
+			}
+		}
+
+		// In our specific backend implementation the above is all synchronous.
+		this->mstate_machine->payload_deactivation_complete();
+	};
 	suspend.release();
 
 	std::vector<MGMT_Zone::OutputConfig> pen_config;
@@ -82,6 +126,8 @@ PayloadManager::~PayloadManager() {
 	SuspendGuard suspend(true);
 	this->mstate_machine->deactivate_payload = NULL;
 	suspend.release();
+
+	vSemaphoreDelete(this->mutex);
 }
 
 /**
@@ -95,6 +141,9 @@ PayloadManager::~PayloadManager() {
 PayloadManager::PowerProperties PayloadManager::get_power_properties(uint8_t fru, bool recompute) {
 	if (fru != 0)
 		throw std::domain_error("This FRU is not known.");
+
+	MutexGuard<true> lock(this->mutex, true);
+
 	if (recompute || this->power_properties.power_levels.empty()) {
 		// We need to compute our power properties.
 		// Nothing we do is dynamic at this time, so we'll just fill in the statics.
@@ -127,9 +176,18 @@ PayloadManager::PowerProperties PayloadManager::get_power_properties(uint8_t fru
 	return this->power_properties;
 }
 
+/**
+ * Set the power utilization for the specified FRU to the value previously
+ * calculated for the selected level.
+ *
+ * @param fru The FRU to manage
+ * @param level The pre-calculated power level to set
+ */
 void PayloadManager::set_power_level(uint8_t fru, uint8_t level) {
 	if (fru != 0)
 		throw std::domain_error("This FRU is not known.");
+
+	MutexGuard<true> lock(this->mutex, true);
 
 	this->power_properties.current_power_level = level;
 	if (level == 0) {
@@ -149,7 +207,14 @@ void PayloadManager::set_power_level(uint8_t fru, uint8_t level) {
 	}
 }
 
+/**
+ * A helper to physically apply a specified power level.
+ *
+ * @param level The level to apply
+ */
 void PayloadManager::implement_power_level(uint8_t level) {
+	MutexGuard<true> lock(this->mutex, true);
+
 	if (level == 0) {
 		// Power OFF!
 		this->log.log("Implement Power Level 0: Shutting down.", LogTree::LOG_DIAGNOSTIC);
@@ -159,9 +224,7 @@ void PayloadManager::implement_power_level(uint8_t level) {
 		// Shut down ETH & wait
 		this->mgmt_zones[0]->set_power_state(MGMT_Zone::OFF);
 		vTaskDelay(40); // The total delay in the PEN config is 40ms.
-		// If we were waiting in M3, go to M4. (Skipping E-Keying for now)
 		this->log.log("Implement Power Level 0: Shutdown complete.", LogTree::LOG_DIAGNOSTIC);
-		this->mstate_machine->payload_deactivation_complete();
 	}
 	else if (level == 1) {
 		// We only support one non-off power state.
@@ -174,6 +237,119 @@ void PayloadManager::implement_power_level(uint8_t level) {
 	}
 }
 
+PayloadManager::LinkDescriptor::LinkDescriptor() :
+		enabled(false), LinkGroupingID(0), LinkTypeExtension(0), LinkType(0),
+		IncludedPorts(0), Interface(IF_RESERVED), ChannelNumber(0) {
+}
+
+PayloadManager::LinkDescriptor::LinkDescriptor(
+		uint8_t LinkGroupingID,
+		uint8_t LinkTypeExtension,
+		uint8_t LinkType,
+		uint8_t IncludedPorts,
+		enum Interfaces Interface,
+		uint8_t ChannelNumber) :
+		enabled(false), LinkGroupingID(LinkGroupingID),
+		LinkTypeExtension(LinkTypeExtension), LinkType(LinkType),
+		IncludedPorts(IncludedPorts), Interface(Interface),
+		ChannelNumber(ChannelNumber) {
+}
+
+PayloadManager::LinkDescriptor::LinkDescriptor(const std::vector<uint8_t> &bytes, bool enabled) :
+	enabled(enabled) {
+	if (bytes.size() < 4)
+		throw std::domain_error("A Link Descriptor must be a four byte field.");
+	this->LinkGroupingID = bytes[3];
+	this->LinkTypeExtension = bytes[2] >> 4;
+	this->LinkType = ((bytes[2] & 0x0F) << 4) | ((bytes[1] & 0xF0) >> 4);
+	this->IncludedPorts = bytes[1] & 0x0F;
+	this->Interface = static_cast<Interfaces>(bytes[0] >> 6);
+	this->ChannelNumber = bytes[0] & 0x3F;
+}
+
+PayloadManager::LinkDescriptor::operator std::vector<uint8_t>() const {
+	std::vector<uint8_t> out = { 0, 0, 0, 0 };
+	out[0] |= (this->ChannelNumber & 0x3F) << 0;
+	out[0] |= (this->Interface & 0x03) << 6;
+	out[1] |= (this->IncludedPorts & 0x0F) << 0;
+	out[1] |= (this->LinkType & 0x0F) << 4;
+	out[2] |= (this->LinkType & 0xF0) >> 4;
+	out[2] |= (this->LinkTypeExtension & 0x0F) << 4;
+	out[3] = this->LinkGroupingID;
+	return out;
+}
+
+/**
+ * Register or look up an OEM LinkType GUID, and return the LinkType index
+ * associated with it.
+ *
+ * @param oem_guid The GUID (16 bytes) to register.
+ * @return The LinkType index associated with this GUID.
+ * @throws std::domain_error if an invalid GUID is supplied
+ * @throws std::out_of_range if there is no more space in the table
+ */
+uint8_t PayloadManager::LinkDescriptor::map_oem_LinkType_guid(const std::vector<uint8_t> &oem_guid) {
+	if (oem_guid.size() != 16)
+		throw std::domain_error("OEM LinkType GUIDs are 16 byte values.");
+	safe_init_static_mutex(oem_guid_mutex, false);
+	MutexGuard<false> lock(oem_guid_mutex, true);
+	for (auto it = oem_guids.begin(), eit = oem_guids.end(); it != eit; ++it)
+		if (it->second == oem_guid)
+			return it->first;
+
+	// Or if not found, attempt to register.
+	for (uint8_t mapping = 0xF0; mapping < 0xFF; ++mapping) {
+			if (oem_guids.count(mapping))
+				continue;
+			oem_guids[mapping] = oem_guid;
+			return mapping;
+	}
+
+	// Or, if there was simply no room left:
+	throw std::out_of_range("No remaining OEM LinkType GUID slots available. (Only 15 can be specified in FRU Data, by §3.7.2.3 ¶318)");
+}
+
+/**
+ * Looks up an OEM LinkType index and converts it to the appropriate OEM GUID.
+ * @param LinkType The LinkType index
+ * @return The OEM GUID
+ * @throws std::out_of_range if the LinkType is not registered.
+ */
+std::vector<uint8_t> PayloadManager::LinkDescriptor::lookup_oem_LinkType_guid(uint8_t LinkType) {
+	safe_init_static_mutex(oem_guid_mutex, false);
+	MutexGuard<false> lock(oem_guid_mutex, true);
+	return oem_guids.at(LinkType);
+}
+SemaphoreHandle_t PayloadManager::LinkDescriptor::oem_guid_mutex = NULL;
+std::map< uint8_t, std::vector<uint8_t> > PayloadManager::LinkDescriptor::oem_guids;
+
+void PayloadManager::update_link_enable(const LinkDescriptor &descriptor) {
+	MutexGuard<true> lock(this->mutex, true);
+	for (auto it = this->links.begin(), eit = this->links.end(); it != eit; ++it) {
+		if (*it == descriptor && it->enabled != descriptor.enabled) {
+			it->enabled = descriptor.enabled;
+
+			// A new link was enabled (or disabled), (de?)activate it!
+
+			/* We are ignoring E-Keying, in the CDB edition of this code, so
+			 * nothing will happen here, but we could notify a processor that
+			 * the link is available, or hesitate to actually power one up
+			 * before a link that it uses unconditionally is confirmed.
+			 */
+			if (it->enabled)
+				this->log.log(stdsprintf("E-Keying port enabled on Interface %hhu, Channel %hhu.", static_cast<uint8_t>(it->Interface), it->ChannelNumber), LogTree::LOG_INFO);
+			else
+				this->log.log(stdsprintf("E-Keying port disabled on Interface %hhu, Channel %hhu.", static_cast<uint8_t>(it->Interface), it->ChannelNumber), LogTree::LOG_INFO);
+		}
+	}
+}
+
+std::vector<PayloadManager::LinkDescriptor> PayloadManager::get_links() const {
+	MutexGuard<true> lock(this->mutex, true);
+	return this->links;
+}
+
+// No anonymous namespace because it needs to be declared friend.
 /// A backend power switch command
 class ConsoleCommand_PayloadManager_power_level : public CommandParser::Command {
 public:
