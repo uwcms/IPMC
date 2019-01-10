@@ -13,7 +13,7 @@ public:
 	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
 		// See section 26.2.3 in UG585 - System Software Reset
 
-		if (firmwareUpdateFailed == false) {
+		if (PS_ISFQSPI::wasUpgradeSuccessful() == true) {
 			console->write("Flushing persistent storage...\n");
 			SemaphoreHandle_t psdone = xSemaphoreCreateBinary();
 			persistent_storage->flush([&psdone]() -> void { xSemaphoreGive(psdone); });

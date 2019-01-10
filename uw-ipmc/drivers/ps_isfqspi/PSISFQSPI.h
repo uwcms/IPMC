@@ -9,7 +9,13 @@
 #define SRC_COMMON_UW_IPMC_DRIVERS_PS_ISFQSPI_PSISFQSPI_H_
 
 #include <IPMC.h>
+#include <libs/VFS.h>
 #include <xilisf.h>
+
+// TODO: This part should be rewritten at some point with the following goals:
+//       1. Make the QSPI interface generic like SPIMaster
+//       2. Connect this driver to the Flash driver
+//       3. Build a new layer on top of the Flash driver that will write the Xilinx image.
 
 /**
  * An interrupt-based driver for the PS In-System Flash QSPI.
@@ -58,6 +64,15 @@ public:
 
 	void _HandleInterrupt(u32 Event, u32 EventData); ///< \protected Internal.
 
+	/**
+	 * Create a flash file linked to this QSPI interface.
+	 * @return The virtual file.
+	 */
+	static VFS::File createFlashFile(PS_ISFQSPI *isfqspi, size_t bytes);
+
+	///! Check if upgrade was done properly.
+	inline static bool wasUpgradeSuccessful() { return !PS_ISFQSPI::firmwareUpdateFailed; };
+
 private:
 	u32 IntrId;
 	XQspiPs QspiInst;
@@ -70,6 +85,11 @@ private:
 
 	u8 *IsfWriteBuffer;
 	u8 *IsfReadBuffer;
+
+	static PS_ISFQSPI *isfqspi;
+	static size_t flash_read(uint8_t *buf, size_t size);
+	static size_t flash_write(uint8_t *buf, size_t size);
+	static bool firmwareUpdateFailed;
 
 	/**
 	 * irq transfer status
