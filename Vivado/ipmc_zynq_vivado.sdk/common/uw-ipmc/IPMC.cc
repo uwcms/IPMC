@@ -266,6 +266,11 @@ void ipmc_service_init() {
 			xEventGroupWaitBits(init_complete, 0x03, pdFALSE, pdTRUE, portMAX_DELAY);
 
 			while (1) {
+				/* This mechanism functions by interrupt signaling, but has a
+				 * backup polling mechanism.  When an interrupt is triggered,
+				 * this semaphore will ready immediately.  If no interrupt is
+				 * processed, we will update anyway, every 100ms.
+				 */
 				xSemaphoreTake(handle_isr_sem, pdMS_TO_TICKS(100));
 
 				bool isPressed = handle_gpio->isPinSet(0);
