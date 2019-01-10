@@ -2,15 +2,13 @@
 #ifndef LED_CONTROLLER_H
 #define LED_CONTROLLER_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /****************** Include Files ********************/
 #include "xil_types.h"
 #include "xstatus.h"
-
-
-#define LED_CONTROLLER_INTERFACE_OFFSET 2
-#define LED_CONTROLLER_MODE_REG 0x0
-#define LED_CONTROLLER_FACTOR_REG 0x4
 
 /**************************** Type Definitions *****************************/
 
@@ -34,26 +32,24 @@ typedef struct {
     u32 InterfaceCount; /* Number of available interfaces */
 } LED_Controller;
 
-#define LED_PULSE_SLOW 0x02
-#define LED_PULSE_NORMAL 0x10
-#define LED_PULSE_FAST 0x20
-
-#define LED_DIM_25 (u8)(255/4)
-#define LED_DIM_50 (u8)(255/2)
-#define LED_DIM_75 (u8)(255*3/4)
+/**
+ * Registers
+ */
+#define LED_CONTROLLER_INTERFACE_OFFSET 2
+#define LED_CONTROLLER_PERIOD_REG 0x0
+#define LED_CONTROLLER_COMP_REG 0x4
 
 /*
- * API Basic functions implemented in axi_led_controller.c
+ * API Basic functions implemented in led_controller.c
  */
 int LED_Controller_Initialize(LED_Controller *InstancePtr, u16 DeviceId);
 LED_Controller_Config *LED_Controller_LookupConfig(u16 DeviceId);
 
 int LED_Controller_CfgInitialize(LED_Controller *InstancePtr, LED_Controller_Config * Config, UINTPTR EffectiveAddr);
-void LED_Controller_SetOnOff(LED_Controller *InstancePtr, u32 InterfaceNumber, u8 turnOn);
-void LED_Controller_Pulse(LED_Controller *InstancePtr, u32 InterfaceNumber, u8 pwmFactor);
-void LED_Controller_Dim(LED_Controller *InstancePtr, u32 InterfaceNumber, u8 dimFactor);
+void LED_Controller_Set(LED_Controller *InstancePtr, u32 InterfaceNumber, u8 EnablePWM, u32 PeriodInClockTicks, u32 TransitionInClockTicks);
 
-
-
+#ifdef __cplusplus
+}
+#endif
 
 #endif // LED_CONTROLLER_H

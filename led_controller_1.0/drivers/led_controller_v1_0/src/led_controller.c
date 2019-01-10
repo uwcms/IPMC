@@ -147,80 +147,27 @@ int LED_Controller_CfgInitialize(LED_Controller * InstancePtr, LED_Controller_Co
 
 /****************************************************************************/
 /**
-* Sets a LED to On-Off mode and changes its state.
+* Configure a specific LED interface.
 *
 * @param	InstancePtr is a pointer to an LED_Controller instance. The memory the
 *		pointer references must be pre-allocated by the caller. Further
 *		calls to manipulate the driver through the LED_Controller API must be
 *		made with this pointer.
-* @param	InterfaceNumber is the target LED interface in the controller. An
-*       assertion will take place if the target interface is above the number
-*       of available interfaces.
-* @param 	turnOn is the On-Off request, use 0 to turn off or any number above 0
-*       to turn the LED on.
+* @param	InterfaceNumber The target LED interface.
+* @param 	PeriodInClockTicks The period of the LED cycle in clock ticks.
+* @param    TransitionInClockTicks Time in clock ticks in relation to the period
+*       to wait to turn on the LED.
 *
 * @note		None.
 *
 *****************************************************************************/
-void LED_Controller_SetOnOff(LED_Controller *InstancePtr, u32 InterfaceNumber, u8 turnOn)
-{
-    Xil_AssertVoid(InstancePtr != NULL);
-    Xil_AssertVoid(InterfaceNumber < InstancePtr->InterfaceCount);
-    
-    LED_Controller_WriteReg(InstancePtr->BaseAddress, (LED_CONTROLLER_INTERFACE_OFFSET * InterfaceNumber) * 4 + LED_CONTROLLER_MODE_REG, 0x0); // On-Off mode
-    LED_Controller_WriteReg(InstancePtr->BaseAddress, (LED_CONTROLLER_INTERFACE_OFFSET * InterfaceNumber) * 4 + LED_CONTROLLER_FACTOR_REG, (turnOn?0x1:0x0));
-}
-
-/****************************************************************************/
-/**
-* Sets a LED to pulse mode and changes its PWM frequency.
-*
-* @param	InstancePtr is a pointer to an LED_Controller instance. The memory the
-*		pointer references must be pre-allocated by the caller. Further
-*		calls to manipulate the driver through the LED_Controller API must be
-*		made with this pointer.
-* @param	InterfaceNumber is the target LED interface in the controller. An
-*       assertion will take place if the target interface is above the number
-*       of available interfaces.
-* @param 	pwmFactor is the PWM factor based on the AXI clock frequency.
-*       Use LED_PULSE_SLOW, LED_PULSE_NORMAL, LED_PULSE_FAST for best results or a
-*       set the range between 0 and 255.
-*
-* @note		None.
-*
-*****************************************************************************/
-void LED_Controller_Pulse(LED_Controller *InstancePtr, u32 InterfaceNumber, u8 pwmFactor)
-{
+void LED_Controller_Set(LED_Controller *InstancePtr, u32 InterfaceNumber, u8 EnablePWM, u32 PeriodInClockTicks, u32 TransitionInClockTicks) {
 	Xil_AssertVoid(InstancePtr != NULL);
 	Xil_AssertVoid(InterfaceNumber < InstancePtr->InterfaceCount);
+	Xil_AssertVoid(!(PeriodInClockTicks & 0xF0000000));
+	Xil_AssertVoid(!(TransitionInClockTicks & 0xF0000000));
 
-	LED_Controller_WriteReg(InstancePtr->BaseAddress, (LED_CONTROLLER_INTERFACE_OFFSET * InterfaceNumber) * 4 + LED_CONTROLLER_MODE_REG, 0x1); // Pulse mode
-	LED_Controller_WriteReg(InstancePtr->BaseAddress, (LED_CONTROLLER_INTERFACE_OFFSET * InterfaceNumber) * 4 + LED_CONTROLLER_FACTOR_REG, pwmFactor);
+	LED_Controller_WriteReg(InstancePtr->BaseAddress, (LED_CONTROLLER_INTERFACE_OFFSET * InterfaceNumber) * 4 + LED_CONTROLLER_PERIOD_REG, (EnablePWM?(1<32):0) | PeriodInClockTicks);
+	LED_Controller_WriteReg(InstancePtr->BaseAddress, (LED_CONTROLLER_INTERFACE_OFFSET * InterfaceNumber) * 4 + LED_CONTROLLER_COMP_REG, TransitionInClockTicks);
 }
 
-/****************************************************************************/
-/**
-* Sets a LED to dim mode and changes its PWM frequency.
-*
-* @param	InstancePtr is a pointer to an LED_Controller instance. The memory the
-*		pointer references must be pre-allocated by the caller. Further
-*		calls to manipulate the driver through the LED_Controller API must be
-*		made with this pointer.
-* @param	InterfaceNumber is the target LED interface in the controller. An
-*       assertion will take place if the target interface is above the number
-*       of available interfaces.
-* @param 	dimFactor is the PWM factor based on the AXI clock frequency.
-*       Use LED_DIM_25, LED_DIM_50, LED_DIM_75 for best results or a
-*       set the range between 0 and 255.
-*
-* @note		None.
-*
-*****************************************************************************/
-void LED_Controller_Dim(LED_Controller *InstancePtr, u32 InterfaceNumber, u8 dimFactor)
-{
-	Xil_AssertVoid(InstancePtr != NULL);
-	Xil_AssertVoid(InterfaceNumber < InstancePtr->InterfaceCount);
-
-	LED_Controller_WriteReg(InstancePtr->BaseAddress, (LED_CONTROLLER_INTERFACE_OFFSET * InterfaceNumber) * 4 + LED_CONTROLLER_MODE_REG, 0x2); // Pulse mode
-	LED_Controller_WriteReg(InstancePtr->BaseAddress, (LED_CONTROLLER_INTERFACE_OFFSET * InterfaceNumber) * 4 + LED_CONTROLLER_FACTOR_REG, dimFactor);
-}
