@@ -50,9 +50,7 @@
 #include <drivers/pim400/PIM400.h>
 #include <drivers/esm/ESM.h>
 #include <drivers/ad7689/AD7689.h>
-extern "C" {
-#include "led_controller.h"
-}
+#include <drivers/pl_led/PLLED.h>
 
 /* Include services */
 #include <services/ipmi/ipmbsvc/IPMBSvc.h>
@@ -114,7 +112,6 @@ SemaphoreHandle_t fru_data_mutex;
 std::vector<uint8_t> fru_data;
 MStateMachine *mstatemachine = NULL;
 PL_GPIO *handle_gpio;
-LED_Controller atcaLEDs;
 PayloadManager *payload_manager = NULL;
 
 u8 mac_address[6];
@@ -127,6 +124,9 @@ ESM *esm;
 AD7689 *adc[2];
 
 PS_XADC *xadc;
+
+PL_LED *atcaLEDs;
+LED *blueLED;
 
 bool firmwareUpdateFailed = false;
 
@@ -217,7 +217,8 @@ void driver_init(bool use_pl) {
 		PL_I2C *i2c = new PL_I2C(XPAR_AXI_IIC_PIM400_DEVICE_ID, XPAR_FABRIC_AXI_IIC_PIM400_IIC2INTC_IRPT_INTR);
 		(new PIM400(*i2c, 0x5E))->register_console_commands(console_command_parser, "pim400");
 
-		LED_Controller_Initialize(&atcaLEDs, XPAR_AXI_ATCA_LED_CTRL_DEVICE_ID);
+		atcaLEDs = new PL_LED(XPAR_AXI_ATCA_LED_CTRL_DEVICE_ID, 50000000);
+		blueLED = new LED(*atcaLEDs, 0);
 
 		for (int i = 0; i < 2; i++) {
 			adc[i] = new AD7689(XPAR_AD7689_S_0_DEVICE_ID + i);
@@ -268,7 +269,12 @@ void ipmc_service_init() {
 				xSemaphoreTake(handle_isr_sem, pdMS_TO_TICKS(100));
 
 				bool isPressed = handle_gpio->isPinSet(0);
-				LED_Controller_SetOnOff(&atcaLEDs, 0, isPressed);
+				if (isPressed) {
+					blueLED->on();
+				} else {
+					// TODO: Constantly calling blink will reset the controller, making the LED to look like it is always on
+					blueLED->blink(1000, 100);
+				}
 				mstatemachine->physical_handle_state(isPressed ? MStateMachine::HANDLE_CLOSED : MStateMachine::HANDLE_OPEN);
 			}
 		});

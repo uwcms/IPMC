@@ -18,9 +18,10 @@ entity led_controller_v1_0_S_AXI is
 	);
 	port (
 		-- Users to add ports here
-		
-		m_led_mode : out std_logic_vector ((C_LED_INTERFACES*2)-1 downto 0);
-		m_led_val : out std_logic_vector ((C_LED_INTERFACES*8)-1 downto 0);
+		m_led_limit : out std_logic_vector ((C_LED_INTERFACES*28)-1 downto 0);
+		m_led_comp : out std_logic_vector ((C_LED_INTERFACES*28)-1 downto 0);
+		m_led_pulse_en : out std_logic_vector (C_LED_INTERFACES-1 downto 0);
+		m_softrst : out std_logic_vector (C_LED_INTERFACES-1 downto 0);
 
 		-- User ports ends
 		-- Do not modify the ports beyond this line
@@ -113,8 +114,10 @@ architecture arch_imp of led_controller_v1_0_S_AXI is
     constant OPT_MEM_ADDR_BITS : integer := C_ADDR_WIDTH;
     ------------------------------------------------
     ---- Signals for user logic register space example
-    signal s_led_mode    :std_logic_vector((C_LED_INTERFACES*2)-1 downto 0);
-    signal s_led_val    :std_logic_vector((C_LED_INTERFACES*8)-1 downto 0);
+    signal s_led_limit : std_logic_vector ((C_LED_INTERFACES*28)-1 downto 0);
+    signal s_led_comp : std_logic_vector ((C_LED_INTERFACES*28)-1 downto 0);
+    signal s_led_pulse_en : std_logic_vector (C_LED_INTERFACES-1 downto 0);
+    
     signal slv_reg_rden    : std_logic;
     signal slv_reg_wren    : std_logic;
     signal reg_data_out    :std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
@@ -211,47 +214,32 @@ begin
     begin
       if rising_edge(S_AXI_ACLK) then 
         if S_AXI_ARESETN = '0' then
-          s_led_mode <= (others => '0');
-          s_led_val <= (others => '0');
+          s_led_limit <= (others => '0');
+          for i in 0 to C_LED_INTERFACES-1 loop
+            s_led_comp((i+1)*28-1 downto i*28) <= x"0000001"; -- leds off
+          end loop;
+          s_led_pulse_en <= (others => '0');
+          m_softrst <= (others => '0');
         else
           loc_addr := axi_awaddr(ADDR_LSB + OPT_MEM_ADDR_BITS downto ADDR_LSB);
+          m_softrst <= (others => '0');
           if (slv_reg_wren = '1') then
             
             for i in 0 to C_LED_INTERFACES-1 loop
               if (to_integer(unsigned(loc_addr(C_ADDR_WIDTH downto 1))) = i) then
+                m_softrst(i) <= '1';
                 if (loc_addr(0) = '0') then
-                  if ( S_AXI_WSTRB(0) = '1' ) then
-                    s_led_mode((i+1)*2-1 downto i*2) <= S_AXI_WDATA (1 downto 0);
-                  end if;
+                  --if ( S_AXI_WSTRB(0) = '1' ) then
+                    s_led_pulse_en(i) <= S_AXI_WDATA(31);
+                    s_led_limit((i+1)*28-1 downto i*28) <= S_AXI_WDATA(27 downto 0);
+                  --end if;
                 else
-                  if ( S_AXI_WSTRB(0) = '1' ) then
-                    s_led_val((i+1)*8-1 downto i*8) <= S_AXI_WDATA (7 downto 0);
-                  end if;
+                  --if ( S_AXI_WSTRB(0) = '1' ) then
+                    s_led_comp((i+1)*28-1 downto i*28) <= S_AXI_WDATA(27 downto 0);
+                  --end if;
                 end if;
               end if;
             end loop;
-            
-    --            case loc_addr is
-    --              when b"0" =>
-    --                for byte_index in 0 to (C_S_AXI_DATA_WIDTH/8-1) loop
-    --                  if ( S_AXI_WSTRB(byte_index) = '1' ) then
-    --                    -- Respective byte enables are asserted as per write strobes                   
-    --                    -- slave registor 0
-    --                    s_led_mode(byte_index*8+7 downto byte_index*8) <= S_AXI_WDATA(byte_index*8+7 downto byte_index*8);
-    --                  end if;
-    --                end loop;
-    --              when b"1" =>
-    --                for byte_index in 0 to (C_S_AXI_DATA_WIDTH/8-1) loop
-    --                  if ( S_AXI_WSTRB(byte_index) = '1' ) then
-    --                    -- Respective byte enables are asserted as per write strobes                   
-    --                    -- slave registor 1
-    --                    s_led_val(byte_index*8+7 downto byte_index*8) <= S_AXI_WDATA(byte_index*8+7 downto byte_index*8);
-    --                  end if;
-    --                end loop;
-    --              when others =>
-    --                s_led_mode <= s_led_mode;
-    --                s_led_val <= s_led_val;
-    --            end case;
           end if;
         end if;
       end if;                   
@@ -338,7 +326,7 @@ begin
     -- and the slave is ready to accept the read address.
     slv_reg_rden <= axi_arready and S_AXI_ARVALID and (not axi_rvalid) ;
     
-    process (s_led_mode, s_led_val, axi_araddr, S_AXI_ARESETN, slv_reg_rden)
+    process (s_led_limit, s_led_comp, s_led_pulse_en, axi_araddr, S_AXI_ARESETN, slv_reg_rden)
     variable loc_addr :std_logic_vector(OPT_MEM_ADDR_BITS downto 0);
     variable loc_reg_data :std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
     begin
@@ -348,21 +336,14 @@ begin
         for i in 0 to C_LED_INTERFACES-1 loop
            if (to_integer(unsigned(loc_addr(C_ADDR_WIDTH downto 1))) = i) then
                if (loc_addr(0) = '0') then
-                   loc_reg_data := C_ZEROS(C_S_AXI_DATA_WIDTH-1 downto 2) & s_led_mode ((i+1)*2-1 downto i*2);
+                   -- reg1
+                   loc_reg_data := s_led_pulse_en(i) & "000" & s_led_limit((i+1)*28-1 downto i*28);
                else
-                   loc_reg_data := C_ZEROS(C_S_AXI_DATA_WIDTH-1 downto 8) & s_led_val ((i+1)*8-1 downto i*8);
+                   loc_reg_data := "0000" & s_led_comp((i+1)*28-1 downto i*28);
                end if;
            end if;
         end loop;
         reg_data_out <= loc_reg_data;
-    --        case loc_addr is
-    --          when b"0" =>
-    --            reg_data_out <= s_led_mode;
-    --          when b"1" =>
-    --            reg_data_out <= s_led_val;
-    --          when others =>
-    --            reg_data_out  <= (others => '0');
-    --        end case;
     end process; 
     
     -- Output register or memory read data
@@ -386,8 +367,11 @@ begin
     
     -- Add user logic here
     
-    m_led_mode <= s_led_mode;
-    m_led_val <= s_led_val;
+    LED_INTERFACES: for I in 0 to C_LED_INTERFACES-1 generate
+        m_led_limit((i+1)*28-1 downto i*28) <= s_led_limit((i+1)*28-1 downto i*28);
+        m_led_comp((i+1)*28-1 downto i*28) <= s_led_comp((i+1)*28-1 downto i*28);
+        m_led_pulse_en(i) <= s_led_pulse_en(i);
+    end generate;
     
     -- User logic ends
 

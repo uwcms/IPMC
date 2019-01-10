@@ -62,8 +62,10 @@ architecture arch_imp of led_controller_v1_0 is
         C_S_AXI_ADDR_WIDTH    : integer    := 3
         );
         port (
-        m_led_mode : out std_logic_vector ((C_LED_INTERFACES*2)-1 downto 0);
-        m_led_val : out std_logic_vector ((C_LED_INTERFACES*8)-1 downto 0);
+        m_led_limit : out std_logic_vector ((C_LED_INTERFACES*28)-1 downto 0);
+        m_led_comp : out std_logic_vector ((C_LED_INTERFACES*28)-1 downto 0);
+        m_led_pulse_en : out std_logic_vector (C_LED_INTERFACES-1 downto 0);
+        m_softrst : out std_logic_vector (C_LED_INTERFACES-1 downto 0);
         
         S_AXI_ACLK    : in std_logic;
         S_AXI_ARESETN    : in std_logic;
@@ -96,14 +98,17 @@ architecture arch_imp of led_controller_v1_0 is
     port (
         RST : in STD_LOGIC;
         CLK : in STD_LOGIC;
-        MODE : in STD_LOGIC_VECTOR (1 downto 0);
-        VAL : in STD_LOGIC_VECTOR (7 downto 0);
+        LIMIT : in STD_LOGIC_VECTOR (27 downto 0);
+        COMP : in STD_LOGIC_VECTOR (27 downto 0);
+        PULSING : in STD_LOGIC;
         LED : out STD_LOGIC);
     end component;
 	
-    signal s_rst : std_logic;
-    signal s_led_mode : std_logic_vector ((C_LED_INTERFACES*2)-1 downto 0);
-    signal s_led_val : std_logic_vector ((C_LED_INTERFACES*8)-1 downto 0);
+    signal s_rst : std_logic_vector (C_LED_INTERFACES-1 downto 0);
+    signal s_led_limit : std_logic_vector ((C_LED_INTERFACES*28)-1 downto 0);
+    signal s_led_comp : std_logic_vector ((C_LED_INTERFACES*28)-1 downto 0);
+    signal s_led_pulse_en : std_logic_vector (C_LED_INTERFACES-1 downto 0);
+    signal s_softrst : std_logic_vector (C_LED_INTERFACES-1 downto 0);
 
 begin
 
@@ -116,8 +121,10 @@ led_controller_v1_0_S_AXI_inst : led_controller_v1_0_S_AXI
         C_S_AXI_ADDR_WIDTH    => C_S_AXI_ADDR_WIDTH
     )
     port map (
-        m_led_mode => s_led_mode,
-        m_led_val => s_led_val,
+        m_led_limit => s_led_limit,
+        m_led_comp => s_led_comp,
+        m_led_pulse_en => s_led_pulse_en,
+        m_softrst => s_softrst,
     
         S_AXI_ACLK    => s_axi_aclk,
         S_AXI_ARESETN    => s_axi_aresetn,
@@ -143,18 +150,22 @@ led_controller_v1_0_S_AXI_inst : led_controller_v1_0_S_AXI
     );
 
 	-- Add user logic here
-	s_rst <= not s_axi_aresetn;
 	
 	LED_INTERFACES: for I in 0 to C_LED_INTERFACES-1 generate
+	   s_rst(i) <= not s_axi_aresetn or s_softrst(i);
+	
 	   led_ctrlr_inst : led_ctrlr
 	   generic map (
 	       ACTIVE_HIGH => C_ACTIVE_HIGH
        )
 	   port map (
-	       RST => s_rst,
+	       RST => s_rst(i),
 	       CLK => s_axi_aclk,
-	       MODE => s_led_mode ((I+1)*2-1 downto I*2),
-	       VAL => s_led_val ((I+1)*8-1 downto I*8),
+	       
+	       LIMIT => s_led_limit((I+1)*28-1 downto I*28),
+	       COMP => s_led_comp((I+1)*28-1 downto I*28),
+	       PULSING => s_led_pulse_en(I),
+	       
 	       LED => m_led_out(I)
 	   );
 	end generate LED_INTERFACES;

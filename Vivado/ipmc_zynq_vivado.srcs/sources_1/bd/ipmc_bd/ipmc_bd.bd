@@ -283,21 +283,6 @@
         </spirit:configurableElementValues>
       </spirit:componentInstance>
       <spirit:componentInstance>
-        <spirit:instanceName>axi_user_led_ctrl</spirit:instanceName>
-        <spirit:componentRef spirit:library="uw" spirit:name="led_controller" spirit:vendor="uw" spirit:version="1.0"/>
-        <spirit:configurableElementValues>
-          <spirit:configurableElementValue spirit:referenceId="bd:xciName">ipmc_bd_axi_user_led_ctrl_0</spirit:configurableElementValue>
-        </spirit:configurableElementValues>
-      </spirit:componentInstance>
-      <spirit:componentInstance>
-        <spirit:instanceName>axi_atca_led_ctrl</spirit:instanceName>
-        <spirit:componentRef spirit:library="uw" spirit:name="led_controller" spirit:vendor="uw" spirit:version="1.0"/>
-        <spirit:configurableElementValues>
-          <spirit:configurableElementValue spirit:referenceId="bd:xciName">ipmc_bd_axi_atca_led_ctrl_0</spirit:configurableElementValue>
-          <spirit:configurableElementValue spirit:referenceId="C_LED_INTERFACES">4</spirit:configurableElementValue>
-        </spirit:configurableElementValues>
-      </spirit:componentInstance>
-      <spirit:componentInstance>
         <spirit:instanceName>axi_jtag_0</spirit:instanceName>
         <spirit:componentRef spirit:library="Debug" spirit:name="axi_jtag" spirit:vendor="A_Clark" spirit:version="1.0"/>
         <spirit:configurableElementValues>
@@ -1002,6 +987,21 @@
           <spirit:configurableElementValue spirit:referenceId="bd:BoundaryCRC">0x0</spirit:configurableElementValue>
         </spirit:configurableElementValues>
       </spirit:componentInstance>
+      <spirit:componentInstance>
+        <spirit:instanceName>axi_atca_led_ctrl</spirit:instanceName>
+        <spirit:componentRef spirit:library="uw" spirit:name="led_controller" spirit:vendor="uw" spirit:version="2.0"/>
+        <spirit:configurableElementValues>
+          <spirit:configurableElementValue spirit:referenceId="bd:xciName">ipmc_bd_axi_atca_led_ctrl_0</spirit:configurableElementValue>
+          <spirit:configurableElementValue spirit:referenceId="C_LED_INTERFACES">4</spirit:configurableElementValue>
+        </spirit:configurableElementValues>
+      </spirit:componentInstance>
+      <spirit:componentInstance>
+        <spirit:instanceName>axi_user_led_ctrl</spirit:instanceName>
+        <spirit:componentRef spirit:library="uw" spirit:name="led_controller" spirit:vendor="uw" spirit:version="2.0"/>
+        <spirit:configurableElementValues>
+          <spirit:configurableElementValue spirit:referenceId="bd:xciName">ipmc_bd_axi_user_led_ctrl_0</spirit:configurableElementValue>
+        </spirit:configurableElementValues>
+      </spirit:componentInstance>
     </spirit:componentInstances>
     <spirit:interconnections>
       <spirit:interconnection>
@@ -1141,9 +1141,7 @@
       <spirit:adHocConnection>
         <spirit:name>processing_system7_0_FCLK_CLK0</spirit:name>
         <spirit:internalPortReference spirit:componentRef="processing_system7_0" spirit:portRef="FCLK_CLK0"/>
-        <spirit:internalPortReference spirit:componentRef="axi_user_led_ctrl" spirit:portRef="s_axi_aclk"/>
         <spirit:internalPortReference spirit:componentRef="proc_sys_reset_0" spirit:portRef="slowest_sync_clk"/>
-        <spirit:internalPortReference spirit:componentRef="axi_atca_led_ctrl" spirit:portRef="s_axi_aclk"/>
         <spirit:internalPortReference spirit:componentRef="axi_jtag_0" spirit:portRef="s_axi_aclk"/>
         <spirit:internalPortReference spirit:componentRef="axi_iic_eeprom_0" spirit:portRef="s_axi_aclk"/>
         <spirit:internalPortReference spirit:componentRef="axi_iic_pim400" spirit:portRef="s_axi_aclk"/>
@@ -1154,6 +1152,7 @@
         <spirit:internalPortReference spirit:componentRef="ad7689_s_1" spirit:portRef="s_axi_aclk"/>
         <spirit:internalPortReference spirit:componentRef="vio_HF_sim" spirit:portRef="clk"/>
         <spirit:internalPortReference spirit:componentRef="ipmi_sensor_proc_0" spirit:portRef="s_axi_aclk"/>
+        <spirit:internalPortReference spirit:componentRef="debouncer_0" spirit:portRef="CLK_IN"/>
         <spirit:internalPortReference spirit:componentRef="axi_interconnect_0" spirit:portRef="M02_ACLK"/>
         <spirit:internalPortReference spirit:componentRef="axi_interconnect_0" spirit:portRef="M03_ACLK"/>
         <spirit:internalPortReference spirit:componentRef="axi_interconnect_0" spirit:portRef="M07_ACLK"/>
@@ -1170,13 +1169,12 @@
         <spirit:internalPortReference spirit:componentRef="esm" spirit:portRef="ACLK"/>
         <spirit:internalPortReference spirit:componentRef="axi_interconnect_0" spirit:portRef="M10_ACLK"/>
         <spirit:internalPortReference spirit:componentRef="elm" spirit:portRef="ACLK"/>
-        <spirit:internalPortReference spirit:componentRef="debouncer_0" spirit:portRef="CLK_IN"/>
+        <spirit:internalPortReference spirit:componentRef="axi_atca_led_ctrl" spirit:portRef="s_axi_aclk"/>
+        <spirit:internalPortReference spirit:componentRef="axi_user_led_ctrl" spirit:portRef="s_axi_aclk"/>
       </spirit:adHocConnection>
       <spirit:adHocConnection>
         <spirit:name>proc_sys_reset_0_peripheral_aresetn</spirit:name>
         <spirit:internalPortReference spirit:componentRef="proc_sys_reset_0" spirit:portRef="peripheral_aresetn"/>
-        <spirit:internalPortReference spirit:componentRef="axi_user_led_ctrl" spirit:portRef="s_axi_aresetn"/>
-        <spirit:internalPortReference spirit:componentRef="axi_atca_led_ctrl" spirit:portRef="s_axi_aresetn"/>
         <spirit:internalPortReference spirit:componentRef="axi_jtag_0" spirit:portRef="s_axi_aresetn"/>
         <spirit:internalPortReference spirit:componentRef="axi_iic_eeprom_0" spirit:portRef="s_axi_aresetn"/>
         <spirit:internalPortReference spirit:componentRef="axi_iic_pim400" spirit:portRef="s_axi_aresetn"/>
@@ -1185,6 +1183,7 @@
         <spirit:internalPortReference spirit:componentRef="ad7689_s_0" spirit:portRef="s_axi_aresetn"/>
         <spirit:internalPortReference spirit:componentRef="ad7689_s_1" spirit:portRef="s_axi_aresetn"/>
         <spirit:internalPortReference spirit:componentRef="ipmi_sensor_proc_0" spirit:portRef="s_axi_aresetn"/>
+        <spirit:internalPortReference spirit:componentRef="debouncer_0" spirit:portRef="ARESETN_IN"/>
         <spirit:internalPortReference spirit:componentRef="axi_interconnect_0" spirit:portRef="M02_ARESETN"/>
         <spirit:internalPortReference spirit:componentRef="axi_interconnect_0" spirit:portRef="M03_ARESETN"/>
         <spirit:internalPortReference spirit:componentRef="axi_interconnect_0" spirit:portRef="M07_ARESETN"/>
@@ -1200,7 +1199,8 @@
         <spirit:internalPortReference spirit:componentRef="axi_interconnect_0" spirit:portRef="M10_ARESETN"/>
         <spirit:internalPortReference spirit:componentRef="esm" spirit:portRef="S00_ARESETN"/>
         <spirit:internalPortReference spirit:componentRef="elm" spirit:portRef="S00_ARESETN_0"/>
-        <spirit:internalPortReference spirit:componentRef="debouncer_0" spirit:portRef="ARESETN_IN"/>
+        <spirit:internalPortReference spirit:componentRef="axi_atca_led_ctrl" spirit:portRef="s_axi_aresetn"/>
+        <spirit:internalPortReference spirit:componentRef="axi_user_led_ctrl" spirit:portRef="s_axi_aresetn"/>
       </spirit:adHocConnection>
       <spirit:adHocConnection>
         <spirit:name>esm_dout</spirit:name>
