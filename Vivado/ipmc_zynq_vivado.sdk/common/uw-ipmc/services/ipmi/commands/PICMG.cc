@@ -167,19 +167,29 @@ static void ipmicmd_Get_Device_Locator_Record_ID(IPMBSvc &ipmb, const IPMI_MSG &
 }
 IPMICMD_INDEX_REGISTER(Get_Device_Locator_Record_ID);
 
-#if 0 // Unimplemented.
 static void ipmicmd_Set_Port_State(IPMBSvc &ipmb, const IPMI_MSG &message) {
 	ASSERT_PICMG_IDENTIFIER(ipmb, message);
+	if (message.data_len != 6)
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Request_Data_Length_Invalid);
+	std::vector<uint8_t> linkid(message.data+1, message.data+5);
+	bool enable;
+	switch (message.data[5]) {
+	case 0x00: enable = false; break;
+	case 0x01: enable = true; break;
+	default: RETURN_ERROR(ipmb, message, IPMI::Completion::Invalid_Data_Field_In_Request);
+	}
+	if (!payload_manager)
+		// Not yet initialized (we got an IPMI message before ipmc_service_init() completed)
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Node_Busy);
+	payload_manager->update_link_enable(PayloadManager::LinkDescriptor(linkid, enable));
+	ipmb.send(message.prepare_reply({IPMI::Completion::Success, 0}));
 }
 IPMICMD_INDEX_REGISTER(Set_Port_State);
-#endif
 
-#if 0 // Unimplemented.
 static void ipmicmd_Get_Port_State(IPMBSvc &ipmb, const IPMI_MSG &message) {
 	ASSERT_PICMG_IDENTIFIER(ipmb, message);
 }
 IPMICMD_INDEX_REGISTER(Get_Port_State);
-#endif
 
 static void ipmicmd_Compute_Power_Properties(IPMBSvc &ipmb, const IPMI_MSG &message) {
 	ASSERT_PICMG_IDENTIFIER(ipmb, message);

@@ -169,7 +169,10 @@ void MStateMachine::reevaluate(enum ActivationRequest activation_request, enum H
 		// Deactivation of backend power & discard of E-Keyed interfaces is managed by us.
 		if (this->deactivate_payload)
 			this->deactivate_payload();
-		this->transition(1, HotswapSensor::TRANS_NORMAL);
+		/* The transition to M1 will be triggered by the call to
+		 * payload_deactivation_complete() by the payload manager.
+		 */
+		//this->transition(1, HotswapSensor::TRANS_NORMAL);
 		break;
 	case 7:
 		throw std::logic_error("We can't exactly be claiming to be M7 on our own.");

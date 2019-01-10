@@ -76,14 +76,65 @@ public:
 	PowerProperties get_power_properties(uint8_t fru, bool recompute=false);
 	void set_power_level(uint8_t fru, uint8_t level);
 
+	/**
+	 * A link descriptor, following the structure of PICMG 3.0 Table 3-50.
+	 */
+	class LinkDescriptor {
+	public:
+		bool enabled; ///< Indicates the enabled status of this link.
+
+		uint8_t LinkGroupingID;
+		uint8_t LinkTypeExtension;
+		uint8_t LinkType;
+		/// Bit 0 = Port 0, etc.
+		uint8_t IncludedPorts;
+		enum Interfaces {
+			IF_BASE           = 0,
+			IF_FABRIC         = 1,
+			IF_UPDATE_CHANNEL = 2,
+			IF_RESERVED       = 3
+		};
+		enum Interfaces Interface;
+		uint8_t ChannelNumber;
+
+		LinkDescriptor();
+		LinkDescriptor(
+				uint8_t LinkGroupingID,
+				uint8_t LinkTypeExtension,
+				uint8_t LinkType,
+				uint8_t IncludedPorts,
+				enum Interfaces Interface,
+				uint8_t ChannelNumber);
+		LinkDescriptor(const std::vector<uint8_t> &bytes, bool enabled=false);
+		operator std::vector<uint8_t>() const;
+
+		/// Determines whether these link descriptors are the same link
+		bool operator==(const LinkDescriptor &b) const {
+			return std::vector<uint8_t>(*this) == std::vector<uint8_t>(b);
+		}
+		/// Determines whether these link descriptors are not the same link
+		bool operator!=(const LinkDescriptor &b) const {
+			return std::vector<uint8_t>(*this) != std::vector<uint8_t>(b);
+		}
+		static uint8_t map_oem_LinkType_guid(const std::vector<uint8_t> &oem_guid);
+		static std::vector<uint8_t> lookup_oem_LinkType_guid(uint8_t LinkType);
+	protected:
+		static SemaphoreHandle_t oem_guid_mutex; ///< A mutex protecting the registered OEM GUID mapping.
+		static std::map< uint8_t, std::vector<uint8_t> > oem_guids; ///< A mapping of registered OEM GUIDs.
+	};
+	void update_link_enable(const LinkDescriptor &descriptor);
+	std::vector<LinkDescriptor> get_links() const;
+
 	void register_console_commands(CommandParser &parser, const std::string &prefix);
 	void deregister_console_commands(CommandParser &parser, const std::string &prefix);
 
 protected:
+	SemaphoreHandle_t mutex; ///< A mutex protecting internal data.
 	MStateMachine *mstate_machine; ///< The MStateMachine to notify of changes.
 	MGMT_Zone *mgmt_zones[XPAR_MGMT_ZONE_CTRL_0_MZ_CNT];
 	PowerProperties power_properties; ///< The current power properties.
 	LogTree &log; ///< The LogTree for this object's messages.
+	std::vector<LinkDescriptor> links; ///< All supported E-Keying links.
 
 	void implement_power_level(uint8_t level);
 
