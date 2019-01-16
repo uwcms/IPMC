@@ -7,8 +7,39 @@
 
 #include <services/timer/TimerService.h>
 #include <libs/ThreadingPrimitives.h>
+#include <libs/printf.h>
 #include <FreeRTOS.h>
+#include <task.h>
 #include <semphr.h>
+
+/**
+ * Retrieve a global instance of a TimerService at the specified thread priority.
+ *
+ * @param process_priority The thread priority for which the timer service is desired (0 = caller priority)
+ * @return The global timer thread for the specified priority
+ */
+TimerService& TimerService::global_timer(BaseType_t process_priority) {
+	if (process_priority == 0)
+		process_priority = uxTaskPriorityGet(NULL);
+	if (process_priority >= configMAX_PRIORITIES)
+		throw std::logic_error(stdsprintf("A timer service cannot be instantiated for invalid priority %lu.", process_priority));
+	if (!TimerService::global_timers[process_priority]) {
+		bool created = false;
+		SuspendGuard guard(true);
+		if (!TimerService::global_timers[process_priority]) {
+			TimerService::global_timers[process_priority] = new TimerService();
+			created = true;
+		}
+		guard.release();
+		if (created) {
+			// We have to do this outside of the SuspendGuard, since printf can contend a lock internally.
+			TimerService::global_timers[process_priority]->start(stdsprintf("Timer%lu", process_priority), process_priority);
+		}
+	}
+	return *TimerService::global_timers[process_priority];
+}
+
+TimerService *TimerService::global_timers[configMAX_PRIORITIES];
 
 /**
  *
