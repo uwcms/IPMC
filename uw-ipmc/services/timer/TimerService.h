@@ -11,6 +11,7 @@
 #include <functional>
 #include <list>
 #include <libs/ThreadingPrimitives.h>
+#include <FreeRTOS.h>
 
 class TimerService {
 public:
@@ -29,6 +30,8 @@ public:
 	};
 	void submit(std::shared_ptr<Timer> &timer);
 	void start(const std::string &thread_name, BaseType_t thread_priority, BaseType_t stack_words=0);
+
+	static TimerService& global_timer(BaseType_t process_priority=0);
 protected:
 	/**
 	 * An input queue for new timers to be registered.
@@ -39,6 +42,7 @@ protected:
 	SemaphoreHandle_t mutex; ///< A mutex guarding the internal data structures.
 	std::list< std::shared_ptr<Timer> > timers; ///< The actual timers.
 	void run_thread();
+	static TimerService *global_timers[configMAX_PRIORITIES]; ///< Global timers
 };
 
 #endif /* SRC_COMMON_UW_IPMC_SERVICES_TIMER_TIMERSERVICE_H_ */
