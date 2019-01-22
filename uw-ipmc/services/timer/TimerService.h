@@ -19,10 +19,9 @@ public:
 	virtual ~TimerService();
 
 	class Timer final {
-	protected:
+	public:
 		Timer(std::function<void(void)> func, AbsoluteTimeout when, uint64_t rearm_every=0) :
 			func(func), next(when), rearm_every(rearm_every), cancelled(false) { };
-	public:
 		const std::function<void(void)> func; ///< Function to call on trigger
 		AbsoluteTimeout next; ///< The next time the timer will trigger
 		uint64_t rearm_every; ///< If nonzero, rearm the timer for +rearm_every ticks from next trigger.
