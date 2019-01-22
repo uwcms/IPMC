@@ -13,20 +13,29 @@
 #include <libs/except.h>
 
 /**
- * Instantiate an AbsoluteTimeout.
+ * Set the timeout based on a relative time from now.
  *
  * \param relative_timeout The relative timeout to be converted to absolute form.
  */
-AbsoluteTimeout::AbsoluteTimeout(TickType_t relative_timeout) :
-	timeout64(relative_timeout == portMAX_DELAY ? UINT64_MAX : get_tick64()+relative_timeout) {
-	// Done.
+void AbsoluteTimeout::set_timeout(TickType_t relative_timeout) {
+	if (relative_timeout == portMAX_DELAY)
+		this->set_timeout(UINT64_MAX);
+	else
+		this->set_timeout(static_cast<uint64_t>(relative_timeout));
 }
 
 /// \overload
-AbsoluteTimeout::AbsoluteTimeout(uint64_t relative_timeout) :
-	timeout64(relative_timeout == UINT64_MAX ? UINT64_MAX : get_tick64()+relative_timeout) {
-	if (!( relative_timeout == UINT64_MAX || (UINT64_MAX - relative_timeout) > get_tick64() )) // Wait past the end of time?  Never!
+void AbsoluteTimeout::set_timeout(uint64_t relative_timeout) {
+	if (relative_timeout == UINT64_MAX) {
+		CriticalGuard critical(true);
+		this->timeout64 = UINT64_MAX;
+		return;
+	}
+	CriticalGuard critical(true);
+	uint64_t now = get_tick64();
+	if ((UINT64_MAX - relative_timeout) <= now) // Wait past the end of time?  Never!
 		throw std::domain_error("We can't wait that long.  Please choose a time shorter than the life of the sun.");
+	this->timeout64 = now + relative_timeout;
 }
 
 /**
