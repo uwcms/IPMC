@@ -21,10 +21,18 @@ public:
 	class Timer final {
 	public:
 		Timer(std::function<void(void)> func, AbsoluteTimeout when, uint64_t rearm_every=0) :
-			func(func), next(when), rearm_every(rearm_every), cancelled(false) { };
-		const std::function<void(void)> func; ///< Function to call on trigger
+			next(when), rearm_every(rearm_every), func(func), cancelled(false) {
+			this->mutex = xSemaphoreCreateRecursiveMutex();
+		};
+		~Timer() { this->cancel(); vSemaphoreDelete(this->mutex); };
 		AbsoluteTimeout next; ///< The next time the timer will trigger
 		uint64_t rearm_every; ///< If nonzero, rearm the timer for +rearm_every ticks from next trigger.
+		void run();
+		void cancel(bool synchronous=true);
+		bool is_cancelled() const { return this->cancelled; };
+	protected:
+		SemaphoreHandle_t mutex; ///< A mutex protecting run, ensuring no races within cancellation.
+		const std::function<void(void)> func; ///< Function to call on trigger
 		bool cancelled; ///< true if this timer is cancelled and should not trigger
 	};
 	void submit(std::shared_ptr<Timer> &timer);
