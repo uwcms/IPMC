@@ -19,10 +19,12 @@
  */
 class AbsoluteTimeout {
 public:
-	AbsoluteTimeout(TickType_t relative_timeout);
-	AbsoluteTimeout(uint64_t relative_timeout);
+	AbsoluteTimeout(TickType_t relative_timeout) { this->set_timeout(relative_timeout); };
+	AbsoluteTimeout(uint64_t relative_timeout) { this->set_timeout(relative_timeout); };
 	virtual ~AbsoluteTimeout() { };
 	TickType_t get_timeout();
+	void set_timeout(TickType_t relative_timeout);
+	void set_timeout(uint64_t relative_timeout);
 	uint64_t timeout64; ///< The 64bit timeout.
 	/// Comparison Operators
 	///@{
