@@ -100,14 +100,14 @@ void TimerService::run_thread() {
 		uint64_t now = get_tick64();
 		for (auto it = this->timers.begin(), eit = this->timers.end(); it != eit; ) {
 			std::shared_ptr<Timer> &timer = *it;
-			if (timer->cancelled) {
+			if (timer->is_cancelled()) {
 				// Delete cancelled timers.
 				it = this->timers.erase(it);
 				continue;
 			}
 			if (timer->next.timeout64 <= now) {
 				lock.release();
-				timer->func();
+				timer->run();
 				lock.acquire();
 				if (timer->rearm_every) {
 					// This timer auto-rearms.
@@ -126,4 +126,23 @@ void TimerService::run_thread() {
 			it++;
 		}
 	}
+}
+
+/**
+ * Run the timer, if and only if it has not been cancelled yet.
+ */
+void TimerService::Timer::run() {
+	MutexGuard<true> lock(this->mutex, true);
+	if (!this->cancelled)
+		this->func();
+}
+
+/**
+ * Cancel the timer.
+ *
+ * @param synchronous wait for cancellation (and active run completion)
+ */
+void TimerService::Timer::cancel(bool synchronous) {
+	MutexGuard<true> lock(this->mutex, synchronous);
+	this->cancelled = true;
 }
