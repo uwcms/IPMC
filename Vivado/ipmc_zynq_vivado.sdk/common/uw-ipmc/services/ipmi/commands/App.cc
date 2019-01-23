@@ -21,7 +21,7 @@ static void ipmicmd_Get_Device_ID(IPMBSvc &ipmb, const IPMI_MSG &message) {
 	reply->data[6] |= 1<<1; // SDR Repository Device
 	reply->data[6] |= 0<<2; // SEL Device
 	reply->data[6] |= 1<<3; // FRU Inventory Device
-	reply->data[6] |= 1<<4; // IPMB Event Receiver
+	reply->data[6] |= 0<<4; // IPMB Event Receiver
 	reply->data[6] |= 1<<5; // IPMB Event Generator
 	reply->data[6] |= 0<<6; // Bridge
 	reply->data[6] |= 0<<7; // Chassis Device
