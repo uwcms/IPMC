@@ -63,7 +63,7 @@ TimerService::~TimerService() {
  */
 void TimerService::submit(std::shared_ptr<Timer> &timer) {
 	std::shared_ptr<Timer> *qtmr = new std::shared_ptr<Timer>(timer);
-	xQueueSend(this->input_queue, qtmr, portMAX_DELAY);
+	xQueueSend(this->input_queue, &qtmr, portMAX_DELAY);
 }
 
 /**
@@ -98,6 +98,7 @@ void TimerService::run_thread() {
 		// Iterate and call & rearm relevant timers.
 		MutexGuard<false> lock(this->mutex, true);
 		uint64_t now = get_tick64();
+		next.timeout64 = UINT64_MAX;
 		for (auto it = this->timers.begin(), eit = this->timers.end(); it != eit; ) {
 			std::shared_ptr<Timer> &timer = *it;
 			if (timer->is_cancelled()) {
@@ -120,7 +121,6 @@ void TimerService::run_thread() {
 					continue;
 				}
 			}
-			next.timeout64 = UINT64_MAX;
 			if (timer->next < next)
 				next = timer->next;
 			it++;
