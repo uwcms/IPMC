@@ -12,6 +12,7 @@
 #include <semphr.h>
 #include <stdint.h>
 #include <services/ipmi/sensor/HotswapSensor.h>
+#include <services/ipmi/ipmi_led/IPMILED.h>
 #include <libs/LogTree.h>
 #include <memory>
 #include <functional>
@@ -21,7 +22,7 @@
  */
 class MStateMachine {
 public:
-	MStateMachine(std::shared_ptr<HotswapSensor> hotswap_sensor, LogTree &log);
+	MStateMachine(std::shared_ptr<HotswapSensor> hotswap_sensor, IPMI_LED &blue_led, LogTree &log);
 	virtual ~MStateMachine();
 
 	/// Activation lock controls ("Set FRU Activation Policy" Command)
@@ -70,6 +71,7 @@ protected:
 
 	uint8_t _mstate; ///< The current M-state
 	std::shared_ptr<HotswapSensor> hotswap_sensor; ///< The hotswap sensor to use.
+	IPMI_LED &blue_led; ///< The IPMI LED used to display hotswap state.
 	LogTree &log; ///< The LogTree for our messages.
 
 	bool _activation_locked:1; ///< Activation Locked bit
@@ -87,6 +89,7 @@ protected:
 	};
 	void transition(uint8_t mstate, enum HotswapSensor::StateTransitionReason reason);
 	void reevaluate(enum ActivationRequest activation_request, enum HandleState previous_handle_state);
+	void update_ipmi_led(uint8_t prev_mstate, uint8_t mstate);
 
 public:
 	void reevaluate() { this->reevaluate(ACTREQ_NONE, HANDLE_NULL); };
