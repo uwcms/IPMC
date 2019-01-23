@@ -11,10 +11,10 @@
 #include <libs/ThreadingPrimitives.h>
 #include <libs/printf.h>
 
-MStateMachine::MStateMachine(std::shared_ptr<HotswapSensor> hotswap_sensor, LogTree &log)
-	: deactivate_payload(NULL), _mstate(1), hotswap_sensor(hotswap_sensor), log(log),
+MStateMachine::MStateMachine(std::shared_ptr<HotswapSensor> hotswap_sensor, IPMI_LED &blue_led, LogTree &log)
+	: deactivate_payload(NULL), _mstate(1), hotswap_sensor(hotswap_sensor), blue_led(blue_led), log(log),
 	  _activation_locked(false), _deactivation_locked(false), _startup_locked(true),
-	  _override_handle_state(HANDLE_NULL), _physical_handle_state(HANDLE_OPEN) {
+	  _physical_handle_state(HANDLE_OPEN), _override_handle_state(HANDLE_NULL) {
 	this->mutex = xSemaphoreCreateRecursiveMutex();
 	configASSERT(this->mutex);
 	this->log.log("Initialized in M1", LogTree::LOG_INFO);
@@ -186,9 +186,44 @@ void MStateMachine::reevaluate(enum ActivationRequest activation_request, enum H
 
 void MStateMachine::transition(uint8_t mstate, enum HotswapSensor::StateTransitionReason reason) {
 	MutexGuard<true> lock(this->mutex, true);
+	this->update_ipmi_led(this->_mstate, mstate);
 	this->_mstate = mstate;
 	this->hotswap_sensor->transition(mstate, reason);
 	this->log.log(stdsprintf("Transitioned to M%hhu", mstate), LogTree::LOG_NOTICE);
+}
+
+/**
+ * Update the IPMI Blue LED for the newly entered mstate.
+ */
+void MStateMachine::update_ipmi_led(uint8_t prev_mstate, uint8_t mstate) {
+	MutexGuard<true> lock(this->mutex, true);
+	struct IPMI_LED::Action action;
+	action.min_duration = 0;
+	action.periodMs = 1000; // Ignored for non-blink, always accurate for blink.
+	switch (mstate) {
+	case 1:
+		action.effect = IPMI_LED::ON; break;
+	case 2:
+		action.effect = IPMI_LED::BLINK;
+		action.timeOnMs = 900;
+		if (prev_mstate == 1)
+			action.min_duration = 1000;
+		break;
+	case 3:
+	case 4:
+		action.effect = IPMI_LED::OFF; break;
+	case 5:
+	case 6:
+		action.effect = IPMI_LED::BLINK;
+		action.timeOnMs = 100;
+		if (prev_mstate == 4)
+			action.min_duration = 1000;
+		break;
+	case 7:
+	default:
+		return; // No change.
+	}
+	this->blue_led.submit(action);
 }
 
 namespace {
@@ -249,7 +284,6 @@ public:
 };
 
 }
-
 
 /**
  * Register console commands related to the MStateMachine.

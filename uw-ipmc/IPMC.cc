@@ -126,7 +126,7 @@ AD7689 *adc[2];
 PS_XADC *xadc;
 
 PL_LED *atcaLEDs;
-LED *blueLED;
+IPMI_LED *BlueLED;
 
 static void init_device_sdrs(bool reinit=false);
 static void init_fru_data(bool reinit=false);
@@ -210,7 +210,7 @@ void driver_init(bool use_pl) {
 		(new PIM400(*i2c, 0x5E))->register_console_commands(console_command_parser, "pim400");
 
 		atcaLEDs = new PL_LED(XPAR_AXI_ATCA_LED_CTRL_DEVICE_ID, 50000000);
-		blueLED = new LED(*atcaLEDs, 0);
+		BlueLED = new IPMI_LED(*new LED(*atcaLEDs, 0));
 
 		for (int i = 0; i < 2; i++) {
 			adc[i] = new AD7689(XPAR_AD7689_S_0_DEVICE_ID + i);
@@ -247,7 +247,7 @@ void ipmc_service_init() {
 	esm->register_console_commands(console_command_parser, "esm.");
 
 	{
-		mstatemachine = new MStateMachine(std::dynamic_pointer_cast<HotswapSensor>(ipmc_sensors.find_by_name("Hotswap")), LOG["mstatemachine"]);
+		mstatemachine = new MStateMachine(std::dynamic_pointer_cast<HotswapSensor>(ipmc_sensors.find_by_name("Hotswap")), *BlueLED, LOG["mstatemachine"]);
 		mstatemachine->register_console_commands(console_command_parser, "");
 
 		// Since we can't do this processing in the ISR itself, we'll have to settle for this.
@@ -266,12 +266,6 @@ void ipmc_service_init() {
 				xSemaphoreTake(handle_isr_sem, pdMS_TO_TICKS(100));
 
 				bool isPressed = handle_gpio->isPinSet(0);
-				if (isPressed) {
-					blueLED->on();
-				} else {
-					// TODO: Constantly calling blink will reset the controller, making the LED to look like it is always on
-					blueLED->blink(1000, 100);
-				}
 				mstatemachine->physical_handle_state(isPressed ? MStateMachine::HANDLE_CLOSED : MStateMachine::HANDLE_OPEN);
 			}
 		});
