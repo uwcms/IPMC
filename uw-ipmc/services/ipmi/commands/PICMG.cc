@@ -57,33 +57,188 @@ static void ipmicmd_FRU_Control(IPMBSvc &ipmb, const IPMI_MSG &message) {
 IPMICMD_INDEX_REGISTER(FRU_Control);
 #endif
 
-#if 0 // Unimplemented.
 static void ipmicmd_Get_FRU_LED_Properties(IPMBSvc &ipmb, const IPMI_MSG &message) {
 	ASSERT_PICMG_IDENTIFIER(ipmb, message);
+	if (message.data_len != 2 || message.data[1] != 0)
+		// Not enough parameters, or asking for FRU != 0.  We dont have one of those.
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Parameter_Out_Of_Range);
+	ipmb.send(message.prepare_reply({
+		IPMI::Completion::Success,
+		0, // PICMG Identifier (spec requires 0)
+		0x0f, // BRGA LEDs are under FRU control.
+		0, // No Application Specific LEDs are under FRU control.
+	}));
 }
 IPMICMD_INDEX_REGISTER(Get_FRU_LED_Properties);
-#endif
 
-#if 0 // Unimplemented.
 static void ipmicmd_Get_LED_Color_Capabilities(IPMBSvc &ipmb, const IPMI_MSG &message) {
 	ASSERT_PICMG_IDENTIFIER(ipmb, message);
+	if (message.data_len != 3 || message.data[1] != 0)
+		// Not enough parameters, or asking for FRU != 0.  We dont have one of those.
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Parameter_Out_Of_Range);
+	if (message.data[2] > 3)
+		// We don't have more than 4 controllable LEDs.
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Invalid_Data_Field_In_Request /* Specified */);
+	uint8_t led = message.data[2];
+
+	uint8_t color = led + 1; // Nice how these things work out, isn't it?
+	ipmb.send(message.prepare_reply({
+		IPMI::Completion::Success,
+		0, // PICMG Identifier (spec requires 0)
+		(uint8_t)(1<<color), // Color flags as specified.
+		color, // Local control color state, as specified
+		color, // Default override color state, as specified
+		0, // No hardware restrictions, all powered from mgmt power.
+	}));
 }
 IPMICMD_INDEX_REGISTER(Get_LED_Color_Capabilities);
-#endif
 
-#if 0 // Unimplemented.
 static void ipmicmd_Set_FRU_LED_State(IPMBSvc &ipmb, const IPMI_MSG &message) {
 	ASSERT_PICMG_IDENTIFIER(ipmb, message);
+	if (message.data_len != 6 || message.data[1] != 0)
+		// Not enough parameters, or asking for FRU != 0.  We dont have one of those.
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Parameter_Out_Of_Range);
+	if (message.data[2] > 3)
+		// We don't have more than 4 controllable LEDs.
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Invalid_Data_Field_In_Request /* Specified */);
+	IPMI_LED &led = *ipmi_leds.at(message.data[2]);
+	uint8_t function = message.data[3];
+	uint8_t on_duration = message.data[4];
+	uint8_t color = message.data[5]; // We ignore this.
+	struct IPMI_LED::Action action;
+	action.min_duration = 0;
+
+	if (function == 0) {
+		action.effect = IPMI_LED::OFF;
+	}
+	else if (0x01 <= function && function <= 0xFA) {
+		action.effect = IPMI_LED::BLINK;
+		action.timeOnMs = on_duration * pdMS_TO_TICKS(10);
+		action.periodMs = action.timeOnMs + function * pdMS_TO_TICKS(10);
+		led.override(action);
+	}
+	else if (function == 0xFB) {
+		// LAMP TEST
+		led.lamp_test(on_duration * pdMS_TO_TICKS(100));
+	}
+	else if (function = 0xFC) {
+		action.effect = IPMI_LED::INACTIVE; // Turn off override mode
+		led.override(action);
+	}
+	else if (function == 0xFF) {
+		action.effect = IPMI_LED::OFF;
+		led.override(action);
+	}
+	else {
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Invalid_Data_Field_In_Request /* Specified */);
+	}
+	ipmb.send(message.prepare_reply({ IPMI::Completion::Success, 0 }));
 }
 IPMICMD_INDEX_REGISTER(Set_FRU_LED_State);
-#endif
 
-#if 0 // Unimplemented.
 static void ipmicmd_Get_FRU_LED_State(IPMBSvc &ipmb, const IPMI_MSG &message) {
 	ASSERT_PICMG_IDENTIFIER(ipmb, message);
+	if (message.data_len != 3 || message.data[1] != 0)
+		// Not enough parameters, or asking for FRU != 0.  We dont have one of those.
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Parameter_Out_Of_Range);
+	if (message.data[2] > 3)
+		// We don't have more than 4 controllable LEDs.
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Invalid_Data_Field_In_Request /* Specified */);
+	IPMI_LED &led = *ipmi_leds.at(message.data[2]);
+	struct IPMI_LED::Action action = led.get_current_physical_action();
+	uint8_t color = message.data[2] + 1; // Nice how these things work out, isn't it?
+
+	std::shared_ptr<IPMI_MSG> reply = message.prepare_reply();
+	reply->data[0] = IPMI::Completion::Success;
+	reply->data[1] = 0; // PICMG Identifier (Specified)
+	reply->data[2] = 1<<0; // We do have a local control state.
+	if (action.control_level == IPMI_LED::OVERRIDE)
+		reply->data[2] |= 1<<1; // The override state is active.
+	if (action.control_level == IPMI_LED::LAMPTEST)
+		reply->data[2] = 1<<2; // The Lamp Test state is active.
+
+	action = led.get_current_local_action();
+	uint32_t ticksOn = action.timeOnMs;
+	uint32_t ticksOff = action.periodMs - action.timeOnMs;
+
+	if (action.effect == IPMI_LED::OFF) {
+		reply->data[3] = 0;
+		reply->data[4] = 0;
+	}
+	else if (action.effect == IPMI_LED::BLINK) {
+		uint32_t unitsOff = ticksOff / pdMS_TO_TICKS(10);
+		reply->data[3] = unitsOff;
+		if (unitsOff < 1)
+			reply->data[3] = 1;
+		if (unitsOff > 0xFA)
+			reply->data[3] = 0xFA;
+
+		uint8_t unitsOn = ticksOn / pdMS_TO_TICKS(10);
+		reply->data[4] = unitsOn;
+		if (unitsOn < 1)
+			reply->data[4] = 1;
+		if (unitsOn > 255)
+			reply->data[4] = 255;
+	}
+	else {
+		reply->data[3] = 0xFF; // We'll consider pulsing to just be ON.  IPMI has no provision for it.
+		reply->data[4] = 0;
+	}
+	reply->data[5] = color;
+
+	reply->data_len = 6;
+	if (!(reply->data[2] & 0x06)) {
+		ipmb.send(reply); // Done here, no higher levels to report.
+		return;
+	}
+
+	// Fine so we have an override level too.
+
+	action = led.get_current_override_action();
+	ticksOn = action.timeOnMs;
+	ticksOff = action.periodMs - action.timeOnMs;
+
+	if (action.effect == IPMI_LED::OFF) {
+		reply->data[7] = 0;
+		reply->data[8] = 0;
+	}
+	else if (action.effect == IPMI_LED::BLINK) {
+		uint32_t unitsOff = ticksOff / pdMS_TO_TICKS(10);
+		reply->data[7] = unitsOff;
+		if (unitsOff < 1)
+			reply->data[7] = 1;
+		if (unitsOff > 0xFA)
+			reply->data[7] = 0xFA;
+
+		uint8_t unitsOn = ticksOn / pdMS_TO_TICKS(10);
+		reply->data[8] = unitsOn;
+		if (unitsOn < 1)
+			reply->data[8] = 1;
+		if (unitsOn > 255)
+			reply->data[8] = 255;
+	}
+	else {
+		reply->data[7] = 0xFF; // We'll consider pulsing to just be ON.  IPMI has no provision for it.
+		reply->data[8] = 0;
+	}
+	reply->data[9] = color;
+
+	reply->data_len = 10;
+	if (!(reply->data[2] & 0x04)) {
+		ipmb.send(reply); // Done here, no higher levels to report.
+		return;
+	}
+
+	// Fine, so we have a lamp test too.
+	uint32_t lamp_test_remaining_decisec = led.get_current_lamp_test_duration().get_timeout() / pdMS_TO_TICKS(100);
+	reply->data[10] = lamp_test_remaining_decisec;
+	if (lamp_test_remaining_decisec > 127)
+		reply->data[10] = 127;
+	reply->data_len = 11;
+
+	ipmb.send(reply);
 }
 IPMICMD_INDEX_REGISTER(Get_FRU_LED_State);
-#endif
 
 #if 0 // Unimplemented.
 static void ipmicmd_Set_IPMB_State(IPMBSvc &ipmb, const IPMI_MSG &message) {

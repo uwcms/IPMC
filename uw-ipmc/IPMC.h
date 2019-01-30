@@ -74,6 +74,9 @@ extern u8 mac_address[6];
 class CommandParser;
 extern CommandParser console_command_parser;
 
+class IPMI_LED;
+extern std::vector<IPMI_LED*> ipmi_leds; // Blue, Red, Green, Amber
+
 void driver_init(bool use_pl);
 void ipmc_service_init();
 
