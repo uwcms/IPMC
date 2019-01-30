@@ -47,6 +47,15 @@ struct IPMI_LED::Action IPMI_LED::get_current_local_action() {
 	MutexGuard<true> lock(this->mutex, true);
 	return this->local_action;
 }
+struct IPMI_LED::Action IPMI_LED::get_current_override_action() {
+	MutexGuard<true> lock(this->mutex, true);
+	return this->override_action;
+
+}
+AbsoluteTimeout IPMI_LED::get_current_lamp_test_duration() {
+	MutexGuard<true> lock(this->mutex, true);
+	return this->lamp_test_timeout;
+}
 
 struct IPMI_LED::Action IPMI_LED::get_current_physical_action() {
 	MutexGuard<true> lock(this->mutex, true);
@@ -55,13 +64,16 @@ struct IPMI_LED::Action IPMI_LED::get_current_physical_action() {
 	if (this->lamp_test_timeout.get_timeout()) {
 		action.effect = ON;
 		action.min_duration = this->lamp_test_timeout.get_timeout();
+		action.control_level = LAMPTEST;
 	}
 	else if (this->override_action.effect != INACTIVE) {
 		action = this->override_action;
+		action.control_level = OVERRIDE;
 	}
 	else {
 		action = this->local_action;
 		action.min_duration = this->local_min_duration.get_timeout();
+		action.control_level = LOCAL;
 	}
 	return action;
 }
