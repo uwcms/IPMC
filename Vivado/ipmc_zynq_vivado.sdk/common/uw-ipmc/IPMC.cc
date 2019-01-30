@@ -126,7 +126,7 @@ AD7689 *adc[2];
 PS_XADC *xadc;
 
 PL_LED *atcaLEDs;
-IPMI_LED *BlueLED;
+std::vector<IPMI_LED*> ipmi_leds;  // Blue, Red, Green, Amber
 
 static void init_device_sdrs(bool reinit=false);
 static void init_fru_data(bool reinit=false);
@@ -206,15 +206,16 @@ void driver_init(bool use_pl) {
 	ipmi_event_receiver.lun = 0;
 	ipmi_event_receiver.addr = 0x20; // Should be `0xFF "Disabled"`, maybe?
 
-	console_log_filter->reconfigure(log_ipmb0, LogTree::LOG_INFO); // XXX For IPMI Testing
-
 	// TODO: Clean up this part
 	if (use_pl) {
 		PL_I2C *i2c = new PL_I2C(XPAR_AXI_IIC_PIM400_DEVICE_ID, XPAR_FABRIC_AXI_IIC_PIM400_IIC2INTC_IRPT_INTR);
 		(new PIM400(*i2c, 0x5E))->register_console_commands(console_command_parser, "pim400");
 
 		atcaLEDs = new PL_LED(XPAR_AXI_ATCA_LED_CTRL_DEVICE_ID, 50000000);
-		BlueLED = new IPMI_LED(*new LED(*atcaLEDs, 0));
+		ipmi_leds.push_back(new IPMI_LED(*new LED(*atcaLEDs, 0))); // Blue LED
+		ipmi_leds.push_back(new IPMI_LED(*new LED(*atcaLEDs, 1))); // Red LED
+		ipmi_leds.push_back(new IPMI_LED(*new LED(*atcaLEDs, 2))); // Green LED
+		ipmi_leds.push_back(new IPMI_LED(*new LED(*atcaLEDs, 3))); // Amber LED
 
 		for (int i = 0; i < 2; i++) {
 			adc[i] = new AD7689(XPAR_AD7689_S_0_DEVICE_ID + i);
@@ -251,7 +252,7 @@ void ipmc_service_init() {
 	esm->register_console_commands(console_command_parser, "esm.");
 
 	{
-		mstatemachine = new MStateMachine(std::dynamic_pointer_cast<HotswapSensor>(ipmc_sensors.find_by_name("Hotswap")), *BlueLED, LOG["mstatemachine"]);
+		mstatemachine = new MStateMachine(std::dynamic_pointer_cast<HotswapSensor>(ipmc_sensors.find_by_name("Hotswap")), *ipmi_leds[0], LOG["mstatemachine"]);
 		mstatemachine->register_console_commands(console_command_parser, "");
 
 		// Since we can't do this processing in the ISR itself, we'll have to settle for this.
