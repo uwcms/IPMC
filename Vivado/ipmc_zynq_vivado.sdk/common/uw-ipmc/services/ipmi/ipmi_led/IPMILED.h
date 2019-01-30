@@ -25,17 +25,25 @@ public:
 		BLINK,
 		PULSE,
 	};
+	enum ControlLevel {
+		LOCAL,
+		OVERRIDE,
+		LAMPTEST,
+	};
 	struct Action {
 		Effect effect;
 		uint64_t min_duration;
 		float intensity;
 		uint32_t periodMs;
 		uint32_t timeOnMs;
+		enum ControlLevel control_level; // Return only, not setable
 	};
 	void submit(struct Action action);
 	void override(struct Action action);
 	void lamp_test(uint64_t duration);
 	struct Action get_current_local_action();
+	struct Action get_current_override_action();
+	AbsoluteTimeout get_current_lamp_test_duration();
 	struct Action get_current_physical_action();
 	void reset_local();
 protected:
