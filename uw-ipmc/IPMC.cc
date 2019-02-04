@@ -277,6 +277,7 @@ void ipmc_service_init() {
 		handle_gpio->setIRQCallback([handle_isr_sem](uint32_t pin) -> void { xSemaphoreGiveFromISR(handle_isr_sem, NULL); });
 	}
 	payload_manager = new PayloadManager(mstatemachine, LOG["payload_manager"]);
+	payload_manager->register_console_commands(console_command_parser, "payload.");
 
 	/* SDRs must be initialized earlier so sensors are available to link up with
 	 * their drivers.  FRU Data will be done here, once the PayloadManager is
