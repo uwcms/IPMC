@@ -249,12 +249,19 @@ static void ipmicmd_Get_Sensor_Event_Status(IPMBSvc &ipmb, const IPMI_MSG &messa
 IPMICMD_INDEX_REGISTER(Get_Sensor_Event_Status);
 #endif
 
-#if 0 // Unimplemented.
 static void ipmicmd_Get_Sensor_Reading(IPMBSvc &ipmb, const IPMI_MSG &message) {
-	// Unimplemented.
+	if (message.data_len != 1)
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Request_Data_Length_Invalid);
+	std::shared_ptr<Sensor> sensor;
+	try {
+		sensor = ipmc_sensors.get(message.data[0]);
+	}
+	catch (std::out_of_range) {
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Requested_Sensor_Data_Or_Record_Not_Present);
+	}
+	ipmb.send(message.prepare_reply(sensor->get_sensor_reading()));
 }
 IPMICMD_INDEX_REGISTER(Get_Sensor_Reading);
-#endif
 
 #if 0 // Unimplemented.
 static void ipmicmd_Set_Sensor_Type(IPMBSvc &ipmb, const IPMI_MSG &message) {
