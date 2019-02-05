@@ -46,9 +46,9 @@ void HotswapSensor::transition(uint8_t new_state, enum StateTransitionReason rea
 
 std::vector<uint8_t> HotswapSensor::get_sensor_reading() {
 	std::vector<uint8_t> out{0/*IPMI::Completion::Success*/,0,0,0};
-	if (this->all_events_disabled())
+	if (!this->all_events_disabled())
 		out[2] |= 0x80;
-	if (this->sensor_scanning_disabled())
+	if (!this->sensor_scanning_disabled())
 		out[2] |= 0x40;
 	out[3] = this->mstate;
 	return out;
