@@ -27,12 +27,10 @@ static void ipmicmd_Set_Event_Receiver(IPMBSvc &ipmb, const IPMI_MSG &message) {
 }
 IPMICMD_INDEX_REGISTER(Set_Event_Receiver);
 
-#if 0 // Unimplemented.
 static void ipmicmd_Get_Event_Receiver(IPMBSvc &ipmb, const IPMI_MSG &message) {
-	// Unimplemented.
+	ipmb.send(message.prepare_reply({IPMI::Completion::Success, ipmi_event_receiver.addr, ipmi_event_receiver.lun}));
 }
 IPMICMD_INDEX_REGISTER(Get_Event_Receiver);
-#endif
 
 #if 0 // Unimplemented.
 static void ipmicmd_Platform_Event(IPMBSvc &ipmb, const IPMI_MSG &message) {
