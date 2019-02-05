@@ -15,6 +15,7 @@
 #include <libs/printf.h>
 #include <IPMC.h>
 #include <math.h>
+#include <cmath>
 
 ThresholdSensor::ThresholdSensor(const std::vector<uint8_t> &sdr_key, LogTree &log)
 	: Sensor(sdr_key, log) {
@@ -38,6 +39,9 @@ ThresholdSensor::ThresholdSensor(const std::vector<uint8_t> &sdr_key, LogTree &l
 		this->thresholds.ucr = 0xFF;
 		this->thresholds.unr = 0xFF;
 	}
+	this->last_value = NAN;
+	this->value_expiration = UINT64_MAX;
+	this->active_thresholds = 0;
 }
 
 ThresholdSensor::~ThresholdSensor() {
@@ -139,7 +143,7 @@ void ThresholdSensor::update_value(const float value, uint64_t value_max_age) {
 	else
 		this->value_expiration = now + value_max_age;
 
-	if (value == NAN)
+	if (std::isnan(value))
 		return;
 
 	std::shared_ptr<const SensorDataRecordReadableSensor> sdr = std::dynamic_pointer_cast<const SensorDataRecordReadableSensor>(device_sdr_repo.find(this->sdr_key));
@@ -267,7 +271,7 @@ ThresholdSensor::Value ThresholdSensor::get_value() const {
 		value.active_thresholds = 0;
 	}
 	lock.release();
-	if (value.float_value == NAN)
+	if (std::isnan(value.float_value))
 		return value;
 	std::shared_ptr<const SensorDataRecordSensor> sdr = std::dynamic_pointer_cast<const SensorDataRecordSensor>(device_sdr_repo.find(this->sdr_key));
 	if (!sdr) {
@@ -287,10 +291,11 @@ std::vector<uint8_t> ThresholdSensor::get_sensor_reading() {
 	Value value = this->get_value();
 	std::vector<uint8_t> out;
 	out.push_back(IPMI::Completion::Success);
+	out.push_back(value.byte_value);
 	out.push_back(
-			(this->all_events_disabled() ? 0x80 : 0) |
-			(this->sensor_scanning_disabled() ? 0x40 : 0) |
-			(value.float_value == NAN ? 0x20 : 0)
+			(this->all_events_disabled() ? 0 : 0x80) |
+			(this->sensor_scanning_disabled() ? 0 : 0x40) |
+			(std::isnan(value.float_value) ? 0x20 : 0)
 			);
 	out.push_back(
 			(value.byte_value >= this->thresholds.unr ? 0x20 : 0) |
