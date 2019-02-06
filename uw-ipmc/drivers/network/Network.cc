@@ -176,12 +176,12 @@ namespace {
 			txbytes += (txbytes_h << 32) | txbytes_l;
 
 			console->write(std::string("Network status: Link is ") + (pNetworkInstance->isLinkUp()?"UP":"DOWN")+ ", interface is " + (pNetworkInstance->isInterfaceUp()?"UP":"DOWN") + "\n");
-			console->write(stdsprintf("MAC Address: %02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx\n", mac_address[0], mac_address[1], mac_address[2], mac_address[3], mac_address[4], mac_address[5]));
-			console->write(std::string("IP Address: ") + pNetworkInstance->getIPString() + "\n");
-			console->write(std::string("Netmask: ") + pNetworkInstance->getNetmaskString() + "\n");
-			console->write(std::string("Gateway: ") + pNetworkInstance->getGatewayString() + "\n");
-			console->write(std::string("TX bytes: ") + std::to_string(txbytes) + " (" + bytesToString(txbytes) + ")\n");
-			console->write(std::string("RX bytes: ") + std::to_string(rxbytes) + " (" + bytesToString(rxbytes) + ")\n");
+			console->write( stdsprintf("MAC Address: %02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx\n", mac_address[0], mac_address[1], mac_address[2], mac_address[3], mac_address[4], mac_address[5]));
+			console->write(std::string("IP Address:  ") + pNetworkInstance->getIPString() + "\n");
+			console->write(std::string("Netmask:     ") + pNetworkInstance->getNetmaskString() + "\n");
+			console->write(std::string("Gateway:     ") + pNetworkInstance->getGatewayString() + "\n");
+			console->write(std::string("TX bytes:    ") + std::to_string(txbytes) + " (" + bytesToString(txbytes) + ")\n");
+			console->write(std::string("RX bytes:    ") + std::to_string(rxbytes) + " (" + bytesToString(rxbytes) + ")\n");
 			console->write(std::string("Checksum Err (emac): ") + std::to_string(emac_cksum_err) + "\n");
 #if LWIP_STATS
 			console->write(std::string("Checksum Err (lwip): ") + std::to_string(lwip_stats.tcp.chkerr) + "\n");
