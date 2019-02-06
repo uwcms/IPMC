@@ -176,6 +176,7 @@ namespace {
 			txbytes += (txbytes_h << 32) | txbytes_l;
 
 			console->write(std::string("Network status: Link is ") + (pNetworkInstance->isLinkUp()?"UP":"DOWN")+ ", interface is " + (pNetworkInstance->isInterfaceUp()?"UP":"DOWN") + "\n");
+			console->write(stdsprintf("MAC Address: %02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx\n", mac_address[0], mac_address[1], mac_address[2], mac_address[3], mac_address[4], mac_address[5]));
 			console->write(std::string("IP Address: ") + pNetworkInstance->getIPString() + "\n");
 			console->write(std::string("Netmask: ") + pNetworkInstance->getNetmaskString() + "\n");
 			console->write(std::string("Gateway: ") + pNetworkInstance->getGatewayString() + "\n");
