@@ -18,7 +18,7 @@ extern "C" {
 typedef struct {
     u16 DeviceId; /* Unique ID of device */
     UINTPTR BaseAddress; /* Device base address */
-    u32 InterfaceCount; /* Number of available interfaces */
+    u32 SlaveCount; /* Number of available interfaces */
 } AD7689_S_Config;
 
 /**
@@ -29,7 +29,7 @@ typedef struct {
 typedef struct {
     UINTPTR BaseAddress;    /* Device base address */
     u32 IsReady;        /* Device is initialized and ready */
-    u32 InterfaceCount; /* Number of available interfaces */
+    u32 SlaveCount; /* Number of available interfaces */
 } AD7689_S;
 
 
@@ -43,7 +43,7 @@ void AD7689_S_Set_Conv_Freq(AD7689_S *InstancePtr, u16 freq);
 
 u32 AD7689_S_Get_Conv_Cnt(AD7689_S *InstancePtr);
 
-XStatus AD7689_S_Get_Reading(AD7689_S *InstancePtr, u8 ch, u16 * reading);
+XStatus AD7689_S_Get_Reading(AD7689_S *InstancePtr, u8 slave, u8 ch, u16 *val);
 
 void AD7689_S_Set_Master_Ovrrd_Enable(AD7689_S *InstancePtr, u32 enable);
 

@@ -1,7 +1,7 @@
 --Copyright 1986-2018 Xilinx, Inc. All Rights Reserved.
 ----------------------------------------------------------------------------------
 --Tool Version: Vivado v.2018.2 (lin64) Build 2258646 Thu Jun 14 20:02:38 MDT 2018
---Date        : Thu Jan 10 10:50:23 2019
+--Date        : Fri Feb  8 13:31:30 2019
 --Host        : beck.hep.wisc.edu running 64-bit CentOS Linux release 7.6.1810 (Core)
 --Command     : generate_target ipmc_bd.bd
 --Design      : ipmc_bd
@@ -6226,14 +6226,14 @@ library UNISIM;
 use UNISIM.VCOMPONENTS.ALL;
 entity ipmc_bd is
   port (
-    ADC_A_clk : out STD_LOGIC;
-    ADC_A_miso : in STD_LOGIC;
-    ADC_A_mosi : out STD_LOGIC;
-    ADC_A_ncs0 : out STD_LOGIC;
-    ADC_B_clk : out STD_LOGIC;
-    ADC_B_miso : in STD_LOGIC;
-    ADC_B_mosi : out STD_LOGIC;
-    ADC_B_ncs0 : out STD_LOGIC;
+    ADC_A_spi_clk : out STD_LOGIC;
+    ADC_A_spi_miso : in STD_LOGIC;
+    ADC_A_spi_mosi : out STD_LOGIC;
+    ADC_A_spi_ncs : out STD_LOGIC_VECTOR ( 0 to 0 );
+    ADC_B_spi_clk : out STD_LOGIC;
+    ADC_B_spi_miso : in STD_LOGIC;
+    ADC_B_spi_mosi : out STD_LOGIC;
+    ADC_B_spi_ncs : out STD_LOGIC_VECTOR ( 0 to 0 );
     ATCA_LEDS : out STD_LOGIC_VECTOR ( 3 downto 0 );
     DDR_addr : inout STD_LOGIC_VECTOR ( 14 downto 0 );
     DDR_ba : inout STD_LOGIC_VECTOR ( 2 downto 0 );
@@ -6541,14 +6541,13 @@ architecture STRUCTURE of ipmc_bd is
   end component ipmc_bd_axi_gpio_0_0;
   component ipmc_bd_ad7689_s_0_0 is
   port (
-    spi_ncs0 : out STD_LOGIC;
+    spi_ncs : out STD_LOGIC_VECTOR ( 0 to 0 );
     spi_clk : out STD_LOGIC;
     spi_mosi : out STD_LOGIC;
     spi_miso : in STD_LOGIC;
-    adc_ch_value_aggr : out STD_LOGIC_VECTOR ( 143 downto 0 );
-    adc_ch_valid_aggr : out STD_LOGIC_VECTOR ( 8 downto 0 );
-    debug_o : out STD_LOGIC_VECTOR ( 35 downto 0 );
-    s_axi_awaddr : in STD_LOGIC_VECTOR ( 6 downto 0 );
+    cnv_value_par : out STD_LOGIC_VECTOR ( 143 downto 0 );
+    cnv_valid_par : out STD_LOGIC_VECTOR ( 8 downto 0 );
+    s_axi_awaddr : in STD_LOGIC_VECTOR ( 8 downto 0 );
     s_axi_awprot : in STD_LOGIC_VECTOR ( 2 downto 0 );
     s_axi_awvalid : in STD_LOGIC;
     s_axi_awready : out STD_LOGIC;
@@ -6559,7 +6558,7 @@ architecture STRUCTURE of ipmc_bd is
     s_axi_bresp : out STD_LOGIC_VECTOR ( 1 downto 0 );
     s_axi_bvalid : out STD_LOGIC;
     s_axi_bready : in STD_LOGIC;
-    s_axi_araddr : in STD_LOGIC_VECTOR ( 6 downto 0 );
+    s_axi_araddr : in STD_LOGIC_VECTOR ( 8 downto 0 );
     s_axi_arprot : in STD_LOGIC_VECTOR ( 2 downto 0 );
     s_axi_arvalid : in STD_LOGIC;
     s_axi_arready : out STD_LOGIC;
@@ -6573,14 +6572,13 @@ architecture STRUCTURE of ipmc_bd is
   end component ipmc_bd_ad7689_s_0_0;
   component ipmc_bd_ad7689_s_1_0 is
   port (
-    spi_ncs0 : out STD_LOGIC;
+    spi_ncs : out STD_LOGIC_VECTOR ( 0 to 0 );
     spi_clk : out STD_LOGIC;
     spi_mosi : out STD_LOGIC;
     spi_miso : in STD_LOGIC;
-    adc_ch_value_aggr : out STD_LOGIC_VECTOR ( 143 downto 0 );
-    adc_ch_valid_aggr : out STD_LOGIC_VECTOR ( 8 downto 0 );
-    debug_o : out STD_LOGIC_VECTOR ( 35 downto 0 );
-    s_axi_awaddr : in STD_LOGIC_VECTOR ( 6 downto 0 );
+    cnv_value_par : out STD_LOGIC_VECTOR ( 143 downto 0 );
+    cnv_valid_par : out STD_LOGIC_VECTOR ( 8 downto 0 );
+    s_axi_awaddr : in STD_LOGIC_VECTOR ( 8 downto 0 );
     s_axi_awprot : in STD_LOGIC_VECTOR ( 2 downto 0 );
     s_axi_awvalid : in STD_LOGIC;
     s_axi_awready : out STD_LOGIC;
@@ -6591,7 +6589,7 @@ architecture STRUCTURE of ipmc_bd is
     s_axi_bresp : out STD_LOGIC_VECTOR ( 1 downto 0 );
     s_axi_bvalid : out STD_LOGIC;
     s_axi_bready : in STD_LOGIC;
-    s_axi_araddr : in STD_LOGIC_VECTOR ( 6 downto 0 );
+    s_axi_araddr : in STD_LOGIC_VECTOR ( 8 downto 0 );
     s_axi_arprot : in STD_LOGIC_VECTOR ( 2 downto 0 );
     s_axi_arvalid : in STD_LOGIC;
     s_axi_arready : out STD_LOGIC;
@@ -6660,14 +6658,13 @@ architecture STRUCTURE of ipmc_bd is
     s_axi_aresetn : in STD_LOGIC
   );
   end component ipmc_bd_ipmi_sensor_proc_0_0;
-  component ipmc_bd_debouncer_0_3 is
+  component ipmc_bd_debouncer_0_0 is
   port (
-    ARESETN_IN : in STD_LOGIC;
     CLK_IN : in STD_LOGIC;
     SIG_IN : in STD_LOGIC;
     SIG_OUT : out STD_LOGIC
   );
-  end component ipmc_bd_debouncer_0_3;
+  end component ipmc_bd_debouncer_0_0;
   component ipmc_bd_axi_atca_led_ctrl_0 is
   port (
     m_led_out : out STD_LOGIC_VECTOR ( 3 downto 0 );
@@ -6780,18 +6777,18 @@ architecture STRUCTURE of ipmc_bd is
   signal S00_AXI_1_WSTRB : STD_LOGIC_VECTOR ( 3 downto 0 );
   signal S00_AXI_1_WVALID : STD_LOGIC;
   signal TDO_1 : STD_LOGIC;
+  signal ad7689_s_0_M_ADC_SPI_spi_clk : STD_LOGIC;
+  signal ad7689_s_0_M_ADC_SPI_spi_miso : STD_LOGIC;
+  signal ad7689_s_0_M_ADC_SPI_spi_mosi : STD_LOGIC;
+  signal ad7689_s_0_M_ADC_SPI_spi_ncs : STD_LOGIC_VECTOR ( 0 to 0 );
   signal ad7689_s_0_adc_ch_valid_aggr : STD_LOGIC_VECTOR ( 8 downto 0 );
   signal ad7689_s_0_adc_ch_value_aggr : STD_LOGIC_VECTOR ( 143 downto 0 );
-  signal ad7689_s_0_spi_intf_clk : STD_LOGIC;
-  signal ad7689_s_0_spi_intf_miso : STD_LOGIC;
-  signal ad7689_s_0_spi_intf_mosi : STD_LOGIC;
-  signal ad7689_s_0_spi_intf_ncs0 : STD_LOGIC;
+  signal ad7689_s_1_M_ADC_SPI_spi_clk : STD_LOGIC;
+  signal ad7689_s_1_M_ADC_SPI_spi_miso : STD_LOGIC;
+  signal ad7689_s_1_M_ADC_SPI_spi_mosi : STD_LOGIC;
+  signal ad7689_s_1_M_ADC_SPI_spi_ncs : STD_LOGIC_VECTOR ( 0 to 0 );
   signal ad7689_s_1_adc_ch_valid_aggr : STD_LOGIC_VECTOR ( 8 downto 0 );
   signal ad7689_s_1_adc_ch_value_aggr : STD_LOGIC_VECTOR ( 143 downto 0 );
-  signal ad7689_s_1_spi_intf_clk : STD_LOGIC;
-  signal ad7689_s_1_spi_intf_miso : STD_LOGIC;
-  signal ad7689_s_1_spi_intf_mosi : STD_LOGIC;
-  signal ad7689_s_1_spi_intf_ncs0 : STD_LOGIC;
   signal axi_gpio_0_ip2intc_irpt : STD_LOGIC;
   signal axi_iic_0_IIC_SCL_I : STD_LOGIC;
   signal axi_iic_0_IIC_SCL_O : STD_LOGIC;
@@ -7066,8 +7063,6 @@ architecture STRUCTURE of ipmc_bd is
   signal xlconcat_0_dout : STD_LOGIC_VECTOR ( 7 downto 0 );
   signal xlconcat_adc_data_dout : STD_LOGIC_VECTOR ( 287 downto 0 );
   signal xlconcat_adc_vld_dout : STD_LOGIC_VECTOR ( 17 downto 0 );
-  signal NLW_ad7689_s_0_debug_o_UNCONNECTED : STD_LOGIC_VECTOR ( 35 downto 0 );
-  signal NLW_ad7689_s_1_debug_o_UNCONNECTED : STD_LOGIC_VECTOR ( 35 downto 0 );
   signal NLW_axi_iic_eeprom_0_gpo_UNCONNECTED : STD_LOGIC_VECTOR ( 0 to 0 );
   signal NLW_axi_iic_pim400_gpo_UNCONNECTED : STD_LOGIC_VECTOR ( 0 to 0 );
   signal NLW_ipmi_sensor_proc_0_debug_UNCONNECTED : STD_LOGIC_VECTOR ( 22 downto 0 );
@@ -7085,14 +7080,12 @@ architecture STRUCTURE of ipmc_bd is
   signal NLW_processing_system7_0_WDT_RST_OUT_UNCONNECTED : STD_LOGIC;
   signal NLW_processing_system7_0_MIO_UNCONNECTED : STD_LOGIC_VECTOR ( 53 downto 0 );
   attribute X_INTERFACE_INFO : string;
-  attribute X_INTERFACE_INFO of ADC_A_clk : signal is "uw:uw:spi:1.0 ADC_A clk";
-  attribute X_INTERFACE_INFO of ADC_A_miso : signal is "uw:uw:spi:1.0 ADC_A miso";
-  attribute X_INTERFACE_INFO of ADC_A_mosi : signal is "uw:uw:spi:1.0 ADC_A mosi";
-  attribute X_INTERFACE_INFO of ADC_A_ncs0 : signal is "uw:uw:spi:1.0 ADC_A ncs0";
-  attribute X_INTERFACE_INFO of ADC_B_clk : signal is "uw:uw:spi:1.0 ADC_B clk";
-  attribute X_INTERFACE_INFO of ADC_B_miso : signal is "uw:uw:spi:1.0 ADC_B miso";
-  attribute X_INTERFACE_INFO of ADC_B_mosi : signal is "uw:uw:spi:1.0 ADC_B mosi";
-  attribute X_INTERFACE_INFO of ADC_B_ncs0 : signal is "uw:uw:spi:1.0 ADC_B ncs0";
+  attribute X_INTERFACE_INFO of ADC_A_spi_clk : signal is "uw:user:M_ADC_SPI:1.0 ADC_A ";
+  attribute X_INTERFACE_INFO of ADC_A_spi_miso : signal is "uw:user:M_ADC_SPI:1.0 ADC_A ";
+  attribute X_INTERFACE_INFO of ADC_A_spi_mosi : signal is "uw:user:M_ADC_SPI:1.0 ADC_A ";
+  attribute X_INTERFACE_INFO of ADC_B_spi_clk : signal is "uw:user:M_ADC_SPI:1.0 ADC_B ";
+  attribute X_INTERFACE_INFO of ADC_B_spi_miso : signal is "uw:user:M_ADC_SPI:1.0 ADC_B ";
+  attribute X_INTERFACE_INFO of ADC_B_spi_mosi : signal is "uw:user:M_ADC_SPI:1.0 ADC_B ";
   attribute X_INTERFACE_INFO of DDR_cas_n : signal is "xilinx.com:interface:ddrx:1.0 DDR CAS_N";
   attribute X_INTERFACE_INFO of DDR_ck_n : signal is "xilinx.com:interface:ddrx:1.0 DDR CK_N";
   attribute X_INTERFACE_INFO of DDR_ck_p : signal is "xilinx.com:interface:ddrx:1.0 DDR CK_P";
@@ -7128,6 +7121,8 @@ architecture STRUCTURE of ipmc_bd is
   attribute X_INTERFACE_INFO of PIM400_I2C_sda_i : signal is "xilinx.com:interface:iic:1.0 PIM400_I2C SDA_I";
   attribute X_INTERFACE_INFO of PIM400_I2C_sda_o : signal is "xilinx.com:interface:iic:1.0 PIM400_I2C SDA_O";
   attribute X_INTERFACE_INFO of PIM400_I2C_sda_t : signal is "xilinx.com:interface:iic:1.0 PIM400_I2C SDA_T";
+  attribute X_INTERFACE_INFO of ADC_A_spi_ncs : signal is "uw:user:M_ADC_SPI:1.0 ADC_A ";
+  attribute X_INTERFACE_INFO of ADC_B_spi_ncs : signal is "uw:user:M_ADC_SPI:1.0 ADC_B ";
   attribute X_INTERFACE_INFO of DDR_addr : signal is "xilinx.com:interface:ddrx:1.0 DDR ADDR";
   attribute X_INTERFACE_PARAMETER : string;
   attribute X_INTERFACE_PARAMETER of DDR_addr : signal is "XIL_INTERFACENAME DDR, AXI_ARBITRATION_SCHEME TDM, BURST_LENGTH 8, CAN_DEBUG false, CAS_LATENCY 11, CAS_WRITE_LATENCY 11, CS_ENABLED true, DATA_MASK_ENABLED true, DATA_WIDTH 8, MEMORY_TYPE COMPONENTS, MEM_ADDR_MAP ROW_COLUMN_BANK, SLOT Single, TIMEPERIOD_PS 1250";
@@ -7145,12 +7140,12 @@ architecture STRUCTURE of ipmc_bd is
   attribute X_INTERFACE_INFO of ESM_RESET_tri_o : signal is "xilinx.com:interface:gpio:1.0 ESM_RESET TRI_O";
   attribute X_INTERFACE_INFO of ESM_RESET_tri_t : signal is "xilinx.com:interface:gpio:1.0 ESM_RESET TRI_T";
 begin
-  ADC_A_clk <= ad7689_s_0_spi_intf_clk;
-  ADC_A_mosi <= ad7689_s_0_spi_intf_mosi;
-  ADC_A_ncs0 <= ad7689_s_0_spi_intf_ncs0;
-  ADC_B_clk <= ad7689_s_1_spi_intf_clk;
-  ADC_B_mosi <= ad7689_s_1_spi_intf_mosi;
-  ADC_B_ncs0 <= ad7689_s_1_spi_intf_ncs0;
+  ADC_A_spi_clk <= ad7689_s_0_M_ADC_SPI_spi_clk;
+  ADC_A_spi_mosi <= ad7689_s_0_M_ADC_SPI_spi_mosi;
+  ADC_A_spi_ncs(0) <= ad7689_s_0_M_ADC_SPI_spi_ncs(0);
+  ADC_B_spi_clk <= ad7689_s_1_M_ADC_SPI_spi_clk;
+  ADC_B_spi_mosi <= ad7689_s_1_M_ADC_SPI_spi_mosi;
+  ADC_B_spi_ncs(0) <= ad7689_s_1_M_ADC_SPI_spi_ncs(0);
   ATCA_LEDS(3 downto 0) <= led_controller_1_m_led_out(3 downto 0);
   EEPROM_I2C_0_scl_o <= axi_iic_1_IIC_SCL_O;
   EEPROM_I2C_0_scl_t <= axi_iic_1_IIC_SCL_T;
@@ -7180,8 +7175,8 @@ begin
   TDI <= axi_jtag_0_TDI;
   TDO_1 <= TDO;
   TMS <= axi_jtag_0_TMS;
-  ad7689_s_0_spi_intf_miso <= ADC_A_miso;
-  ad7689_s_1_spi_intf_miso <= ADC_B_miso;
+  ad7689_s_0_M_ADC_SPI_spi_miso <= ADC_A_spi_miso;
+  ad7689_s_1_M_ADC_SPI_spi_miso <= ADC_B_spi_miso;
   axi_iic_0_IIC_SCL_I <= PIM400_I2C_scl_i;
   axi_iic_0_IIC_SDA_I <= PIM400_I2C_sda_i;
   axi_iic_1_IIC_SCL_I <= EEPROM_I2C_0_scl_i;
@@ -7197,16 +7192,15 @@ begin
   pwr_en(6 downto 0) <= mgmt_zone_ctrl_0_pwr_en(6 downto 0);
 ad7689_s_0: component ipmc_bd_ad7689_s_0_0
      port map (
-      adc_ch_valid_aggr(8 downto 0) => ad7689_s_0_adc_ch_valid_aggr(8 downto 0),
-      adc_ch_value_aggr(143 downto 0) => ad7689_s_0_adc_ch_value_aggr(143 downto 0),
-      debug_o(35 downto 0) => NLW_ad7689_s_0_debug_o_UNCONNECTED(35 downto 0),
+      cnv_valid_par(8 downto 0) => ad7689_s_0_adc_ch_valid_aggr(8 downto 0),
+      cnv_value_par(143 downto 0) => ad7689_s_0_adc_ch_value_aggr(143 downto 0),
       s_axi_aclk => processing_system7_0_FCLK_CLK0,
-      s_axi_araddr(6 downto 0) => axi_interconnect_0_M00_AXI_ARADDR(6 downto 0),
+      s_axi_araddr(8 downto 0) => axi_interconnect_0_M00_AXI_ARADDR(8 downto 0),
       s_axi_aresetn => proc_sys_reset_0_peripheral_aresetn(0),
       s_axi_arprot(2 downto 0) => axi_interconnect_0_M00_AXI_ARPROT(2 downto 0),
       s_axi_arready => axi_interconnect_0_M00_AXI_ARREADY,
       s_axi_arvalid => axi_interconnect_0_M00_AXI_ARVALID,
-      s_axi_awaddr(6 downto 0) => axi_interconnect_0_M00_AXI_AWADDR(6 downto 0),
+      s_axi_awaddr(8 downto 0) => axi_interconnect_0_M00_AXI_AWADDR(8 downto 0),
       s_axi_awprot(2 downto 0) => axi_interconnect_0_M00_AXI_AWPROT(2 downto 0),
       s_axi_awready => axi_interconnect_0_M00_AXI_AWREADY,
       s_axi_awvalid => axi_interconnect_0_M00_AXI_AWVALID,
@@ -7221,23 +7215,22 @@ ad7689_s_0: component ipmc_bd_ad7689_s_0_0
       s_axi_wready => axi_interconnect_0_M00_AXI_WREADY,
       s_axi_wstrb(3 downto 0) => axi_interconnect_0_M00_AXI_WSTRB(3 downto 0),
       s_axi_wvalid => axi_interconnect_0_M00_AXI_WVALID,
-      spi_clk => ad7689_s_0_spi_intf_clk,
-      spi_miso => ad7689_s_0_spi_intf_miso,
-      spi_mosi => ad7689_s_0_spi_intf_mosi,
-      spi_ncs0 => ad7689_s_0_spi_intf_ncs0
+      spi_clk => ad7689_s_0_M_ADC_SPI_spi_clk,
+      spi_miso => ad7689_s_0_M_ADC_SPI_spi_miso,
+      spi_mosi => ad7689_s_0_M_ADC_SPI_spi_mosi,
+      spi_ncs(0) => ad7689_s_0_M_ADC_SPI_spi_ncs(0)
     );
 ad7689_s_1: component ipmc_bd_ad7689_s_1_0
      port map (
-      adc_ch_valid_aggr(8 downto 0) => ad7689_s_1_adc_ch_valid_aggr(8 downto 0),
-      adc_ch_value_aggr(143 downto 0) => ad7689_s_1_adc_ch_value_aggr(143 downto 0),
-      debug_o(35 downto 0) => NLW_ad7689_s_1_debug_o_UNCONNECTED(35 downto 0),
+      cnv_valid_par(8 downto 0) => ad7689_s_1_adc_ch_valid_aggr(8 downto 0),
+      cnv_value_par(143 downto 0) => ad7689_s_1_adc_ch_value_aggr(143 downto 0),
       s_axi_aclk => processing_system7_0_FCLK_CLK0,
-      s_axi_araddr(6 downto 0) => axi_interconnect_0_M01_AXI_ARADDR(6 downto 0),
+      s_axi_araddr(8 downto 0) => axi_interconnect_0_M01_AXI_ARADDR(8 downto 0),
       s_axi_aresetn => proc_sys_reset_0_peripheral_aresetn(0),
       s_axi_arprot(2 downto 0) => axi_interconnect_0_M01_AXI_ARPROT(2 downto 0),
       s_axi_arready => axi_interconnect_0_M01_AXI_ARREADY,
       s_axi_arvalid => axi_interconnect_0_M01_AXI_ARVALID,
-      s_axi_awaddr(6 downto 0) => axi_interconnect_0_M01_AXI_AWADDR(6 downto 0),
+      s_axi_awaddr(8 downto 0) => axi_interconnect_0_M01_AXI_AWADDR(8 downto 0),
       s_axi_awprot(2 downto 0) => axi_interconnect_0_M01_AXI_AWPROT(2 downto 0),
       s_axi_awready => axi_interconnect_0_M01_AXI_AWREADY,
       s_axi_awvalid => axi_interconnect_0_M01_AXI_AWVALID,
@@ -7252,10 +7245,10 @@ ad7689_s_1: component ipmc_bd_ad7689_s_1_0
       s_axi_wready => axi_interconnect_0_M01_AXI_WREADY,
       s_axi_wstrb(3 downto 0) => axi_interconnect_0_M01_AXI_WSTRB(3 downto 0),
       s_axi_wvalid => axi_interconnect_0_M01_AXI_WVALID,
-      spi_clk => ad7689_s_1_spi_intf_clk,
-      spi_miso => ad7689_s_1_spi_intf_miso,
-      spi_mosi => ad7689_s_1_spi_intf_mosi,
-      spi_ncs0 => ad7689_s_1_spi_intf_ncs0
+      spi_clk => ad7689_s_1_M_ADC_SPI_spi_clk,
+      spi_miso => ad7689_s_1_M_ADC_SPI_spi_miso,
+      spi_mosi => ad7689_s_1_M_ADC_SPI_spi_mosi,
+      spi_ncs(0) => ad7689_s_1_M_ADC_SPI_spi_ncs(0)
     );
 axi_atca_led_ctrl: component ipmc_bd_axi_atca_led_ctrl_0
      port map (
@@ -7716,9 +7709,8 @@ concat_HF: component ipmc_bd_concat_HF_0
       In1(45 downto 0) => vio_HF_sim_probe_out0(45 downto 0),
       dout(63 downto 0) => concat_HF_dout(63 downto 0)
     );
-debouncer_0: component ipmc_bd_debouncer_0_3
+debouncer_0: component ipmc_bd_debouncer_0_0
      port map (
-      ARESETN_IN => proc_sys_reset_0_peripheral_aresetn(0),
       CLK_IN => processing_system7_0_FCLK_CLK0,
       SIG_IN => HNDL_SW_1,
       SIG_OUT => debouncer_0_SIG_OUT

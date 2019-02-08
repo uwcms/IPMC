@@ -37,12 +37,14 @@
 #define XPAR_AD7689_S_0_DEVICE_ID 0
 #define XPAR_AD7689_S_0_S_AXI_BASEADDR 0x43C00000
 #define XPAR_AD7689_S_0_S_AXI_HIGHADDR 0x43C0FFFF
+#define XPAR_AD7689_S_0_SLAVES 1
 
 
 /* Definitions for peripheral AD7689_S_1 */
 #define XPAR_AD7689_S_1_DEVICE_ID 1
 #define XPAR_AD7689_S_1_S_AXI_BASEADDR 0x43C10000
 #define XPAR_AD7689_S_1_S_AXI_HIGHADDR 0x43C1FFFF
+#define XPAR_AD7689_S_1_SLAVES 1
 
 
 /******************************************************************/

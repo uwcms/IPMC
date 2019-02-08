@@ -1,7 +1,7 @@
 --Copyright 1986-2018 Xilinx, Inc. All Rights Reserved.
 ----------------------------------------------------------------------------------
 --Tool Version: Vivado v.2018.2 (lin64) Build 2258646 Thu Jun 14 20:02:38 MDT 2018
---Date        : Thu Jan 10 10:50:23 2019
+--Date        : Fri Feb  8 13:31:30 2019
 --Host        : beck.hep.wisc.edu running 64-bit CentOS Linux release 7.6.1810 (Core)
 --Command     : generate_target ipmc_bd_wrapper.bd
 --Design      : ipmc_bd_wrapper
@@ -13,14 +13,14 @@ library UNISIM;
 use UNISIM.VCOMPONENTS.ALL;
 entity ipmc_bd_wrapper is
   port (
-    ADC_A_clk : out STD_LOGIC;
-    ADC_A_miso : in STD_LOGIC;
-    ADC_A_mosi : out STD_LOGIC;
-    ADC_A_ncs0 : out STD_LOGIC;
-    ADC_B_clk : out STD_LOGIC;
-    ADC_B_miso : in STD_LOGIC;
-    ADC_B_mosi : out STD_LOGIC;
-    ADC_B_ncs0 : out STD_LOGIC;
+    ADC_A_spi_clk : out STD_LOGIC;
+    ADC_A_spi_miso : in STD_LOGIC;
+    ADC_A_spi_mosi : out STD_LOGIC;
+    ADC_A_spi_ncs : out STD_LOGIC_VECTOR ( 0 to 0 );
+    ADC_B_spi_clk : out STD_LOGIC;
+    ADC_B_spi_miso : in STD_LOGIC;
+    ADC_B_spi_mosi : out STD_LOGIC;
+    ADC_B_spi_ncs : out STD_LOGIC_VECTOR ( 0 to 0 );
     ATCA_LEDS : out STD_LOGIC_VECTOR ( 3 downto 0 );
     DDR_addr : inout STD_LOGIC_VECTOR ( 14 downto 0 );
     DDR_ba : inout STD_LOGIC_VECTOR ( 2 downto 0 );
@@ -65,14 +65,6 @@ end ipmc_bd_wrapper;
 architecture STRUCTURE of ipmc_bd_wrapper is
   component ipmc_bd is
   port (
-    ADC_A_ncs0 : out STD_LOGIC;
-    ADC_A_clk : out STD_LOGIC;
-    ADC_A_mosi : out STD_LOGIC;
-    ADC_A_miso : in STD_LOGIC;
-    ADC_B_ncs0 : out STD_LOGIC;
-    ADC_B_clk : out STD_LOGIC;
-    ADC_B_mosi : out STD_LOGIC;
-    ADC_B_miso : in STD_LOGIC;
     DDR_cas_n : inout STD_LOGIC;
     DDR_cke : inout STD_LOGIC;
     DDR_ck_n : inout STD_LOGIC;
@@ -130,7 +122,15 @@ architecture STRUCTURE of ipmc_bd_wrapper is
     ESM_FLASH_SPI_sck_t : out STD_LOGIC;
     ESM_FLASH_SPI_ss_i : in STD_LOGIC_VECTOR ( 0 to 0 );
     ESM_FLASH_SPI_ss_o : out STD_LOGIC_VECTOR ( 0 to 0 );
-    ESM_FLASH_SPI_ss_t : out STD_LOGIC
+    ESM_FLASH_SPI_ss_t : out STD_LOGIC;
+    ADC_A_spi_ncs : out STD_LOGIC_VECTOR ( 0 to 0 );
+    ADC_A_spi_clk : out STD_LOGIC;
+    ADC_A_spi_mosi : out STD_LOGIC;
+    ADC_A_spi_miso : in STD_LOGIC;
+    ADC_B_spi_ncs : out STD_LOGIC_VECTOR ( 0 to 0 );
+    ADC_B_spi_clk : out STD_LOGIC;
+    ADC_B_spi_mosi : out STD_LOGIC;
+    ADC_B_spi_miso : in STD_LOGIC
   );
   end component ipmc_bd;
   component IOBUF is
@@ -291,14 +291,14 @@ PIM400_I2C_sda_iobuf: component IOBUF
     );
 ipmc_bd_i: component ipmc_bd
      port map (
-      ADC_A_clk => ADC_A_clk,
-      ADC_A_miso => ADC_A_miso,
-      ADC_A_mosi => ADC_A_mosi,
-      ADC_A_ncs0 => ADC_A_ncs0,
-      ADC_B_clk => ADC_B_clk,
-      ADC_B_miso => ADC_B_miso,
-      ADC_B_mosi => ADC_B_mosi,
-      ADC_B_ncs0 => ADC_B_ncs0,
+      ADC_A_spi_clk => ADC_A_spi_clk,
+      ADC_A_spi_miso => ADC_A_spi_miso,
+      ADC_A_spi_mosi => ADC_A_spi_mosi,
+      ADC_A_spi_ncs(0) => ADC_A_spi_ncs(0),
+      ADC_B_spi_clk => ADC_B_spi_clk,
+      ADC_B_spi_miso => ADC_B_spi_miso,
+      ADC_B_spi_mosi => ADC_B_spi_mosi,
+      ADC_B_spi_ncs(0) => ADC_B_spi_ncs(0),
       ATCA_LEDS(3 downto 0) => ATCA_LEDS(3 downto 0),
       DDR_addr(14 downto 0) => DDR_addr(14 downto 0),
       DDR_ba(2 downto 0) => DDR_ba(2 downto 0),

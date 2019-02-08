@@ -218,7 +218,7 @@ void driver_init(bool use_pl) {
 		ipmi_leds.push_back(new IPMI_LED(*new LED(*atcaLEDs, 3))); // Amber LED
 
 		for (int i = 0; i < 2; i++) {
-			adc[i] = new AD7689(XPAR_AD7689_S_0_DEVICE_ID + i);
+			adc[i] = new AD7689(XPAR_AD7689_S_0_DEVICE_ID + i, 0);
 		}
 
 		xadc = new PS_XADC(XPAR_XADCPS_0_DEVICE_ID);

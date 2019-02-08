@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
-<bd:repository xmlns:bd="http://www.xilinx.com/bd" bd:BoundaryCRC="0x4849A24B4780091D" bd:device="xc7z020clg400-1" bd:isValidated="true" bd:synthFlowMode="Hierarchical" bd:tool_version="2018.2" bd:top="ipmc_bd" bd:version="1.00.a">
+<bd:repository xmlns:bd="http://www.xilinx.com/bd" bd:BoundaryCRC="0xA29A29EAEB3181A3" bd:device="xc7z020clg400-1" bd:isValidated="true" bd:synthFlowMode="Hierarchical" bd:tool_version="2018.2" bd:top="ipmc_bd" bd:version="1.00.a">
 
   <spirit:component xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009">
     <spirit:vendor>xilinx.com</spirit:vendor>
@@ -13,18 +13,6 @@
       </spirit:parameter>
     </spirit:parameters>
     <spirit:busInterfaces>
-      <spirit:busInterface>
-        <spirit:name>ADC_A</spirit:name>
-        <spirit:master/>
-        <spirit:busType spirit:library="uw" spirit:name="spi" spirit:vendor="uw" spirit:version="1.0"/>
-        <spirit:abstractionType spirit:library="uw" spirit:name="spi_rtl" spirit:vendor="uw" spirit:version="1.0"/>
-      </spirit:busInterface>
-      <spirit:busInterface>
-        <spirit:name>ADC_B</spirit:name>
-        <spirit:master/>
-        <spirit:busType spirit:library="uw" spirit:name="spi" spirit:vendor="uw" spirit:version="1.0"/>
-        <spirit:abstractionType spirit:library="uw" spirit:name="spi_rtl" spirit:vendor="uw" spirit:version="1.0"/>
-      </spirit:busInterface>
       <spirit:busInterface>
         <spirit:name>DDR</spirit:name>
         <spirit:master/>
@@ -182,6 +170,18 @@
         <spirit:master/>
         <spirit:busType spirit:library="interface" spirit:name="uart" spirit:vendor="xilinx.com" spirit:version="1.0"/>
         <spirit:abstractionType spirit:library="interface" spirit:name="uart_rtl" spirit:vendor="xilinx.com" spirit:version="1.0"/>
+      </spirit:busInterface>
+      <spirit:busInterface>
+        <spirit:name>ADC_A</spirit:name>
+        <spirit:master/>
+        <spirit:busType spirit:library="user" spirit:name="M_ADC_SPI" spirit:vendor="uw" spirit:version="1.0"/>
+        <spirit:abstractionType spirit:library="user" spirit:name="M_ADC_SPI_rtl" spirit:vendor="uw" spirit:version="1.0"/>
+      </spirit:busInterface>
+      <spirit:busInterface>
+        <spirit:name>ADC_B</spirit:name>
+        <spirit:master/>
+        <spirit:busType spirit:library="user" spirit:name="M_ADC_SPI" spirit:vendor="uw" spirit:version="1.0"/>
+        <spirit:abstractionType spirit:library="user" spirit:name="M_ADC_SPI_rtl" spirit:vendor="uw" spirit:version="1.0"/>
       </spirit:busInterface>
     </spirit:busInterfaces>
     <spirit:model>
@@ -924,7 +924,6 @@
         <spirit:componentRef spirit:library="uw" spirit:name="ad7689_s" spirit:vendor="uw" spirit:version="1.0"/>
         <spirit:configurableElementValues>
           <spirit:configurableElementValue spirit:referenceId="bd:xciName">ipmc_bd_ad7689_s_0_0</spirit:configurableElementValue>
-          <spirit:configurableElementValue spirit:referenceId="C_s_axi_ADDR_WIDTH">7</spirit:configurableElementValue>
         </spirit:configurableElementValues>
       </spirit:componentInstance>
       <spirit:componentInstance>
@@ -932,7 +931,6 @@
         <spirit:componentRef spirit:library="uw" spirit:name="ad7689_s" spirit:vendor="uw" spirit:version="1.0"/>
         <spirit:configurableElementValues>
           <spirit:configurableElementValue spirit:referenceId="bd:xciName">ipmc_bd_ad7689_s_1_0</spirit:configurableElementValue>
-          <spirit:configurableElementValue spirit:referenceId="C_s_axi_ADDR_WIDTH">7</spirit:configurableElementValue>
         </spirit:configurableElementValues>
       </spirit:componentInstance>
       <spirit:componentInstance>
@@ -980,7 +978,7 @@
         <spirit:instanceName>debouncer_0</spirit:instanceName>
         <spirit:componentRef spirit:library="module_ref" spirit:name="debouncer" spirit:vendor="xilinx.com" spirit:version="1.0"/>
         <spirit:configurableElementValues>
-          <spirit:configurableElementValue spirit:referenceId="bd:xciName">ipmc_bd_debouncer_0_3</spirit:configurableElementValue>
+          <spirit:configurableElementValue spirit:referenceId="bd:xciName">ipmc_bd_debouncer_0_0</spirit:configurableElementValue>
           <spirit:configurableElementValue spirit:referenceId="bd:referenceName">debouncer</spirit:configurableElementValue>
           <spirit:configurableElementValue spirit:referenceId="bd:subInstancePath"></spirit:configurableElementValue>
           <spirit:configurableElementValue spirit:referenceId="bd:referenceType">hdl</spirit:configurableElementValue>
@@ -1153,6 +1151,8 @@
         <spirit:internalPortReference spirit:componentRef="vio_HF_sim" spirit:portRef="clk"/>
         <spirit:internalPortReference spirit:componentRef="ipmi_sensor_proc_0" spirit:portRef="s_axi_aclk"/>
         <spirit:internalPortReference spirit:componentRef="debouncer_0" spirit:portRef="CLK_IN"/>
+        <spirit:internalPortReference spirit:componentRef="axi_atca_led_ctrl" spirit:portRef="s_axi_aclk"/>
+        <spirit:internalPortReference spirit:componentRef="axi_user_led_ctrl" spirit:portRef="s_axi_aclk"/>
         <spirit:internalPortReference spirit:componentRef="axi_interconnect_0" spirit:portRef="M02_ACLK"/>
         <spirit:internalPortReference spirit:componentRef="axi_interconnect_0" spirit:portRef="M03_ACLK"/>
         <spirit:internalPortReference spirit:componentRef="axi_interconnect_0" spirit:portRef="M07_ACLK"/>
@@ -1169,8 +1169,6 @@
         <spirit:internalPortReference spirit:componentRef="esm" spirit:portRef="ACLK"/>
         <spirit:internalPortReference spirit:componentRef="axi_interconnect_0" spirit:portRef="M10_ACLK"/>
         <spirit:internalPortReference spirit:componentRef="elm" spirit:portRef="ACLK"/>
-        <spirit:internalPortReference spirit:componentRef="axi_atca_led_ctrl" spirit:portRef="s_axi_aclk"/>
-        <spirit:internalPortReference spirit:componentRef="axi_user_led_ctrl" spirit:portRef="s_axi_aclk"/>
       </spirit:adHocConnection>
       <spirit:adHocConnection>
         <spirit:name>proc_sys_reset_0_peripheral_aresetn</spirit:name>
@@ -1183,7 +1181,8 @@
         <spirit:internalPortReference spirit:componentRef="ad7689_s_0" spirit:portRef="s_axi_aresetn"/>
         <spirit:internalPortReference spirit:componentRef="ad7689_s_1" spirit:portRef="s_axi_aresetn"/>
         <spirit:internalPortReference spirit:componentRef="ipmi_sensor_proc_0" spirit:portRef="s_axi_aresetn"/>
-        <spirit:internalPortReference spirit:componentRef="debouncer_0" spirit:portRef="ARESETN_IN"/>
+        <spirit:internalPortReference spirit:componentRef="axi_atca_led_ctrl" spirit:portRef="s_axi_aresetn"/>
+        <spirit:internalPortReference spirit:componentRef="axi_user_led_ctrl" spirit:portRef="s_axi_aresetn"/>
         <spirit:internalPortReference spirit:componentRef="axi_interconnect_0" spirit:portRef="M02_ARESETN"/>
         <spirit:internalPortReference spirit:componentRef="axi_interconnect_0" spirit:portRef="M03_ARESETN"/>
         <spirit:internalPortReference spirit:componentRef="axi_interconnect_0" spirit:portRef="M07_ARESETN"/>
@@ -1199,8 +1198,6 @@
         <spirit:internalPortReference spirit:componentRef="axi_interconnect_0" spirit:portRef="M10_ARESETN"/>
         <spirit:internalPortReference spirit:componentRef="esm" spirit:portRef="S00_ARESETN"/>
         <spirit:internalPortReference spirit:componentRef="elm" spirit:portRef="S00_ARESETN_0"/>
-        <spirit:internalPortReference spirit:componentRef="axi_atca_led_ctrl" spirit:portRef="s_axi_aresetn"/>
-        <spirit:internalPortReference spirit:componentRef="axi_user_led_ctrl" spirit:portRef="s_axi_aresetn"/>
       </spirit:adHocConnection>
       <spirit:adHocConnection>
         <spirit:name>esm_dout</spirit:name>
@@ -1209,12 +1206,12 @@
       </spirit:adHocConnection>
       <spirit:adHocConnection>
         <spirit:name>ad7689_s_1_adc_ch_value_aggr</spirit:name>
-        <spirit:internalPortReference spirit:componentRef="ad7689_s_1" spirit:portRef="adc_ch_value_aggr"/>
+        <spirit:internalPortReference spirit:componentRef="ad7689_s_1" spirit:portRef="cnv_value_par"/>
         <spirit:internalPortReference spirit:componentRef="xlconcat_adc_data" spirit:portRef="In1"/>
       </spirit:adHocConnection>
       <spirit:adHocConnection>
         <spirit:name>ad7689_s_0_adc_ch_value_aggr</spirit:name>
-        <spirit:internalPortReference spirit:componentRef="ad7689_s_0" spirit:portRef="adc_ch_value_aggr"/>
+        <spirit:internalPortReference spirit:componentRef="ad7689_s_0" spirit:portRef="cnv_value_par"/>
         <spirit:internalPortReference spirit:componentRef="xlconcat_adc_data" spirit:portRef="In0"/>
       </spirit:adHocConnection>
       <spirit:adHocConnection>
@@ -1224,12 +1221,12 @@
       </spirit:adHocConnection>
       <spirit:adHocConnection>
         <spirit:name>ad7689_s_0_adc_ch_valid_aggr</spirit:name>
-        <spirit:internalPortReference spirit:componentRef="ad7689_s_0" spirit:portRef="adc_ch_valid_aggr"/>
+        <spirit:internalPortReference spirit:componentRef="ad7689_s_0" spirit:portRef="cnv_valid_par"/>
         <spirit:internalPortReference spirit:componentRef="xlconcat_adc_vld" spirit:portRef="In0"/>
       </spirit:adHocConnection>
       <spirit:adHocConnection>
         <spirit:name>ad7689_s_1_adc_ch_valid_aggr</spirit:name>
-        <spirit:internalPortReference spirit:componentRef="ad7689_s_1" spirit:portRef="adc_ch_valid_aggr"/>
+        <spirit:internalPortReference spirit:componentRef="ad7689_s_1" spirit:portRef="cnv_valid_par"/>
         <spirit:internalPortReference spirit:componentRef="xlconcat_adc_vld" spirit:portRef="In1"/>
       </spirit:adHocConnection>
       <spirit:adHocConnection>
@@ -1274,12 +1271,6 @@
       </spirit:adHocConnection>
     </spirit:adHocConnections>
     <spirit:hierConnections>
-      <spirit:hierConnection spirit:interfaceRef="ADC_A/ad7689_s_0_spi_intf">
-        <spirit:activeInterface spirit:busRef="spi_intf" spirit:componentRef="ad7689_s_0"/>
-      </spirit:hierConnection>
-      <spirit:hierConnection spirit:interfaceRef="ADC_B/ad7689_s_1_spi_intf">
-        <spirit:activeInterface spirit:busRef="spi_intf" spirit:componentRef="ad7689_s_1"/>
-      </spirit:hierConnection>
       <spirit:hierConnection spirit:interfaceRef="DDR/processing_system7_0_DDR">
         <spirit:activeInterface spirit:busRef="DDR" spirit:componentRef="processing_system7_0"/>
       </spirit:hierConnection>
@@ -1303,6 +1294,12 @@
       </spirit:hierConnection>
       <spirit:hierConnection spirit:interfaceRef="ELM_UART/elm_ELM_UART">
         <spirit:activeInterface spirit:busRef="ELM_UART" spirit:componentRef="elm"/>
+      </spirit:hierConnection>
+      <spirit:hierConnection spirit:interfaceRef="ADC_A/ad7689_s_0_M_ADC_SPI">
+        <spirit:activeInterface spirit:busRef="M_ADC_SPI" spirit:componentRef="ad7689_s_0"/>
+      </spirit:hierConnection>
+      <spirit:hierConnection spirit:interfaceRef="ADC_B/ad7689_s_1_M_ADC_SPI">
+        <spirit:activeInterface spirit:busRef="M_ADC_SPI" spirit:componentRef="ad7689_s_1"/>
       </spirit:hierConnection>
     </spirit:hierConnections>
   </spirit:design>

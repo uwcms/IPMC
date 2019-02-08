@@ -230,38 +230,77 @@
       </spirit:parameters>
     </spirit:busInterface>
     <spirit:busInterface>
-      <spirit:name>spi_clk</spirit:name>
-      <spirit:busType spirit:vendor="xilinx.com" spirit:library="signal" spirit:name="clock" spirit:version="1.0"/>
-      <spirit:abstractionType spirit:vendor="xilinx.com" spirit:library="signal" spirit:name="clock_rtl" spirit:version="1.0"/>
+      <spirit:name>M_ADC</spirit:name>
+      <spirit:busType spirit:vendor="uw" spirit:library="user" spirit:name="M_ADC" spirit:version="1.0"/>
+      <spirit:abstractionType spirit:vendor="uw" spirit:library="user" spirit:name="M_ADC_rtl" spirit:version="1.0"/>
       <spirit:master/>
       <spirit:portMaps>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>CLK</spirit:name>
+            <spirit:name>cnv_done</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
-            <spirit:name>spi_clk</spirit:name>
+            <spirit:name>cnv_done</spirit:name>
+          </spirit:physicalPort>
+        </spirit:portMap>
+        <spirit:portMap>
+          <spirit:logicalPort>
+            <spirit:name>cnv_slave</spirit:name>
+          </spirit:logicalPort>
+          <spirit:physicalPort>
+            <spirit:name>cnv_slave</spirit:name>
+          </spirit:physicalPort>
+        </spirit:portMap>
+        <spirit:portMap>
+          <spirit:logicalPort>
+            <spirit:name>cnv_channel</spirit:name>
+          </spirit:logicalPort>
+          <spirit:physicalPort>
+            <spirit:name>cnv_channel</spirit:name>
+          </spirit:physicalPort>
+        </spirit:portMap>
+        <spirit:portMap>
+          <spirit:logicalPort>
+            <spirit:name>cnv_value</spirit:name>
+          </spirit:logicalPort>
+          <spirit:physicalPort>
+            <spirit:name>cnv_value</spirit:name>
+          </spirit:physicalPort>
+        </spirit:portMap>
+        <spirit:portMap>
+          <spirit:logicalPort>
+            <spirit:name>cnv_error</spirit:name>
+          </spirit:logicalPort>
+          <spirit:physicalPort>
+            <spirit:name>cnv_error</spirit:name>
           </spirit:physicalPort>
         </spirit:portMap>
       </spirit:portMaps>
+      <spirit:vendorExtensions>
+        <xilinx:busInterfaceInfo>
+          <xilinx:enablement>
+            <xilinx:isEnabled xilinx:resolve="dependent" xilinx:id="BUSIF_ENABLEMENT.M_ADC" xilinx:dependency="$C_OUT_INTERFACE = &quot;BUS&quot;">false</xilinx:isEnabled>
+          </xilinx:enablement>
+        </xilinx:busInterfaceInfo>
+      </spirit:vendorExtensions>
     </spirit:busInterface>
     <spirit:busInterface>
-      <spirit:name>spi_intf</spirit:name>
-      <spirit:busType spirit:vendor="uw" spirit:library="uw" spirit:name="spi" spirit:version="1.0"/>
-      <spirit:abstractionType spirit:vendor="uw" spirit:library="uw" spirit:name="spi_rtl" spirit:version="1.0"/>
+      <spirit:name>M_ADC_SPI</spirit:name>
+      <spirit:busType spirit:vendor="uw" spirit:library="user" spirit:name="M_ADC_SPI" spirit:version="1.0"/>
+      <spirit:abstractionType spirit:vendor="uw" spirit:library="user" spirit:name="M_ADC_SPI_rtl" spirit:version="1.0"/>
       <spirit:master/>
       <spirit:portMaps>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>ncs0</spirit:name>
+            <spirit:name>spi_ncs</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
-            <spirit:name>spi_ncs0</spirit:name>
+            <spirit:name>spi_ncs</spirit:name>
           </spirit:physicalPort>
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>clk</spirit:name>
+            <spirit:name>spi_clk</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>spi_clk</spirit:name>
@@ -269,7 +308,7 @@
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>mosi</spirit:name>
+            <spirit:name>spi_mosi</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>spi_mosi</spirit:name>
@@ -277,23 +316,13 @@
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>miso</spirit:name>
+            <spirit:name>spi_miso</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>spi_miso</spirit:name>
           </spirit:physicalPort>
         </spirit:portMap>
       </spirit:portMaps>
-      <spirit:parameters>
-        <spirit:parameter>
-          <spirit:name>NUM_READ_OUTSTANDING</spirit:name>
-          <spirit:value spirit:id="BUSIFPARAM_VALUE.SPI_INTF.NUM_READ_OUTSTANDING"/>
-        </spirit:parameter>
-        <spirit:parameter>
-          <spirit:name>NUM_WRITE_OUTSTANDING</spirit:name>
-          <spirit:value spirit:id="BUSIFPARAM_VALUE.SPI_INTF.NUM_WRITE_OUTSTANDING"/>
-        </spirit:parameter>
-      </spirit:parameters>
     </spirit:busInterface>
   </spirit:busInterfaces>
   <spirit:memoryMaps>
@@ -332,7 +361,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>aa028a78</spirit:value>
+            <spirit:value>9f1daaf6</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -348,7 +377,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>aa028a78</spirit:value>
+            <spirit:value>9f1daaf6</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -362,7 +391,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>ea5a3188</spirit:value>
+            <spirit:value>0f2bd413</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -376,7 +405,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>e6cc26a9</spirit:value>
+            <spirit:value>aa79f8e3</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -397,17 +426,31 @@
     </spirit:views>
     <spirit:ports>
       <spirit:port>
-        <spirit:name>spi_ncs0</spirit:name>
+        <spirit:name>spi_ncs</spirit:name>
         <spirit:wire>
           <spirit:direction>out</spirit:direction>
+          <spirit:vector>
+            <spirit:left spirit:format="long" spirit:resolve="dependent" spirit:dependency="(spirit:decode(id(&apos;MODELPARAM_VALUE.C_SLAVES&apos;)) - 1)">0</spirit:left>
+            <spirit:right spirit:format="long">0</spirit:right>
+          </spirit:vector>
           <spirit:wireTypeDefs>
             <spirit:wireTypeDef>
-              <spirit:typeName>std_logic</spirit:typeName>
+              <spirit:typeName>std_logic_vector</spirit:typeName>
               <spirit:viewNameRef>xilinx_vhdlsynthesis</spirit:viewNameRef>
               <spirit:viewNameRef>xilinx_vhdlbehavioralsimulation</spirit:viewNameRef>
             </spirit:wireTypeDef>
           </spirit:wireTypeDefs>
+          <spirit:driver>
+            <spirit:defaultValue spirit:format="long">1</spirit:defaultValue>
+          </spirit:driver>
         </spirit:wire>
+        <spirit:vendorExtensions>
+          <xilinx:portInfo>
+            <xilinx:enablement>
+              <xilinx:isEnabled xilinx:resolve="dependent" xilinx:id="PORT_ENABLEMENT.spi_ncs">false</xilinx:isEnabled>
+            </xilinx:enablement>
+          </xilinx:portInfo>
+        </spirit:vendorExtensions>
       </spirit:port>
       <spirit:port>
         <spirit:name>spi_clk</spirit:name>
@@ -449,11 +492,24 @@
         </spirit:wire>
       </spirit:port>
       <spirit:port>
-        <spirit:name>adc_ch_value_aggr</spirit:name>
+        <spirit:name>cnv_done</spirit:name>
+        <spirit:wire>
+          <spirit:direction>out</spirit:direction>
+          <spirit:wireTypeDefs>
+            <spirit:wireTypeDef>
+              <spirit:typeName>std_logic</spirit:typeName>
+              <spirit:viewNameRef>xilinx_vhdlsynthesis</spirit:viewNameRef>
+              <spirit:viewNameRef>xilinx_vhdlbehavioralsimulation</spirit:viewNameRef>
+            </spirit:wireTypeDef>
+          </spirit:wireTypeDefs>
+        </spirit:wire>
+      </spirit:port>
+      <spirit:port>
+        <spirit:name>cnv_slave</spirit:name>
         <spirit:wire>
           <spirit:direction>out</spirit:direction>
           <spirit:vector>
-            <spirit:left spirit:format="long">143</spirit:left>
+            <spirit:left spirit:format="long">1</spirit:left>
             <spirit:right spirit:format="long">0</spirit:right>
           </spirit:vector>
           <spirit:wireTypeDefs>
@@ -466,11 +522,11 @@
         </spirit:wire>
       </spirit:port>
       <spirit:port>
-        <spirit:name>adc_ch_valid_aggr</spirit:name>
+        <spirit:name>cnv_channel</spirit:name>
         <spirit:wire>
           <spirit:direction>out</spirit:direction>
           <spirit:vector>
-            <spirit:left spirit:format="long">8</spirit:left>
+            <spirit:left spirit:format="long">3</spirit:left>
             <spirit:right spirit:format="long">0</spirit:right>
           </spirit:vector>
           <spirit:wireTypeDefs>
@@ -483,11 +539,11 @@
         </spirit:wire>
       </spirit:port>
       <spirit:port>
-        <spirit:name>debug_o</spirit:name>
+        <spirit:name>cnv_value</spirit:name>
         <spirit:wire>
           <spirit:direction>out</spirit:direction>
           <spirit:vector>
-            <spirit:left spirit:format="long">35</spirit:left>
+            <spirit:left spirit:format="long">15</spirit:left>
             <spirit:right spirit:format="long">0</spirit:right>
           </spirit:vector>
           <spirit:wireTypeDefs>
@@ -498,13 +554,80 @@
             </spirit:wireTypeDef>
           </spirit:wireTypeDefs>
         </spirit:wire>
+      </spirit:port>
+      <spirit:port>
+        <spirit:name>cnv_error</spirit:name>
+        <spirit:wire>
+          <spirit:direction>out</spirit:direction>
+          <spirit:wireTypeDefs>
+            <spirit:wireTypeDef>
+              <spirit:typeName>std_logic</spirit:typeName>
+              <spirit:viewNameRef>xilinx_vhdlsynthesis</spirit:viewNameRef>
+              <spirit:viewNameRef>xilinx_vhdlbehavioralsimulation</spirit:viewNameRef>
+            </spirit:wireTypeDef>
+          </spirit:wireTypeDefs>
+        </spirit:wire>
+      </spirit:port>
+      <spirit:port>
+        <spirit:name>cnv_value_par</spirit:name>
+        <spirit:wire>
+          <spirit:direction>out</spirit:direction>
+          <spirit:vector>
+            <spirit:left spirit:format="long" spirit:resolve="dependent" spirit:dependency="(((16 * 9) * spirit:decode(id(&apos;MODELPARAM_VALUE.C_SLAVES&apos;))) - 1)">143</spirit:left>
+            <spirit:right spirit:format="long">0</spirit:right>
+          </spirit:vector>
+          <spirit:wireTypeDefs>
+            <spirit:wireTypeDef>
+              <spirit:typeName>std_logic_vector</spirit:typeName>
+              <spirit:viewNameRef>xilinx_vhdlsynthesis</spirit:viewNameRef>
+              <spirit:viewNameRef>xilinx_vhdlbehavioralsimulation</spirit:viewNameRef>
+            </spirit:wireTypeDef>
+          </spirit:wireTypeDefs>
+          <spirit:driver>
+            <spirit:defaultValue spirit:format="long">0</spirit:defaultValue>
+          </spirit:driver>
+        </spirit:wire>
+        <spirit:vendorExtensions>
+          <xilinx:portInfo>
+            <xilinx:enablement>
+              <xilinx:isEnabled xilinx:resolve="dependent" xilinx:id="PORT_ENABLEMENT.cnv_value_par" xilinx:dependency="$C_OUT_INTERFACE = &quot;PARALLEL&quot;">true</xilinx:isEnabled>
+            </xilinx:enablement>
+          </xilinx:portInfo>
+        </spirit:vendorExtensions>
+      </spirit:port>
+      <spirit:port>
+        <spirit:name>cnv_valid_par</spirit:name>
+        <spirit:wire>
+          <spirit:direction>out</spirit:direction>
+          <spirit:vector>
+            <spirit:left spirit:format="long" spirit:resolve="dependent" spirit:dependency="((9 * spirit:decode(id(&apos;MODELPARAM_VALUE.C_SLAVES&apos;))) - 1)">8</spirit:left>
+            <spirit:right spirit:format="long">0</spirit:right>
+          </spirit:vector>
+          <spirit:wireTypeDefs>
+            <spirit:wireTypeDef>
+              <spirit:typeName>std_logic_vector</spirit:typeName>
+              <spirit:viewNameRef>xilinx_vhdlsynthesis</spirit:viewNameRef>
+              <spirit:viewNameRef>xilinx_vhdlbehavioralsimulation</spirit:viewNameRef>
+            </spirit:wireTypeDef>
+          </spirit:wireTypeDefs>
+          <spirit:driver>
+            <spirit:defaultValue spirit:format="long">0</spirit:defaultValue>
+          </spirit:driver>
+        </spirit:wire>
+        <spirit:vendorExtensions>
+          <xilinx:portInfo>
+            <xilinx:enablement>
+              <xilinx:isEnabled xilinx:resolve="dependent" xilinx:id="PORT_ENABLEMENT.cnv_valid_par" xilinx:dependency="$C_OUT_INTERFACE = &quot;PARALLEL&quot;">true</xilinx:isEnabled>
+            </xilinx:enablement>
+          </xilinx:portInfo>
+        </spirit:vendorExtensions>
       </spirit:port>
       <spirit:port>
         <spirit:name>s_axi_awaddr</spirit:name>
         <spirit:wire>
           <spirit:direction>in</spirit:direction>
           <spirit:vector>
-            <spirit:left spirit:format="long" spirit:resolve="dependent" spirit:dependency="(spirit:decode(id(&apos;MODELPARAM_VALUE.C_s_axi_ADDR_WIDTH&apos;)) - 1)">6</spirit:left>
+            <spirit:left spirit:format="long" spirit:resolve="dependent" spirit:dependency="(spirit:decode(id(&apos;MODELPARAM_VALUE.C_s_axi_ADDR_WIDTH&apos;)) - 1)">8</spirit:left>
             <spirit:right spirit:format="long">0</spirit:right>
           </spirit:vector>
           <spirit:wireTypeDefs>
@@ -667,7 +790,7 @@
         <spirit:wire>
           <spirit:direction>in</spirit:direction>
           <spirit:vector>
-            <spirit:left spirit:format="long" spirit:resolve="dependent" spirit:dependency="(spirit:decode(id(&apos;MODELPARAM_VALUE.C_s_axi_ADDR_WIDTH&apos;)) - 1)">6</spirit:left>
+            <spirit:left spirit:format="long" spirit:resolve="dependent" spirit:dependency="(spirit:decode(id(&apos;MODELPARAM_VALUE.C_s_axi_ADDR_WIDTH&apos;)) - 1)">8</spirit:left>
             <spirit:right spirit:format="long">0</spirit:right>
           </spirit:vector>
           <spirit:wireTypeDefs>
@@ -818,11 +941,26 @@
       <spirit:modelParameter spirit:dataType="integer">
         <spirit:name>C_s_axi_ADDR_WIDTH</spirit:name>
         <spirit:displayName>C S Axi Addr Width</spirit:displayName>
-        <spirit:value spirit:format="long" spirit:resolve="generated" spirit:id="MODELPARAM_VALUE.C_s_axi_ADDR_WIDTH">7</spirit:value>
+        <spirit:value spirit:format="long" spirit:resolve="generated" spirit:id="MODELPARAM_VALUE.C_s_axi_ADDR_WIDTH">9</spirit:value>
+      </spirit:modelParameter>
+      <spirit:modelParameter spirit:dataType="integer">
+        <spirit:name>C_SLAVES</spirit:name>
+        <spirit:displayName>C Slaves</spirit:displayName>
+        <spirit:value spirit:format="long" spirit:resolve="generated" spirit:id="MODELPARAM_VALUE.C_SLAVES" spirit:minimum="1" spirit:maximum="4" spirit:rangeType="long">1</spirit:value>
+      </spirit:modelParameter>
+      <spirit:modelParameter spirit:dataType="string">
+        <spirit:name>C_OUT_INTERFACE</spirit:name>
+        <spirit:displayName>C Out Interface</spirit:displayName>
+        <spirit:value spirit:resolve="generated" spirit:id="MODELPARAM_VALUE.C_OUT_INTERFACE">PARALLEL</spirit:value>
       </spirit:modelParameter>
     </spirit:modelParameters>
   </spirit:model>
   <spirit:choices>
+    <spirit:choice>
+      <spirit:name>choice_list_17d88cf7</spirit:name>
+      <spirit:enumeration>BUS</spirit:enumeration>
+      <spirit:enumeration>PARALLEL</spirit:enumeration>
+    </spirit:choice>
     <spirit:choice>
       <spirit:name>choice_list_6fc15197</spirit:name>
       <spirit:enumeration>32</spirit:enumeration>
@@ -853,7 +991,7 @@
       <spirit:file>
         <spirit:name>hdl/ad7689_s_v1_0.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
-        <spirit:userFileType>CHECKSUM_13be5670</spirit:userFileType>
+        <spirit:userFileType>CHECKSUM_f9be237e</spirit:userFileType>
       </spirit:file>
     </spirit:fileSet>
     <spirit:fileSet>
@@ -884,10 +1022,6 @@
         <spirit:userFileType>driver_tcl</spirit:userFileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>drivers/ad7689_s_v1_0/src/Makefile</spirit:name>
-        <spirit:userFileType>driver_src</spirit:userFileType>
-      </spirit:file>
-      <spirit:file>
         <spirit:name>drivers/ad7689_s_v1_0/src/ad7689_s.h</spirit:name>
         <spirit:fileType>cSource</spirit:fileType>
         <spirit:userFileType>driver_src</spirit:userFileType>
@@ -903,7 +1037,7 @@
       <spirit:file>
         <spirit:name>xgui/ad7689_s_v1_0.tcl</spirit:name>
         <spirit:fileType>tclSource</spirit:fileType>
-        <spirit:userFileType>CHECKSUM_e6cc26a9</spirit:userFileType>
+        <spirit:userFileType>CHECKSUM_aa79f8e3</spirit:userFileType>
         <spirit:userFileType>XGUI_VERSION_2</spirit:userFileType>
       </spirit:file>
     </spirit:fileSet>
@@ -953,7 +1087,35 @@
     <spirit:parameter>
       <spirit:name>C_s_axi_ADDR_WIDTH</spirit:name>
       <spirit:displayName>C S Axi Addr Width</spirit:displayName>
-      <spirit:value spirit:format="long" spirit:resolve="user" spirit:id="PARAM_VALUE.C_s_axi_ADDR_WIDTH">7</spirit:value>
+      <spirit:value spirit:format="long" spirit:resolve="user" spirit:id="PARAM_VALUE.C_s_axi_ADDR_WIDTH">9</spirit:value>
+      <spirit:vendorExtensions>
+        <xilinx:parameterInfo>
+          <xilinx:enablement>
+            <xilinx:isEnabled xilinx:id="PARAM_ENABLEMENT.C_s_axi_ADDR_WIDTH">false</xilinx:isEnabled>
+          </xilinx:enablement>
+        </xilinx:parameterInfo>
+      </spirit:vendorExtensions>
+    </spirit:parameter>
+    <spirit:parameter>
+      <spirit:name>C_SLAVES</spirit:name>
+      <spirit:displayName>Slaves</spirit:displayName>
+      <spirit:value spirit:format="long" spirit:resolve="user" spirit:id="PARAM_VALUE.C_SLAVES" spirit:minimum="1" spirit:maximum="4" spirit:rangeType="long">1</spirit:value>
+    </spirit:parameter>
+    <spirit:parameter>
+      <spirit:name>C_OUT_INTERFACE</spirit:name>
+      <spirit:displayName>Output Interface</spirit:displayName>
+      <spirit:value spirit:resolve="user" spirit:id="PARAM_VALUE.C_OUT_INTERFACE" spirit:choiceRef="choice_list_17d88cf7">PARALLEL</spirit:value>
+    </spirit:parameter>
+    <spirit:parameter>
+      <spirit:name>c_bus</spirit:name>
+      <spirit:value spirit:format="bool" spirit:resolve="user" spirit:id="PARAM_VALUE.c_bus">true</spirit:value>
+      <spirit:vendorExtensions>
+        <xilinx:parameterInfo>
+          <xilinx:enablement>
+            <xilinx:isEnabled xilinx:id="PARAM_ENABLEMENT.c_bus">false</xilinx:isEnabled>
+          </xilinx:enablement>
+        </xilinx:parameterInfo>
+      </spirit:vendorExtensions>
     </spirit:parameter>
   </spirit:parameters>
   <spirit:vendorExtensions>
@@ -966,25 +1128,25 @@
       </xilinx:taxonomies>
       <xilinx:displayName>ad7689_s_v1.0</xilinx:displayName>
       <xilinx:vendorDisplayName>University of Wisconsin-Madison</xilinx:vendorDisplayName>
-      <xilinx:coreRevision>5</xilinx:coreRevision>
+      <xilinx:coreRevision>17</xilinx:coreRevision>
       <xilinx:upgrades>
         <xilinx:canUpgradeFrom>user.org:user:ad7689_s:1.0</xilinx:canUpgradeFrom>
       </xilinx:upgrades>
-      <xilinx:coreCreationDateTime>2018-09-26T13:41:52Z</xilinx:coreCreationDateTime>
+      <xilinx:coreCreationDateTime>2019-02-06T16:47:52Z</xilinx:coreCreationDateTime>
       <xilinx:tags>
         <xilinx:tag xilinx:name="user.org:user:ad7689_s:1.0_ARCHIVE_LOCATION">/scratch/ales/IPMC_repo_5/IPMC/Vivado/ip_repo/ad7689_s_1.0</xilinx:tag>
         <xilinx:tag xilinx:name="uw:user:ad7689_s:1.0_ARCHIVE_LOCATION">/scratch/ales/IPMC_repo_5/IPMC/Vivado/ip_repo/ad7689_s_1.0</xilinx:tag>
-        <xilinx:tag xilinx:name="uw:uw:ad7689_s:1.0_ARCHIVE_LOCATION">/scratch/ales/repos/IPMC_adc/IPMC/Vivado/ip_repo/ad7689_s_1.0</xilinx:tag>
+        <xilinx:tag xilinx:name="uw:uw:ad7689_s:1.0_ARCHIVE_LOCATION">/scratch/mpv/IPMC-APd1-bringup/Vivado/ip_repo/ad7689_s_1.0</xilinx:tag>
       </xilinx:tags>
     </xilinx:coreExtensions>
     <xilinx:packagingInfo>
       <xilinx:xilinxVersion>2018.2</xilinx:xilinxVersion>
-      <xilinx:checksum xilinx:scope="busInterfaces" xilinx:value="d65e9c2c"/>
+      <xilinx:checksum xilinx:scope="busInterfaces" xilinx:value="ae129eec"/>
       <xilinx:checksum xilinx:scope="memoryMaps" xilinx:value="c30980da"/>
-      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="42ce0d66"/>
-      <xilinx:checksum xilinx:scope="ports" xilinx:value="e88ff7a8"/>
-      <xilinx:checksum xilinx:scope="hdlParameters" xilinx:value="bcc849e9"/>
-      <xilinx:checksum xilinx:scope="parameters" xilinx:value="f550dc04"/>
+      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="8091e816"/>
+      <xilinx:checksum xilinx:scope="ports" xilinx:value="c603833c"/>
+      <xilinx:checksum xilinx:scope="hdlParameters" xilinx:value="4f3bb3a7"/>
+      <xilinx:checksum xilinx:scope="parameters" xilinx:value="88044641"/>
     </xilinx:packagingInfo>
   </spirit:vendorExtensions>
 </spirit:component>
