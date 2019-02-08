@@ -17,6 +17,7 @@ export WORKSPACE ?= ../..
 export INCLUDE_PATHS = \
 	-I"$(WORKSPACE)/IPMC/src/common/uw-ipmc" \
 	-I"$(WORKSPACE)/IPMC/src/config" \
+	-I"$(WORKSPACE)/IPMC/src" \
 	-I"$(WORKSPACE)/IPMC/src/components" \
 	-I"$(WORKSPACE)/IPMC/src/common/lwIP/src/contrib/ports/xilinx/include" \
 	-I"$(WORKSPACE)/IPMC/src/common/lwIP/src/lwip-2.0.2/src/include" \
