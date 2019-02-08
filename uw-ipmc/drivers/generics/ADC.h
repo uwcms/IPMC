@@ -24,6 +24,7 @@ public:
 			if (this->callback) return this->callback(r);
 			else return r * this->factor;
 		};
+		inline uint8_t getChannel() { return this->channel; };
 	private:
 		ADC& adc;
 		uint8_t channel;

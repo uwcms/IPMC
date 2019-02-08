@@ -14,7 +14,7 @@
 
 class AD7689 : public ADC {
 public:
-	AD7689(uint16_t DeviceId);
+	AD7689(uint16_t DeviceId, uint32_t SlaveInterface = 0);
 	virtual ~AD7689();
 
 	void setSamplingFrequency(uint32_t hz);
@@ -24,6 +24,7 @@ public:
 
 private:
 	AD7689_S adc = {0};
+	uint32_t SlaveInterface;
 };
 
 #endif /* SRC_COMMON_UW_IPMC_DRIVERS_AD7689_AD7689_H_ */
