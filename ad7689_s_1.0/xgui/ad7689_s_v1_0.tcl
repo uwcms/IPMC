@@ -2,12 +2,31 @@
 proc init_gui { IPINST } {
   ipgui::add_param $IPINST -name "Component_Name"
   #Adding Page
-  set Page_0 [ipgui::add_page $IPINST -name "Page 0"]
-  ipgui::add_param $IPINST -name "C_S_AXI_BASEADDR" -parent ${Page_0}
-  ipgui::add_param $IPINST -name "C_S_AXI_HIGHADDR" -parent ${Page_0}
+  set Configurations [ipgui::add_page $IPINST -name "Configurations"]
+  set C_SLAVES [ipgui::add_param $IPINST -name "C_SLAVES" -parent ${Configurations}]
+  set_property tooltip {Number of ADC slaves attached to the same interface} ${C_SLAVES}
+  set C_OUT_INTERFACE [ipgui::add_param $IPINST -name "C_OUT_INTERFACE" -parent ${Configurations} -layout horizontal]
+  set_property tooltip {The output type that will be available for use} ${C_OUT_INTERFACE}
 
-  ipgui::add_param $IPINST -name "C_s_axi_ADDR_WIDTH"
 
+}
+
+proc update_PARAM_VALUE.C_OUT_INTERFACE { PARAM_VALUE.C_OUT_INTERFACE } {
+	# Procedure called to update C_OUT_INTERFACE when any of the dependent parameters in the arguments change
+}
+
+proc validate_PARAM_VALUE.C_OUT_INTERFACE { PARAM_VALUE.C_OUT_INTERFACE } {
+	# Procedure called to validate C_OUT_INTERFACE
+	return true
+}
+
+proc update_PARAM_VALUE.C_SLAVES { PARAM_VALUE.C_SLAVES } {
+	# Procedure called to update C_SLAVES when any of the dependent parameters in the arguments change
+}
+
+proc validate_PARAM_VALUE.C_SLAVES { PARAM_VALUE.C_SLAVES } {
+	# Procedure called to validate C_SLAVES
+	return true
 }
 
 proc update_PARAM_VALUE.C_s_axi_ADDR_WIDTH { PARAM_VALUE.C_s_axi_ADDR_WIDTH } {
@@ -25,6 +44,15 @@ proc update_PARAM_VALUE.C_s_axi_DATA_WIDTH { PARAM_VALUE.C_s_axi_DATA_WIDTH } {
 
 proc validate_PARAM_VALUE.C_s_axi_DATA_WIDTH { PARAM_VALUE.C_s_axi_DATA_WIDTH } {
 	# Procedure called to validate C_s_axi_DATA_WIDTH
+	return true
+}
+
+proc update_PARAM_VALUE.c_bus { PARAM_VALUE.c_bus } {
+	# Procedure called to update c_bus when any of the dependent parameters in the arguments change
+}
+
+proc validate_PARAM_VALUE.c_bus { PARAM_VALUE.c_bus } {
+	# Procedure called to validate c_bus
 	return true
 }
 
@@ -55,5 +83,15 @@ proc update_MODELPARAM_VALUE.C_s_axi_DATA_WIDTH { MODELPARAM_VALUE.C_s_axi_DATA_
 proc update_MODELPARAM_VALUE.C_s_axi_ADDR_WIDTH { MODELPARAM_VALUE.C_s_axi_ADDR_WIDTH PARAM_VALUE.C_s_axi_ADDR_WIDTH } {
 	# Procedure called to set VHDL generic/Verilog parameter value(s) based on TCL parameter value
 	set_property value [get_property value ${PARAM_VALUE.C_s_axi_ADDR_WIDTH}] ${MODELPARAM_VALUE.C_s_axi_ADDR_WIDTH}
+}
+
+proc update_MODELPARAM_VALUE.C_SLAVES { MODELPARAM_VALUE.C_SLAVES PARAM_VALUE.C_SLAVES } {
+	# Procedure called to set VHDL generic/Verilog parameter value(s) based on TCL parameter value
+	set_property value [get_property value ${PARAM_VALUE.C_SLAVES}] ${MODELPARAM_VALUE.C_SLAVES}
+}
+
+proc update_MODELPARAM_VALUE.C_OUT_INTERFACE { MODELPARAM_VALUE.C_OUT_INTERFACE PARAM_VALUE.C_OUT_INTERFACE } {
+	# Procedure called to set VHDL generic/Verilog parameter value(s) based on TCL parameter value
+	set_property value [get_property value ${PARAM_VALUE.C_OUT_INTERFACE}] ${MODELPARAM_VALUE.C_OUT_INTERFACE}
 }
 

@@ -7,7 +7,9 @@ entity ad7689_v0_1_s_axi is
 		-- Width of S_AXI data bus
 		C_S_AXI_DATA_WIDTH	: integer	:= 32;
 		-- Width of S_AXI address bus
-		C_S_AXI_ADDR_WIDTH	: integer	:= 7
+		C_S_AXI_ADDR_WIDTH	: integer	:= 9;
+		-- Number of slaves
+		C_SLAVES : integer range 1 to 4 := 1
 	);
 	port (
 
@@ -15,28 +17,11 @@ entity ad7689_v0_1_s_axi is
         ch2ch_sample_period : out std_logic_vector (31 downto 0); -- Channel to channel sample delay (-> sampling frequency)
         measured_sample_freq : in std_logic_vector (31 downto 0); -- Per channel actual sample frequency
         measured_sample_cnt_ch0 : in std_logic_vector (31 downto 0); -- number of ch0 conv samples (w/ reset, counter waraps around)
-
-        adc_reading_ch0 : in std_logic_vector (15 downto 0); -- ADC channel 0
-        adc_reading_ch1 : in std_logic_vector (15 downto 0); -- ADC channel 1
-        adc_reading_ch2 : in std_logic_vector (15 downto 0); -- ADC channel 2
-        adc_reading_ch3 : in std_logic_vector (15 downto 0); -- ADC channel 3
-        adc_reading_ch4 : in std_logic_vector (15 downto 0); -- ADC channel 4
-        adc_reading_ch5 : in std_logic_vector (15 downto 0); -- ADC channel 5
-        adc_reading_ch6 : in std_logic_vector (15 downto 0); -- ADC channel 6
-        adc_reading_ch7 : in std_logic_vector (15 downto 0); -- ADC channel 7
-        adc_reading_ch8 : in std_logic_vector (15 downto 0); -- ADC channel 8 (Temperature)
         
-        ovrrd_enables : out std_logic_vector (8 downto 0); -- override enables
-
-        ovrrd_reading_ch0 : out std_logic_vector (15 downto 0); -- ovrrd channel 0
-        ovrrd_reading_ch1 : out std_logic_vector (15 downto 0); -- ovrrd channel 1
-        ovrrd_reading_ch2 : out std_logic_vector (15 downto 0); -- ovrrd channel 2
-        ovrrd_reading_ch3 : out std_logic_vector (15 downto 0); -- ovrrd channel 3
-        ovrrd_reading_ch4 : out std_logic_vector (15 downto 0); -- ovrrd channel 4
-        ovrrd_reading_ch5 : out std_logic_vector (15 downto 0); -- ovrrd channel 5
-        ovrrd_reading_ch6 : out std_logic_vector (15 downto 0); -- ovrrd channel 6
-        ovrrd_reading_ch7 : out std_logic_vector (15 downto 0); -- ovrrd channel 7
-        ovrrd_reading_ch8 : out std_logic_vector (15 downto 0); -- ovrrd channel 8 (Temperature)
+        -- Users to add ports here
+        m_adc_reading_array : in std_logic_vector ((16 * 9 * C_SLAVES )-1 downto 0);
+        -- User ports ends
+        -- Do not modify the ports beyond this line
 
 		-- Global Clock Signal
 		S_AXI_ACLK	: in std_logic;
@@ -121,32 +106,16 @@ architecture arch_imp of ad7689_v0_1_s_axi is
 	-- ADDR_LSB = 2 for 32 bits (n downto 2)
 	-- ADDR_LSB = 3 for 64 bits (n downto 3)
 	constant ADDR_LSB  : integer := (C_S_AXI_DATA_WIDTH/32)+ 1;
-	constant OPT_MEM_ADDR_BITS : integer := 4;
+	constant OPT_MEM_ADDR_BITS : integer := 6;
 	------------------------------------------------
 	---- Signals for user logic register space example
 	--------------------------------------------------
-	
-	constant C_ovrrd_MASTER_UNLOCK_VAL : std_logic_vector(31 downto 0) := x"C0DE1357";
 
     signal s_reset : std_logic;
     
-    signal s_ch2ch_sample_period : std_logic_vector (31 downto 0) := x"00000738";  -- default 3kHz
+    constant C_CH2CH_SAMPLE_PERIOD : std_logic_vector (31 downto 0) := x"00000738";
     
-   
-    signal s_ovrrd_master_reg : std_logic_vector(31 downto 0) ;
-    signal s_ovrrd_master_enable :  std_logic;
-    
-    signal s_ovrrd_enables_reg :  std_logic_vector (8 downto 0); -- ovrrd enables
-
-    signal s_ovrrd_reading_ch0 :  std_logic_vector (15 downto 0); -- ovrrd channel 0
-    signal s_ovrrd_reading_ch1 :  std_logic_vector (15 downto 0); -- ovrrd channel 1
-    signal s_ovrrd_reading_ch2 :  std_logic_vector (15 downto 0); -- ovrrd channel 2
-    signal s_ovrrd_reading_ch3 :  std_logic_vector (15 downto 0); -- ovrrd channel 3
-    signal s_ovrrd_reading_ch4 :  std_logic_vector (15 downto 0); -- ovrrd channel 4
-    signal s_ovrrd_reading_ch5 :  std_logic_vector (15 downto 0); -- ovrrd channel 5
-    signal s_ovrrd_reading_ch6 :  std_logic_vector (15 downto 0); -- ovrrd channel 6
-    signal s_ovrrd_reading_ch7 :  std_logic_vector (15 downto 0); -- ovrrd channel 7
-    signal s_ovrrd_reading_ch8 :  std_logic_vector (15 downto 0); -- ovrrd channel 8 (Temperature)    
+    signal s_ch2ch_sample_period : std_logic_vector (31 downto 0) := C_CH2CH_SAMPLE_PERIOD;  -- default 3kHz 
 
 	signal slv_reg_rden	: std_logic;
 	signal slv_reg_wren	: std_logic;
@@ -337,37 +306,27 @@ begin
 	        -- output the read dada 
 	        -- Read address mux
 	        axi_rdata <= (others => '0'); -- Default
-	        case loc_addr is
-              when b"00000" => axi_rdata(0) <= s_reset;
-              when b"00001" => axi_rdata(31 downto 0) <= s_ch2ch_sample_period;
-              when b"00010" => axi_rdata(31 downto 0) <= measured_sample_freq;
-              when b"00011" => axi_rdata(31 downto 0) <= measured_sample_cnt_ch0;
-
-              when b"00100" => axi_rdata(31 downto 0) <= s_ovrrd_master_reg;
-              when b"00101" => axi_rdata(8 downto 0) <= s_ovrrd_enables_reg;
-              
-              when b"01000" => axi_rdata(15 downto 0) <= adc_reading_ch0;
-              when b"01001" => axi_rdata(15 downto 0) <= adc_reading_ch1;
-              when b"01010" => axi_rdata(15 downto 0) <= adc_reading_ch2;
-              when b"01011" => axi_rdata(15 downto 0) <= adc_reading_ch3;
-              when b"01100" => axi_rdata(15 downto 0) <= adc_reading_ch4;
-              when b"01101" => axi_rdata(15 downto 0) <= adc_reading_ch5;
-              when b"01110" => axi_rdata(15 downto 0) <= adc_reading_ch6;
-              when b"01111" => axi_rdata(15 downto 0) <= adc_reading_ch7;
-              when b"10000" => axi_rdata(15 downto 0) <= adc_reading_ch8;
-            
-              when b"10100" => axi_rdata(15 downto 0) <= s_ovrrd_reading_ch0;
-              when b"10101" => axi_rdata(15 downto 0) <= s_ovrrd_reading_ch1;
-              when b"10110" => axi_rdata(15 downto 0) <= s_ovrrd_reading_ch2;
-              when b"10111" => axi_rdata(15 downto 0) <= s_ovrrd_reading_ch3;
-              when b"11000" => axi_rdata(15 downto 0) <= s_ovrrd_reading_ch4;
-              when b"11001" => axi_rdata(15 downto 0) <= s_ovrrd_reading_ch5;
-              when b"11010" => axi_rdata(15 downto 0) <= s_ovrrd_reading_ch6;
-              when b"11011" => axi_rdata(15 downto 0) <= s_ovrrd_reading_ch7;
-              when b"11100" => axi_rdata(15 downto 0) <= s_ovrrd_reading_ch8;
-
-              when others => axi_rdata  <= (others => '0');
-            end case;
+	        
+	        if (loc_addr(6) = '1') then
+	           for i in 0 to C_SLAVES-1 loop
+	               if (to_integer(unsigned(loc_addr(5 downto 4))) = i) then
+	                   for k in 0 to 8 loop
+	                       if (to_integer(unsigned(loc_addr(3 downto 0))) = k) then
+	                           axi_rdata(15 downto 0) <= m_adc_reading_array((i*9 + (k+1))*16-1 downto (i*9 + k)*16);
+	                       end if;
+	                   end loop;
+	               end if;
+	           end loop;
+	        else
+	           -- Control bits
+                case loc_addr(2 downto 0) is
+                    when b"000" => axi_rdata(0) <= s_reset;
+                    when b"001" => axi_rdata(31 downto 0) <= s_ch2ch_sample_period;
+                    when b"010" => axi_rdata(31 downto 0) <= measured_sample_freq;
+                    when b"011" => axi_rdata(31 downto 0) <= measured_sample_cnt_ch0;
+                    when others => axi_rdata <= (others => '0');
+                end case;
+	        end if;
 	      end if;   
 	    end if;
 	  end if;
@@ -377,30 +336,18 @@ begin
     variable loc_addr : std_logic_vector(OPT_MEM_ADDR_BITS downto 0); 
     begin
       if rising_edge(S_AXI_ACLK) then 
-        if S_AXI_ARESETN = '0' then
-
+        if (S_AXI_ARESETN = '0') then
+            -- Defaults after reset
+            s_reset <= '0';
+            s_ch2ch_sample_period <= C_CH2CH_SAMPLE_PERIOD;
         else
           loc_addr := axi_awaddr(ADDR_LSB + OPT_MEM_ADDR_BITS downto ADDR_LSB);
           
-          if (slv_reg_wren = '1') then
-            case loc_addr is
-              when b"00000" =>  s_reset <= S_AXI_WDATA (0);
-              when b"00001" =>  s_ch2ch_sample_period <= S_AXI_WDATA (31 downto 0);                
-           
-              when b"00100" =>  s_ovrrd_master_reg <= S_AXI_WDATA (31 downto 0);                
-              when b"00101" =>  s_ovrrd_enables_reg <= S_AXI_WDATA (8 downto 0);                
-           
-              when b"10100" =>  s_ovrrd_reading_ch0 <= S_AXI_WDATA (15 downto 0);                
-              when b"10101" =>  s_ovrrd_reading_ch1 <= S_AXI_WDATA (15 downto 0);                
-              when b"10110" =>  s_ovrrd_reading_ch2 <= S_AXI_WDATA (15 downto 0);                
-              when b"10111" =>  s_ovrrd_reading_ch3 <= S_AXI_WDATA (15 downto 0);                
-              when b"11000" =>  s_ovrrd_reading_ch4 <= S_AXI_WDATA (15 downto 0);                
-              when b"11001" =>  s_ovrrd_reading_ch5 <= S_AXI_WDATA (15 downto 0);                
-              when b"11010" =>  s_ovrrd_reading_ch6 <= S_AXI_WDATA (15 downto 0);                
-              when b"11011" =>  s_ovrrd_reading_ch7 <= S_AXI_WDATA (15 downto 0);                
-              when b"11100" =>  s_ovrrd_reading_ch8 <= S_AXI_WDATA (15 downto 0);                
-           
-              when others =>
+          if (slv_reg_wren = '1' and loc_addr(6 downto 3) = "0000") then
+            case loc_addr(2 downto 0) is
+              when b"000" =>  s_reset <= S_AXI_WDATA (0);
+              when b"001" =>  s_ch2ch_sample_period <= S_AXI_WDATA (31 downto 0);    
+              when others => -- Nothing
     
             end case;
           end if;
@@ -409,22 +356,6 @@ begin
     end process; 
     
     -------------------------------------------------------	
-	
-	s_ovrrd_master_enable <= '1' when s_ovrrd_master_reg = C_ovrrd_MASTER_UNLOCK_VAL else '0';
-
-	gen_ovrrd_enable_out: for idx in 0 to 8 generate
-	    ovrrd_enables(idx) <= s_ovrrd_enables_reg(idx) when s_ovrrd_master_enable = '1' else '0';
-	end generate;
-	
-	ovrrd_reading_ch0 <= s_ovrrd_reading_ch0;
-	ovrrd_reading_ch1 <= s_ovrrd_reading_ch1;
-	ovrrd_reading_ch2 <= s_ovrrd_reading_ch2;
-	ovrrd_reading_ch3 <= s_ovrrd_reading_ch3;
-	ovrrd_reading_ch4 <= s_ovrrd_reading_ch4;
-	ovrrd_reading_ch5 <= s_ovrrd_reading_ch5;
-	ovrrd_reading_ch6 <= s_ovrrd_reading_ch6;
-	ovrrd_reading_ch7 <= s_ovrrd_reading_ch7;
-	ovrrd_reading_ch8 <= s_ovrrd_reading_ch8;
 	
 	reset <= s_reset;
     ch2ch_sample_period <= s_ch2ch_sample_period;

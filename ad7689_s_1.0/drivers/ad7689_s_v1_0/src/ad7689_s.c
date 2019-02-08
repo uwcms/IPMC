@@ -15,7 +15,8 @@
 #define OVRRD_MASTER_EN_REG 				(16)
 #define OVRRD_ENABLES_REG 					(20)
 
-#define ADC_CH0_REG 						(32)
+#define ADC_VAL_OFFSET						0x100
+#define ADC_SLAVE_OFFSET					0x40
 
 #define OVRRD_VAL_CH0_REG 					(80)
 
@@ -104,8 +105,7 @@ int AD7689_S_CfgInitialize(AD7689_S * InstancePtr, AD7689_S_Config * Config,
 
 	/* Set some default values. */
 	InstancePtr->BaseAddress = EffectiveAddr;
-
-	InstancePtr->InterfaceCount = Config->InterfaceCount;
+    InstancePtr->SlaveCount = Config->SlaveCount;
 
 	/*
 	 * Indicate the instance is now ready to use, initialized without error
@@ -261,7 +261,8 @@ u32 AD7689_S_Get_Conv_Cnt(AD7689_S *InstancePtr)
 *		calls to manipulate the driver through the AD7689_S API must be
 *		made with this pointer.
 *
-* @param 	ch is requested channel number
+* @param 	slave is the target slave interface
+*           ch is requested channel number
 * 			valid range: [0-8] where 0-7 is ADC input, 8 is ADC internal temperature
 *
 * @param 	reading is pointer to requested AD conversion channel result
@@ -272,12 +273,11 @@ u32 AD7689_S_Get_Conv_Cnt(AD7689_S *InstancePtr)
 * @note		None
 *
 ******************************************************************************/
-XStatus AD7689_S_Get_Reading(AD7689_S *InstancePtr, u8 ch, u16 * reading)
+XStatus AD7689_S_Get_Reading(AD7689_S *InstancePtr, u8 slave, u8 ch, u16 *val)
 {
-	if (ch > 8)
-		return XST_INVALID_PARAM;
+	if ((slave > InstancePtr->SlaveCount) || (ch > 8)) return XST_INVALID_PARAM;
 
-	*reading = (u16)AD7689_S_ReadReg(InstancePtr->BaseAddress, ADC_CH0_REG + ch * 4);
+	*val = (u16)AD7689_S_ReadReg(InstancePtr->BaseAddress, ADC_VAL_OFFSET + ADC_SLAVE_OFFSET * slave + (ch << 2));
 
 	return XST_SUCCESS;
 }
