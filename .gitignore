@@ -106,7 +106,7 @@
 !*.hdf
 
 # mpv: Include all files from ip_repos, except sub-IPs
-!ip_repo/
+!/Vivado/ip_repo
 **/ip_repo/*/src/*/doc/
 **/ip_repo/*/src/*/simulation/
 **/ip_repo/*/src/*/hdl/
