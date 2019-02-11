@@ -118,6 +118,7 @@ public:
 		}
 		static uint8_t map_oem_LinkType_guid(const std::vector<uint8_t> &oem_guid);
 		static std::vector<uint8_t> lookup_oem_LinkType_guid(uint8_t LinkType);
+
 	protected:
 		static SemaphoreHandle_t oem_guid_mutex; ///< A mutex protecting the registered OEM GUID mapping.
 		static std::map< uint8_t, std::vector<uint8_t> > oem_guids; ///< A mapping of registered OEM GUIDs.
