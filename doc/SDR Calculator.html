@@ -437,7 +437,8 @@ class Field {
 		if (!v && v !== 0) {
 			this.element.placeholder = this.element.dataset.placeholder;
 			this.element.dataset.value = '';
-			this.errval = null;
+			if (this.errelement)
+				this.errval = null;
 		}
 		else {
 			this.element.placeholder = v.toFixed(this.element.step == '1' ? 0 : float_precision);
@@ -500,6 +501,46 @@ const conv = {
 	'Bexp': new Field('convBexp'),
 	'Rexp': new Field('convRexp'),
 };
+
+const allfields = {
+	'lnrf': thresholds['lnr']['float'], 'lnri': thresholds['lnr']['ipmi'],
+	'lcrf': thresholds['lcr']['float'], 'lcri': thresholds['lcr']['ipmi'],
+	'lncf': thresholds['lnc']['float'], 'lnci': thresholds['lnc']['ipmi'],
+	'uncf': thresholds['unc']['float'], 'unci': thresholds['unc']['ipmi'],
+	'ucrf': thresholds['ucr']['float'], 'ucri': thresholds['ucr']['ipmi'],
+	'unrf': thresholds['unr']['float'], 'unri': thresholds['unr']['ipmi'],
+	'nominalf': thresholds['nominal']['float'], 'nominali': thresholds['nominal']['ipmi'],
+	'hystpf': unit_factors['hystp']['float'], 'hystpi': unit_factors['hystp']['ipmi'],
+	'hystnf': unit_factors['hystn']['float'], 'hystni': unit_factors['hystn']['ipmi'],
+	'minf': minval['float'],
+	'maxf': maxval['float'],
+	'range': range,
+	'granularity': granularity,
+	'M': conv['M'],
+	'B': conv['B'],
+	'Bexp': conv['Bexp'],
+	'Rexp': conv['Rexp'],
+};
+const alltext = {
+	's-na':    document.getElementById('sensor-name'),
+	's-no':    document.getElementById('sensor-number'),
+	's-t':     document.getElementById('sensor-type'),
+	's-u-p':   document.getElementById('sensor-unit-primary'),
+	's-u-m-t': document.getElementById('sensor-unit-modifier-type'),
+	's-u-m':   document.getElementById('sensor-unit-modifier'),
+	's-u-r':   document.getElementById('sensor-unit-rate'),
+	's-d':     document.getElementById('sensor-direction'),
+};
+
+Object.values(allfields).forEach((v)=>{ v.userval = null; });
+
+window.location.hash.substr(1).split('&').forEach((fragment)=>{
+	var [k, v] = fragment.split('=',2);
+	if (k in allfields)
+		allfields[k].userval = Number(v);
+	if (k in alltext)
+		alltext[k].value = decodeURIComponent(v);
+});
 
 function allEmpty(nodelist) {
 	for (let v of nodelist) {
@@ -741,9 +782,23 @@ function recalculate(eventsource) {
 		if (document.getElementById('sensor-unit-rate').value !== 'RATE_UNIT_NONE')
 			human_units += ' ' + document.getElementById('sensor-unit-rate').selectedOptions[0].label;
 
+		let hashtag = [];
+		Object.keys(allfields).forEach((k)=>{
+			let v = allfields[k];
+			if (v.userval !== null)
+				hashtag.push(k+'='+v.userval);
+		});
+		Object.keys(alltext).forEach((k)=>{
+			let v = alltext[k];
+			if (v.value)
+				hashtag.push(k+'='+encodeURIComponent(v.value));
+		});
+		hashtag = hashtag.join('&');
+
 		const codeblock = document.getElementById('output-code');
 		codeblock.innerText = `{
 	SensorDataRecord01 sensor;
+	// SDR Calculator.html#${hashtag}
 	sensor.initialize_blank("${document.getElementById('sensor-name').value}");
 	sensor.sensor_owner_id(0); // Tag as "self". This will be auto-calculated in "Get SDR" commands.
 	sensor.sensor_owner_channel(0); // See above.
