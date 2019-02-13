@@ -188,7 +188,7 @@ code {
 			<tbody>
 				<tr>
 					<td>Sensor Number:</td>
-					<td><input type="number" id="sensor-number" min="0" step="1" max="254" placeholder="1"/></td>
+					<td><input type="number" id="sensor-number" data-default="" min="0" step="1" max="254" placeholder="1"/></td>
 				</tr>
 				<tr>
 					<td></td>
@@ -196,12 +196,12 @@ code {
 				</tr>
 				<tr>
 					<td>Sensor Name:</td>
-					<td><input type="text" id="sensor-name" placeholder="3.3V"/></td>
+					<td><input type="text" data-default="" id="sensor-name" placeholder="3.3V"/></td>
 				</tr>
 				<tr>
 					<td>Sensor Type Code:</td>
 					<td>
-						<select id="sensor-type">
+						<select id="sensor-type" data-default="">
 							<option value="0x01">Temperature</option>
 							<option value="0x02">Voltage</option>
 							<option value="0x03">Current</option>
@@ -221,14 +221,14 @@ code {
 				<tr>
 					<td>Sensor Units:</td>
 					<td>
-						<select id="sensor-unit-primary"></select>
-						<select id="sensor-unit-modifier-type">
+						<select id="sensor-unit-primary" data-default="0"></select>
+						<select id="sensor-unit-modifier-type" data-default="MODIFIER_UNIT_NONE">
 							<option value="MODIFIER_UNIT_NONE">No Secondary</option>
 							<option value="MODIFIER_UNIT_DIVIDE">/</option>
 							<option value="MODIFIER_UNIT_MULTIPLY">*</option>
 						</select>
-						<select id="sensor-unit-modifier"></select>
-						<select id="sensor-unit-rate">
+						<select id="sensor-unit-modifier" data-default="0"></select>
+						<select id="sensor-unit-rate" data-default="RATE_UNIT_NONE">
 							<option value="RATE_UNIT_NONE">No Rate</option>
 							<option value="RATE_UNIT_USEC">per &micro;s</option>
 							<option value="RATE_UNIT_MSEC">per ms</option>
@@ -242,7 +242,7 @@ code {
 				<tr>
 					<td>Sensor Direction:</td>
 					<td>
-						<select id="sensor-direction">
+						<select id="sensor-direction" data-default="DIR_UNSPECIFIED">
 							<option value="DIR_UNSPECIFIED">Unspecified</option>
 							<option value="DIR_INPUT">Input</option>
 							<option value="DIR_OUTPUT">Output</option>
@@ -790,7 +790,7 @@ function recalculate(eventsource) {
 		});
 		Object.keys(alltext).forEach((k)=>{
 			let v = alltext[k];
-			if (v.value)
+			if (v.value !== v.dataset.default)
 				hashtag.push(k+'='+encodeURIComponent(v.value));
 		});
 		hashtag = hashtag.join('&');
