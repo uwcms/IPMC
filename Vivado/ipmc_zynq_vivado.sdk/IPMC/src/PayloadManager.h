@@ -140,6 +140,7 @@ protected:
 	void implement_power_level(uint8_t level);
 
 	friend class ConsoleCommand_PayloadManager_power_level;
+	friend class ConsoleCommand_PayloadManager_mz_control;
 };
 
 #endif /* SRC_COMMON_UW_IPMC_PAYLOADMANAGER_H_ */

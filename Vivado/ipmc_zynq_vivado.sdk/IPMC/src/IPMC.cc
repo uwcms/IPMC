@@ -51,6 +51,7 @@
 #include <drivers/esm/ESM.h>
 #include <drivers/ad7689/AD7689.h>
 #include <drivers/pl_led/PLLED.h>
+#include <drivers/ltc2654f/LTC2654F.h>
 
 /* Include services */
 #include <services/ipmi/ipmbsvc/IPMBSvc.h>
@@ -121,7 +122,11 @@ TelnetServer *telnet;
 
 ESM *esm;
 
-AD7689 *adc[2];
+AD7689 *adc[5];
+
+LTC2654F *dac;
+
+PL_GPIO *pl_gpio;
 
 PS_XADC *xadc;
 
@@ -221,9 +226,30 @@ void driver_init(bool use_pl) {
 			adc[i] = new AD7689(XPAR_AD7689_S_0_DEVICE_ID + i, 0);
 		}
 
+		for (int i = 0; i < 3; i++) {
+			adc[i+2] = new AD7689(XPAR_AD7689_S_2_DEVICE_ID, i);
+		}
+
 		xadc = new PS_XADC(XPAR_XADCPS_0_DEVICE_ID);
 
-		handle_gpio = new PL_GPIO(XPAR_AXI_GPIO_0_DEVICE_ID, XPAR_FABRIC_AXI_GPIO_0_IP2INTC_IRPT_INTR);
+#define DACRSTn_PIN			0
+#define LDACn_PIN			1
+#define ELMRSTn_PIN			2
+#define PWRENA_ACTVn		3
+
+		pl_gpio = new PL_GPIO(XPAR_AXI_GPIO_0_DEVICE_ID);
+		pl_gpio->setChannel((1 << ELMRSTn_PIN) | (1 << DACRSTn_PIN) | (1 << LDACn_PIN));
+		pl_gpio->setDirection(0);
+
+		SPIMaster *dac_spi = new PL_SPI(XPAR_AXI_QUAD_SPI_DAC_DEVICE_ID, XPAR_FABRIC_AXI_QUAD_SPI_DAC_IP2INTC_IRPT_INTR);
+		dac = new LTC2654F(*dac_spi, 0, true);
+
+		// Set DACs
+		pl_gpio->setPin(DACRSTn_PIN);
+		vTaskDelay(pdMS_TO_TICKS(100));
+		dac->sendCommand(LTC2654F::ALL_DACS, LTC2654F::WRITE_AND_UPDATE_REG, 0x7ff);
+
+		handle_gpio = new PL_GPIO(XPAR_AXI_GPIO_HNDL_SW_DEVICE_ID, XPAR_FABRIC_AXI_GPIO_HNDL_SW_IP2INTC_IRPT_INTR);
 	}
 }
 
@@ -270,7 +296,7 @@ void ipmc_service_init() {
 				 */
 				xSemaphoreTake(handle_isr_sem, pdMS_TO_TICKS(100));
 
-				bool isPressed = handle_gpio->isPinSet(0);
+				bool isPressed = handle_gpio->isPinSet(1);
 				mstatemachine->physical_handle_state(isPressed ? MStateMachine::HANDLE_CLOSED : MStateMachine::HANDLE_OPEN);
 			}
 		});
@@ -298,8 +324,8 @@ void ipmc_service_init() {
 		sntp_init();
 
 		// Start secondary services
-		influxdbclient = new InfluxDB(LOG["influxdb"]);
-		influxdbclient->register_console_commands(console_command_parser, "influxdb.");
+		//influxdbclient = new InfluxDB(LOG["influxdb"]);
+		//influxdbclient->register_console_commands(console_command_parser, "influxdb.");
 
 		telnet = new TelnetServer(LOG["telnetd"]);
 
@@ -316,7 +342,7 @@ void ipmc_service_init() {
 
 		// Start the sensor gathering thread
 		// TODO: Move at some point
-		UWTaskCreate("statd", TASK_PRIORITY_BACKGROUND, []() -> void {
+		/*UWTaskCreate("statd", TASK_PRIORITY_BACKGROUND, []() -> void {
 			const std::string ipmc_mac = stdsprintf("%02x:%02x:%02x:%02x:%02x:%02x",
 					mac_address[0], mac_address[1], mac_address[2], mac_address[3], mac_address[4], mac_address[5]);
 
@@ -363,7 +389,7 @@ void ipmc_service_init() {
 					influxdbclient->write("esm.temperature", {{"id", ipmc_mac}, {"name", "temp"}}, {{"value", std::to_string(esmTemp)}}, timestamp);
 				}
 			}
-		});
+		});*/
 	});
 	network->register_console_commands(console_command_parser, "network.");
 }
@@ -437,65 +463,6 @@ static void init_device_sdrs(bool reinit) {
 		ADD_TO_REPO(hotswap);
 		if (!ipmc_sensors.get(hotswap.sensor_number()))
 			ipmc_sensors.add(std::make_shared<HotswapSensor>(hotswap.record_key(), LOG["sensors"]["Hotswap"]));
-	}
-
-	{
-		SensorDataRecord01 sensor;
-		sensor.initialize_blank("Payload 3.3V");
-		sensor.sensor_owner_id(0); // Tag as "self". This will be auto-calculated in "Get SDR" commands.
-		sensor.sensor_owner_channel(0); // See above.
-		sensor.sensor_owner_lun(0); // Generally zero
-		sensor.sensor_number(2);
-		sensor.entity_id(0x0); // TODO
-		sensor.entity_instance(0x60); // TODO
-		//sensor.sensor_setable(false); // Default, Unsupported
-		//sensor.initialize_scanning_enabled(false); // Default (An Init Agent is not required.)
-		//sensor.initialize_events_enabled(false); // Default (An Init Agent is not required.)
-		//sensor.initialize_thresholds(false); // Default (An Init Agent is not required.)
-		//sensor.initialize_hysteresis(false); // Default (An Init Agent is not required.)
-		//sensor.initialize_sensor_type(false); // Default (An Init Agent is not required.)
-		sensor.ignore_if_entity_absent(true);
-		sensor.events_enabled_default(true);
-		sensor.scanning_enabled_default(true);
-		sensor.sensor_auto_rearm(true);
-		sensor.sensor_hysteresis_support(SensorDataRecordReadableSensor::ACCESS_READWRITE);
-		sensor.sensor_threshold_access_support(SensorDataRecordReadableSensor::ACCESS_READWRITE);
-		sensor.sensor_event_message_control_support(SensorDataRecordReadableSensor::EVTCTRL_GRANULAR);
-		sensor.sensor_type_code(0x02); // Voltage
-		sensor.event_type_reading_code(SensorDataRecordReadableSensor::EVENT_TYPE_THRESHOLD_SENSOR);
-		sensor.assertion_lower_threshold_reading_mask(0x7fff); // All events supported & LNR, LCR, LNC, UNC, UCR, UNR assertions enabled.
-		sensor.deassertion_upper_threshold_reading_mask(0x7fff); // All events supported & LNR, LCR, LNC, UNC, UCR, UNR deassertions enabled.
-		sensor.discrete_reading_setable_threshold_reading_mask(0x3fff); // All thresholds are configurable.
-		sensor.units_numeric_format(SensorDataRecord01::UNITS_UNSIGNED);
-		sensor.units_rate_unit(SensorDataRecordReadableSensor::RATE_UNIT_NONE);
-		sensor.units_base_unit(4); // Volts
-		sensor.units_modifier_unit(0); // unspecified
-		sensor.units_modifier_unit_method(SensorDataRecordReadableSensor::MODIFIER_UNIT_NONE);
-		sensor.linearization(SensorDataRecord01::LIN_LINEAR);
-		// IPMI Specifies a linearization function of: y = L[(Mx + (B * 10^(Bexp) ) ) * 10^(Rexp) ]
-		// Our settings produce a valid range of 2 (Volts) to 4.55 (Volts) with 0.01 Volts granularity.
-		sensor.conversion_m(1);
-		sensor.conversion_b(2);
-		sensor.conversion_b_exp(2);
-		sensor.conversion_r_exp(-2);
-		sensor.sensor_direction(SensorDataRecordReadableSensor::DIR_INPUT);
-		//sensor.normal_min_specified(false); // Default
-		//sensor.normal_min_rawvalue(0); // Unspecified
-		//sensor.normal_max_specified(false); // Default
-		//sensor.normal_max_rawvalue(0); // Unspecified
-		sensor.nominal_reading_specified(true);
-		sensor.nominal_reading_rawvalue(130); // 3.3 Volts
-		sensor.threshold_unr_rawvalue(147); // 3.47 Volts
-		sensor.threshold_ucr_rawvalue(142); // 3.42 Volts
-		sensor.threshold_unc_rawvalue(137); // 3.37 Volts
-		sensor.threshold_lnc_rawvalue(123); // 3.23 Volts
-		sensor.threshold_lcr_rawvalue(118); // 3.18 Volts
-		sensor.threshold_lnr_rawvalue(113); // 3.13 Volts
-		sensor.hysteresis_high(2); // +0.02 Volts
-		sensor.hysteresis_low(2); // -0.02 Volts
-		ADD_TO_REPO(sensor);
-		if (!ipmc_sensors.get(sensor.sensor_number()))
-			ipmc_sensors.add(std::make_shared<ThresholdSensor>(sensor.record_key(), LOG["sensors"]["Payload 3.3V"]));
 	}
 
 #undef ADD_TO_REPO
@@ -688,7 +655,7 @@ std::string generate_banner() {
 	bannerstr += "\n";
 	bannerstr += std::string("ZYNQ-IPMC - Open-source IPMC hardware and software framework\n");
 	bannerstr += std::string("HW revision : ") + std::to_string(IPMC_HW_REVISION) + "\n"; // TODO
-	bannerstr += std::string("SW revision : ") + GIT_DESCRIBE + "\n";
+	bannerstr += std::string("SW revision : ") + GIT_DESCRIBE + " (" + GIT_BRANCH + ")\n";
 	if (IPMC_SERIAL != 0xffff & IPMC_SERIAL != 0)
 		bannerstr += std::string("HW serial   : ") + std::to_string(IPMC_SERIAL) + "\n";
 	else
@@ -723,6 +690,9 @@ static void tracebuffer_log_handler(LogTree &logtree, const std::string &message
 #include "core_console_commands/uptime.h"
 #include "core_console_commands/version.h"
 
+#include "blade_console_commands/adc.h"
+#include "blade_console_commands/dac.h"
+
 static void register_core_console_commands(CommandParser &parser) {
 	console_command_parser.register_command("uptime", std::make_shared<ConsoleCommand_uptime>());
 	console_command_parser.register_command("date", std::make_shared<ConsoleCommand_date>());
@@ -736,6 +706,9 @@ static void register_core_console_commands(CommandParser &parser) {
 	console_command_parser.register_command("upload", std::make_shared<ConsoleCommand_upload>());
 	console_command_parser.register_command("throw", std::make_shared<ConsoleCommand_throw>());
 	console_command_parser.register_command("trace", std::make_shared<ConsoleCommand_trace>());
+
+	console_command_parser.register_command("adc", std::make_shared<ConsoleCommand_adc>());
+	console_command_parser.register_command("dac", std::make_shared<ConsoleCommand_dac>());
 }
 
 static void console_log_handler(LogTree &logtree, const std::string &message, enum LogTree::LogLevel level) {

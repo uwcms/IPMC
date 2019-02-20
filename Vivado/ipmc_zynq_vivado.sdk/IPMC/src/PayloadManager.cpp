@@ -65,51 +65,119 @@ PayloadManager::PayloadManager(MStateMachine *mstate_machine, LogTree &log)
 	suspend.release();
 
 	std::vector<MGMT_Zone::OutputConfig> pen_config;
-	uint64_t hf_mask = 0
-			| (1<<0) // PGOOD_2V5ETH
-			| (1<<1) // PGOOD_1V0ETH
-			| (1<<2) // PGOOD_3V3PYLD
-			| (1<<3) // PGOOD_5V0PYLD
-			| (1<<4);// PGOOD_1V2PHY
-#warning "Hardfault Safety is Disabled (Hacked out)"
-	hf_mask = 0; // XXX Disable Hardfault Safety
-	this->mgmt_zones[0]->set_hardfault_mask(hf_mask, 140);
-	this->mgmt_zones[0]->get_pen_config(pen_config);
-	for (int i = 0; i < 6; ++i) {
-		pen_config[i].active_high = true;
-		pen_config[i].drive_enabled = true;
-	}
-	// +12VPYLD
-	pen_config[0].enable_delay = 10;
-	// +2V5ETH
-	pen_config[1].enable_delay = 20;
-	// +1V0ETH
-	pen_config[2].enable_delay = 20;
-	// +3V3PYLD
-	// +1V8PYLD
-	// +3V3FFTX_TX
-	// +3V3FFTX_RX
-	// +3V3FFRX_TX
-	// +3V3FFRX_RX
-	pen_config[3].enable_delay = 30;
-	// +5V0PYLD
-	pen_config[4].enable_delay = 30;
-	// +1V2PHY
-	pen_config[5].enable_delay = 40;
-	this->mgmt_zones[0]->set_pen_config(pen_config);
-	// TODO: confirm unnecessary: this->mgmt_zones[0]->set_power_state(MGMT_Zone::ON); // Immediately power up.  Xil ethernet driver asserts otherwise.
+	{
+		// Management Zone 0, +12V power
+		this->mgmt_zones[0]->set_hardfault_mask(0, 140);
+		this->mgmt_zones[0]->get_pen_config(pen_config);
 
-	hf_mask = 0
-			| (1<<5);// ELM_PFAIL
-#warning "Hardfault Safety is Disabled (Hacked out)"
-	hf_mask = 0; // XXX Disable Hardfault Safety
-	this->mgmt_zones[1]->set_hardfault_mask(hf_mask, 150);
-	this->mgmt_zones[1]->get_pen_config(pen_config);
-	// ELM_PWR_EN_I
-	pen_config[6].active_high = true;
-	pen_config[6].drive_enabled = true;
-	pen_config[6].enable_delay = 50;
-	this->mgmt_zones[1]->set_pen_config(pen_config);
+		// PWRENA_0#: +12VPYLD
+		pen_config[0].drive_enabled = true;
+		pen_config[0].active_high = false;
+		pen_config[0].enable_delay = 0;
+
+		// PWRENA_ACTVn
+		// TODO: Consider moving this. It is used for the timing circuit.
+		/*pen_config[11].active_high = false;
+		pen_config[11].drive_enabled = true;
+		pen_config[11].enable_delay = 0;*/
+
+		this->mgmt_zones[0]->set_pen_config(pen_config);
+	}
+
+	{
+		// Management Zone 1, VU9P
+		this->mgmt_zones[1]->set_hardfault_mask(0, 140);
+		this->mgmt_zones[1]->get_pen_config(pen_config);
+
+		// PWRENA_1: +0.85VDD
+		pen_config[1].drive_enabled = true;
+		pen_config[1].active_high = true;
+		pen_config[1].enable_delay = 0;
+
+		// PWRENA_2: +1.05VMGTT, +1.35VMGTT, +1.05VMGTB, +1.35VMGTB, +1.95VBULK, +3.55VBULK
+		pen_config[2].drive_enabled = true;
+		pen_config[2].active_high = true;
+		pen_config[2].enable_delay = 10;
+
+		// PWRENA_3: +3.3VDD, +1.8VDD
+		pen_config[3].drive_enabled = true;
+		pen_config[3].active_high = true;
+		pen_config[3].enable_delay = 20;
+
+		// PWRENA_4: +0.9VMGTT, +0.9VMGTB
+		pen_config[4].drive_enabled = true;
+		pen_config[4].active_high = true;
+		pen_config[4].enable_delay = 30;
+
+		// PWRENA_5: +1.2VMGTT, +1.2VMGTB, +1.8VFFLY2, +1.8VFFLY1, +1.8VFFLY3, +1.8VFFLY4, +1.8VFFLY5, +1.2VPHY
+		pen_config[5].drive_enabled = true;
+		pen_config[5].active_high = true;
+		pen_config[5].enable_delay = 40;
+
+		// PWRENA_6: +3.3VFFLY1, +3.3VFFLY2, +3.3VFFLY3, +3.3VFFLY4, +3.3VFFLY5, +2.5VXPT
+		pen_config[6].drive_enabled = true;
+		pen_config[6].active_high = true;
+		pen_config[6].enable_delay = 40; // In phase with PWRENA_5
+
+		// PWRENA_7: +5VUSBFAN
+		pen_config[7].drive_enabled = true;
+		pen_config[7].active_high = true;
+		pen_config[7].enable_delay = 40; // In phase with PWRENA_5
+
+		// FANENA
+		pen_config[9].drive_enabled = true;
+		pen_config[9].active_high = true;
+		pen_config[9].enable_delay = 50;
+
+		this->mgmt_zones[1]->set_pen_config(pen_config);
+	}
+
+	{
+		// Management Zone 2, ELM
+		this->mgmt_zones[2]->set_hardfault_mask(0, 140);
+		this->mgmt_zones[2]->get_pen_config(pen_config);
+
+		// PWRENA_ELM
+		pen_config[11].drive_enabled = true;
+		pen_config[11].active_high = true;
+		pen_config[11].enable_delay = 0;
+
+		this->mgmt_zones[2]->set_pen_config(pen_config);
+	}
+
+	{
+		// Management Zone 3, LLUT
+		this->mgmt_zones[3]->set_hardfault_mask(0, 140);
+		this->mgmt_zones[3]->get_pen_config(pen_config);
+
+		// PWRENA_LUT, VLUTVDDIO
+		pen_config[8].drive_enabled = true;
+		pen_config[8].active_high = true;
+		pen_config[8].enable_delay = 0;
+
+		// PWRENA_LUT, VLUTVDDIO
+		pen_config[10].drive_enabled = true;
+		pen_config[10].active_high = true;
+		pen_config[10].enable_delay = 10;
+
+		this->mgmt_zones[3]->set_pen_config(pen_config);
+	}
+
+	{
+		// Management Zone 4, RTM
+		this->mgmt_zones[4]->set_hardfault_mask(0, 140);
+		this->mgmt_zones[4]->get_pen_config(pen_config);
+
+		// PWRENA_LUT, VLUTVDDIO
+		pen_config[13].drive_enabled = true;
+		pen_config[13].enable_delay = 0;
+
+		// PWRENA_LUT, VLUTVDDIO
+		pen_config[12].drive_enabled = true;
+		pen_config[12].enable_delay = 100;
+
+		this->mgmt_zones[4]->set_pen_config(pen_config);
+	}
 }
 
 PayloadManager::~PayloadManager() {
@@ -218,19 +286,30 @@ void PayloadManager::implement_power_level(uint8_t level) {
 	if (level == 0) {
 		// Power OFF!
 		this->log.log("Implement Power Level 0: Shutting down.", LogTree::LOG_DIAGNOSTIC);
-		// Shut down ELM & wait
+		//this->mgmt_zones[4]->set_power_state(MGMT_Zone::OFF);
+		//vTaskDelay(10);
+		this->mgmt_zones[3]->set_power_state(MGMT_Zone::OFF);
+		vTaskDelay(10);
+		this->mgmt_zones[2]->set_power_state(MGMT_Zone::OFF);
+		vTaskDelay(10);
 		this->mgmt_zones[1]->set_power_state(MGMT_Zone::OFF);
-		vTaskDelay(50); // The total delay in the PEN config is 50ms.
-		// Shut down ETH & wait
+		vTaskDelay(10);
 		this->mgmt_zones[0]->set_power_state(MGMT_Zone::OFF);
-		vTaskDelay(40); // The total delay in the PEN config is 40ms.
+		vTaskDelay(40);
 		this->log.log("Implement Power Level 0: Shutdown complete.", LogTree::LOG_DIAGNOSTIC);
 	}
 	else if (level == 1) {
 		// We only support one non-off power state.
 		this->log.log("Implement Power Level 1: Powering up backend.", LogTree::LOG_DIAGNOSTIC);
 		this->mgmt_zones[0]->set_power_state(MGMT_Zone::ON);
+		vTaskDelay(10);
 		this->mgmt_zones[1]->set_power_state(MGMT_Zone::ON);
+		vTaskDelay(10);
+		this->mgmt_zones[2]->set_power_state(MGMT_Zone::ON);
+		vTaskDelay(10);
+		this->mgmt_zones[3]->set_power_state(MGMT_Zone::ON);
+		//vTaskDelay(10);
+		//this->mgmt_zones[4]->set_power_state(MGMT_Zone::ON);
 		// If we were waiting in M3, go to M4. (Skipping E-Keying for now)
 		this->log.log("Implement Power Level 1: Backend powered up.", LogTree::LOG_DIAGNOSTIC);
 		this->mstate_machine->payload_activation_complete();
@@ -410,6 +489,66 @@ public:
 	//virtual std::vector<std::string> complete(const CommandParser::CommandParameters &parameters) const { };
 };
 
+/// A management zone power switch command
+class ConsoleCommand_PayloadManager_mz_control : public CommandParser::Command {
+public:
+	PayloadManager &payloadmgr;
+
+	ConsoleCommand_PayloadManager_mz_control(PayloadManager &payloadmgr) : payloadmgr(payloadmgr) { };
+	virtual std::string get_helptext(const std::string &command) const {
+		return stdsprintf(
+				"%s [$mz_number [$on_off]]\n"
+				"\n"
+				"This command changes our MZ enables without affecting or overriding IPMI state.\n"
+				"\n"
+				"Without parameters, this will return all MZ status.\n", command.c_str());
+	}
+
+	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
+		if (parameters.nargs() == 1) {
+			// Show all MZ status
+			for (size_t i = 0; i < XPAR_MGMT_ZONE_CTRL_0_MZ_CNT; i++) {
+				bool active = this->payloadmgr.mgmt_zones[i]->get_power_state();
+				console->write(stdsprintf("MZ %d is currently %s.\n", i, (active?"ON":"OFF")));
+			}
+		} else {
+			uint8_t mz_number;
+			// Parse $mz_number parameter.
+			if (!parameters.parse_parameters(1, false, &mz_number)) {
+				console->write("Invalid parameters.\n");
+				return;
+			}
+
+			if (mz_number >= XPAR_MGMT_ZONE_CTRL_0_MZ_CNT) {
+				console->write("MZ number out-of-range.\n");
+				return;
+			}
+
+			if (parameters.nargs() == 2) {
+				// Show MZ status
+				bool active = this->payloadmgr.mgmt_zones[mz_number]->get_power_state();
+				console->write(stdsprintf("MZ %d is currently %s.\n", mz_number, (active?"ON":"OFF")));
+			} else {
+				MGMT_Zone::PowerAction action = MGMT_Zone::OFF;
+
+				if (!parameters.parameters[2].compare("on")) {
+					action = MGMT_Zone::ON;
+				} else if (!parameters.parameters[2].compare("off")) {
+					action = MGMT_Zone::OFF;
+				} else {
+					console->write("$on_off needs to be 'on' or 'off'.\n");
+					return;
+				}
+
+				this->payloadmgr.mgmt_zones[mz_number]->set_power_state(action);
+			}
+		}
+
+	}
+
+	//virtual std::vector<std::string> complete(const CommandParser::CommandParameters &parameters) const { };
+};
+
 /**
  * Register console commands related to the PayloadManager.
  * @param parser The command parser to register to.
@@ -417,6 +556,7 @@ public:
  */
 void PayloadManager::register_console_commands(CommandParser &parser, const std::string &prefix) {
 	parser.register_command(prefix + "power_level", std::make_shared<ConsoleCommand_PayloadManager_power_level>(*this));
+	parser.register_command(prefix + "mz_control", std::make_shared<ConsoleCommand_PayloadManager_mz_control>(*this));
 }
 
 /**
@@ -426,4 +566,5 @@ void PayloadManager::register_console_commands(CommandParser &parser, const std:
  */
 void PayloadManager::deregister_console_commands(CommandParser &parser, const std::string &prefix) {
 	parser.register_command(prefix + "power_level", NULL);
+	parser.register_command(prefix + "mz_control", NULL);
 }
