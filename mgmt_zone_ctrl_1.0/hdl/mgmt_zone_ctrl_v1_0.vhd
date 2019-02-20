@@ -19,7 +19,7 @@ entity mgmt_zone_ctrl_v1_0 is
 	port (
 
         hard_fault : in std_logic_vector(C_HF_CNT - 1 downto 0);
-        pwr_en : out std_logic_vector(C_PWREN_CNT - 1 downto 0);
+        pwr_en : inout std_logic_vector(C_PWREN_CNT - 1 downto 0);
         mz_enabled : out std_logic_vector(C_MZ_CNT - 1 downto 0);
 		irq	: out std_logic;
 
@@ -55,11 +55,10 @@ architecture arch_imp of mgmt_zone_ctrl_v1_0 is
         clk : IN STD_LOGIC;
         probe_in0 : IN STD_LOGIC_VECTOR(15 DOWNTO 0);
         probe_in1 : IN STD_LOGIC_VECTOR(15 DOWNTO 0);
-        probe_in2 : IN STD_LOGIC_VECTOR(15 DOWNTO 0);
-        probe_in3 : IN STD_LOGIC_VECTOR(63 DOWNTO 0);
+        probe_in2 : IN STD_LOGIC_VECTOR(63 DOWNTO 0);
+        probe_in3 : IN STD_LOGIC_VECTOR(15 DOWNTO 0);
         probe_in4 : IN STD_LOGIC_VECTOR(15 DOWNTO 0);
-        probe_in5 : IN STD_LOGIC_VECTOR(15 DOWNTO 0);
-        probe_in6 : IN STD_LOGIC_VECTOR(15 DOWNTO 0)        
+        probe_in5 : IN STD_LOGIC_VECTOR(15 DOWNTO 0)        
       );
     END COMPONENT;
 
@@ -85,8 +84,6 @@ architecture arch_imp of mgmt_zone_ctrl_v1_0 is
 
     signal s_MZ_holdoff          :  STD_LOGIC_VECTOR(C_MZ_CNT-1 downto 0);
     
-        
-    signal s_pwr_en_logic_lvl_vio : std_logic_vector(15 downto 0) := (others => '0');
     signal s_pwr_en_output_lvl_vio : std_logic_vector(15 downto 0):= (others => '0');
     signal s_pwr_en_output_drive_vio : std_logic_vector(15 downto 0) := (others => '0');
     signal s_hard_fault_vio : std_logic_vector(63 downto 0) := (others => '0');
@@ -99,7 +96,6 @@ architecture arch_imp of mgmt_zone_ctrl_v1_0 is
     attribute MARK_DEBUG : string;
 
     attribute KEEP of s_hard_fault_vio: signal is "TRUE";
-    attribute KEEP of s_pwr_en_logic_lvl_vio: signal is "TRUE";
     attribute KEEP of s_pwr_en_output_lvl_vio: signal is "TRUE";
     attribute KEEP of s_pwr_en_output_drive_vio: signal is "TRUE";
     attribute KEEP of s_MZ_hard_fault_vio: signal is "TRUE";
@@ -107,7 +103,6 @@ architecture arch_imp of mgmt_zone_ctrl_v1_0 is
     attribute KEEP of s_MZ_pwr_on_seq_init_vio: signal is "TRUE";
 
     attribute DONT_TOUCH of s_hard_fault_vio: signal is "TRUE";
-    attribute DONT_TOUCH of s_pwr_en_logic_lvl_vio: signal is "TRUE";
     attribute DONT_TOUCH of s_pwr_en_output_lvl_vio: signal is "TRUE";
     attribute DONT_TOUCH of s_pwr_en_output_drive_vio: signal is "TRUE";
     attribute DONT_TOUCH of s_MZ_hard_fault_vio: signal is "TRUE";
@@ -115,7 +110,6 @@ architecture arch_imp of mgmt_zone_ctrl_v1_0 is
     attribute DONT_TOUCH of s_MZ_pwr_on_seq_init_vio: signal is "TRUE";
 
     attribute MARK_DEBUG of s_hard_fault_vio: signal is "TRUE";
-    attribute MARK_DEBUG of s_pwr_en_logic_lvl_vio: signal is "TRUE";
     attribute MARK_DEBUG of s_pwr_en_output_lvl_vio: signal is "TRUE";
     attribute MARK_DEBUG of s_pwr_en_output_drive_vio: signal is "TRUE";
     attribute MARK_DEBUG of s_MZ_hard_fault_vio: signal is "TRUE";
@@ -213,7 +207,6 @@ mgmt_zone_ctrl_v1_0_S_AXI_inst : entity work.mgmt_zone_ctrl_v1_0_S_AXI
              s_pwr_lvl(idx) <= s_pwr_en(idx) xnor s_pwr_en_active_lvl(idx);
              s_pwr_out(idx) <= s_pwr_lvl(idx) when s_pwr_en_drive(idx) = '1' else 'Z';
              
-             s_pwr_en_logic_lvl_vio(idx) <= s_pwr_en(idx);
              s_pwr_en_output_lvl_vio(idx) <= s_pwr_lvl(idx);
              s_pwr_en_output_drive_vio(idx) <= s_pwr_en_drive(idx);
 
@@ -230,13 +223,12 @@ mgmt_zone_ctrl_v1_0_S_AXI_inst : entity work.mgmt_zone_ctrl_v1_0_S_AXI
     i_vio_pwr_en : vio_pwr_en
           PORT MAP (
             clk => s_axi_aclk,
-            probe_in0 => s_pwr_en_logic_lvl_vio,
-            probe_in1 => s_pwr_en_output_lvl_vio,
-            probe_in2 => s_pwr_en_output_drive_vio,
-            probe_in3 => s_hard_fault_vio,
-            probe_in4 => s_MZ_pwr_off_seq_init_vio,
-            probe_in5 => s_MZ_pwr_on_seq_init_vio,
-            probe_in6 => s_MZ_hard_fault_vio
+            probe_in0 => s_pwr_en_output_lvl_vio,
+            probe_in1 => s_pwr_en_output_drive_vio,
+            probe_in2 => s_hard_fault_vio,
+            probe_in3 => s_MZ_pwr_off_seq_init_vio,
+            probe_in4 => s_MZ_pwr_on_seq_init_vio,
+            probe_in5 => s_MZ_hard_fault_vio
           );    
     end generate;
     
