@@ -26,6 +26,21 @@ std::string bytesToString(uint64_t bytes);
  */
 std::vector<std::string> stringSplit(const std::string& str, char delimiter);
 
+/**
+ * Generate a formated print of a given data buffer.
+ * @param ptr Pointer to the buffer
+ * @param bytes Number of bytes to print
+ * @param str_offset Offset in the data buffer
+ * @return Formated print of the buffer
+ */
 std::string formatedHexString(const void *ptr, size_t bytes, size_t str_offset = 0);
+
+/**
+ * Parse a binary (b) or hex string (0x) to unsigned integer.
+ * @param s String to parse
+ * @param v Parsed unsigned integer
+ * @return false if failed to parse string
+ */
+bool toUint32(std::string &s, uint32_t &v);
 
 #endif /* SRC_COMMON_UW_IPMC_LIBS_UTILS_H_ */

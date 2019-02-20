@@ -90,3 +90,33 @@ std::string formatedHexString(const void *ptr, size_t bytes, size_t str_offset) 
 
 	return r;
 }
+
+bool toUint32(std::string &s, uint32_t &v) {
+	// Check if hex
+	if (s.length() > 2 && (s.substr(0, 2) == "0x")) {
+		errno = 0;
+		v = strtoul(s.substr(2).c_str(), NULL, 16);
+		if (errno != 0) return false;
+
+		return true;
+	} else if (s.length() > 1 && (s.substr(0, 1) == "b")) {
+		std::string b = s.substr(1);
+		size_t len = b.length();
+
+		if (len > 32) return false; // too long
+
+		for (size_t i = 0; i < len; i++) {
+			if (!(b[i] == '0' || b[i] == '1'))
+				return false; // invalid characters
+		}
+
+		v = 0;
+		for (size_t i = len; i != 0; i--) {
+			if (b[i-1] == '1') v |= (1 << (i-1));
+		}
+
+		return true;
+	}
+
+	return false;
+}
