@@ -216,7 +216,7 @@ begin
         if S_AXI_ARESETN = '0' then
           s_led_limit <= (others => '0');
           for i in 0 to C_LED_INTERFACES-1 loop
-            s_led_comp((i+1)*28-1 downto i*28) <= x"0000001"; -- leds off
+            s_led_comp((i+1)*28-1 downto i*28) <= (others => '0'); -- leds off
           end loop;
           s_led_pulse_en <= (others => '0');
           m_softrst <= (others => '0');
