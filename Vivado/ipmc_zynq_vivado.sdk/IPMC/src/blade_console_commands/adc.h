@@ -19,8 +19,10 @@ public:
 			ADC::Channel adc;
 		};
 
-		ADC::Channel::Callback tmp36 = [](float r) -> float  { return (r - 0.5) * 100.0; };
-		ADC::Channel::Callback imon = [](float r) -> float { return r * 1000.0 / 80.0; };
+		ADC::Channel::Callback tmp36   = [](float r) -> float  { return (r - 0.5) * 100.0; };
+		ADC::Channel::Callback tmp36_r = [](float r) -> float  { return (r/100.0) + 0.5; };
+		ADC::Channel::Callback imon    = [](float r) -> float { return r * 1000.0 / 80.0; };
+		ADC::Channel::Callback imon_r  = [](float r) -> float { return r / 1000.0 * 80.0; };
 
 		std::vector< ChannelEntry > channels = {
 			{"+12VPYLD      ", "Volt", 0, 0, ADC::Channel(*adc[0], 0, 5.640)},
@@ -43,11 +45,11 @@ public:
 			{"+0.9VMGTT     ", "Volt", 2, 0, ADC::Channel(*adc[2], 0)},
 			{"+0.9VMGTB     ", "Volt", 2, 0, ADC::Channel(*adc[2], 1)},
 			{"+0.85VDD      ", "Volt", 2, 0, ADC::Channel(*adc[2], 2)},
-			{"MGT0.5VT_IMON ", "Ampere", 2, 0, ADC::Channel(*adc[2], 3, imon)},
-			{"MGT0.9VB_IMON ", "Ampere", 2, 0, ADC::Channel(*adc[2], 4, imon)},
-			{"MGT1.2VT_IMON ", "Ampere", 2, 0, ADC::Channel(*adc[2], 5, imon)},
-			{"MGT1.2VB_IMON ", "Ampere", 2, 0, ADC::Channel(*adc[2], 6, imon)},
-			{"T_BOARD1      ", "Celsius", 2, 0, ADC::Channel(*adc[2], 7, tmp36)},
+			{"MGT0.5VT_IMON ", "Ampere", 2, 0, ADC::Channel(*adc[2], 3, imon, imon_r)},
+			{"MGT0.9VB_IMON ", "Ampere", 2, 0, ADC::Channel(*adc[2], 4, imon, imon_r)},
+			{"MGT1.2VT_IMON ", "Ampere", 2, 0, ADC::Channel(*adc[2], 5, imon, imon_r)},
+			{"MGT1.2VB_IMON ", "Ampere", 2, 0, ADC::Channel(*adc[2], 6, imon, imon_r)},
+			{"T_BOARD1      ", "Celsius", 2, 0, ADC::Channel(*adc[2], 7, tmp36, tmp36_r)},
 
 			{"+1.35VMGTT    ", "Volt", 2, 1, ADC::Channel(*adc[3], 0)},
 			{"+1.35VMGTB    ", "Volt", 2, 1, ADC::Channel(*adc[3], 1)},
@@ -61,7 +63,7 @@ public:
 			{"+1.8VFFLY3    ", "Volt", 2, 2, ADC::Channel(*adc[4], 0)},
 			{"+1.8VFFLY4    ", "Volt", 2, 2, ADC::Channel(*adc[4], 1)},
 			{"+1.8VFFLY5    ", "Volt", 2, 2, ADC::Channel(*adc[4], 2)},
-			{"T_BOARD2      ", "Celsius", 2, 2, ADC::Channel(*adc[4], 3, tmp36)},
+			{"T_BOARD2      ", "Celsius", 2, 2, ADC::Channel(*adc[4], 3, tmp36, tmp36_r)},
 		};
 
 		console->write(stdsprintf("Zynq Temp: %0.2f Celsius\n", xadc->getTemperature()));
