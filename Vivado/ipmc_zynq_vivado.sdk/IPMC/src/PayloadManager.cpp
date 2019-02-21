@@ -155,7 +155,7 @@ PayloadManager::PayloadManager(MStateMachine *mstate_machine, LogTree &log)
 		pen_config[8].active_high = true;
 		pen_config[8].enable_delay = 0;
 
-		// PWRENA_LUT, VLUTVDDIO
+		// LLUT_PWREN (enable line)
 		pen_config[10].drive_enabled = true;
 		pen_config[10].active_high = true;
 		pen_config[10].enable_delay = 10;
@@ -168,11 +168,11 @@ PayloadManager::PayloadManager(MStateMachine *mstate_machine, LogTree &log)
 		this->mgmt_zones[4]->set_hardfault_mask(0, 140);
 		this->mgmt_zones[4]->get_pen_config(pen_config);
 
-		// PWRENA_LUT, VLUTVDDIO
+		// PWRENA_RTM_MGMTn
 		pen_config[13].drive_enabled = true;
 		pen_config[13].enable_delay = 0;
 
-		// PWRENA_LUT, VLUTVDDIO
+		// PWRENA_RTM_PYLDn
 		pen_config[12].drive_enabled = true;
 		pen_config[12].enable_delay = 100;
 
