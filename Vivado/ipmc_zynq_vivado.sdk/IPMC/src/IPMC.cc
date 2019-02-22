@@ -49,6 +49,7 @@
 #include <drivers/ipmb/PSIPMB.h>
 #include <drivers/pim400/PIM400.h>
 #include <drivers/esm/ESM.h>
+#include <drivers/elm/ELM.h>
 #include <drivers/ad7689/AD7689.h>
 #include <drivers/pl_led/PLLED.h>
 #include <drivers/ltc2654f/LTC2654F.h>
@@ -121,6 +122,7 @@ InfluxDB *influxdbclient;
 TelnetServer *telnet;
 
 ESM *esm;
+ELM *elm;
 
 AD7689 *adc[5];
 
@@ -214,7 +216,7 @@ void driver_init(bool use_pl) {
 	// TODO: Clean up this part
 	if (use_pl) {
 		PL_I2C *i2c = new PL_I2C(XPAR_AXI_IIC_PIM400_DEVICE_ID, XPAR_FABRIC_AXI_IIC_PIM400_IIC2INTC_IRPT_INTR);
-		(new PIM400(*i2c, 0x5E))->register_console_commands(console_command_parser, "pim400");
+		(new PIM400(*i2c, 0x56))->register_console_commands(console_command_parser, "pim400");
 
 		atcaLEDs = new PL_LED(XPAR_AXI_ATCA_LED_CTRL_DEVICE_ID, 50000000);
 		ipmi_leds.push_back(new IPMI_LED(*new LED(*atcaLEDs, 0))); // Blue LED
@@ -266,6 +268,7 @@ void driver_init(bool use_pl) {
 void ipmc_service_init() {
 	console_service = UARTConsoleSvc::create(*uart_ps0, console_command_parser, "console", LOG["console"]["uart"], true);
 
+	// ESM
 	UART* esm_uart = new PL_UART(XPAR_ESM_AXI_UARTLITE_ESM_DEVICE_ID, XPAR_FABRIC_ESM_AXI_UARTLITE_ESM_INTERRUPT_INTR);
 	PL_GPIO* esm_gpio = new PL_GPIO(XPAR_ESM_AXI_GPIO_ESM_DEVICE_ID);
 	NegResetPin* esm_reset = new NegResetPin(*esm_gpio, 0);
@@ -276,6 +279,12 @@ void ipmc_service_init() {
 
 	esm = new ESM(esm_uart, esm_reset, esm_flash, esm_flash_reset);
 	esm->register_console_commands(console_command_parser, "esm.");
+
+	// ELM
+	UART* elm_uart = new PL_UART(XPAR_ELM_AXI_UARTLITE_0_DEVICE_ID, XPAR_FABRIC_ELM_AXI_UARTLITE_0_INTERRUPT_INTR);
+	PL_GPIO* elm_gpio = new PL_GPIO(XPAR_ELM_AXI_GPIO_0_DEVICE_ID, XPAR_FABRIC_ELM_AXI_GPIO_0_IP2INTC_IRPT_INTR);
+	elm = new ELM(elm_uart, elm_gpio);
+	elm->register_console_commands(console_command_parser, "elm.");
 
 	{
 		mstatemachine = new MStateMachine(std::dynamic_pointer_cast<HotswapSensor>(ipmc_sensors.find_by_name("Hotswap")), *ipmi_leds[0], LOG["mstatemachine"]);
@@ -296,7 +305,7 @@ void ipmc_service_init() {
 				 */
 				xSemaphoreTake(handle_isr_sem, pdMS_TO_TICKS(100));
 
-				bool isPressed = handle_gpio->isPinSet(1);
+				bool isPressed = !(handle_gpio->isPinSet(0));
 				mstatemachine->physical_handle_state(isPressed ? MStateMachine::HANDLE_CLOSED : MStateMachine::HANDLE_OPEN);
 			}
 		});
