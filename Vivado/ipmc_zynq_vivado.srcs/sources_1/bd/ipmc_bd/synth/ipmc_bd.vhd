@@ -1,7 +1,7 @@
 --Copyright 1986-2018 Xilinx, Inc. All Rights Reserved.
 ----------------------------------------------------------------------------------
 --Tool Version: Vivado v.2018.2 (lin64) Build 2258646 Thu Jun 14 20:02:38 MDT 2018
---Date        : Thu Feb 21 15:28:20 2019
+--Date        : Mon Feb 25 11:03:16 2019
 --Host        : beck.hep.wisc.edu running 64-bit CentOS Linux release 7.6.1810 (Core)
 --Command     : generate_target ipmc_bd.bd
 --Design      : ipmc_bd
@@ -6745,7 +6745,7 @@ entity ipmc_bd is
     ADC_B_spi_miso : in STD_LOGIC;
     ADC_B_spi_mosi : out STD_LOGIC;
     ADC_B_spi_ncs : out STD_LOGIC_VECTOR ( 0 to 0 );
-    ATCA_LEDS : out STD_LOGIC_VECTOR ( 3 downto 0 );
+    ATCA_LEDS : out STD_LOGIC_VECTOR ( 4 downto 0 );
     DAC_SPI_io0_i : in STD_LOGIC;
     DAC_SPI_io0_o : out STD_LOGIC;
     DAC_SPI_io0_t : out STD_LOGIC;
@@ -6803,6 +6803,7 @@ entity ipmc_bd is
     GPIO_OUT_tri_o : out STD_LOGIC_VECTOR ( 3 downto 0 );
     GPIO_OUT_tri_t : out STD_LOGIC_VECTOR ( 3 downto 0 );
     HNDL_SW : in STD_LOGIC;
+    LLUT_PRESENCE : in STD_LOGIC;
     PIM400_I2C_scl_i : in STD_LOGIC;
     PIM400_I2C_scl_o : out STD_LOGIC;
     PIM400_I2C_scl_t : out STD_LOGIC;
@@ -6811,13 +6812,14 @@ entity ipmc_bd is
     PIM400_I2C_sda_t : out STD_LOGIC;
     PL_LEDS : out STD_LOGIC_VECTOR ( 1 downto 0 );
     PWREN : inout STD_LOGIC_VECTOR ( 13 downto 0 );
+    RTM_HNDL_SW : in STD_LOGIC;
     TCK : out STD_LOGIC;
     TDI : out STD_LOGIC;
     TDO : in STD_LOGIC;
     TMS : out STD_LOGIC
   );
   attribute CORE_GENERATION_INFO : string;
-  attribute CORE_GENERATION_INFO of ipmc_bd : entity is "ipmc_bd,IP_Integrator,{x_ipVendor=xilinx.com,x_ipLibrary=BlockDiagram,x_ipName=ipmc_bd,x_ipVersion=1.00.a,x_ipLanguage=VHDL,numBlks=55,numReposBlks=28,numNonXlnxBlks=8,numHierBlks=27,maxHierDepth=0,numSysgenBlks=0,numHlsBlks=0,numHdlrefBlks=2,numPkgbdBlks=0,bdsource=USER,synth_mode=OOC_per_IP}";
+  attribute CORE_GENERATION_INFO of ipmc_bd : entity is "ipmc_bd,IP_Integrator,{x_ipVendor=xilinx.com,x_ipLibrary=BlockDiagram,x_ipName=ipmc_bd,x_ipVersion=1.00.a,x_ipLanguage=VHDL,numBlks=57,numReposBlks=30,numNonXlnxBlks=8,numHierBlks=27,maxHierDepth=0,numSysgenBlks=0,numHlsBlks=0,numHdlrefBlks=3,numPkgbdBlks=0,bdsource=USER,synth_mode=OOC_per_IP}";
   attribute HW_HANDOFF : string;
   attribute HW_HANDOFF of ipmc_bd : entity is "ipmc_bd.hwdef";
 end ipmc_bd;
@@ -7208,12 +7210,12 @@ architecture STRUCTURE of ipmc_bd is
     s_axi_rvalid : out STD_LOGIC;
     s_axi_rready : in STD_LOGIC;
     ip2intc_irpt : out STD_LOGIC;
-    gpio_io_i : in STD_LOGIC_VECTOR ( 0 to 0 )
+    gpio_io_i : in STD_LOGIC_VECTOR ( 2 downto 0 )
   );
   end component ipmc_bd_axi_gpio_1_0;
   component ipmc_bd_axi_atca_led_ctrl_0 is
   port (
-    m_led_out : out STD_LOGIC_VECTOR ( 3 downto 0 );
+    m_led_out : out STD_LOGIC_VECTOR ( 4 downto 0 );
     s_axi_awaddr : in STD_LOGIC_VECTOR ( 6 downto 0 );
     s_axi_awprot : in STD_LOGIC_VECTOR ( 2 downto 0 );
     s_axi_awvalid : in STD_LOGIC;
@@ -7292,8 +7294,25 @@ architecture STRUCTURE of ipmc_bd is
     s_axi_aresetn : in STD_LOGIC
   );
   end component ipmc_bd_mgmt_zone_ctrl_0_0;
+  component ipmc_bd_xlconcat_1_1 is
+  port (
+    In0 : in STD_LOGIC_VECTOR ( 0 to 0 );
+    In1 : in STD_LOGIC_VECTOR ( 0 to 0 );
+    In2 : in STD_LOGIC_VECTOR ( 0 to 0 );
+    dout : out STD_LOGIC_VECTOR ( 2 downto 0 )
+  );
+  end component ipmc_bd_xlconcat_1_1;
+  component ipmc_bd_debouncer_0_1 is
+  port (
+    ARESETN_IN : in STD_LOGIC;
+    CLK_IN : in STD_LOGIC;
+    SIG_IN : in STD_LOGIC;
+    SIG_OUT : out STD_LOGIC
+  );
+  end component ipmc_bd_debouncer_0_1;
   signal ARESETN_1 : STD_LOGIC_VECTOR ( 0 to 0 );
   signal Net : STD_LOGIC_VECTOR ( 13 downto 0 );
+  signal RTM_HNDL_SW1_1 : STD_LOGIC;
   signal S00_AXI_0_1_ARADDR : STD_LOGIC_VECTOR ( 31 downto 0 );
   signal S00_AXI_0_1_ARPROT : STD_LOGIC_VECTOR ( 2 downto 0 );
   signal S00_AXI_0_1_ARREADY : STD_LOGIC_VECTOR ( 0 to 0 );
@@ -7371,6 +7390,7 @@ architecture STRUCTURE of ipmc_bd is
   signal S00_AXI_2_WSTRB : STD_LOGIC_VECTOR ( 3 downto 0 );
   signal S00_AXI_2_WVALID : STD_LOGIC_VECTOR ( 0 to 0 );
   signal SIG_IN_0_1 : STD_LOGIC;
+  signal SIG_IN_0_2 : STD_LOGIC;
   signal TDO_1 : STD_LOGIC;
   signal ad7689_s_0_M_ADC_SPI_spi_clk : STD_LOGIC;
   signal ad7689_s_0_M_ADC_SPI_spi_miso : STD_LOGIC;
@@ -7640,6 +7660,7 @@ architecture STRUCTURE of ipmc_bd is
   signal axi_quad_spi_dac_SPI_0_SS_T : STD_LOGIC;
   signal axi_quad_spi_dac_ip2intc_irpt : STD_LOGIC;
   signal debouncer_0_SIG_OUT : STD_LOGIC;
+  signal debouncer_1_SIG_OUT : STD_LOGIC;
   signal elm_GPIO2_0_TRI_I : STD_LOGIC_VECTOR ( 1 downto 0 );
   signal elm_GPIO2_0_TRI_O : STD_LOGIC_VECTOR ( 1 downto 0 );
   signal elm_GPIO2_0_TRI_T : STD_LOGIC_VECTOR ( 1 downto 0 );
@@ -7670,7 +7691,7 @@ architecture STRUCTURE of ipmc_bd is
   signal ipmi_sensor_proc_0_MZ_hard_fault_o : STD_LOGIC_VECTOR ( 32 downto 0 );
   signal ipmi_sensor_proc_0_irq_o : STD_LOGIC;
   signal led_controller_0_m_led_out : STD_LOGIC_VECTOR ( 1 downto 0 );
-  signal led_controller_1_m_led_out : STD_LOGIC_VECTOR ( 3 downto 0 );
+  signal led_controller_1_m_led_out : STD_LOGIC_VECTOR ( 4 downto 0 );
   signal proc_sys_reset_0_peripheral_aresetn : STD_LOGIC_VECTOR ( 0 to 0 );
   signal processing_system7_0_DDR_ADDR : STD_LOGIC_VECTOR ( 14 downto 0 );
   signal processing_system7_0_DDR_BA : STD_LOGIC_VECTOR ( 2 downto 0 );
@@ -7692,6 +7713,7 @@ architecture STRUCTURE of ipmc_bd is
   signal sensor_detangle_0_valid_o : STD_LOGIC_VECTOR ( 32 downto 0 );
   signal sensor_detangle_0_value_o : STD_LOGIC_VECTOR ( 527 downto 0 );
   signal xlconcat_0_dout : STD_LOGIC_VECTOR ( 8 downto 0 );
+  signal xlconcat_1_dout : STD_LOGIC_VECTOR ( 2 downto 0 );
   signal NLW_axi_iic_pim400_gpo_UNCONNECTED : STD_LOGIC_VECTOR ( 0 to 0 );
   signal NLW_ipmi_sensor_proc_0_debug_UNCONNECTED : STD_LOGIC_VECTOR ( 22 downto 0 );
   signal NLW_mgmt_zone_ctrl_0_irq_UNCONNECTED : STD_LOGIC;
@@ -7794,7 +7816,7 @@ begin
   ADC_B_spi_clk <= ad7689_s_1_M_ADC_SPI_spi_clk;
   ADC_B_spi_mosi <= ad7689_s_1_M_ADC_SPI_spi_mosi;
   ADC_B_spi_ncs(0) <= ad7689_s_1_M_ADC_SPI_spi_ncs(0);
-  ATCA_LEDS(3 downto 0) <= led_controller_1_m_led_out(3 downto 0);
+  ATCA_LEDS(4 downto 0) <= led_controller_1_m_led_out(4 downto 0);
   DAC_SPI_io0_o <= axi_quad_spi_dac_SPI_0_IO0_O;
   DAC_SPI_io0_t <= axi_quad_spi_dac_SPI_0_IO0_T;
   DAC_SPI_io1_o <= axi_quad_spi_dac_SPI_0_IO1_O;
@@ -7826,7 +7848,9 @@ begin
   PIM400_I2C_sda_o <= axi_iic_0_IIC_SDA_O;
   PIM400_I2C_sda_t <= axi_iic_0_IIC_SDA_T;
   PL_LEDS(1 downto 0) <= led_controller_0_m_led_out(1 downto 0);
+  RTM_HNDL_SW1_1 <= LLUT_PRESENCE;
   SIG_IN_0_1 <= HNDL_SW;
+  SIG_IN_0_2 <= RTM_HNDL_SW;
   TCK <= axi_jtag_0_TCK;
   TDI <= axi_jtag_0_TDI;
   TDO_1 <= TDO;
@@ -7943,7 +7967,7 @@ ad7689_s_2: component ipmc_bd_ad7689_s_2_0
     );
 axi_atca_led_ctrl: component ipmc_bd_axi_atca_led_ctrl_0
      port map (
-      m_led_out(3 downto 0) => led_controller_1_m_led_out(3 downto 0),
+      m_led_out(4 downto 0) => led_controller_1_m_led_out(4 downto 0),
       s_axi_aclk => processing_system7_0_FCLK_CLK0,
       s_axi_araddr(6 downto 0) => axi_interconnect_0_M03_AXI_ARADDR(6 downto 0),
       s_axi_aresetn => proc_sys_reset_0_peripheral_aresetn(0),
@@ -7995,7 +8019,7 @@ axi_gpio_0: component ipmc_bd_axi_gpio_0_0
     );
 axi_gpio_hndl_sw: component ipmc_bd_axi_gpio_1_0
      port map (
-      gpio_io_i(0) => debouncer_0_SIG_OUT,
+      gpio_io_i(2 downto 0) => xlconcat_1_dout(2 downto 0),
       ip2intc_irpt => axi_gpio_1_ip2intc_irpt,
       s_axi_aclk => processing_system7_0_FCLK_CLK0,
       s_axi_araddr(8 downto 0) => axi_interconnect_0_M12_AXI_ARADDR(8 downto 0),
@@ -8474,6 +8498,13 @@ debouncer_0: component ipmc_bd_debouncer_0_0
       SIG_IN => SIG_IN_0_1,
       SIG_OUT => debouncer_0_SIG_OUT
     );
+debouncer_1: component ipmc_bd_debouncer_0_1
+     port map (
+      ARESETN_IN => proc_sys_reset_0_peripheral_aresetn(0),
+      CLK_IN => processing_system7_0_FCLK_CLK0,
+      SIG_IN => SIG_IN_0_2,
+      SIG_OUT => debouncer_1_SIG_OUT
+    );
 elm: entity work.elm_imp_187VCIK
      port map (
       ACLK_0 => processing_system7_0_FCLK_CLK0,
@@ -8710,5 +8741,12 @@ xlconcat_0: component ipmc_bd_xlconcat_0_0
       In5(0) => axi_gpio_1_ip2intc_irpt,
       In6(1 downto 0) => elm_irq(1 downto 0),
       dout(8 downto 0) => xlconcat_0_dout(8 downto 0)
+    );
+xlconcat_1: component ipmc_bd_xlconcat_1_1
+     port map (
+      In0(0) => debouncer_0_SIG_OUT,
+      In1(0) => debouncer_1_SIG_OUT,
+      In2(0) => RTM_HNDL_SW1_1,
+      dout(2 downto 0) => xlconcat_1_dout(2 downto 0)
     );
 end STRUCTURE;

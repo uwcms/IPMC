@@ -1,7 +1,7 @@
 --Copyright 1986-2018 Xilinx, Inc. All Rights Reserved.
 ----------------------------------------------------------------------------------
 --Tool Version: Vivado v.2018.2 (lin64) Build 2258646 Thu Jun 14 20:02:38 MDT 2018
---Date        : Thu Feb 21 15:28:21 2019
+--Date        : Mon Feb 25 11:03:16 2019
 --Host        : beck.hep.wisc.edu running 64-bit CentOS Linux release 7.6.1810 (Core)
 --Command     : generate_target ipmc_bd_wrapper.bd
 --Design      : ipmc_bd_wrapper
@@ -25,7 +25,7 @@ entity ipmc_bd_wrapper is
     ADC_B_spi_miso : in STD_LOGIC;
     ADC_B_spi_mosi : out STD_LOGIC;
     ADC_B_spi_ncs : out STD_LOGIC_VECTOR ( 0 to 0 );
-    ATCA_LEDS : out STD_LOGIC_VECTOR ( 3 downto 0 );
+    ATCA_LEDS : out STD_LOGIC_VECTOR ( 4 downto 0 );
     DAC_SPI_io0_io : inout STD_LOGIC;
     DAC_SPI_io1_io : inout STD_LOGIC;
     DAC_SPI_sck_io : inout STD_LOGIC;
@@ -59,10 +59,12 @@ entity ipmc_bd_wrapper is
     GPIO_IN_tri_i : in STD_LOGIC_VECTOR ( 7 downto 0 );
     GPIO_OUT_tri_io : inout STD_LOGIC_VECTOR ( 3 downto 0 );
     HNDL_SW : in STD_LOGIC;
+    LLUT_PRESENCE : in STD_LOGIC;
     PIM400_I2C_scl_io : inout STD_LOGIC;
     PIM400_I2C_sda_io : inout STD_LOGIC;
     PL_LEDS : out STD_LOGIC_VECTOR ( 1 downto 0 );
     PWREN : inout STD_LOGIC_VECTOR ( 13 downto 0 );
+    RTM_HNDL_SW : in STD_LOGIC;
     TCK : out STD_LOGIC;
     TDI : out STD_LOGIC;
     TDO : in STD_LOGIC;
@@ -123,7 +125,7 @@ architecture STRUCTURE of ipmc_bd_wrapper is
     ADC_APD_0_spi_mosi : out STD_LOGIC;
     ADC_APD_0_spi_miso : in STD_LOGIC;
     PL_LEDS : out STD_LOGIC_VECTOR ( 1 downto 0 );
-    ATCA_LEDS : out STD_LOGIC_VECTOR ( 3 downto 0 );
+    ATCA_LEDS : out STD_LOGIC_VECTOR ( 4 downto 0 );
     TDO : in STD_LOGIC;
     TDI : out STD_LOGIC;
     TMS : out STD_LOGIC;
@@ -154,7 +156,9 @@ architecture STRUCTURE of ipmc_bd_wrapper is
     ESM_FLASH_SPI_sck_t : out STD_LOGIC;
     ESM_FLASH_SPI_ss_i : in STD_LOGIC_VECTOR ( 0 to 0 );
     ESM_FLASH_SPI_ss_o : out STD_LOGIC_VECTOR ( 0 to 0 );
-    ESM_FLASH_SPI_ss_t : out STD_LOGIC
+    ESM_FLASH_SPI_ss_t : out STD_LOGIC;
+    RTM_HNDL_SW : in STD_LOGIC;
+    LLUT_PRESENCE : in STD_LOGIC
   );
   end component ipmc_bd;
   component IOBUF is
@@ -414,7 +418,7 @@ ipmc_bd_i: component ipmc_bd
       ADC_B_spi_miso => ADC_B_spi_miso,
       ADC_B_spi_mosi => ADC_B_spi_mosi,
       ADC_B_spi_ncs(0) => ADC_B_spi_ncs(0),
-      ATCA_LEDS(3 downto 0) => ATCA_LEDS(3 downto 0),
+      ATCA_LEDS(4 downto 0) => ATCA_LEDS(4 downto 0),
       DAC_SPI_io0_i => DAC_SPI_io0_i,
       DAC_SPI_io0_o => DAC_SPI_io0_o,
       DAC_SPI_io0_t => DAC_SPI_io0_t,
@@ -496,6 +500,7 @@ ipmc_bd_i: component ipmc_bd
       GPIO_OUT_tri_t(1) => GPIO_OUT_tri_t_1(1),
       GPIO_OUT_tri_t(0) => GPIO_OUT_tri_t_0(0),
       HNDL_SW => HNDL_SW,
+      LLUT_PRESENCE => LLUT_PRESENCE,
       PIM400_I2C_scl_i => PIM400_I2C_scl_i,
       PIM400_I2C_scl_o => PIM400_I2C_scl_o,
       PIM400_I2C_scl_t => PIM400_I2C_scl_t,
@@ -504,6 +509,7 @@ ipmc_bd_i: component ipmc_bd
       PIM400_I2C_sda_t => PIM400_I2C_sda_t,
       PL_LEDS(1 downto 0) => PL_LEDS(1 downto 0),
       PWREN(13 downto 0) => PWREN(13 downto 0),
+      RTM_HNDL_SW => RTM_HNDL_SW,
       TCK => TCK,
       TDI => TDI,
       TDO => TDO,
