@@ -42,6 +42,7 @@ ThresholdSensor::ThresholdSensor(const std::vector<uint8_t> &sdr_key, LogTree &l
 	this->last_value = NAN;
 	this->value_expiration = UINT64_MAX;
 	this->active_thresholds = 0;
+	this->in_context = false;
 }
 
 ThresholdSensor::~ThresholdSensor() {
@@ -129,11 +130,13 @@ static void process_threshold(uint16_t &state, uint8_t bit, bool going_high, uin
  * suspended.
  *
  * @param value The new sensor value
+ * @param in_context True if this sensor is in context for this update. (Out of
+ *                   context sensors will not send or process events.)
  * @param value_max_age The number of ticks after which the value should be
  *                      considered to be out of date and should be replaced with
  *                      NAN.
  */
-void ThresholdSensor::update_value(const float value, uint64_t value_max_age) {
+void ThresholdSensor::update_value(const float value, bool in_context, uint64_t value_max_age) {
 	MutexGuard<false> lock(this->value_mutex, true);
 	this->last_value = value;
 
@@ -143,7 +146,9 @@ void ThresholdSensor::update_value(const float value, uint64_t value_max_age) {
 	else
 		this->value_expiration = now + value_max_age;
 
-	if (std::isnan(value))
+	this->in_context = in_context;
+
+	if (std::isnan(value) || !in_context)
 		return;
 
 	std::shared_ptr<const SensorDataRecordReadableSensor> sdr = std::dynamic_pointer_cast<const SensorDataRecordReadableSensor>(device_sdr_repo.find(this->sdr_key));
@@ -266,6 +271,7 @@ ThresholdSensor::Value ThresholdSensor::get_value() const {
 	value.float_value = this->last_value;
 	value.byte_value = 0xFF;
 	value.active_thresholds = this->active_thresholds;
+	value.in_context = this->in_context;
 	if (now >= this->value_expiration) {
 		value.float_value = NAN;
 		value.active_thresholds = 0;
