@@ -180,6 +180,12 @@ PayloadManager::PayloadManager(MStateMachine *mstate_machine, LogTree &log)
 	}
 }
 
+#include <IPMC.h>
+void payload_manager_apd_bringup_poweroff_hack() { // XXX
+	if (payload_manager)
+		payload_manager->implement_power_level(0);
+}
+
 PayloadManager::~PayloadManager() {
 	/* We definitely want to kill all zones as simultaneously as possible, and
 	 * the "kill zone" operation is just a single register write, therefore
