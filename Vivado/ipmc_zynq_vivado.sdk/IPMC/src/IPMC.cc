@@ -306,9 +306,6 @@ void ipmc_service_init() {
 				xSemaphoreTake(handle_isr_sem, pdMS_TO_TICKS(100));
 
 				bool isPressed = !(handle_gpio->isPinSet(0));
-				void payload_manager_apd_bringup_poweroff_hack(); // XXX
-				if (!isPressed)                                   // XXX
-					payload_manager_apd_bringup_poweroff_hack();  // XXX
 				mstatemachine->physical_handle_state(isPressed ? MStateMachine::HANDLE_CLOSED : MStateMachine::HANDLE_OPEN);
 			}
 		});
