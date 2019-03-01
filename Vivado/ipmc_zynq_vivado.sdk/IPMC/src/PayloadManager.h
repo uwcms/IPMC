@@ -141,7 +141,7 @@ protected:
 
 	friend class ConsoleCommand_PayloadManager_power_level;
 	friend class ConsoleCommand_PayloadManager_mz_control;
-	friend void payload_manager_apd_bringup_poweroff_hack();
+	friend void payload_manager_apd_bringup_poweroff_hack(); // XXX
 };
 
 #endif /* SRC_COMMON_UW_IPMC_PAYLOADMANAGER_H_ */
