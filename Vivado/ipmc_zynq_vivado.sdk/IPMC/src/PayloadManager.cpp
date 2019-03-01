@@ -303,6 +303,13 @@ void PayloadManager::implement_power_level(uint8_t level) {
 		this->mgmt_zones[0]->set_power_state(MGMT_Zone::OFF);
 		vTaskDelay(40);
 		this->log.log("Implement Power Level 0: Shutdown complete.", LogTree::LOG_DIAGNOSTIC);
+#if 1 // XXX
+		struct IPMI_LED::Action ledstate;
+		ledstate.effect = IPMI_LED::OFF;
+		ipmi_leds[2]->submit(ledstate);
+		ledstate.effect = IPMI_LED::ON;
+		ipmi_leds[3]->submit(ledstate);
+#endif
 	}
 	else if (level == 1) {
 		// We only support one non-off power state.
@@ -318,6 +325,13 @@ void PayloadManager::implement_power_level(uint8_t level) {
 		//this->mgmt_zones[4]->set_power_state(MGMT_Zone::ON);
 		// If we were waiting in M3, go to M4. (Skipping E-Keying for now)
 		this->log.log("Implement Power Level 1: Backend powered up.", LogTree::LOG_DIAGNOSTIC);
+#if 1 // XXX
+		struct IPMI_LED::Action ledstate;
+		ledstate.effect = IPMI_LED::ON;
+		ipmi_leds[2]->submit(ledstate);
+		ledstate.effect = IPMI_LED::OFF;
+		ipmi_leds[3]->submit(ledstate);
+#endif
 		this->mstate_machine->payload_activation_complete();
 	}
 }
