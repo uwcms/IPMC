@@ -305,6 +305,7 @@ void PayloadManager::implement_power_level(uint8_t level) {
 		this->log.log("Implement Power Level 0: Shutdown complete.", LogTree::LOG_DIAGNOSTIC);
 #if 1 // XXX
 		struct IPMI_LED::Action ledstate;
+		ledstate.min_duration = 0;
 		ledstate.effect = IPMI_LED::OFF;
 		ipmi_leds[2]->submit(ledstate);
 		ledstate.effect = IPMI_LED::ON;
@@ -327,6 +328,7 @@ void PayloadManager::implement_power_level(uint8_t level) {
 		this->log.log("Implement Power Level 1: Backend powered up.", LogTree::LOG_DIAGNOSTIC);
 #if 1 // XXX
 		struct IPMI_LED::Action ledstate;
+		ledstate.min_duration = 0;
 		ledstate.effect = IPMI_LED::ON;
 		ipmi_leds[2]->submit(ledstate);
 		ledstate.effect = IPMI_LED::OFF;
