@@ -56,6 +56,10 @@ void MStateMachine::physical_handle_state(enum HandleState state) {
 		throw std::domain_error("The physical handle cannot be in an unknown state.");
 
 	enum HandleState old_state = this->effective_handle_state();
+	if (old_state != state && state == HANDLE_OPEN) {     // XXX
+		void payload_manager_apd_bringup_poweroff_hack(); // XXX
+		payload_manager_apd_bringup_poweroff_hack();      // XXX
+	}                                                     // XXX
 	this->_physical_handle_state = state;
 	if (this->_startup_locked) {
 		this->_startup_locked = false;
