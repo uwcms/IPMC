@@ -253,7 +253,7 @@
 /******************************************************************/
 
 /* Definitions for driver GPIO */
-#define XPAR_XGPIO_NUM_INSTANCES 4
+#define XPAR_XGPIO_NUM_INSTANCES 5
 
 /* Definitions for peripheral AXI_GPIO_0 */
 #define XPAR_AXI_GPIO_0_BASEADDR 0x41210000
@@ -287,6 +287,14 @@
 #define XPAR_ELM_AXI_GPIO_0_IS_DUAL 1
 
 
+/* Definitions for peripheral AXI_GPIO_XVCTARGET */
+#define XPAR_AXI_GPIO_XVCTARGET_BASEADDR 0x41240000
+#define XPAR_AXI_GPIO_XVCTARGET_HIGHADDR 0x4124FFFF
+#define XPAR_AXI_GPIO_XVCTARGET_DEVICE_ID 4
+#define XPAR_AXI_GPIO_XVCTARGET_INTERRUPT_PRESENT 0
+#define XPAR_AXI_GPIO_XVCTARGET_IS_DUAL 0
+
+
 /******************************************************************/
 
 /* Canonical definitions for peripheral AXI_GPIO_0 */
@@ -316,6 +324,13 @@
 #define XPAR_GPIO_3_DEVICE_ID XPAR_ELM_AXI_GPIO_0_DEVICE_ID
 #define XPAR_GPIO_3_INTERRUPT_PRESENT 1
 #define XPAR_GPIO_3_IS_DUAL 1
+
+/* Canonical definitions for peripheral AXI_GPIO_XVCTARGET */
+#define XPAR_GPIO_4_BASEADDR 0x41240000
+#define XPAR_GPIO_4_HIGHADDR 0x4124FFFF
+#define XPAR_GPIO_4_DEVICE_ID XPAR_AXI_GPIO_XVCTARGET_DEVICE_ID
+#define XPAR_GPIO_4_INTERRUPT_PRESENT 0
+#define XPAR_GPIO_4_IS_DUAL 0
 
 
 /******************************************************************/
@@ -774,10 +789,4 @@
 
 /******************************************************************/
 
-/* Xilinx FAT File System Library (XilFFs) User Settings */
-#define FILE_SYSTEM_USE_MKFS
-#define FILE_SYSTEM_NUM_LOGIC_VOL 2
-#define FILE_SYSTEM_USE_STRFUNC 0
-#define FILE_SYSTEM_SET_FS_RPATH 0
-#define FILE_SYSTEM_WORD_ACCESS
 #endif  /* end of protection macro */

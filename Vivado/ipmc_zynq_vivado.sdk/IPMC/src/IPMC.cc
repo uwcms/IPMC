@@ -129,6 +129,7 @@ AD7689 *adc[5];
 LTC2654F *dac;
 
 PL_GPIO *pl_gpio;
+PL_GPIO *xvctarget_gpio;
 
 PS_XADC *xadc;
 
@@ -185,9 +186,6 @@ void driver_init(bool use_pl) {
 			mac_address[0], mac_address[1], mac_address[2], mac_address[3], mac_address[4], mac_address[5]), LogTree::LOG_NOTICE);
 	configASSERT(eeprom_mac->read(0, reinterpret_cast<uint8_t*>(&IPMC_SERIAL), sizeof(IPMC_SERIAL)));
 
-	// This has to be lower, so the serial number has been read by the time we register (or not register) set_serial.
-	register_core_console_commands(console_command_parser);
-
 	/* SDRs must be initialized here so sensors are available to link up with
 	 * their drivers.  FRU Data will be done later, once the PayloadManager is
 	 * initialized.  The IPMBSvc thread does not proceed until service init is
@@ -242,6 +240,9 @@ void driver_init(bool use_pl) {
 		pl_gpio = new PL_GPIO(XPAR_AXI_GPIO_0_DEVICE_ID);
 		pl_gpio->setChannel((1 << ELMRSTn_PIN) | (1 << DACRSTn_PIN) | (1 << LDACn_PIN));
 		pl_gpio->setDirection(0);
+
+		xvctarget_gpio = new PL_GPIO(XPAR_AXI_GPIO_XVCTARGET_DEVICE_ID);
+		configASSERT(xvctarget_gpio);
 
 		SPIMaster *dac_spi = new PL_SPI(XPAR_AXI_QUAD_SPI_DAC_DEVICE_ID, XPAR_FABRIC_AXI_QUAD_SPI_DAC_IP2INTC_IRPT_INTR);
 		dac = new LTC2654F(*dac_spi, 0, true);
@@ -401,6 +402,9 @@ void ipmc_service_init() {
 		});*/
 	});
 	network->register_console_commands(console_command_parser, "network.");
+
+	// This has to be lower, so the serial number has been read by the time we register (or not register) set_serial.
+	register_core_console_commands(console_command_parser);
 }
 
 static void add_to_sdr_repo(SensorDataRepository &repo, const SensorDataRecord &sdr, SensorDataRepository::reservation_t &reservation) {
@@ -701,6 +705,7 @@ static void tracebuffer_log_handler(LogTree &logtree, const std::string &message
 
 #include "blade_console_commands/adc.h"
 #include "blade_console_commands/dac.h"
+#include "blade_console_commands/xvctarget.h"
 
 static void register_core_console_commands(CommandParser &parser) {
 	console_command_parser.register_command("uptime", std::make_shared<ConsoleCommand_uptime>());
@@ -718,6 +723,7 @@ static void register_core_console_commands(CommandParser &parser) {
 
 	console_command_parser.register_command("adc", std::make_shared<ConsoleCommand_adc>());
 	console_command_parser.register_command("dac", std::make_shared<ConsoleCommand_dac>());
+	console_command_parser.register_command("xvctarget", std::make_shared<ConsoleCommand_xvctarget>(xvctarget_gpio, PL_GPIO::Channel::GPIO_CHANNEL1, 0, 1));
 }
 
 static void console_log_handler(LogTree &logtree, const std::string &message, enum LogTree::LogLevel level) {
