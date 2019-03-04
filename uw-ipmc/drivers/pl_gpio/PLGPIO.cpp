@@ -40,6 +40,14 @@ PL_GPIO::PL_GPIO(uint16_t DeviceId, uint32_t IntrId)
 	}
 }
 
+void PL_GPIO::setChannelMask(uint32_t v, uint32_t mask, Channel c) {
+	uint32_t current = this->getChannel(c);
+
+	current = (current & ~mask) | (v & mask);
+
+	this->setChannel(current, c);
+}
+
 void PL_GPIO::setIRQCallback(std::function<void(uint32_t)> func) {
 	CriticalGuard critical(true); // We can't have this assignment interrupted, but it's not atomic
 	this->callback = func;

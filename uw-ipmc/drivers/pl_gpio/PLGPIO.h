@@ -15,6 +15,7 @@
 #include <functional>
 
 // TODO: Have a generic class GPIO where channels do not exists so that PL and PS GPIOs can coexist.
+// TODO: Add a mutex
 
 /**
  * Wraps the low level C driver for Xilinx AXI GPIO IP.
@@ -104,6 +105,14 @@ public:
 	inline void setChannel(uint32_t v, Channel c = GPIO_CHANNEL1) {
 		XGpio_DiscreteWrite(&(this->Gpio), c, v);
 	}
+
+	/**
+	 * Set the value of a channel while masking a set of bits.
+	 * @param v Value to apply where each bit of the channel.
+	 * @param mask Bits that will be masked from changing.
+	 * @param c GPIO channel, default is channel 1.
+	 */
+	void setChannelMask(uint32_t v, uint32_t mask, Channel c = GPIO_CHANNEL1);
 
 	/**
 	 * Set a single pin to high. Pin must be configured as output for changes to take effect.
