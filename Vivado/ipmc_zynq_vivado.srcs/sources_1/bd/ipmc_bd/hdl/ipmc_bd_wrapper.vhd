@@ -1,7 +1,7 @@
 --Copyright 1986-2018 Xilinx, Inc. All Rights Reserved.
 ----------------------------------------------------------------------------------
 --Tool Version: Vivado v.2018.2 (lin64) Build 2258646 Thu Jun 14 20:02:38 MDT 2018
---Date        : Mon Feb 25 11:03:16 2019
+--Date        : Mon Mar  4 10:52:28 2019
 --Host        : beck.hep.wisc.edu running 64-bit CentOS Linux release 7.6.1810 (Core)
 --Command     : generate_target ipmc_bd_wrapper.bd
 --Design      : ipmc_bd_wrapper
@@ -68,7 +68,8 @@ entity ipmc_bd_wrapper is
     TCK : out STD_LOGIC;
     TDI : out STD_LOGIC;
     TDO : in STD_LOGIC;
-    TMS : out STD_LOGIC
+    TMS : out STD_LOGIC;
+    XVCTARGET_tri_o : out STD_LOGIC_VECTOR ( 1 downto 0 )
   );
 end ipmc_bd_wrapper;
 
@@ -132,6 +133,8 @@ architecture STRUCTURE of ipmc_bd_wrapper is
     TCK : out STD_LOGIC;
     HNDL_SW : in STD_LOGIC;
     PWREN : inout STD_LOGIC_VECTOR ( 13 downto 0 );
+    RTM_HNDL_SW : in STD_LOGIC;
+    LLUT_PRESENCE : in STD_LOGIC;
     ELM_UART_rxd : in STD_LOGIC;
     ELM_UART_txd : out STD_LOGIC;
     ELM_LINK_tri_i : in STD_LOGIC_VECTOR ( 3 downto 0 );
@@ -157,8 +160,7 @@ architecture STRUCTURE of ipmc_bd_wrapper is
     ESM_FLASH_SPI_ss_i : in STD_LOGIC_VECTOR ( 0 to 0 );
     ESM_FLASH_SPI_ss_o : out STD_LOGIC_VECTOR ( 0 to 0 );
     ESM_FLASH_SPI_ss_t : out STD_LOGIC;
-    RTM_HNDL_SW : in STD_LOGIC;
-    LLUT_PRESENCE : in STD_LOGIC
+    XVCTARGET_tri_o : out STD_LOGIC_VECTOR ( 1 downto 0 )
   );
   end component ipmc_bd;
   component IOBUF is
@@ -513,6 +515,7 @@ ipmc_bd_i: component ipmc_bd
       TCK => TCK,
       TDI => TDI,
       TDO => TDO,
-      TMS => TMS
+      TMS => TMS,
+      XVCTARGET_tri_o(1 downto 0) => XVCTARGET_tri_o(1 downto 0)
     );
 end STRUCTURE;
