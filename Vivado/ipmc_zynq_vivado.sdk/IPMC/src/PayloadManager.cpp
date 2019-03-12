@@ -826,7 +826,7 @@ public:
 				std::shared_ptr<ThresholdSensor> sensor = std::dynamic_pointer_cast<ThresholdSensor>(sensorinfo.second);
 				if (sensor) {
 					ThresholdSensor::Value value = sensor->get_value();
-					out += stdsprintf("%30s %f (raw %hhu; event %hu; %s context)",
+					out += stdsprintf("%30s %f (raw %hhu; event %hu; %s context)\n",
 							sensorinfo.second->sensor_identifier().c_str(),
 							value.float_value,
 							value.byte_value,
@@ -838,14 +838,14 @@ public:
 			{ // Process if HotswapSensor
 				std::shared_ptr<HotswapSensor> sensor = std::dynamic_pointer_cast<HotswapSensor>(sensorinfo.second);
 				if (sensor) {
-					out += stdsprintf("%30s %hhu",
+					out += stdsprintf("%30s M%hhu\n",
 							sensorinfo.second->sensor_identifier().c_str(),
 							sensor->get_mstate());
-					sensor->
 					continue;
 				}
 			}
 		}
+		console->write(out);
 	}
 
 	//virtual std::vector<std::string> complete(const CommandParser::CommandParameters &parameters) const { };
@@ -860,6 +860,7 @@ public:
 void PayloadManager::register_console_commands(CommandParser &parser, const std::string &prefix) {
 	parser.register_command(prefix + "power_level", std::make_shared<ConsoleCommand_PayloadManager_power_level>(*this));
 	parser.register_command(prefix + "mz_control", std::make_shared<ConsoleCommand_PayloadManager_mz_control>(*this));
+	parser.register_command(prefix + "read_ipmi_sensors", std::make_shared<ConsoleCommand_read_ipmi_sensors>());
 }
 
 /**
@@ -870,4 +871,5 @@ void PayloadManager::register_console_commands(CommandParser &parser, const std:
 void PayloadManager::deregister_console_commands(CommandParser &parser, const std::string &prefix) {
 	parser.register_command(prefix + "power_level", NULL);
 	parser.register_command(prefix + "mz_control", NULL);
+	parser.register_command(prefix + "read_ipmi_sensors", NULL);
 }
