@@ -37,7 +37,7 @@ protected:
 	 * @param trigger The desired trigger level.
 	 */
 	InterruptBasedDriver(uint32_t intr, uint8_t trigger);
-	~InterruptBasedDriver();
+	virtual ~InterruptBasedDriver();
 
 	/**
 	 * Only required if constructor was empty.

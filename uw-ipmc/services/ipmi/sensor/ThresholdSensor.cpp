@@ -71,9 +71,11 @@ struct ThresholdEvent {
  * @param[in] hysteresis The hysteresis for this threshold
  * @param[in] value The value to be compared
  * @param[out] events IPMI event data in "Platform Event Message" "Event Data" format.
+ * @param[in] force_assert this event to be considered to be asserted (not exclusive to deasserted)
+ * @param[in] force_deassert this event to be considered to be deasserted (not exclusive to asserted)
  */
-static void process_threshold(uint16_t &state, uint8_t bit, bool going_high, uint8_t threshold, uint8_t hysteresis, uint8_t value, std::vector<struct ThresholdEvent> &events) {
-	bool assert = false, deassert = false;
+static void process_threshold(uint16_t &state, uint8_t bit, bool going_high, uint8_t threshold, uint8_t hysteresis, uint8_t value, std::vector<struct ThresholdEvent> &events, bool force_assert, bool force_deassert) {
+	bool assert = force_assert, deassert = force_deassert;
 
 	const int thresh_high = static_cast<int>(threshold) + static_cast<int>(hysteresis);
 	const int thresh_low = static_cast<int>(threshold) - static_cast<int>(hysteresis);
@@ -135,8 +137,24 @@ static void process_threshold(uint16_t &state, uint8_t bit, bool going_high, uin
  * @param value_max_age The number of ticks after which the value should be
  *                      considered to be out of date and should be replaced with
  *                      NAN.
+ * @param force_assertions Force these event assertions regardless of the (non-NaN) value.
+ * @param force_deassertions Force these event deassertions regardless of the (non-NaN) value.
+ *
+ * @note For force_(de)assertions, the following bitmask is interpreted:
+ *       bit 11: 1b = upper non-recoverable going high occurred
+ *       bit 10: 1b = upper non-recoverable going low occurred
+ *       bit  9: 1b = upper critical going high occurred
+ *       bit  8: 1b = upper critical going low occurred
+ *       bit  7: 1b = upper non-critical going high occurred
+ *       bit  6: 1b = upper non-critical going low occurred
+ *       bit  5: 1b = lower non-recoverable going high occurred
+ *       bit  4: 1b = lower non-recoverable going low occurred
+ *       bit  3: 1b = lower critical going high occurred
+ *       bit  2: 1b = lower critical going low occurred
+ *       bit  1: 1b = lower non-critical going high occurred
+ *       bit  0: 1b = lower non-critical going low occurred
  */
-void ThresholdSensor::update_value(const float value, bool in_context, uint64_t value_max_age) {
+void ThresholdSensor::update_value(const float value, bool in_context, uint64_t value_max_age, uint16_t force_assertions, uint16_t force_deassertions) {
 	MutexGuard<false> lock(this->value_mutex, true);
 	this->last_value = value;
 
@@ -180,23 +198,23 @@ void ThresholdSensor::update_value(const float value, bool in_context, uint64_t 
 
 	std::vector<struct ThresholdEvent> events;
 
-	process_threshold(this->active_thresholds,  0, false, this->thresholds.lnc, hystl, byteval, events);
-	process_threshold(this->active_thresholds,  1, true,  this->thresholds.lnc, hysth, byteval, events);
+	process_threshold(this->active_thresholds,  0, false, this->thresholds.lnc, hystl, byteval, events, force_assertions & (1<<0), force_deassertions & (1<<0));
+	process_threshold(this->active_thresholds,  1, true,  this->thresholds.lnc, hysth, byteval, events, force_assertions & (1<<1), force_deassertions & (1<<1));
 
-	process_threshold(this->active_thresholds,  2, false, this->thresholds.lcr, hystl, byteval, events);
-	process_threshold(this->active_thresholds,  3, true,  this->thresholds.lcr, hysth, byteval, events);
+	process_threshold(this->active_thresholds,  2, false, this->thresholds.lcr, hystl, byteval, events, force_assertions & (1<<2), force_deassertions & (1<<2));
+	process_threshold(this->active_thresholds,  3, true,  this->thresholds.lcr, hysth, byteval, events, force_assertions & (1<<3), force_deassertions & (1<<3));
 
-	process_threshold(this->active_thresholds,  4, false, this->thresholds.lnr, hystl, byteval, events);
-	process_threshold(this->active_thresholds,  5, true,  this->thresholds.lnr, hysth, byteval, events);
+	process_threshold(this->active_thresholds,  4, false, this->thresholds.lnr, hystl, byteval, events, force_assertions & (1<<4), force_deassertions & (1<<4));
+	process_threshold(this->active_thresholds,  5, true,  this->thresholds.lnr, hysth, byteval, events, force_assertions & (1<<5), force_deassertions & (1<<5));
 
-	process_threshold(this->active_thresholds,  6, false, this->thresholds.unc, hystl, byteval, events);
-	process_threshold(this->active_thresholds,  7, true,  this->thresholds.unc, hysth, byteval, events);
+	process_threshold(this->active_thresholds,  6, false, this->thresholds.unc, hystl, byteval, events, force_assertions & (1<<6), force_deassertions & (1<<6));
+	process_threshold(this->active_thresholds,  7, true,  this->thresholds.unc, hysth, byteval, events, force_assertions & (1<<7), force_deassertions & (1<<7));
 
-	process_threshold(this->active_thresholds,  8, false, this->thresholds.ucr, hystl, byteval, events);
-	process_threshold(this->active_thresholds,  9, true,  this->thresholds.ucr, hysth, byteval, events);
+	process_threshold(this->active_thresholds,  8, false, this->thresholds.ucr, hystl, byteval, events, force_assertions & (1<<8), force_deassertions & (1<<8));
+	process_threshold(this->active_thresholds,  9, true,  this->thresholds.ucr, hysth, byteval, events, force_assertions & (1<<9), force_deassertions & (1<<9));
 
-	process_threshold(this->active_thresholds, 10, false, this->thresholds.unr, hystl, byteval, events);
-	process_threshold(this->active_thresholds, 11, true,  this->thresholds.unr, hysth, byteval, events);
+	process_threshold(this->active_thresholds, 10, false, this->thresholds.unr, hystl, byteval, events, force_assertions & (1<<10), force_deassertions & (1<<10));
+	process_threshold(this->active_thresholds, 11, true,  this->thresholds.unr, hysth, byteval, events, force_assertions & (1<<11), force_deassertions & (1<<11));
 
 	lock.release();
 

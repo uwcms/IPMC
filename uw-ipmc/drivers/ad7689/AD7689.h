@@ -20,10 +20,12 @@ public:
 	void setSamplingFrequency(uint32_t hz);
 	float getTemperature();
 
-	float getReading(uint8_t channel);
+	virtual uint16_t getRawReading(uint8_t channel) const;
+	virtual float convertReading(uint16_t raw_reading) const;
+	virtual uint16_t convertReading(float reading) const;
 
 private:
-	AD7689_S adc = {0};
+	mutable AD7689_S adc = {0};
 	uint32_t SlaveInterface;
 };
 

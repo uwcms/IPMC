@@ -38,7 +38,15 @@ public:
 		uint8_t unr;
 	} thresholds;
 
-	virtual void update_value(const float value, bool in_context=true, uint64_t value_max_age=UINT64_MAX);
+	virtual void update_value(const float value, bool in_context=true, uint64_t value_max_age=UINT64_MAX, uint16_t force_assertions=0, uint16_t force_deassertions=0);
+
+	/// Deny implicit conversions here.  We don't want to allow accidental submission of unconverted ADC Values.
+	///@{
+	virtual void update_value(const uint32_t value, bool in_context=true, uint64_t value_max_age=UINT64_MAX, uint16_t force_assertions=0, uint16_t force_deassertions=0) = delete;
+	virtual void update_value(const uint16_t value, bool in_context=true, uint64_t value_max_age=UINT64_MAX, uint16_t force_assertions=0, uint16_t force_deassertions=0) = delete;
+	virtual void update_value(const uint8_t value, bool in_context=true, uint64_t value_max_age=UINT64_MAX, uint16_t force_assertions=0, uint16_t force_deassertions=0) = delete;
+	virtual void update_value(const int value, bool in_context=true, uint64_t value_max_age=UINT64_MAX, uint16_t force_assertions=0, uint16_t force_deassertions=0) = delete;
+	///@}
 
 	/// A threshold sensor current value state.
 	typedef struct {
