@@ -11,7 +11,13 @@
 #include <services/ipmi/MStateMachine.h>
 #include <services/console/ConsoleSvc.h>
 #include <drivers/mgmt_zone/MGMTZone.h>
+#include <drivers/generics/ADC.h>
+#include <drivers/ad7689/AD7689.h>
+#include <drivers/sensorprocessor/SensorProcessor.h>
+#include <services/ipmi/sensor/ThresholdSensor.h>
 #include <vector>
+#include <map>
+#include <memory>
 
 class PayloadManager final {
 public:
@@ -133,6 +139,8 @@ protected:
 	SemaphoreHandle_t mutex; ///< A mutex protecting internal data.
 	MStateMachine *mstate_machine; ///< The MStateMachine to notify of changes.
 	MGMT_Zone *mgmt_zones[XPAR_MGMT_ZONE_CTRL_0_MZ_CNT];
+	SensorProcessor *sensor_processor; ///< The sensor processor instance to configure and use.
+	bool mgmt_zone_expected_states[XPAR_MGMT_ZONE_CTRL_0_MZ_CNT];
 	PowerProperties power_properties; ///< The current power properties.
 	LogTree &log; ///< The LogTree for this object's messages.
 	std::vector<LinkDescriptor> links; ///< All supported E-Keying links.
@@ -142,6 +150,23 @@ protected:
 	friend class ConsoleCommand_PayloadManager_power_level;
 	friend class ConsoleCommand_PayloadManager_mz_control;
 	friend void payload_manager_apd_bringup_poweroff_hack(); // XXX
+
+	class ADCSensor {
+	public:
+		std::string name;
+		int intf;
+		int slave;
+		ADC::Channel adc;
+		int sensor_processor_id;
+		int mz_context;
+		std::weak_ptr<ThresholdSensor> ipmi_sensor;
+		ADCSensor(std::string name, int intf, int slave, ADC::Channel adc, int sensor_processor_id, int mz_context) : name(name), intf(intf), slave(slave), adc(adc), sensor_processor_id(sensor_processor_id), mz_context(mz_context) { };
+	};
+	std::map<std::string, ADCSensor> adc_sensors;
+	void run_sensor_thread();
+
+public:
+	void refresh_sensor_linkage();
 };
 
 #endif /* SRC_COMMON_UW_IPMC_PAYLOADMANAGER_H_ */

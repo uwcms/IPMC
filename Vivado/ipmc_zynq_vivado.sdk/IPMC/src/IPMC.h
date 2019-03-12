@@ -58,6 +58,9 @@ extern SensorSet ipmc_sensors;
 extern SemaphoreHandle_t fru_data_mutex;
 extern std::vector<uint8_t> fru_data;
 
+class AD7689;
+extern AD7689 *adc[5];
+
 extern LogTree LOG;
 extern LogTree::Filter *console_log_filter;
 class TraceBuffer;
