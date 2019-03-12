@@ -522,24 +522,34 @@ const allfields = {
 	'Rexp': conv['Rexp'],
 };
 const alltext = {
-	's-na':    document.getElementById('sensor-name'),
-	's-no':    document.getElementById('sensor-number'),
-	's-t':     document.getElementById('sensor-type'),
-	's-u-p':   document.getElementById('sensor-unit-primary'),
-	's-u-m-t': document.getElementById('sensor-unit-modifier-type'),
-	's-u-m':   document.getElementById('sensor-unit-modifier'),
-	's-u-r':   document.getElementById('sensor-unit-rate'),
-	's-d':     document.getElementById('sensor-direction'),
+	'precision': document.getElementById('float_precision'), /* precision must come first. */
+	's-na':      document.getElementById('sensor-name'),
+	's-no':      document.getElementById('sensor-number'),
+	's-t':       document.getElementById('sensor-type'),
+	's-u-p':     document.getElementById('sensor-unit-primary'),
+	's-u-m-t':   document.getElementById('sensor-unit-modifier-type'),
+	's-u-m':     document.getElementById('sensor-unit-modifier'),
+	's-u-r':     document.getElementById('sensor-unit-rate'),
+	's-d':       document.getElementById('sensor-direction'),
 };
 
 Object.values(allfields).forEach((v)=>{ v.userval = null; });
 
 window.location.hash.substr(1).split('&').forEach((fragment)=>{
 	var [k, v] = fragment.split('=',2);
+	if (k === 'precision') {
+		alltext[k].value = decodeURIComponent(v);
+		recalculate();
+	}
+});
+window.location.hash.substr(1).split('&').forEach((fragment)=>{
+	var [k, v] = fragment.split('=',2);
 	if (k in allfields)
 		allfields[k].userval = Number(v);
 	if (k in alltext)
 		alltext[k].value = decodeURIComponent(v);
+	if (k === 'precision')
+		recalculate();
 });
 
 function allEmpty(nodelist) {
@@ -783,15 +793,15 @@ function recalculate(eventsource) {
 			human_units += ' ' + document.getElementById('sensor-unit-rate').selectedOptions[0].label;
 
 		let hashtag = [];
-		Object.keys(allfields).forEach((k)=>{
-			let v = allfields[k];
-			if (v.userval !== null)
-				hashtag.push(k+'='+v.userval);
-		});
 		Object.keys(alltext).forEach((k)=>{
 			let v = alltext[k];
 			if (v.value !== v.dataset.default)
 				hashtag.push(k+'='+encodeURIComponent(v.value));
+		});
+		Object.keys(allfields).forEach((k)=>{
+			let v = allfields[k];
+			if (v.userval !== null)
+				hashtag.push(k+'='+v.userval);
 		});
 		hashtag = hashtag.join('&');
 
