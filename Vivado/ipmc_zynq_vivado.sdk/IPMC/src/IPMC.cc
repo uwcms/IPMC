@@ -2770,6 +2770,7 @@ static void register_core_console_commands(CommandParser &parser) {
 	console_command_parser.register_command("adc", std::make_shared<ConsoleCommand_adc>());
 	console_command_parser.register_command("dac", std::make_shared<ConsoleCommand_dac>());
 	console_command_parser.register_command("xvctarget", std::make_shared<ConsoleCommand_xvctarget>(xvctarget_gpio, PL_GPIO::Channel::GPIO_CHANNEL1, 0, 1));
+	StatCounter::register_console_commands(parser);
 }
 
 static void console_log_handler(LogTree &logtree, const std::string &message, enum LogTree::LogLevel level) {
