@@ -120,9 +120,14 @@ PayloadManager::PayloadManager(MStateMachine *mstate_machine, LogTree &log)
 	auto calc_hf_mask = [this](std::vector<std::string> sensors) -> uint64_t {
 		uint64_t mask = 0;
 		for (auto&& name : sensors) {
-			ADCSensor &sensor = this->adc_sensors.at(name);
-			if (sensor.sensor_processor_id >= 0)
-				mask |= 1 << sensor.sensor_processor_id;
+			try {
+				ADCSensor &sensor = this->adc_sensors.at(name);
+				if (sensor.sensor_processor_id >= 0)
+					mask |= 1 << sensor.sensor_processor_id;
+			}
+			catch (std::out_of_range) {
+				this->log.log(stdsprintf("Unable find sensor %s in payload_manager->adc_sensors: No hardfault protection available.", name.c_str()), LogTree::LOG_ERROR);
+			}
 		}
 		return mask;
 	};
@@ -163,9 +168,9 @@ PayloadManager::PayloadManager(MStateMachine *mstate_machine, LogTree &log)
 		"+2.5VXPT",
 	});
 	const uint64_t hfm_PWRENA_ELM = calc_hf_mask({"+12VPYLD"});
-	const uint64_t hfm_PWRENA_7 = calc_hf_mask({"+5VUSBFAN"});
-	const uint64_t hfm_PWRENA_RTM_MGMT = calc_hf_mask({"+3.3VMP"});
-	const uint64_t hfm_PWRENA_RTM_PYLD = calc_hf_mask({"+12PYLD"});
+	const uint64_t hfm_PWRENA_7 = calc_hf_mask({"+5VPYLD"});
+	const uint64_t hfm_PWRENA_RTM_MGMT = calc_hf_mask({"+3.3VMP2"});
+	const uint64_t hfm_PWRENA_RTM_PYLD = calc_hf_mask({"+12VPYLD"});
 #pragma GCC diagnostic pop
 
 	{
@@ -316,8 +321,8 @@ PayloadManager::PayloadManager(MStateMachine *mstate_machine, LogTree &log)
 	}
 
 	std::vector<ADC::Channel*> sensor_processor_channels(XPAR_IPMI_SENSOR_PROC_0_SENSOR_CNT);
-	for (auto adcsensor : this->adc_sensors)
-		if (adcsensor.second.sensor_processor_id)
+	for (auto &adcsensor : this->adc_sensors)
+		if (adcsensor.second.sensor_processor_id >= 0)
 			sensor_processor_channels[adcsensor.second.sensor_processor_id] = &adcsensor.second.adc;
 	this->sensor_processor = new SensorProcessor(0, 66 /* XXX This needs a constant, which needs firmware improvements. */, sensor_processor_channels);
 
