@@ -12,6 +12,7 @@
 #include <semphr.h>
 #include <string>
 #include <map>
+#include <services/console/CommandParser.h>
 
 /**
  * A class representing a statistic/event counter.
@@ -26,8 +27,8 @@ public:
 	StatCounter(std::string name);
 	virtual ~StatCounter();
 
-	uint64_t get();
-	uint64_t fast_get();
+	uint64_t get() const;
+	uint64_t fast_get() const;
 	uint64_t set(uint64_t val);
 	uint64_t increment(uint64_t inc=1);
 	uint64_t decrement(uint64_t dec=1);
@@ -36,6 +37,12 @@ public:
 
     StatCounter(StatCounter const &) = delete;     ///< Class is not assignable.
     void operator=(StatCounter const &x) = delete; ///< Class is not copyable.
+
+    static SemaphoreHandle_t get_registry_mutex();
+    static std::map< std::string, StatCounter* > get_registry();
+
+	static void register_console_commands(CommandParser &parser, const std::string &prefix="");
+	static void deregister_console_commands(CommandParser &parser, const std::string &prefix="");
 
 protected:
     volatile uint64_t count; ///< The count counted.
