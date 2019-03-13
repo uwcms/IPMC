@@ -27,7 +27,7 @@
  * \param name The name of this StatCounter
  */
 StatCounter::StatCounter(std::string name)
-  : name(stdsprintf("%s/%08x", name.c_str(), reinterpret_cast<unsigned int>(this))), count(0) {
+  : name(stdsprintf("%s@%08x", name.c_str(), reinterpret_cast<unsigned int>(this))), count(0) {
 	safe_init_static_mutex(StatCounter::mutex, true);
 	MutexGuard<true> lock(StatCounter::mutex, true);
 	if (!StatCounter::registry)
@@ -191,6 +191,9 @@ namespace {
 /// A "stats" console command.
 class ConsoleCommand_stats : public CommandParser::Command {
 public:
+	static std::string strip_address(const std::string &str) {
+		return str.substr(0, str.find_last_of('@'));
+	}
 	virtual std::string get_helptext(const std::string &command) const {
 		return stdsprintf(
 				"%s [pattern]\n"
@@ -217,11 +220,11 @@ public:
 		MutexGuard<true> lock(StatCounter::get_registry_mutex(), true);
 		std::map<std::string, StatCounter*> registry = StatCounter::get_registry();
 		for (auto &entry : registry) {
-			if (exact && entry.first != pattern)
+			if (exact && strip_address(entry.first) != pattern)
 				continue;
-			else if (entry.first.substr(0, pattern.size()) != pattern)
+			else if (strip_address(entry.first).substr(0, pattern.size()) != pattern)
 				continue;
-			out += stdsprintf("%50s %10llu\n", entry.first.c_str(), entry.second->get());
+			out += stdsprintf("%-60s %20llu\n", strip_address(entry.first).c_str(), entry.second->get());
 		}
 		console->write(out);
 	}
@@ -238,9 +241,9 @@ public:
 		MutexGuard<true> lock(StatCounter::get_registry_mutex(), true);
 		std::map<std::string, StatCounter*> registry = StatCounter::get_registry();
 		for (auto &entry : registry) {
-			if (entry.first.substr(0, pattern.size()) != pattern)
+			if (strip_address(entry.first).substr(0, pattern.size()) != pattern)
 				continue;
-			out.push_back(entry.first);
+			out.push_back(strip_address(entry.first));
 		}
 		return std::move(out);
 	};
