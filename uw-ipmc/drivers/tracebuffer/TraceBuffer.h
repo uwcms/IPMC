@@ -10,6 +10,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <string>
 #include <libs/LogTree.h>
 
 /**
@@ -22,6 +23,9 @@ public:
 	virtual ~TraceBuffer();
 
 	void log(const char *label, size_t label_len, enum LogTree::LogLevel loglevel, const char *data, size_t data_len, bool binary=false);
+	void log(std::string label, enum LogTree::LogLevel loglevel, std::string data, bool binary=false) {
+		this->log(label.data(), label.size(), loglevel, data.data(), data.size(), binary);
+	};
 
 protected:
 	struct TraceRecord;
