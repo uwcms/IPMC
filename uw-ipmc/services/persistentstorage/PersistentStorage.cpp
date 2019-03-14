@@ -118,6 +118,23 @@ void PersistentStorage::set_section_version(u16 section_id, u16 section_version)
 }
 
 /**
+ * Calculate whether two ranges overlap.
+ *
+ * @param baseA The base of the first range
+ * @param sizeA The size of the first range
+ * @param baseB The base of the second range
+ * @param sizeB The size of the second range
+ * @return true if the ranges overlap, else false
+ */
+static inline bool ranges_overlap(uint16_t baseA, uint16_t sizeA, uint16_t baseB, uint16_t sizeB) {
+	if (baseB >= (baseA+sizeA))
+		return false; // Range B is entirely above Range A
+	if (baseA >= (baseB+sizeB))
+		return false; // Range A is entirely above Range B
+	return true; // Neither range is entirely above the other.
+}
+
+/**
  * Retrieve the specified persistent storage section, allocating it if necessary.
  *
  * When retrieving a persistent storage, the supplied version and size must
@@ -171,8 +188,7 @@ void *PersistentStorage::get_section(u16 section_id, u16 section_version, u16 se
 		// Ok, find an overlap with this allocation.
 		potential_overlap = false; // Unless we find something below, we know there is no overlap.
 		for (int x = 0; index[x].id != PersistentStorageAllocations::RESERVED_END_OF_INDEX; ++x) {
-			if (( allocpg >= index[x].pgoff && !(allocpg >= index[x].pgoff + index[x].pgcount) ) /* our start is in this range */ ||
-				( allocpg+section_pgcount > index[x].pgoff && !(allocpg+section_pgcount > index[x].pgoff + index[x].pgcount) ) /* our end is in this range */ ) {
+			if (ranges_overlap(allocpg, section_pgcount, index[x].pgoff, index[x].pgcount)) {
 				// We overlap.  Move us to before the start of this section.
 				potential_overlap = true;
 				if (index[x].pgoff < section_pgcount)
@@ -217,7 +233,7 @@ void PersistentStorage::delete_section(u16 section_id) {
 		if (index[i].id == section_id) {
 			this->logtree.log(stdsprintf("Deleting persistent storage allocation for section 0x%04hx (version %hu) at 0x%04hx, freeing %hu pages.", index[i].id, index[i].version, index[i].pgoff, index[i].pgcount), LogTree::LOG_NOTICE);
 			for (int x = i; index[x].id != PersistentStorageAllocations::RESERVED_END_OF_INDEX; ++x)
-				index[x] = index[x+1];
+				memcpy(&(index[x]), &(index[x+1]), sizeof(struct PersistentStorageIndexRecord));
 			i--; // Recheck this index, it's not the same record anymore.
 		}
 	}
@@ -299,6 +315,7 @@ void PersistentStorage::flush_index() {
 	indexlock.release();
 
 	this->logtree.log(stdsprintf("Requesting flush of index (length %lu)", index_length), LogTree::LOG_DIAGNOSTIC);
+	this->trace_index();
 
 	MutexGuard<false> flushlock(this->flushq_mutex, true);
 	if (!this->flushq.empty() && this->flushq.top().index_flush) {
@@ -381,6 +398,7 @@ void PersistentStorage::run_flush_thread() {
 		secrec1->id = PersistentStorageAllocations::RESERVED_END_OF_INDEX; // Initialize the EOL marker.
 	}
 	xEventGroupSetBits(this->storage_loaded, 1);
+	this->trace_index();
 	vTaskPrioritySet(NULL, TASK_PRIORITY_BACKGROUND); // Now background.
 
 	AbsoluteTimeout next_bg_flush(get_tick64() + flush_ticks);
@@ -467,6 +485,19 @@ bool PersistentStorage::do_flush_range(u32 start, u32 end) {
 		}
 	}
 	return changed;
+}
+
+/**
+ * Dump the PersistentStorage index to the tracebuffer.
+ */
+void PersistentStorage::trace_index() {
+	MutexGuard<false> indexlock(this->index_mutex, true);
+	struct PersistentStorageIndexRecord *index = reinterpret_cast<struct PersistentStorageIndexRecord *>(this->data + sizeof(struct PersistentStorageHeader));
+	std::string out;
+	int i;
+	for (i = 0; index[i].id != 0; ++i)
+		out += stdsprintf("\t<section id=\"0x%04hx\" offset=\"0x%04hx\" end=\"0x%04hx\" pagecount=\"%hu\" version=\"%hu\"/>\n", index[i].id, index[i].pgoff, index[i].pgoff + index[i].pgcount - 1, index[i].pgcount, index[i].version);
+	this->logtree.log(stdsprintf("\n<index length=\"%d\">\n", i) + out + "</index>", LogTree::LOG_TRACE);
 }
 
 /**

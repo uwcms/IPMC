@@ -90,6 +90,7 @@ public:
 
 protected:
 	bool do_flush_range(u32 start, u32 end);
+	void trace_index();
 };
 
 /**
