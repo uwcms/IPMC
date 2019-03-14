@@ -304,7 +304,7 @@ void IPMBSvc::run_thread() {
 					if (it->retry_count == 0)
 						this->log_messages_out.log(std::string("Response sent on ") + this->name + ":     " + it->msg->format(), LogTree::LOG_INFO);
 					else
-						this->log_messages_out.log(stdsprintf("Response resent on %s:   %s  (retry %hhu)", this->name.c_str(), it->msg->format().c_str(), it->retry_count), LogTree::LOG_NOTICE);
+						this->log_messages_out.log(stdsprintf("Response resent on %s:   %s  (retry %hhu)", this->name.c_str(), it->msg->format().c_str(), it->retry_count), (it->retry_count <= 2 ? LogTree::LOG_INFO : LogTree::LOG_NOTICE));
 					it = this->outgoing_messages.erase(it);
 					continue;
 				}
