@@ -12,16 +12,11 @@ public:
 
 	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
 		std::string user, pass;
-		if (parameters.nargs() != 2) {
+		if (!parameters.parse_parameters(1, true, &user, &pass)) {
 			console->write("Invalid parameters, see help.\n");
 			return;
 		}
-
-		parameters.parse_parameters(1, true, &user);
-		parameters.parse_parameters(2, true, &pass);
-
 		Auth::ChangeCredentials(user, pass);
-
 		console->write("Password updated.\n");
 	}
 
