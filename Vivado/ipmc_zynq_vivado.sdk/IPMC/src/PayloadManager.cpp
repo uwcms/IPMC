@@ -328,6 +328,8 @@ PayloadManager::PayloadManager(MStateMachine *mstate_machine, LogTree &log)
 
 	// The sensor processor is configured and enabled by the sensor linkage
 	// update, as this is where thresholds become available.
+
+	UWTaskCreate("pyld_adcsensors", TASK_PRIORITY_SERVICE, [this]()->void{this->run_sensor_thread();});
 }
 
 #include <IPMC.h>
@@ -827,11 +829,17 @@ public:
 	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
 		std::string out;
 		for (auto &sensorinfo : SensorSet::container_type(ipmc_sensors)) {
+			std::string name = sensorinfo.second->sensor_identifier();
+			{ // Common-ify the sensor name if possible.
+				std::shared_ptr<const SensorDataRecordSensor> sdr = std::dynamic_pointer_cast<const SensorDataRecordSensor>(device_sdr_repo.find(sensorinfo.second->sdr_key));
+				if (sdr)
+					name = sdr->id_string();
+			}
 			{ // Process if ThresholdSensor
 				std::shared_ptr<ThresholdSensor> sensor = std::dynamic_pointer_cast<ThresholdSensor>(sensorinfo.second);
 				if (sensor) {
 					ThresholdSensor::Value value = sensor->get_value();
-					out += stdsprintf("%30s %f (raw %hhu; event %hu; %s context)\n",
+					out += stdsprintf("%-30s %9.6f (raw %3hhu; event 0x%04hu; %-5s context)\n",
 							sensorinfo.second->sensor_identifier().c_str(),
 							value.float_value,
 							value.byte_value,
@@ -843,7 +851,7 @@ public:
 			{ // Process if HotswapSensor
 				std::shared_ptr<HotswapSensor> sensor = std::dynamic_pointer_cast<HotswapSensor>(sensorinfo.second);
 				if (sensor) {
-					out += stdsprintf("%30s M%hhu\n",
+					out += stdsprintf("%-30s M%hhu\n",
 							sensorinfo.second->sensor_identifier().c_str(),
 							sensor->get_mstate());
 					continue;
