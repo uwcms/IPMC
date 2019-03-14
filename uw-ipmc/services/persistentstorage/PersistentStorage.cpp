@@ -611,7 +611,7 @@ public:
 				}
 				std::string out;
 				for (u32 i = start; i < start+length && i < (it->pgcount*this->storage.eeprom.page_size); ++i)
-					out += stdsprintf(" %2hhx", buf[i]);
+					out += stdsprintf(" %02hhx", buf[i]);
 				console->write(stdsprintf("0x%04hx[0x%04lx:0x%04lx]:", sect_id, start, start+length) + out + "\n");
 				return;
 			}
