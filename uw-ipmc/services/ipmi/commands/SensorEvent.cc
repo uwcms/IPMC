@@ -233,12 +233,10 @@ static void ipmicmd_Get_Sensor_Event_Enable(IPMBSvc &ipmb, const IPMI_MSG &messa
 IPMICMD_INDEX_REGISTER(Get_Sensor_Event_Enable);
 #endif
 
-#if 0 // Unimplemented.
 static void ipmicmd_Rearm_Sensor_Events(IPMBSvc &ipmb, const IPMI_MSG &message) {
-	// Unimplemented.
+	ipmb.send(message.prepare_reply({IPMI::Completion::Invalid_Command}));
 }
 IPMICMD_INDEX_REGISTER(Rearm_Sensor_Events);
-#endif
 
 #if 0 // Unimplemented.
 static void ipmicmd_Get_Sensor_Event_Status(IPMBSvc &ipmb, const IPMI_MSG &message) {
