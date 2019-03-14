@@ -1503,7 +1503,7 @@ static void init_device_sdrs(bool reinit) {
 
 	{
 		SensorDataRecord01 sensor;
-		// SDR Calculator.html#precision=4&s-na=%2B12VPYLD&s-no=19&s-t=0x02&s-u-p=4&lnrf=10.8&lcrf=11.1&lncf=11.4&uncf=12.6&ucrf=12.9&unrf=13.2&nominalf=12&minf=0&granularity=0.0542
+		// SDR Calculator.html#precision=3&s-na=%2B12VPYLD&s-no=19&s-t=0x02&s-u-p=4&lnrf=10.8&lcrf=11.1&lncf=11.4&uncf=12.6&ucrf=12.9&unrf=13.2&nominalf=12&minf=0&granularity=0.06
 		sensor.initialize_blank("+12VPYLD");
 		sensor.sensor_owner_id(0); // Tag as "self". This will be auto-calculated in "Get SDR" commands.
 		sensor.sensor_owner_channel(0); // See above.
@@ -1536,24 +1536,24 @@ static void init_device_sdrs(bool reinit) {
 		sensor.units_modifier_unit_method(SensorDataRecordReadableSensor::MODIFIER_UNIT_NONE);
 		sensor.linearization(SensorDataRecord01::LIN_LINEAR);
 		// IPMI Specifies a linearization function of: y = L[(Mx + (B * 10^(Bexp) ) ) * 10^(Rexp) ]
-		// Our settings produce a valid range of 0 (Volts) to 13.821 (Volts) with 0.0542 Volts granularity.
-		sensor.conversion_m(542);
+		// Our settings produce a valid range of 0 (Volts) to 15.3 (Volts) with 0.06 Volts granularity.
+		sensor.conversion_m(6);
 		sensor.conversion_b(0);
 		sensor.conversion_b_exp(0);
-		sensor.conversion_r_exp(-4);
+		sensor.conversion_r_exp(-2);
 		sensor.sensor_direction(SensorDataRecordReadableSensor::DIR_UNSPECIFIED);
 		//sensor.normal_min_specified(false); // Default
 		//sensor.normal_min_rawvalue(0); // Unspecified
 		//sensor.normal_max_specified(false); // Default
 		//sensor.normal_max_rawvalue(0); // Unspecified
 		sensor.nominal_reading_specified(true);
-		sensor.nominal_reading_rawvalue(221); // 12 Volts
-		sensor.threshold_unr_rawvalue(243); // 13.2 Volts
-		sensor.threshold_ucr_rawvalue(238); // 12.9 Volts
-		sensor.threshold_unc_rawvalue(232); // 12.6 Volts
-		sensor.threshold_lnc_rawvalue(210); // 11.4 Volts
-		sensor.threshold_lcr_rawvalue(204); // 11.1 Volts
-		sensor.threshold_lnr_rawvalue(199); // 10.8 Volts
+		sensor.nominal_reading_rawvalue(200); // 12 Volts
+		sensor.threshold_unr_rawvalue(220); // 13.2 Volts
+		sensor.threshold_ucr_rawvalue(215); // 12.9 Volts
+		sensor.threshold_unc_rawvalue(210); // 12.6 Volts
+		sensor.threshold_lnc_rawvalue(190); // 11.4 Volts
+		sensor.threshold_lcr_rawvalue(185); // 11.1 Volts
+		sensor.threshold_lnr_rawvalue(180); // 10.8 Volts
 		sensor.hysteresis_high(0); // +0 Volts
 		sensor.hysteresis_low(0); // -0 Volts
 		ADD_TO_REPO(sensor);
