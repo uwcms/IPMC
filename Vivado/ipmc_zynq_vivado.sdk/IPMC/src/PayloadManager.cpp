@@ -98,8 +98,8 @@ PayloadManager::PayloadManager(MStateMachine *mstate_machine, LogTree &log)
 		{ "+0.85VDD",      ADCSensor("+0.85VDD",      2, 0, ADC::Channel(*adc[2], 2),                 17,  1) },
 		{ "MGT0.9VT_IMON", ADCSensor("MGT0.9VT_IMON", 2, 0, ADC::Channel(*adc[2], 3, imon, imon_r),   18,  1) },
 		{ "MGT0.9VB_IMON", ADCSensor("MGT0.9VB_IMON", 2, 0, ADC::Channel(*adc[2], 4, imon, imon_r),   19,  1) },
-		{ "MGT1.2VT_IMON", ADCSensor("MGT1.2VT_IMON", 2, 0, ADC::Channel(*adc[2], 5, imon, imon_r),   20,  1) },
-		{ "MGT1.2VB_IMON", ADCSensor("MGT1.2VB_IMON", 2, 0, ADC::Channel(*adc[2], 6, imon, imon_r),   21,  1) },
+		{ "MGT1.2VB_IMON", ADCSensor("MGT1.2VB_IMON", 2, 0, ADC::Channel(*adc[2], 5, imon, imon_r),   20,  1) },
+		{ "MGT1.2VT_IMON", ADCSensor("MGT1.2VT_IMON", 2, 0, ADC::Channel(*adc[2], 6, imon, imon_r),   21,  1) },
 		{ "T_BOARD1",      ADCSensor("T_BOARD1",      2, 0, ADC::Channel(*adc[2], 7, tmp36, tmp36_r), -1, -1) },
 
 		{ "+1.35VMGTT",    ADCSensor("+1.35VMGTT",    2, 1, ADC::Channel(*adc[3], 0),                 22,  1) },
