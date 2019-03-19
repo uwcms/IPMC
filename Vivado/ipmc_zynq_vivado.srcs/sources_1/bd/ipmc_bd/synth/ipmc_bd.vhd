@@ -1,7 +1,7 @@
 --Copyright 1986-2018 Xilinx, Inc. All Rights Reserved.
 ----------------------------------------------------------------------------------
 --Tool Version: Vivado v.2018.2 (lin64) Build 2258646 Thu Jun 14 20:02:38 MDT 2018
---Date        : Mon Mar  4 10:52:27 2019
+--Date        : Tue Mar 19 14:23:30 2019
 --Host        : beck.hep.wisc.edu running 64-bit CentOS Linux release 7.6.1810 (Core)
 --Command     : generate_target ipmc_bd.bd
 --Design      : ipmc_bd
@@ -3022,7 +3022,7 @@ entity ipmc_bd_axi_interconnect_0_0 is
 end ipmc_bd_axi_interconnect_0_0;
 
 architecture STRUCTURE of ipmc_bd_axi_interconnect_0_0 is
-  component ipmc_bd_xbar_1 is
+  component ipmc_bd_xbar_2 is
   port (
     aclk : in STD_LOGIC;
     aresetn : in STD_LOGIC;
@@ -3065,7 +3065,7 @@ architecture STRUCTURE of ipmc_bd_axi_interconnect_0_0 is
     m_axi_rvalid : in STD_LOGIC_VECTOR ( 14 downto 0 );
     m_axi_rready : out STD_LOGIC_VECTOR ( 14 downto 0 )
   );
-  end component ipmc_bd_xbar_1;
+  end component ipmc_bd_xbar_2;
   signal M00_ACLK_1 : STD_LOGIC;
   signal M00_ARESETN_1 : STD_LOGIC;
   signal M01_ACLK_1 : STD_LOGIC;
@@ -4776,7 +4776,7 @@ s00_couplers: entity work.s00_couplers_imp_1UC1GY4
       S_AXI_wstrb(3 downto 0) => axi_interconnect_0_to_s00_couplers_WSTRB(3 downto 0),
       S_AXI_wvalid => axi_interconnect_0_to_s00_couplers_WVALID
     );
-xbar: component ipmc_bd_xbar_1
+xbar: component ipmc_bd_xbar_2
      port map (
       aclk => axi_interconnect_0_ACLK_net,
       aresetn => axi_interconnect_0_ARESETN_net,
@@ -5155,7 +5155,7 @@ entity ipmc_bd_axi_interconnect_0_1 is
 end ipmc_bd_axi_interconnect_0_1;
 
 architecture STRUCTURE of ipmc_bd_axi_interconnect_0_1 is
-  component ipmc_bd_xbar_2 is
+  component ipmc_bd_xbar_0 is
   port (
     aclk : in STD_LOGIC;
     aresetn : in STD_LOGIC;
@@ -5198,7 +5198,7 @@ architecture STRUCTURE of ipmc_bd_axi_interconnect_0_1 is
     m_axi_rvalid : in STD_LOGIC_VECTOR ( 1 downto 0 );
     m_axi_rready : out STD_LOGIC_VECTOR ( 1 downto 0 )
   );
-  end component ipmc_bd_xbar_2;
+  end component ipmc_bd_xbar_0;
   signal M00_ACLK_1 : STD_LOGIC;
   signal M00_ARESETN_1 : STD_LOGIC;
   signal M01_ACLK_1 : STD_LOGIC;
@@ -5504,7 +5504,7 @@ s00_couplers: entity work.s00_couplers_imp_3NSNUP
       S_AXI_wstrb(3 downto 0) => axi_interconnect_0_to_s00_couplers_WSTRB(3 downto 0),
       S_AXI_wvalid(0) => axi_interconnect_0_to_s00_couplers_WVALID(0)
     );
-xbar: component ipmc_bd_xbar_2
+xbar: component ipmc_bd_xbar_0
      port map (
       aclk => axi_interconnect_0_ACLK_net,
       aresetn => axi_interconnect_0_ARESETN_net,
@@ -5655,7 +5655,7 @@ entity ipmc_bd_axi_interconnect_1_0 is
 end ipmc_bd_axi_interconnect_1_0;
 
 architecture STRUCTURE of ipmc_bd_axi_interconnect_1_0 is
-  component ipmc_bd_xbar_0 is
+  component ipmc_bd_xbar_1 is
   port (
     aclk : in STD_LOGIC;
     aresetn : in STD_LOGIC;
@@ -5698,7 +5698,7 @@ architecture STRUCTURE of ipmc_bd_axi_interconnect_1_0 is
     m_axi_rvalid : in STD_LOGIC_VECTOR ( 2 downto 0 );
     m_axi_rready : out STD_LOGIC_VECTOR ( 2 downto 0 )
   );
-  end component ipmc_bd_xbar_0;
+  end component ipmc_bd_xbar_1;
   signal M00_ACLK_1 : STD_LOGIC;
   signal M00_ARESETN_1 : STD_LOGIC;
   signal M01_ACLK_1 : STD_LOGIC;
@@ -6100,7 +6100,7 @@ s00_couplers: entity work.s00_couplers_imp_4LPQ0F
       S_AXI_wstrb(3 downto 0) => axi_interconnect_1_to_s00_couplers_WSTRB(3 downto 0),
       S_AXI_wvalid(0) => axi_interconnect_1_to_s00_couplers_WVALID(0)
     );
-xbar: component ipmc_bd_xbar_0
+xbar: component ipmc_bd_xbar_1
      port map (
       aclk => axi_interconnect_1_ACLK_net,
       aresetn => axi_interconnect_1_ARESETN_net,
@@ -6645,13 +6645,13 @@ architecture STRUCTURE of esm_imp_1TIRAV0 is
     tx : out STD_LOGIC
   );
   end component ipmc_bd_axi_uartlite_esm_0;
-  component ipmc_bd_xlconcat_1_0 is
+  component ipmc_bd_xlconcat_1_1 is
   port (
     In0 : in STD_LOGIC_VECTOR ( 0 to 0 );
     In1 : in STD_LOGIC_VECTOR ( 0 to 0 );
     dout : out STD_LOGIC_VECTOR ( 1 downto 0 )
   );
-  end component ipmc_bd_xlconcat_1_0;
+  end component ipmc_bd_xlconcat_1_1;
   signal ACLK_1 : STD_LOGIC;
   signal ARESETN_1 : STD_LOGIC;
   signal Conn1_ARADDR : STD_LOGIC_VECTOR ( 31 downto 0 );
@@ -6955,7 +6955,7 @@ axi_uartlite_esm: component ipmc_bd_axi_uartlite_esm_0
       s_axi_wvalid => axi_interconnect_1_M02_AXI_WVALID(0),
       tx => Conn2_TxD
     );
-xlconcat_1: component ipmc_bd_xlconcat_1_0
+xlconcat_1: component ipmc_bd_xlconcat_1_1
      port map (
       In0(0) => axi_quad_spi_esm_ip2intc_irpt,
       In1(0) => axi_uartlite_esm_interrupt,
@@ -7281,99 +7281,6 @@ architecture STRUCTURE of ipmc_bd is
     ip2intc_irpt : out STD_LOGIC
   );
   end component ipmc_bd_axi_quad_spi_dac_0;
-  component ipmc_bd_ad7689_s_0_0 is
-  port (
-    spi_ncs : out STD_LOGIC_VECTOR ( 0 to 0 );
-    spi_clk : out STD_LOGIC;
-    spi_mosi : out STD_LOGIC;
-    spi_miso : in STD_LOGIC;
-    cnv_value_par : out STD_LOGIC_VECTOR ( 143 downto 0 );
-    cnv_valid_par : out STD_LOGIC_VECTOR ( 8 downto 0 );
-    s_axi_awaddr : in STD_LOGIC_VECTOR ( 8 downto 0 );
-    s_axi_awprot : in STD_LOGIC_VECTOR ( 2 downto 0 );
-    s_axi_awvalid : in STD_LOGIC;
-    s_axi_awready : out STD_LOGIC;
-    s_axi_wdata : in STD_LOGIC_VECTOR ( 31 downto 0 );
-    s_axi_wstrb : in STD_LOGIC_VECTOR ( 3 downto 0 );
-    s_axi_wvalid : in STD_LOGIC;
-    s_axi_wready : out STD_LOGIC;
-    s_axi_bresp : out STD_LOGIC_VECTOR ( 1 downto 0 );
-    s_axi_bvalid : out STD_LOGIC;
-    s_axi_bready : in STD_LOGIC;
-    s_axi_araddr : in STD_LOGIC_VECTOR ( 8 downto 0 );
-    s_axi_arprot : in STD_LOGIC_VECTOR ( 2 downto 0 );
-    s_axi_arvalid : in STD_LOGIC;
-    s_axi_arready : out STD_LOGIC;
-    s_axi_rdata : out STD_LOGIC_VECTOR ( 31 downto 0 );
-    s_axi_rresp : out STD_LOGIC_VECTOR ( 1 downto 0 );
-    s_axi_rvalid : out STD_LOGIC;
-    s_axi_rready : in STD_LOGIC;
-    s_axi_aclk : in STD_LOGIC;
-    s_axi_aresetn : in STD_LOGIC
-  );
-  end component ipmc_bd_ad7689_s_0_0;
-  component ipmc_bd_ad7689_s_1_0 is
-  port (
-    spi_ncs : out STD_LOGIC_VECTOR ( 0 to 0 );
-    spi_clk : out STD_LOGIC;
-    spi_mosi : out STD_LOGIC;
-    spi_miso : in STD_LOGIC;
-    cnv_value_par : out STD_LOGIC_VECTOR ( 143 downto 0 );
-    cnv_valid_par : out STD_LOGIC_VECTOR ( 8 downto 0 );
-    s_axi_awaddr : in STD_LOGIC_VECTOR ( 8 downto 0 );
-    s_axi_awprot : in STD_LOGIC_VECTOR ( 2 downto 0 );
-    s_axi_awvalid : in STD_LOGIC;
-    s_axi_awready : out STD_LOGIC;
-    s_axi_wdata : in STD_LOGIC_VECTOR ( 31 downto 0 );
-    s_axi_wstrb : in STD_LOGIC_VECTOR ( 3 downto 0 );
-    s_axi_wvalid : in STD_LOGIC;
-    s_axi_wready : out STD_LOGIC;
-    s_axi_bresp : out STD_LOGIC_VECTOR ( 1 downto 0 );
-    s_axi_bvalid : out STD_LOGIC;
-    s_axi_bready : in STD_LOGIC;
-    s_axi_araddr : in STD_LOGIC_VECTOR ( 8 downto 0 );
-    s_axi_arprot : in STD_LOGIC_VECTOR ( 2 downto 0 );
-    s_axi_arvalid : in STD_LOGIC;
-    s_axi_arready : out STD_LOGIC;
-    s_axi_rdata : out STD_LOGIC_VECTOR ( 31 downto 0 );
-    s_axi_rresp : out STD_LOGIC_VECTOR ( 1 downto 0 );
-    s_axi_rvalid : out STD_LOGIC;
-    s_axi_rready : in STD_LOGIC;
-    s_axi_aclk : in STD_LOGIC;
-    s_axi_aresetn : in STD_LOGIC
-  );
-  end component ipmc_bd_ad7689_s_1_0;
-  component ipmc_bd_ad7689_s_2_0 is
-  port (
-    spi_ncs : out STD_LOGIC_VECTOR ( 2 downto 0 );
-    spi_clk : out STD_LOGIC;
-    spi_mosi : out STD_LOGIC;
-    spi_miso : in STD_LOGIC;
-    cnv_value_par : out STD_LOGIC_VECTOR ( 431 downto 0 );
-    cnv_valid_par : out STD_LOGIC_VECTOR ( 26 downto 0 );
-    s_axi_awaddr : in STD_LOGIC_VECTOR ( 8 downto 0 );
-    s_axi_awprot : in STD_LOGIC_VECTOR ( 2 downto 0 );
-    s_axi_awvalid : in STD_LOGIC;
-    s_axi_awready : out STD_LOGIC;
-    s_axi_wdata : in STD_LOGIC_VECTOR ( 31 downto 0 );
-    s_axi_wstrb : in STD_LOGIC_VECTOR ( 3 downto 0 );
-    s_axi_wvalid : in STD_LOGIC;
-    s_axi_wready : out STD_LOGIC;
-    s_axi_bresp : out STD_LOGIC_VECTOR ( 1 downto 0 );
-    s_axi_bvalid : out STD_LOGIC;
-    s_axi_bready : in STD_LOGIC;
-    s_axi_araddr : in STD_LOGIC_VECTOR ( 8 downto 0 );
-    s_axi_arprot : in STD_LOGIC_VECTOR ( 2 downto 0 );
-    s_axi_arvalid : in STD_LOGIC;
-    s_axi_arready : out STD_LOGIC;
-    s_axi_rdata : out STD_LOGIC_VECTOR ( 31 downto 0 );
-    s_axi_rresp : out STD_LOGIC_VECTOR ( 1 downto 0 );
-    s_axi_rvalid : out STD_LOGIC;
-    s_axi_rready : in STD_LOGIC;
-    s_axi_aclk : in STD_LOGIC;
-    s_axi_aresetn : in STD_LOGIC
-  );
-  end component ipmc_bd_ad7689_s_2_0;
   component ipmc_bd_ipmi_sensor_proc_0_0 is
   port (
     sensor_data_i : in STD_LOGIC_VECTOR ( 527 downto 0 );
@@ -7424,7 +7331,7 @@ architecture STRUCTURE of ipmc_bd is
     SIG_OUT : out STD_LOGIC
   );
   end component ipmc_bd_debouncer_0_0;
-  component ipmc_bd_axi_gpio_1_0 is
+  component ipmc_bd_axi_gpio_hndl_sw_0 is
   port (
     s_axi_aclk : in STD_LOGIC;
     s_axi_aresetn : in STD_LOGIC;
@@ -7448,7 +7355,7 @@ architecture STRUCTURE of ipmc_bd is
     ip2intc_irpt : out STD_LOGIC;
     gpio_io_i : in STD_LOGIC_VECTOR ( 2 downto 0 )
   );
-  end component ipmc_bd_axi_gpio_1_0;
+  end component ipmc_bd_axi_gpio_hndl_sw_0;
   component ipmc_bd_axi_atca_led_ctrl_0 is
   port (
     m_led_out : out STD_LOGIC_VECTOR ( 4 downto 0 );
@@ -7530,23 +7437,23 @@ architecture STRUCTURE of ipmc_bd is
     s_axi_aresetn : in STD_LOGIC
   );
   end component ipmc_bd_mgmt_zone_ctrl_0_0;
-  component ipmc_bd_xlconcat_1_1 is
+  component ipmc_bd_xlconcat_1_0 is
   port (
     In0 : in STD_LOGIC_VECTOR ( 0 to 0 );
     In1 : in STD_LOGIC_VECTOR ( 0 to 0 );
     In2 : in STD_LOGIC_VECTOR ( 0 to 0 );
     dout : out STD_LOGIC_VECTOR ( 2 downto 0 )
   );
-  end component ipmc_bd_xlconcat_1_1;
-  component ipmc_bd_debouncer_0_1 is
+  end component ipmc_bd_xlconcat_1_0;
+  component ipmc_bd_debouncer_1_0 is
   port (
     ARESETN_IN : in STD_LOGIC;
     CLK_IN : in STD_LOGIC;
     SIG_IN : in STD_LOGIC;
     SIG_OUT : out STD_LOGIC
   );
-  end component ipmc_bd_debouncer_0_1;
-  component ipmc_bd_axi_gpio_1_1 is
+  end component ipmc_bd_debouncer_1_0;
+  component ipmc_bd_axi_gpio_xvctarget_0 is
   port (
     s_axi_aclk : in STD_LOGIC;
     s_axi_aresetn : in STD_LOGIC;
@@ -7569,7 +7476,100 @@ architecture STRUCTURE of ipmc_bd is
     s_axi_rready : in STD_LOGIC;
     gpio_io_o : out STD_LOGIC_VECTOR ( 1 downto 0 )
   );
-  end component ipmc_bd_axi_gpio_1_1;
+  end component ipmc_bd_axi_gpio_xvctarget_0;
+  component ipmc_bd_ad7689_s_0_0 is
+  port (
+    spi_ncs : out STD_LOGIC_VECTOR ( 0 to 0 );
+    spi_clk : out STD_LOGIC;
+    spi_mosi : out STD_LOGIC;
+    spi_miso : in STD_LOGIC;
+    cnv_value_par : out STD_LOGIC_VECTOR ( 143 downto 0 );
+    cnv_valid_par : out STD_LOGIC_VECTOR ( 8 downto 0 );
+    s_axi_awaddr : in STD_LOGIC_VECTOR ( 9 downto 0 );
+    s_axi_awprot : in STD_LOGIC_VECTOR ( 2 downto 0 );
+    s_axi_awvalid : in STD_LOGIC;
+    s_axi_awready : out STD_LOGIC;
+    s_axi_wdata : in STD_LOGIC_VECTOR ( 31 downto 0 );
+    s_axi_wstrb : in STD_LOGIC_VECTOR ( 3 downto 0 );
+    s_axi_wvalid : in STD_LOGIC;
+    s_axi_wready : out STD_LOGIC;
+    s_axi_bresp : out STD_LOGIC_VECTOR ( 1 downto 0 );
+    s_axi_bvalid : out STD_LOGIC;
+    s_axi_bready : in STD_LOGIC;
+    s_axi_araddr : in STD_LOGIC_VECTOR ( 9 downto 0 );
+    s_axi_arprot : in STD_LOGIC_VECTOR ( 2 downto 0 );
+    s_axi_arvalid : in STD_LOGIC;
+    s_axi_arready : out STD_LOGIC;
+    s_axi_rdata : out STD_LOGIC_VECTOR ( 31 downto 0 );
+    s_axi_rresp : out STD_LOGIC_VECTOR ( 1 downto 0 );
+    s_axi_rvalid : out STD_LOGIC;
+    s_axi_rready : in STD_LOGIC;
+    s_axi_aclk : in STD_LOGIC;
+    s_axi_aresetn : in STD_LOGIC
+  );
+  end component ipmc_bd_ad7689_s_0_0;
+  component ipmc_bd_ad7689_s_1_0 is
+  port (
+    spi_ncs : out STD_LOGIC_VECTOR ( 0 to 0 );
+    spi_clk : out STD_LOGIC;
+    spi_mosi : out STD_LOGIC;
+    spi_miso : in STD_LOGIC;
+    cnv_value_par : out STD_LOGIC_VECTOR ( 143 downto 0 );
+    cnv_valid_par : out STD_LOGIC_VECTOR ( 8 downto 0 );
+    s_axi_awaddr : in STD_LOGIC_VECTOR ( 9 downto 0 );
+    s_axi_awprot : in STD_LOGIC_VECTOR ( 2 downto 0 );
+    s_axi_awvalid : in STD_LOGIC;
+    s_axi_awready : out STD_LOGIC;
+    s_axi_wdata : in STD_LOGIC_VECTOR ( 31 downto 0 );
+    s_axi_wstrb : in STD_LOGIC_VECTOR ( 3 downto 0 );
+    s_axi_wvalid : in STD_LOGIC;
+    s_axi_wready : out STD_LOGIC;
+    s_axi_bresp : out STD_LOGIC_VECTOR ( 1 downto 0 );
+    s_axi_bvalid : out STD_LOGIC;
+    s_axi_bready : in STD_LOGIC;
+    s_axi_araddr : in STD_LOGIC_VECTOR ( 9 downto 0 );
+    s_axi_arprot : in STD_LOGIC_VECTOR ( 2 downto 0 );
+    s_axi_arvalid : in STD_LOGIC;
+    s_axi_arready : out STD_LOGIC;
+    s_axi_rdata : out STD_LOGIC_VECTOR ( 31 downto 0 );
+    s_axi_rresp : out STD_LOGIC_VECTOR ( 1 downto 0 );
+    s_axi_rvalid : out STD_LOGIC;
+    s_axi_rready : in STD_LOGIC;
+    s_axi_aclk : in STD_LOGIC;
+    s_axi_aresetn : in STD_LOGIC
+  );
+  end component ipmc_bd_ad7689_s_1_0;
+  component ipmc_bd_ad7689_s_2_0 is
+  port (
+    spi_ncs : out STD_LOGIC_VECTOR ( 2 downto 0 );
+    spi_clk : out STD_LOGIC;
+    spi_mosi : out STD_LOGIC;
+    spi_miso : in STD_LOGIC;
+    cnv_value_par : out STD_LOGIC_VECTOR ( 431 downto 0 );
+    cnv_valid_par : out STD_LOGIC_VECTOR ( 26 downto 0 );
+    s_axi_awaddr : in STD_LOGIC_VECTOR ( 9 downto 0 );
+    s_axi_awprot : in STD_LOGIC_VECTOR ( 2 downto 0 );
+    s_axi_awvalid : in STD_LOGIC;
+    s_axi_awready : out STD_LOGIC;
+    s_axi_wdata : in STD_LOGIC_VECTOR ( 31 downto 0 );
+    s_axi_wstrb : in STD_LOGIC_VECTOR ( 3 downto 0 );
+    s_axi_wvalid : in STD_LOGIC;
+    s_axi_wready : out STD_LOGIC;
+    s_axi_bresp : out STD_LOGIC_VECTOR ( 1 downto 0 );
+    s_axi_bvalid : out STD_LOGIC;
+    s_axi_bready : in STD_LOGIC;
+    s_axi_araddr : in STD_LOGIC_VECTOR ( 9 downto 0 );
+    s_axi_arprot : in STD_LOGIC_VECTOR ( 2 downto 0 );
+    s_axi_arvalid : in STD_LOGIC;
+    s_axi_arready : out STD_LOGIC;
+    s_axi_rdata : out STD_LOGIC_VECTOR ( 31 downto 0 );
+    s_axi_rresp : out STD_LOGIC_VECTOR ( 1 downto 0 );
+    s_axi_rvalid : out STD_LOGIC;
+    s_axi_rready : in STD_LOGIC;
+    s_axi_aclk : in STD_LOGIC;
+    s_axi_aresetn : in STD_LOGIC
+  );
+  end component ipmc_bd_ad7689_s_2_0;
   signal ARESETN_1 : STD_LOGIC_VECTOR ( 0 to 0 );
   signal Net : STD_LOGIC_VECTOR ( 13 downto 0 );
   signal RTM_HNDL_SW1_1 : STD_LOGIC;
@@ -8084,7 +8084,7 @@ architecture STRUCTURE of ipmc_bd is
   attribute X_INTERFACE_INFO of GPIO_OUT_tri_i : signal is "xilinx.com:interface:gpio:1.0 GPIO_OUT TRI_I";
   attribute X_INTERFACE_INFO of GPIO_OUT_tri_o : signal is "xilinx.com:interface:gpio:1.0 GPIO_OUT TRI_O";
   attribute X_INTERFACE_INFO of GPIO_OUT_tri_t : signal is "xilinx.com:interface:gpio:1.0 GPIO_OUT TRI_T";
-  attribute X_INTERFACE_INFO of XVCTARGET_tri_o : signal is "xilinx.com:interface:gpio:1.0 XVCTARGET ";
+  attribute X_INTERFACE_INFO of XVCTARGET_tri_o : signal is "xilinx.com:interface:gpio:1.0 XVCTARGET TRI_O";
 begin
   ADC_APD_0_spi_clk <= ad7689_s_2_M_ADC_SPI_spi_clk;
   ADC_APD_0_spi_mosi <= ad7689_s_2_M_ADC_SPI_spi_mosi;
@@ -8160,12 +8160,12 @@ ad7689_s_0: component ipmc_bd_ad7689_s_0_0
       cnv_valid_par(8 downto 0) => ad7689_s_0_cnv_valid_par(8 downto 0),
       cnv_value_par(143 downto 0) => ad7689_s_0_cnv_value_par(143 downto 0),
       s_axi_aclk => processing_system7_0_FCLK_CLK0,
-      s_axi_araddr(8 downto 0) => axi_interconnect_0_M00_AXI_ARADDR(8 downto 0),
+      s_axi_araddr(9 downto 0) => axi_interconnect_0_M00_AXI_ARADDR(9 downto 0),
       s_axi_aresetn => proc_sys_reset_0_peripheral_aresetn(0),
       s_axi_arprot(2 downto 0) => axi_interconnect_0_M00_AXI_ARPROT(2 downto 0),
       s_axi_arready => axi_interconnect_0_M00_AXI_ARREADY,
       s_axi_arvalid => axi_interconnect_0_M00_AXI_ARVALID,
-      s_axi_awaddr(8 downto 0) => axi_interconnect_0_M00_AXI_AWADDR(8 downto 0),
+      s_axi_awaddr(9 downto 0) => axi_interconnect_0_M00_AXI_AWADDR(9 downto 0),
       s_axi_awprot(2 downto 0) => axi_interconnect_0_M00_AXI_AWPROT(2 downto 0),
       s_axi_awready => axi_interconnect_0_M00_AXI_AWREADY,
       s_axi_awvalid => axi_interconnect_0_M00_AXI_AWVALID,
@@ -8190,12 +8190,12 @@ ad7689_s_1: component ipmc_bd_ad7689_s_1_0
       cnv_valid_par(8 downto 0) => ad7689_s_1_cnv_valid_par(8 downto 0),
       cnv_value_par(143 downto 0) => ad7689_s_1_cnv_value_par(143 downto 0),
       s_axi_aclk => processing_system7_0_FCLK_CLK0,
-      s_axi_araddr(8 downto 0) => axi_interconnect_0_M01_AXI_ARADDR(8 downto 0),
+      s_axi_araddr(9 downto 0) => axi_interconnect_0_M01_AXI_ARADDR(9 downto 0),
       s_axi_aresetn => proc_sys_reset_0_peripheral_aresetn(0),
       s_axi_arprot(2 downto 0) => axi_interconnect_0_M01_AXI_ARPROT(2 downto 0),
       s_axi_arready => axi_interconnect_0_M01_AXI_ARREADY,
       s_axi_arvalid => axi_interconnect_0_M01_AXI_ARVALID,
-      s_axi_awaddr(8 downto 0) => axi_interconnect_0_M01_AXI_AWADDR(8 downto 0),
+      s_axi_awaddr(9 downto 0) => axi_interconnect_0_M01_AXI_AWADDR(9 downto 0),
       s_axi_awprot(2 downto 0) => axi_interconnect_0_M01_AXI_AWPROT(2 downto 0),
       s_axi_awready => axi_interconnect_0_M01_AXI_AWREADY,
       s_axi_awvalid => axi_interconnect_0_M01_AXI_AWVALID,
@@ -8220,12 +8220,12 @@ ad7689_s_2: component ipmc_bd_ad7689_s_2_0
       cnv_valid_par(26 downto 0) => ad7689_s_2_cnv_valid_par(26 downto 0),
       cnv_value_par(431 downto 0) => ad7689_s_2_cnv_value_par(431 downto 0),
       s_axi_aclk => processing_system7_0_FCLK_CLK0,
-      s_axi_araddr(8 downto 0) => axi_interconnect_0_M09_AXI_ARADDR(8 downto 0),
+      s_axi_araddr(9 downto 0) => axi_interconnect_0_M09_AXI_ARADDR(9 downto 0),
       s_axi_aresetn => proc_sys_reset_0_peripheral_aresetn(0),
       s_axi_arprot(2 downto 0) => axi_interconnect_0_M09_AXI_ARPROT(2 downto 0),
       s_axi_arready => axi_interconnect_0_M09_AXI_ARREADY,
       s_axi_arvalid => axi_interconnect_0_M09_AXI_ARVALID,
-      s_axi_awaddr(8 downto 0) => axi_interconnect_0_M09_AXI_AWADDR(8 downto 0),
+      s_axi_awaddr(9 downto 0) => axi_interconnect_0_M09_AXI_AWADDR(9 downto 0),
       s_axi_awprot(2 downto 0) => axi_interconnect_0_M09_AXI_AWPROT(2 downto 0),
       s_axi_awready => axi_interconnect_0_M09_AXI_AWREADY,
       s_axi_awvalid => axi_interconnect_0_M09_AXI_AWVALID,
@@ -8297,7 +8297,7 @@ axi_gpio_0: component ipmc_bd_axi_gpio_0_0
       s_axi_wstrb(3 downto 0) => axi_interconnect_0_M07_AXI_WSTRB(3 downto 0),
       s_axi_wvalid => axi_interconnect_0_M07_AXI_WVALID
     );
-axi_gpio_hndl_sw: component ipmc_bd_axi_gpio_1_0
+axi_gpio_hndl_sw: component ipmc_bd_axi_gpio_hndl_sw_0
      port map (
       gpio_io_i(2 downto 0) => xlconcat_1_dout(2 downto 0),
       ip2intc_irpt => axi_gpio_1_ip2intc_irpt,
@@ -8321,7 +8321,7 @@ axi_gpio_hndl_sw: component ipmc_bd_axi_gpio_1_0
       s_axi_wstrb(3 downto 0) => axi_interconnect_0_M12_AXI_WSTRB(3 downto 0),
       s_axi_wvalid => axi_interconnect_0_M12_AXI_WVALID
     );
-axi_gpio_xvctarget: component ipmc_bd_axi_gpio_1_1
+axi_gpio_xvctarget: component ipmc_bd_axi_gpio_xvctarget_0
      port map (
       gpio_io_o(1 downto 0) => axi_gpio_xvctarget_GPIO_TRI_O(1 downto 0),
       s_axi_aclk => processing_system7_0_FCLK_CLK0,
@@ -8820,7 +8820,7 @@ debouncer_0: component ipmc_bd_debouncer_0_0
       SIG_IN => SIG_IN_0_1,
       SIG_OUT => debouncer_0_SIG_OUT
     );
-debouncer_1: component ipmc_bd_debouncer_0_1
+debouncer_1: component ipmc_bd_debouncer_1_0
      port map (
       ARESETN_IN => proc_sys_reset_0_peripheral_aresetn(0),
       CLK_IN => processing_system7_0_FCLK_CLK0,
@@ -9064,7 +9064,7 @@ xlconcat_0: component ipmc_bd_xlconcat_0_0
       In6(1 downto 0) => elm_irq(1 downto 0),
       dout(8 downto 0) => xlconcat_0_dout(8 downto 0)
     );
-xlconcat_1: component ipmc_bd_xlconcat_1_1
+xlconcat_1: component ipmc_bd_xlconcat_1_0
      port map (
       In0(0) => debouncer_0_SIG_OUT,
       In1(0) => debouncer_1_SIG_OUT,
