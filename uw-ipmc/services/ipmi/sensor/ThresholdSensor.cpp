@@ -65,57 +65,59 @@ struct ThresholdEvent {
  * any relevant events.
  *
  * @param[in,out] state The current threshold state bitmask
- * @param[in] bit The number of the relevant bit in the threshold state bitmask
- * @param[in] going_high true if this is a going high threshold, else false
+ * @param[in] bit The number of the relevant bit in the threshold state bitmask (Going high/low is inferred from bit 0.)
  * @param[in] threshold The threshold value itself
  * @param[in] hysteresis The hysteresis for this threshold
  * @param[in] value The value to be compared
  * @param[out] events IPMI event data in "Platform Event Message" "Event Data" format.
- * @param[in] force_assert this event to be considered to be asserted (not exclusive to deasserted)
- * @param[in] force_deassert this event to be considered to be deasserted (not exclusive to asserted)
+ * @param[in] force_assert send an assertion event regardless of current value
+ * @param[in] force_deassert send a deassertion event regardless of current value
  */
-static void process_threshold(uint16_t &state, uint8_t bit, bool going_high, uint8_t threshold, uint8_t hysteresis, uint8_t value, std::vector<struct ThresholdEvent> &events, bool force_assert, bool force_deassert) {
-	bool assert = force_assert, deassert = force_deassert;
+static void process_threshold(uint16_t &state, uint8_t bit, uint8_t threshold, uint8_t hysteresis, uint8_t value, std::vector<struct ThresholdEvent> &events, bool force_assert, bool force_deassert) {
+	bool assert = false, deassert = false;
 
-	const int thresh_high = static_cast<int>(threshold) + static_cast<int>(hysteresis);
-	const int thresh_low = static_cast<int>(threshold) - static_cast<int>(hysteresis);
+	const int intthresh = static_cast<int>(threshold);
 	const int intval = static_cast<int>(value);
 
+	const bool going_high = bit & 1;
+
 	if (going_high) {
-		if (intval >= thresh_high)
+		if (intval >= intthresh)
 			assert = true;
-		if (intval < thresh_low)
+		if (intval < intthresh - static_cast<int>(hysteresis))
 			deassert = true;
 	}
 	else {
-		if (intval <= thresh_low)
+		if (intval <= intthresh)
 			assert = true;
-		if (intval > thresh_high)
+		if (intval > intthresh + static_cast<int>(hysteresis))
 			deassert = true;
 	}
 
-	if (state & (1<<bit))
-		assert = false; // Already asserted, no changes to make.
+	const uint16_t old_state = state;
+	if (old_state & (1<<bit))
+		assert = false; // Already asserted, no changes to make. (force is later)
 	else
-		deassert = false; // Already deasserted, no changes to make.
+		deassert = false; // Already deasserted, no changes to make. (force is later)
 
-	if (assert) {
-		// Record the assertion.
+	if (assert)
 		state |= (1<<bit);
-		// Send the appropriate event.
+	if (deassert)
+		state &= ~(1<<bit);
+
+	if (deassert || force_deassert) {
+		// Send deassertion event.
 		struct ThresholdEvent event_data;
-		event_data.direction = Sensor::EVENT_ASSERTION;
+		event_data.direction = Sensor::EVENT_DEASSERTION;
 		event_data.bit = bit;
 		event_data.value = value;
 		event_data.threshold = threshold;
 		events.push_back(event_data);
 	}
-	if (deassert) {
-		// Record the deassertion.
-		state &= ~(1<<bit);
+	if (assert || force_assert) {
 		// Send the appropriate event.
 		struct ThresholdEvent event_data;
-		event_data.direction = Sensor::EVENT_DEASSERTION;
+		event_data.direction = Sensor::EVENT_ASSERTION;
 		event_data.bit = bit;
 		event_data.value = value;
 		event_data.threshold = threshold;
@@ -198,23 +200,23 @@ void ThresholdSensor::update_value(const float value, bool in_context, uint64_t 
 
 	std::vector<struct ThresholdEvent> events;
 
-	process_threshold(this->active_thresholds,  0, false, this->thresholds.lnc, hystl, byteval, events, force_assertions & (1<<0), force_deassertions & (1<<0));
-	process_threshold(this->active_thresholds,  1, true,  this->thresholds.lnc, hysth, byteval, events, force_assertions & (1<<1), force_deassertions & (1<<1));
+	process_threshold(this->active_thresholds,  0, this->thresholds.lnc, hystl, byteval, events, force_assertions & (1<<0), force_deassertions & (1<<0));
+	process_threshold(this->active_thresholds,  1, this->thresholds.lnc, hysth, byteval, events, force_assertions & (1<<1), force_deassertions & (1<<1));
 
-	process_threshold(this->active_thresholds,  2, false, this->thresholds.lcr, hystl, byteval, events, force_assertions & (1<<2), force_deassertions & (1<<2));
-	process_threshold(this->active_thresholds,  3, true,  this->thresholds.lcr, hysth, byteval, events, force_assertions & (1<<3), force_deassertions & (1<<3));
+	process_threshold(this->active_thresholds,  2, this->thresholds.lcr, hystl, byteval, events, force_assertions & (1<<2), force_deassertions & (1<<2));
+	process_threshold(this->active_thresholds,  3, this->thresholds.lcr, hysth, byteval, events, force_assertions & (1<<3), force_deassertions & (1<<3));
 
-	process_threshold(this->active_thresholds,  4, false, this->thresholds.lnr, hystl, byteval, events, force_assertions & (1<<4), force_deassertions & (1<<4));
-	process_threshold(this->active_thresholds,  5, true,  this->thresholds.lnr, hysth, byteval, events, force_assertions & (1<<5), force_deassertions & (1<<5));
+	process_threshold(this->active_thresholds,  4, this->thresholds.lnr, hystl, byteval, events, force_assertions & (1<<4), force_deassertions & (1<<4));
+	process_threshold(this->active_thresholds,  5, this->thresholds.lnr, hysth, byteval, events, force_assertions & (1<<5), force_deassertions & (1<<5));
 
-	process_threshold(this->active_thresholds,  6, false, this->thresholds.unc, hystl, byteval, events, force_assertions & (1<<6), force_deassertions & (1<<6));
-	process_threshold(this->active_thresholds,  7, true,  this->thresholds.unc, hysth, byteval, events, force_assertions & (1<<7), force_deassertions & (1<<7));
+	process_threshold(this->active_thresholds,  6, this->thresholds.unc, hystl, byteval, events, force_assertions & (1<<6), force_deassertions & (1<<6));
+	process_threshold(this->active_thresholds,  7, this->thresholds.unc, hysth, byteval, events, force_assertions & (1<<7), force_deassertions & (1<<7));
 
-	process_threshold(this->active_thresholds,  8, false, this->thresholds.ucr, hystl, byteval, events, force_assertions & (1<<8), force_deassertions & (1<<8));
-	process_threshold(this->active_thresholds,  9, true,  this->thresholds.ucr, hysth, byteval, events, force_assertions & (1<<9), force_deassertions & (1<<9));
+	process_threshold(this->active_thresholds,  8, this->thresholds.ucr, hystl, byteval, events, force_assertions & (1<<8), force_deassertions & (1<<8));
+	process_threshold(this->active_thresholds,  9, this->thresholds.ucr, hysth, byteval, events, force_assertions & (1<<9), force_deassertions & (1<<9));
 
-	process_threshold(this->active_thresholds, 10, false, this->thresholds.unr, hystl, byteval, events, force_assertions & (1<<10), force_deassertions & (1<<10));
-	process_threshold(this->active_thresholds, 11, true,  this->thresholds.unr, hysth, byteval, events, force_assertions & (1<<11), force_deassertions & (1<<11));
+	process_threshold(this->active_thresholds, 10, this->thresholds.unr, hystl, byteval, events, force_assertions & (1<<10), force_deassertions & (1<<10));
+	process_threshold(this->active_thresholds, 11, this->thresholds.unr, hysth, byteval, events, force_assertions & (1<<11), force_deassertions & (1<<11));
 
 	lock.release();
 
