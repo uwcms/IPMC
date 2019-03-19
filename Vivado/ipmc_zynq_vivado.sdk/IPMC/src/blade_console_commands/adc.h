@@ -61,8 +61,8 @@ public:
 
 			{"MGT0.9VT_IMON ", 'i', 10.00, 0.00, 2, 0, ADC::Channel(*adc[2], 3, imon, imon_r)},
 			{"MGT0.9VB_IMON ", 'i', 10.00, 0.00, 2, 0, ADC::Channel(*adc[2], 4, imon, imon_r)},
-			{"MGT1.2VT_IMON ", 'i', 10.00, 0.00, 2, 0, ADC::Channel(*adc[2], 5, imon, imon_r)},
-			{"MGT1.2VB_IMON ", 'i', 10.00, 0.00, 2, 0, ADC::Channel(*adc[2], 6, imon, imon_r)},
+			{"MGT1.2VT_IMON ", 'i', 10.00, 0.00, 2, 0, ADC::Channel(*adc[2], 6, imon, imon_r)},
+			{"MGT1.2VB_IMON ", 'i', 10.00, 0.00, 2, 0, ADC::Channel(*adc[2], 5, imon, imon_r)},
 
 			{"+3.3VFFLY1    ", 'v',  3.30, 0.05, 1, 0, ADC::Channel(*adc[1], 7, 1.649)},
 			{"+3.3VFFLY2    ", 'v',  3.30, 0.05, 0, 0, ADC::Channel(*adc[0], 7, 1.649)},
@@ -110,7 +110,7 @@ public:
 				break;
 			}
 
-			console->write(color + std::to_string(channel.intf) + "/" + std::to_string(channel.slave) + "/" + std::to_string(channel.adc.getChannel()) + " " + channel.name + " " + stdsprintf("%6.3f", value) + " " + uname[channel.unit] + stdsprintf("(0x%04x)", raw) + NORMAL + "\n");
+			console->write(color + std::to_string(channel.intf) + "/" + std::to_string(channel.slave) + "/" + std::to_string(channel.adc.getChannel()) + " " + channel.name + " " + stdsprintf("%6.3f", value) + " " + uname[channel.unit] + " " + stdsprintf("(0x%04x)", raw) + NORMAL + "\n");
 			//console->write(std::to_string(channel.intf) + "/" + std::to_string(channel.slave) + "/" + std::to_string(channel.adc.getChannel()) + " " + channel.name + " " + stdsprintf("%6.3f", (float)channel.adc) + " " + channel.unit + "\n");
 		}
 	}
