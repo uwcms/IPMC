@@ -7,9 +7,9 @@ entity ad7689 is
 
         -- Parameters of Axi Slave Bus Interface s_axi
 		C_s_axi_DATA_WIDTH	: integer	:= 32;
-		C_s_axi_ADDR_WIDTH	: integer	:= 9;
+		C_s_axi_ADDR_WIDTH	: integer	:= 10;
 		
-		C_SLAVES : integer range 1 to 4 := 1;
+		C_SLAVES : integer range 1 to 4 := 3;
 		C_OUT_INTERFACE : string        := "PARALLEL"
 	);
 	port (
@@ -69,23 +69,24 @@ architecture arch_imp of ad7689 is
     signal s_cnv_value : std_logic_vector (15 downto 0);
     signal s_cnv_error : std_logic;
     
-    signal s_ch_value_demuxed : t_array16 (0 to 8);
-    signal s_ch_valid_demuxed : std_logic_vector (8 downto 0);
+    signal d_cnv_value : std_logic_vector (15 downto 0);
+    
+    signal r_cnv_done : std_logic;
+    signal r_cnv_slave : std_logic_vector (1 downto 0);
+    signal r_cnv_channel : std_logic_vector (3 downto 0);
+    signal r_cnv_value : std_logic_vector (15 downto 0);
+    signal r_cnv_error : std_logic;
     
     signal s_measured_sample_freq :  std_logic_vector (31 downto 0); 
     signal s_ch2ch_sample_period :  std_logic_vector (31 downto 0);
     
-    signal s_ovrrd_enables :  std_logic_vector (8 downto 0);
-    
-    signal s_ovrrd_reading_ch :  t_array16 (0 to 8);
+    signal s_adc_override_en : std_logic_vector ((8 * C_SLAVES )-1 downto 0);
+    signal s_adc_override_array : std_logic_vector ((16 * 8 * C_SLAVES )-1 downto 0);
     
     signal s_spi_ncs :  std_logic_vector (C_SLAVES-1 downto 0);
     signal s_spi_clk :  std_logic;
     signal s_spi_mosi :  std_logic;
     signal s_spi_miso :  std_logic;
-        
-    signal s_ref_freq_cnt : unsigned(31 downto 0);
-    signal s_ref_freq_cnt_reset : std_logic;
     
     signal s_measured_freq_cnt : unsigned(31 downto 0);
     
@@ -113,6 +114,8 @@ begin
         measured_sample_cnt_ch0 => s_measured_sample_cnt_ch0,
         
         m_adc_reading_array => r_adc_reading_array,
+        m_adc_override_en => s_adc_override_en,
+        m_adc_override_array => s_adc_override_array,
 
         S_AXI_ACLK	=> s_axi_aclk,
         S_AXI_ARESETN	=> s_axi_aresetn,
@@ -160,109 +163,54 @@ begin
         cnv_error_o => s_cnv_error
 	);
 	
-    process (s_axi_aclk) begin
-        if rising_edge(s_axi_aclk) then
-            if (s_cnv_done = '1') then
-                for i in 0 to C_SLAVES-1 loop
-                    for k in 0 to 8 loop
-                        if ((to_integer(unsigned(s_cnv_slave)) = i) and (to_integer(unsigned(s_cnv_channel)) = k)) then
-                            r_adc_reading_array((i*9 + (k+1))*16-1 downto (i*9 + k)*16) <= s_cnv_value;
-                        end if;
-                    end loop;
-                end loop;
-            end if;
+	d_cnv_value <= s_adc_override_array((to_integer(unsigned(s_cnv_slave))*8 + (to_integer(unsigned(s_cnv_channel(2 downto 0)))+1))*16-1 downto
+	                                    (to_integer(unsigned(s_cnv_slave))*8 + to_integer(unsigned(s_cnv_channel(2 downto 0))))*16)
+	               when s_adc_override_en(to_integer(unsigned(s_cnv_slave))*8 + to_integer(unsigned(s_cnv_channel(2 downto 0)))) = '1' and s_cnv_channel(3) = '0' else s_cnv_value;
+	
+	process (s_axi_aclk) begin
+	   if (rising_edge(s_axi_aclk)) then
+            r_cnv_done <= s_cnv_done;
+            r_cnv_value <= d_cnv_value;
+            r_cnv_slave <= s_cnv_slave;
+            r_cnv_channel <= s_cnv_channel;
+            r_cnv_error <= s_cnv_error;
         end if;
     end process;
 	
---	gen_ch_demux : for idx in 0 to 8 generate begin
-	     
---	    process(s_axi_aclk) is
---	    begin
---	       if rising_edge(s_axi_aclk) then
---	          if ((s_cnv_done = '1') and (to_integer(unsigned(s_cnv_channel)) = idx)) then
-	             
---	             s_ch_valid_demuxed (idx) <= '1';
-	             
---	             if (s_ovrrd_enables(idx) = '0') then
---	               s_ch_value_demuxed(idx) <= s_cnv_value;
---	             else
---	               s_ch_value_demuxed(idx) <= s_ovrrd_reading_ch(idx);
---	             end if;
-	             
---	          else
---	             s_ch_valid_demuxed (idx) <= '0';
---	          end if;
---	       end if;
---	    end process;
-
---	end generate gen_ch_demux;
-
-
---    process(s_axi_aclk) is
---    begin
-    
---    if rising_edge(s_axi_aclk) then
---       s_ref_freq_cnt <= s_ref_freq_cnt + 1;
-       
---       s_ref_freq_cnt_reset <= '0';
-    
---       if (s_ref_freq_cnt = to_unsigned(c_ref_freq, 32)) then
---           s_ref_freq_cnt <= x"00000000";
---           s_ref_freq_cnt_reset <= '1';
---       end if;
---    end if;
---    end process;
-
---    process(s_axi_aclk) is
---    begin
-    
---    if rising_edge(s_axi_aclk) then
-    
---       if (s_ch_valid_demuxed(0) = '1') then
---            s_measured_freq_cnt <= s_measured_freq_cnt + 1;
---       end if;
-       
---       if (s_ref_freq_cnt_reset = '1') then
---           s_measured_freq_cnt <= x"00000000";
---           s_measured_sample_freq <= std_logic_vector(s_measured_freq_cnt);
---       end if;
---    end if;
---    end process;
-   
---    process(s_axi_aclk) is
---    begin
-    
---        if rising_edge(s_axi_aclk) then
-        
---           if (s_mreset = '1') then
---                s_measured_sample_cnt_ch0 <= (others => '0');
---           elsif (s_ch_valid_demuxed(0) = '1') then
---                s_measured_sample_cnt_ch0 <= std_logic_vector(unsigned(s_measured_sample_cnt_ch0) + 1);
---           end if;
-      
---        end if;
---    end process; 
-    
+	GEN_LOOP_SLAVES: for I in 0 to C_SLAVES-1 generate
+       GEN_LOOP_CHANNELS: for K in 0 to 8 generate
+           process (s_axi_aclk) begin
+               if (rising_edge(s_axi_aclk)) then
+                   if (r_cnv_done = '1') then
+                       if ((to_integer(unsigned(r_cnv_slave)) = I) and (to_integer(unsigned(r_cnv_channel)) = K)) then
+                           r_adc_reading_array((I*9 + (K+1))*16-1 downto (I*9 + K)*16) <= r_cnv_value;
+                       end if;
+                   end if;
+               end if;
+           end process;
+       end generate GEN_LOOP_CHANNELS;
+    end generate GEN_LOOP_SLAVES;
+	
     OUT_BUS_GENERATE: if C_OUT_INTERFACE = "BUS" generate
         -- Conv interface
-        cnv_done <= s_cnv_done;
-        cnv_slave <= s_cnv_slave;
-        cnv_channel <= s_cnv_channel;
-        cnv_value <= s_cnv_value;
-        cnv_error <= s_cnv_error;
+        cnv_done <= r_cnv_done;
+        cnv_slave <= r_cnv_slave;
+        cnv_channel <= r_cnv_channel;
+        cnv_value <= r_cnv_value;
+        cnv_error <= r_cnv_error;
     end generate OUT_BUS_GENERATE;
     
     OUT_PARALLEL_GENERATE: if C_OUT_INTERFACE = "PARALLEL" generate
         -- Parallel bus interface
         process (s_axi_aclk) begin
             if rising_edge(s_axi_aclk) then
-                if (s_cnv_done = '1') then
+                if (r_cnv_done = '1') then
                     cnv_value_par <= (others => '0');
                     cnv_valid_par <= (others => '0');
                     for i in 0 to C_SLAVES-1 loop
                         for k in 0 to 8 loop
-                            if ((to_integer(unsigned(s_cnv_slave)) = i) and (to_integer(unsigned(s_cnv_channel)) = k)) then
-                                cnv_value_par((i*9 + (k+1))*16-1 downto (i*9 + k)*16) <= s_cnv_value;
+                            if ((to_integer(unsigned(r_cnv_slave)) = i) and (to_integer(unsigned(r_cnv_channel)) = k)) then
+                                cnv_value_par((i*9 + (k+1))*16-1 downto (i*9 + k)*16) <= r_cnv_value;
                                 cnv_valid_par(i*9 + k) <= '1'; 
                             end if;
                         end loop;

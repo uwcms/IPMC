@@ -13,13 +13,15 @@ entity ad7689_v0_1_s_axi is
 	);
 	port (
 
+        -- Users to add ports here
         reset : out std_logic; 
         ch2ch_sample_period : out std_logic_vector (31 downto 0); -- Channel to channel sample delay (-> sampling frequency)
         measured_sample_freq : in std_logic_vector (31 downto 0); -- Per channel actual sample frequency
         measured_sample_cnt_ch0 : in std_logic_vector (31 downto 0); -- number of ch0 conv samples (w/ reset, counter waraps around)
         
-        -- Users to add ports here
         m_adc_reading_array : in std_logic_vector ((16 * 9 * C_SLAVES )-1 downto 0);
+        m_adc_override_en : out std_logic_vector ((8 * C_SLAVES )-1 downto 0);
+        m_adc_override_array : out std_logic_vector ((16 * 8 * C_SLAVES )-1 downto 0);
         -- User ports ends
         -- Do not modify the ports beyond this line
 
@@ -106,7 +108,7 @@ architecture arch_imp of ad7689_v0_1_s_axi is
 	-- ADDR_LSB = 2 for 32 bits (n downto 2)
 	-- ADDR_LSB = 3 for 64 bits (n downto 3)
 	constant ADDR_LSB  : integer := (C_S_AXI_DATA_WIDTH/32)+ 1;
-	constant OPT_MEM_ADDR_BITS : integer := 6;
+	constant OPT_MEM_ADDR_BITS : integer := 7;
 	------------------------------------------------
 	---- Signals for user logic register space example
 	--------------------------------------------------
@@ -116,6 +118,8 @@ architecture arch_imp of ad7689_v0_1_s_axi is
     constant C_CH2CH_SAMPLE_PERIOD : std_logic_vector (31 downto 0) := x"00000738";
     
     signal s_ch2ch_sample_period : std_logic_vector (31 downto 0) := C_CH2CH_SAMPLE_PERIOD;  -- default 3kHz 
+    signal s_adc_override_en : std_logic_vector ((8 * C_SLAVES )-1 downto 0) := (others => '0');
+    signal s_adc_override_array : std_logic_vector ((16 * 8 * C_SLAVES )-1 downto 0) := (others => '0');
 
 	signal slv_reg_rden	: std_logic;
 	signal slv_reg_wren	: std_logic;
@@ -291,10 +295,14 @@ begin
 
 	-- Output register or memory read data
 	process( S_AXI_ACLK, axi_araddr) is
-	   variable loc_addr :std_logic_vector(OPT_MEM_ADDR_BITS downto 0);
+	   variable loc_addr : std_logic_vector(OPT_MEM_ADDR_BITS downto 0);
+	   variable loc_slave : integer range 0 to C_SLAVES-1;
+	   variable loc_ch : integer range 0 to 8;
 	begin
 	  -- Address decoding for reading registers
       loc_addr := axi_araddr(ADDR_LSB + OPT_MEM_ADDR_BITS downto ADDR_LSB);
+      loc_slave := to_integer(unsigned(loc_addr(5 downto 4)));
+      loc_ch := to_integer(unsigned(loc_addr(3 downto 0)));
 	
 	  if (rising_edge (S_AXI_ACLK)) then
 	    if ( S_AXI_ARESETN = '0' ) then
@@ -307,57 +315,63 @@ begin
 	        -- Read address mux
 	        axi_rdata <= (others => '0'); -- Default
 	        
-	        if (loc_addr(6) = '1') then
-	           for i in 0 to C_SLAVES-1 loop
-	               if (to_integer(unsigned(loc_addr(5 downto 4))) = i) then
-	                   for k in 0 to 8 loop
-	                       if (to_integer(unsigned(loc_addr(3 downto 0))) = k) then
-	                           axi_rdata(15 downto 0) <= m_adc_reading_array((i*9 + (k+1))*16-1 downto (i*9 + k)*16);
-	                       end if;
-	                   end loop;
-	               end if;
-	           end loop;
-	        else
-	           -- Control bits
+            if (loc_addr(7 downto 6) = "00") then
+               -- Control bits
                 case loc_addr(2 downto 0) is
                     when b"000" => axi_rdata(0) <= s_reset;
                     when b"001" => axi_rdata(31 downto 0) <= s_ch2ch_sample_period;
                     when b"010" => axi_rdata(31 downto 0) <= measured_sample_freq;
                     when b"011" => axi_rdata(31 downto 0) <= measured_sample_cnt_ch0;
+                    when b"100" => axi_rdata((8 * C_SLAVES)-1 downto 0) <= s_adc_override_en;
                     when others => axi_rdata <= (others => '0');
                 end case;
-	        end if;
-	      end if;   
+            elsif (loc_addr(7 downto 6) = "01") then
+                axi_rdata(15 downto 0) <= m_adc_reading_array((loc_slave*9 + (loc_ch+1))*16-1 downto (loc_slave*9 + loc_ch)*16);
+            else
+                axi_rdata(15 downto 0) <= s_adc_override_array((loc_slave*8 + (loc_ch+1))*16-1 downto (loc_slave*8 + loc_ch)*16);
+            end if;
+	        
+	      end if;
 	    end if;
 	  end if;
 	end process;
 	
-	process (S_AXI_ACLK)
+    process (S_AXI_ACLK)
     variable loc_addr : std_logic_vector(OPT_MEM_ADDR_BITS downto 0); 
+    variable loc_slave : integer range 0 to C_SLAVES-1;
+    variable loc_ch : integer range 0 to 8;
     begin
-      if rising_edge(S_AXI_ACLK) then 
-        if (S_AXI_ARESETN = '0') then
+        if rising_edge(S_AXI_ACLK) then 
+            if (S_AXI_ARESETN = '0') then
             -- Defaults after reset
             s_reset <= '0';
             s_ch2ch_sample_period <= C_CH2CH_SAMPLE_PERIOD;
-        else
-          loc_addr := axi_awaddr(ADDR_LSB + OPT_MEM_ADDR_BITS downto ADDR_LSB);
-          
-          if (slv_reg_wren = '1' and loc_addr(6 downto 3) = "0000") then
-            case loc_addr(2 downto 0) is
-              when b"000" =>  s_reset <= S_AXI_WDATA (0);
-              when b"001" =>  s_ch2ch_sample_period <= S_AXI_WDATA (31 downto 0);    
-              when others => -- Nothing
-    
-            end case;
-          end if;
-        end if;
-      end if;                   
+            else
+                loc_addr := axi_awaddr(ADDR_LSB + OPT_MEM_ADDR_BITS downto ADDR_LSB);
+                loc_slave := to_integer(unsigned(loc_addr(5 downto 4)));
+                loc_ch := to_integer(unsigned(loc_addr(3 downto 0)));
+                
+                if (slv_reg_wren = '1') then
+                    if (loc_addr(7 downto 6) = "00") then
+                        case loc_addr(5 downto 0) is
+                            when b"000000" =>  s_reset <= S_AXI_WDATA (0);
+                            when b"000001" =>  s_ch2ch_sample_period <= S_AXI_WDATA (31 downto 0);  
+                            when b"000100" =>  s_adc_override_en <= S_AXI_WDATA ((8 * C_SLAVES)-1 downto 0);
+                            when others => -- Nothing
+                        end case;
+                    elsif (loc_addr(7 downto 6) = "10") then
+                        s_adc_override_array((loc_slave*8 + (loc_ch+1))*16-1 downto (loc_slave*8 + loc_ch)*16) <= S_AXI_WDATA (15 downto 0);
+                    end if;
+                end if;
+            end if;
+        end if;                   
     end process; 
     
     -------------------------------------------------------	
 	
 	reset <= s_reset;
     ch2ch_sample_period <= s_ch2ch_sample_period;
+    m_adc_override_en <= s_adc_override_en;
+    m_adc_override_array <= s_adc_override_array;
 
 end arch_imp;

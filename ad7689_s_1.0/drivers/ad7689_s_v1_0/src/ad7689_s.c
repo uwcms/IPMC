@@ -11,12 +11,12 @@
 #define CH2CH_SAMPLE_CLK_PERIOD_REG 		(4)
 #define	SAMPLE_FREQ_MEAS_REG 				(8)
 #define	SAMPLE_CH0_CNT_REG 					(12)
-
-#define OVRRD_MASTER_EN_REG 				(16)
-#define OVRRD_ENABLES_REG 					(20)
+#define OVRRD_ENABLES_REG 					(16)
 
 #define ADC_VAL_OFFSET						0x100
 #define ADC_SLAVE_OFFSET					0x40
+
+#define OVRRD_VAL_OFFSET                    0x200
 
 #define OVRRD_VAL_CH0_REG 					(80)
 
@@ -284,58 +284,6 @@ XStatus AD7689_S_Get_Reading(AD7689_S *InstancePtr, u8 slave, u8 ch, u16 *val)
 
 /******************************************************************************/
 /**
-* Master enable/disable override mode
-*
-* @param	InstancePtr is a pointer to an AD7689_S instance. The memory the
-*		pointer references must be pre-allocated by the caller. Further
-*		calls to manipulate the driver through the AD7689_S API must be
-*		made with this pointer.
-*
-* @param 	enable (if non-zero, master enable override mode, zero globally disables it)
-*
-* @return   void
-*
-* @note		None
-*
-******************************************************************************/
-void AD7689_S_Set_Master_Ovrrd_Enable(AD7689_S *InstancePtr, u32 enable)
-{
-	u32 master_ovvrd_enable_reg = 0;
-
-	if (enable  != 0 )
-		master_ovvrd_enable_reg = MASTER_OVVRD_ENABLE_VAL;
-
-	AD7689_S_WriteReg(InstancePtr->BaseAddress, OVRRD_MASTER_EN_REG, master_ovvrd_enable_reg);
-}
-
-/******************************************************************************/
-/**
-* Get override mode setting
-*
-* @param	InstancePtr is a pointer to an AD7689_S instance. The memory the
-*		pointer references must be pre-allocated by the caller. Further
-*		calls to manipulate the driver through the AD7689_S API must be
-*		made with this pointer.
-*
-* @return   1 if master override mode enabled, 0 if disabled
-*
-* @note		None
-*
-******************************************************************************/
-u32 AD7689_S_Get_Master_Ovrrd_Enable(AD7689_S *InstancePtr)
-{
-	u32 master_ovvrd_enable_reg;
-	master_ovvrd_enable_reg = AD7689_S_ReadReg(InstancePtr->BaseAddress, OVRRD_MASTER_EN_REG);
-
-	if (master_ovvrd_enable_reg  != MASTER_OVVRD_ENABLE_VAL )
-		return  0;
-	else
-		return 1;
-
-}
-
-/******************************************************************************/
-/**
 * Set per channel enable/disable override mask
 *
 * @param	InstancePtr is a pointer to an AD7689_S instance. The memory the
@@ -394,12 +342,12 @@ u32 AD7689_S_Get_Ch_Ovrrd_Enables(AD7689_S *InstancePtr)
 * @note		None
 *
 ******************************************************************************/
-XStatus AD7689_S_Set_Ovrrd_Val(AD7689_S *InstancePtr, u8 ch, u16 ovrrd_val)
+XStatus AD7689_S_Set_Ovrrd_Val(AD7689_S *InstancePtr, u8 slave, u8 ch, u16 ovrrd_val)
 {
-	if (ch > 8)
+	if ((slave > InstancePtr->SlaveCount) || (ch > 7))
 		return XST_INVALID_PARAM;
 
-	AD7689_S_WriteReg(InstancePtr->BaseAddress, OVRRD_VAL_CH0_REG + ch * 4, ovrrd_val);
+	AD7689_S_WriteReg(InstancePtr->BaseAddress, OVRRD_VAL_OFFSET + ADC_SLAVE_OFFSET * slave + (ch << 2), ovrrd_val);
 
 	return XST_SUCCESS;
 }
@@ -414,7 +362,7 @@ XStatus AD7689_S_Set_Ovrrd_Val(AD7689_S *InstancePtr, u8 ch, u16 ovrrd_val)
 *		made with this pointer.
 *
 * @param 	ch is requested channel number
-* 			valid range: [0-8] where 0-7 is ADC input, 8 is ADC internal temperature
+* 			valid range: [0-8] where 0-7 is ADC input
 *
 * @param 	ovrrd_val is pointer to 16-bit ADC channel override value
 *
@@ -424,12 +372,12 @@ XStatus AD7689_S_Set_Ovrrd_Val(AD7689_S *InstancePtr, u8 ch, u16 ovrrd_val)
 * @note		None
 *
 ******************************************************************************/
-XStatus AD7689_S_Get_Ovrrd_Val(AD7689_S *InstancePtr, u8 ch, u16 * ovrrd_val)
+XStatus AD7689_S_Get_Ovrrd_Val(AD7689_S *InstancePtr, u8 slave, u8 ch, u16 * ovrrd_val)
 {
-	if (ch > 8)
+	if ((slave > InstancePtr->SlaveCount) || (ch > 7))
 		return XST_INVALID_PARAM;
 
-	*ovrrd_val = (u16)AD7689_S_ReadReg(InstancePtr->BaseAddress, OVRRD_VAL_CH0_REG + ch * 4);
+	*ovrrd_val = (u16)AD7689_S_ReadReg(InstancePtr->BaseAddress, OVRRD_VAL_OFFSET + ADC_SLAVE_OFFSET * slave + (ch << 2));
 
 	return XST_SUCCESS;
 }
