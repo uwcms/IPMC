@@ -10,6 +10,7 @@
 
 #include <FreeRTOS.h>
 #include <drivers/generics/ADC.h>
+#include <services/console/CommandParser.h>
 #include "ad7689_s.h"
 
 class AD7689 : public ADC {
@@ -23,6 +24,11 @@ public:
 	virtual uint16_t getRawReading(uint8_t channel) const;
 	virtual float convertReading(uint16_t raw_reading) const;
 	virtual uint16_t convertReading(float reading) const;
+
+	void register_console_commands(CommandParser &parser, const std::string &prefix="");
+	void deregister_console_commands(CommandParser &parser, const std::string &prefix="");
+
+	friend class adc_override;
 
 private:
 	mutable AD7689_S adc = {0};

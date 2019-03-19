@@ -101,10 +101,6 @@ public:
 		typedef HexInt<uint16_t> xint16_t; ///< Base16 converted uint16_t
 		typedef HexInt<uint8_t>  xint8_t;  ///< Base16 converted uint8_t
 
-	protected:
-		/// \overload
-		bool parse_parameters(int start, bool total_parse) const { configASSERT(0); return false; /* We should never get here, but typing requires it. */ };
-
 		/// Parse one argument.
 		static bool parse_one(const std::string &arg, xint32_t *x32val);
 		/// overload
@@ -129,6 +125,10 @@ public:
 		static bool parse_one(const std::string &arg, double *dblval);
 		/// overload
 		static bool parse_one(const std::string &arg, std::string *strval);
+
+	protected:
+		/// \overload
+		bool parse_parameters(int start, bool total_parse) const { configASSERT(0); return false; /* We should never get here, but typing requires it. */ };
 	};
 
 	/**
