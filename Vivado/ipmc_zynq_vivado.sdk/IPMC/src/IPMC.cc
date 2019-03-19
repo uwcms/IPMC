@@ -231,6 +231,10 @@ void driver_init(bool use_pl) {
 			adc[i+2] = new AD7689(XPAR_AD7689_S_2_DEVICE_ID, i);
 		}
 
+		for (int i = 0; i < 5; i++) {
+			adc[i]->register_console_commands(console_command_parser, stdsprintf("adc%d.", i));
+		}
+
 		xadc = new PS_XADC(XPAR_XADCPS_0_DEVICE_ID);
 
 #define DACRSTn_PIN			0

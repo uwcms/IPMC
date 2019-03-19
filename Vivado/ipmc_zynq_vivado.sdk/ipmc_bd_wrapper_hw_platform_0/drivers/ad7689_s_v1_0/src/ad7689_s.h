@@ -45,17 +45,13 @@ u32 AD7689_S_Get_Conv_Cnt(AD7689_S *InstancePtr);
 
 XStatus AD7689_S_Get_Reading(AD7689_S *InstancePtr, u8 slave, u8 ch, u16 *val);
 
-void AD7689_S_Set_Master_Ovrrd_Enable(AD7689_S *InstancePtr, u32 enable);
-
-u32 AD7689_S_Get_Master_Ovrrd_Enable(AD7689_S *InstancePtr);
-
 void AD7689_S_Set_Ch_Ovrrd_Enables(AD7689_S *InstancePtr, u32 enables);
 
 u32 AD7689_S_Get_Ch_Ovrrd_Enables(AD7689_S *InstancePtr);
 
-XStatus AD7689_S_Set_Ovrrd_Val(AD7689_S *InstancePtr, u8 ch, u16 ovrrd_val);
+XStatus AD7689_S_Set_Ovrrd_Val(AD7689_S *InstancePtr, u8 slave, u8 ch, u16 ovrrd_val);
 
-XStatus AD7689_S_Get_Ovrrd_Val(AD7689_S *InstancePtr, u8 ch, u16 * ovrrd_val);
+XStatus AD7689_S_Get_Ovrrd_Val(AD7689_S *InstancePtr, u8 slave, u8 ch, u16 * ovrrd_val);
 
 
 #ifdef __cplusplus
