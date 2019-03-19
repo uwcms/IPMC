@@ -107,7 +107,7 @@ PayloadManager::PayloadManager(MStateMachine *mstate_machine, LogTree &log)
 		{ "+1.2VPHY",      ADCSensor("+1.2VPHY",      2, 1, ADC::Channel(*adc[3], 2),                 24,  1) },
 		{ "+1.2VMGTT",     ADCSensor("+1.2VMGTT",     2, 1, ADC::Channel(*adc[3], 3),                 25,  1) },
 		{ "+1.2VMGTB",     ADCSensor("+1.2VMGTB",     2, 1, ADC::Channel(*adc[3], 4),                 26,  1) },
-		{ "VLUTVDDIO",     ADCSensor("VLUTVDDIO",     2, 1, ADC::Channel(*adc[3], 5),                 27,  3) },
+		{ "+1.2VLUTVDDIO",     ADCSensor("+1.2VLUTVDDIO",     2, 1, ADC::Channel(*adc[3], 5),                 27,  3) },
 		{ "+1.05VMGTT",    ADCSensor("+1.05VMGTT",    2, 1, ADC::Channel(*adc[3], 6),                 28,  1) },
 		{ "+1.05VMGTB",    ADCSensor("+1.05VMGTB",    2, 1, ADC::Channel(*adc[3], 7),                 29,  1) },
 
@@ -147,7 +147,7 @@ PayloadManager::PayloadManager(MStateMachine *mstate_machine, LogTree &log)
 		"+3.55VBULK",
 	});
 	const uint64_t hfm_PWRENA_3 = calc_hf_mask({"+3.3VDD", "+1.8VDD"});
-	const uint64_t hfm_PWRENA_LUT = calc_hf_mask({"+12VPYLD", "VLUTVDDIO"});
+	const uint64_t hfm_PWRENA_LUT = calc_hf_mask({"+12VPYLD", "+1.2VLUTVDDIO"});
 	const uint64_t hfm_PWRENA_4 = calc_hf_mask({"+0.9VMGTT", "+0.9VMGTB"});
 	const uint64_t hfm_PWRENA_5 = calc_hf_mask({
 		"+1.2VMGTT",
@@ -280,7 +280,7 @@ PayloadManager::PayloadManager(MStateMachine *mstate_machine, LogTree &log)
 				140);
 		this->mgmt_zones[3]->get_pen_config(pen_config);
 
-		// PWRENA_LUT, VLUTVDDIO
+		// PWRENA_LUT, +1.2VLUTVDDIO
 		pen_config[8].drive_enabled = true;
 		pen_config[8].active_high = true;
 		pen_config[8].enable_delay = 30;
@@ -616,11 +616,12 @@ void PayloadManager::run_sensor_thread() {
 							continue;
 						}
 						bool in_context = true;
-						if (adcsensor.second.mz_context) {
+						if (adcsensor.second.mz_context >= 0) {
 							bool transitioning = false;
 							bool active = this->mgmt_zones[adcsensor.second.mz_context]->get_power_state(&transitioning);
 							in_context = active && !transitioning;
 						}
+						ipmisensor->log.log(stdsprintf("Sensor Processor event for %s at reading %f: +0x%04x -0x%04x", ipmisensor->sensor_identifier().c_str(), adcsensor.second.adc.convert_from_raw(event.reading_from_isr), event.event_thresholds_assert, event.event_thresholds_deassert), LogTree::LOG_DIAGNOSTIC);
 						ipmisensor->update_value(adcsensor.second.adc.convert_from_raw(event.reading_from_isr), in_context, UINT64_MAX, event.event_thresholds_assert, event.event_thresholds_deassert);
 					}
 				}
@@ -640,11 +641,12 @@ void PayloadManager::run_sensor_thread() {
 
 			float reading = (float)adcsrec.second.adc;
 			bool in_context = true;
-			if (adcsrec.second.mz_context) {
+			if (adcsrec.second.mz_context >= 0) {
 				bool transitioning = false;
 				bool active = this->mgmt_zones[adcsrec.second.mz_context]->get_power_state(&transitioning);
 				in_context = active && !transitioning;
 			}
+			ipmisensor->log.log(stdsprintf("Standard ADC read for %s shows %f %s context.", ipmisensor->sensor_identifier().c_str(), reading, (in_context ? "in" : "out of")), LogTree::LOG_TRACE);
 			ipmisensor->update_value(reading, in_context);
 		}
 	}
@@ -839,12 +841,20 @@ public:
 				std::shared_ptr<ThresholdSensor> sensor = std::dynamic_pointer_cast<ThresholdSensor>(sensorinfo.second);
 				if (sensor) {
 					ThresholdSensor::Value value = sensor->get_value();
-					out += stdsprintf("%-30s %9.6f (raw %3hhu; event 0x%04hu; %-5s context)\n",
+
+					static const std::string threshold_names[6] = {"lnc", "lcr", "lnr", "unc", "ucr", "unr"};
+					std::string thresholds;
+					for (int i = 0; i < 6; ++i)
+						if (value.active_thresholds & 1<<i)
+							thresholds += std::string(" ") + threshold_names[i];
+
+					out += stdsprintf("%-30s %9.6f (raw %3hhu; %-6s context; event 0x%04hu%s)\n",
 							sensorinfo.second->sensor_identifier().c_str(),
 							value.float_value,
 							value.byte_value,
+							(value.in_context ? "in" : "out of"),
 							value.active_thresholds,
-							(value.in_context ? "in" : "out of"));
+							thresholds.c_str());
 					continue;
 				}
 			}
