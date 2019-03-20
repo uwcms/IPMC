@@ -107,7 +107,7 @@ PayloadManager::PayloadManager(MStateMachine *mstate_machine, LogTree &log)
 		{ "+1.2VPHY",      ADCSensor("+1.2VPHY",      2, 1, ADC::Channel(*adc[3], 2),                 24,  1) },
 		{ "+1.2VMGTT",     ADCSensor("+1.2VMGTT",     2, 1, ADC::Channel(*adc[3], 3),                 25,  1) },
 		{ "+1.2VMGTB",     ADCSensor("+1.2VMGTB",     2, 1, ADC::Channel(*adc[3], 4),                 26,  1) },
-		{ "+1.2VLUTVDDIO",     ADCSensor("+1.2VLUTVDDIO",     2, 1, ADC::Channel(*adc[3], 5),                 27,  3) },
+		{ "+1.2VLUTVDDIO", ADCSensor("+1.2VLUTVDDIO", 2, 1, ADC::Channel(*adc[3], 5),                 27,  3) },
 		{ "+1.05VMGTT",    ADCSensor("+1.05VMGTT",    2, 1, ADC::Channel(*adc[3], 6),                 28,  1) },
 		{ "+1.05VMGTB",    ADCSensor("+1.05VMGTB",    2, 1, ADC::Channel(*adc[3], 7),                 29,  1) },
 
