@@ -52,7 +52,7 @@ public:
 	typedef struct {
 		float float_value; ///< The raw float value, NAN if no value is available.
 		uint8_t byte_value; ///< The IPMI byte value, 0xFF if no SDR is available (but 0xFF is a valid value).
-		uint16_t active_thresholds; ///< The currently active thresholds in IPMI "Get Sensor Reading" order.
+		uint16_t active_thresholds; ///< The currently active thresholds in IPMI "Platform Event" format.
 		bool in_context; ///< True if the sensor was in context and processing events as of last reading.
 	} Value;
 
@@ -63,7 +63,7 @@ public:
 protected:
 	float last_value; ///< The last value stored.
 	uint64_t value_expiration; ///< The timestamp at which the value is no longer valid.
-	uint16_t active_thresholds; ///< Currently active thresholds.
+	uint16_t active_thresholds; ///< Currently active thresholds in "Platform Event" format
 	bool in_context; ///< True if the sensor is in context and should process events.
 	SemaphoreHandle_t value_mutex; ///< A mutex protecting value fields.
 };
