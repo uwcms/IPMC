@@ -161,6 +161,7 @@ PS_UART::PS_UART(u32 DeviceId, u32 IntrId, u32 ibufsize, u32 obufsize) :
 	XUartPs_SetRecvTimeout(&this->UartInst, 8); // My example says this is u32s, the comments say its nibbles, the TRM says its baud_sample_clocks.
 
 	// Enable receive interrupts
+	this->enableInterrupts();
 	enableRecvInterrupts();
 }
 

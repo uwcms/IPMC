@@ -22,7 +22,7 @@
 class ELM {
 public:
 	ELM(UART *uart, PL_GPIO *gpio);
-	~ELM();
+	virtual ~ELM();
 
 	class Channel;
 

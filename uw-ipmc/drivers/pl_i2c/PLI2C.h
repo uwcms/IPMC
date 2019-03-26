@@ -8,9 +8,10 @@
 #ifndef SRC_COMMON_UW_IPMC_DRIVERS_PL_I2C_PLI2C_H_
 #define SRC_COMMON_UW_IPMC_DRIVERS_PL_I2C_PLI2C_H_
 
+#include <drivers/generics/I2C.h>
+#include <drivers/InterruptBasedDriver.h>
 #include <functional>
 #include <xiic.h>
-#include "drivers/generics/I2C.h"
 #include "semphr.h"
 
 /**
@@ -19,7 +20,7 @@
  * Simple IIC wrapper supporting interrupts and I2C master operations.
  * No repeated start support at this moment.
  */
-class PL_I2C : public I2C {
+class PL_I2C : public I2C, protected InterruptBasedDriver {
 public:
 	/**
 	 * Instantiate a PL_I2C driver.
@@ -35,9 +36,11 @@ public:
 	size_t read(uint8_t addr, uint8_t *buf, size_t len, TickType_t timeout=portMAX_DELAY);
 	size_t write(uint8_t addr, const uint8_t *buf, size_t len, TickType_t timeout=portMAX_DELAY);
 
+protected:
+	void _InterruptHandler();
+
 private:
 	uint16_t DeviceId; ///< Used internally.
-	uint32_t IntrId; ///< Used internally.
 	XIic IicInst;  ///< Used internally.
 
 public:

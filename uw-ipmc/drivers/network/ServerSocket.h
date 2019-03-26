@@ -24,8 +24,7 @@ public:
 	 * @param backlog number of backlogs
 	 */
 	ServerSocket(unsigned short port, int backlog = 3, std::string address = "0.0.0.0");
-
-	~ServerSocket();
+	virtual ~ServerSocket();
 
 	/**
 	 * Creates the listening socket and binds to the current port and address

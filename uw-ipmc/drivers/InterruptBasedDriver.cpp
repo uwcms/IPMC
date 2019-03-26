@@ -52,7 +52,7 @@ void InterruptBasedDriver::connectInterrupt() {
 	if (XST_SUCCESS !=
 		XScuGic_Connect(&xInterruptController, this->intr, InterruptBasedDriver::_InterruptWrapper, (void*)this))
 		throw except::hardware_error("Unable to connect handler to interrupt controller.");
-	this->enableInterrupts();
+	//this->enableInterrupts();
 
 	this->connected = true;
 }
@@ -62,6 +62,9 @@ void InterruptBasedDriver::disableInterrupts() {
 }
 
 void InterruptBasedDriver::enableInterrupts() {
+	if (!this->connected) {
+		throw except::hardware_error("Driver does not have an interrupt connected to it.");
+	}
 	XScuGic_Enable(&xInterruptController, this->intr);
 }
 

@@ -27,7 +27,7 @@ public:
 	 * @param IntrId The interrupt ID associated with the IP.
 	 */
 	PL_SPI(uint16_t DeviceId, uint32_t IntrId);
-	~PL_SPI();
+	virtual ~PL_SPI();
 
 	bool transfer(u8 cs, const u8 *sendbuf, u8 *recvbuf, size_t bytes, TickType_t timeout);
 	bool transfer_unsafe(const u8 *sendbuf, u8 *recvbuf, size_t bytes, TickType_t timeout);

@@ -29,7 +29,7 @@ public:
 		configASSERT(this->mutex);
 	};
 
-	~AtomicitySupport() {
+	virtual ~AtomicitySupport() {
 		vSemaphoreDelete(this->mutex);
 	};
 

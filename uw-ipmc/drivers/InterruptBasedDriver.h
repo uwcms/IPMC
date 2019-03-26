@@ -16,6 +16,9 @@
  * Base class for a driver that is interrupt driven.
  * Includes the declaration of the interrupt handler and the implementation
  * of the connect function that needs to be called to enabled interrupts.
+ *
+ * InterruptBasedDriver::enableInterrupts needs to be called when driver
+ * finishes initialization in order to enable interrupts.
  */
 class InterruptBasedDriver {
 protected:

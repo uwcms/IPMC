@@ -35,7 +35,7 @@ public:
 	 * @param IntrId The device interrupt ID from GIC, normally XPAR_FABRIC_AXI_GPIO_<>.
 	 **/
 	PL_GPIO(uint16_t DeviceId, uint32_t IntrId);
-	~PL_GPIO() {};
+	virtual ~PL_GPIO() {};
 
 	///! Possible channels, GPIO_CHANNEL1 is the default in all operation.
 	enum Channel {

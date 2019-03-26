@@ -33,7 +33,7 @@ public:
 	 * @warning If flash isn't assigned then programming features won't be available.
 	 */
 	ESM(UART *uart, ResetPin *esm_reset = NULL, Flash *flash = NULL, ResetPin *flash_reset = NULL);
-	~ESM();
+	virtual ~ESM();
 
 	///! Possible returns from ESM::command.
 	typedef enum {

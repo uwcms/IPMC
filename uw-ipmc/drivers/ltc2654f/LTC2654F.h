@@ -39,7 +39,7 @@ public:
 	};
 
 	LTC2654F(SPIMaster& spi, uint8_t cs, bool is12Bits);
-	~LTC2654F() {};
+	virtual ~LTC2654F() {};
 
 	/**
 	 *

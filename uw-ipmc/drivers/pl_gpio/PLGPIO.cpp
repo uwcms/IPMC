@@ -37,6 +37,8 @@ PL_GPIO::PL_GPIO(uint16_t DeviceId, uint32_t IntrId)
 
 		XGpio_InterruptEnable(&(this->Gpio), XGPIO_IR_MASK);
 		XGpio_InterruptGlobalEnable(&(this->Gpio));
+
+		this->enableInterrupts();
 	}
 }
 

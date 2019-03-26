@@ -19,11 +19,6 @@
 #include <libs/printf.h>
 #include <libs/except.h>
 
-static void XIicPs_VariableLengthSlaveInterruptHandler(XIicPs *InstancePtr);
-
-static void PS_IPMB_InterruptPassthrough(PS_IPMB *ps_ipmb, u32 StatusEvent) {
-	ps_ipmb->_HandleInterrupt(StatusEvent);
-}
 
 /**
  * Instantiate a PS_IPMB driver.
@@ -34,12 +29,11 @@ static void PS_IPMB_InterruptPassthrough(PS_IPMB *ps_ipmb, u32 StatusEvent) {
  * \param IntrId               The interrupt ID, for configuring the GIC.
  * \param IPMBAddr             The IPMB slave address to listen on.
  */
-PS_IPMB::PS_IPMB(u16 DeviceId, u32 IntrId, u8 IPMBAddr) :
+PS_IPMB::PS_IPMB(u16 DeviceId, u32 IntrId, u8 IPMBAddr) : InterruptBasedDriver(IntrId),
 		IPMBAddr(IPMBAddr), messages_received(stdsprintf("ipmb0.ps_ipmb.%hu.messages_received", DeviceId)),
 		invalid_messages_received(stdsprintf("ipmb0.ps_ipmb.%hu.invalid_messages_received", DeviceId)),
 		incoming_messages_missed(stdsprintf("ipmb0.ps_ipmb.%hu.incoming_messages_missed", DeviceId)),
-		unexpected_send_result_interrupts(stdsprintf("ipmb0.ps_ipmb.%hu.unexpected_send_result_interrupts", DeviceId)),
-		IntrId(IntrId) {
+		unexpected_send_result_interrupts(stdsprintf("ipmb0.ps_ipmb.%hu.unexpected_send_result_interrupts", DeviceId)) {
 	this->mutex = xSemaphoreCreateMutex();
 	configASSERT(this->mutex);
 
@@ -56,29 +50,27 @@ PS_IPMB::PS_IPMB(u16 DeviceId, u32 IntrId, u8 IPMBAddr) :
 PS_IPMB::~PS_IPMB() {
 	vQueueDelete(this->sendresult_q);
 	vSemaphoreDelete(this->mutex);
-	XScuGic_Disable(&xInterruptController, this->IntrId);
-	XScuGic_Disconnect(&xInterruptController, this->IntrId);
 }
 
 /**
  * Configure the device in slave mode and initiate receiving.
  */
 void PS_IPMB::setup_slave() {
-	while (XIicPs_BusIsBusy(&this->IicInst))
-		(void)0;
+	while (XIicPs_BusIsBusy(&this->IicInst)) {
+		vTaskDelay(pdMS_TO_TICKS(200));
+	}
 
 	// Stop any previous operation.
-	XScuGic_Disable(&xInterruptController, this->IntrId);
+	this->disableInterrupts();
 
 	// Reset and configure the device.
 	XIicPs_Reset(&this->IicInst);
 	XIicPs_SetSClk(&this->IicInst, 400000);
-	XIicPs_SetStatusHandler(&this->IicInst, reinterpret_cast<void*>(this), reinterpret_cast<XIicPs_IntrHandler>(PS_IPMB_InterruptPassthrough));
+	XIicPs_SetStatusHandler(&this->IicInst, reinterpret_cast<void*>(this), reinterpret_cast<XIicPs_IntrHandler>(PS_IPMB::_InterruptPassthrough));
 
 	// Start in Slave configuration
 	this->master = false;
-	XScuGic_Connect(&xInterruptController, this->IntrId, reinterpret_cast<Xil_InterruptHandler>(XIicPs_VariableLengthSlaveInterruptHandler), (void*)&this->IicInst);
-	XScuGic_Enable(&xInterruptController, this->IntrId);
+	this->enableInterrupts();
 	XIicPs_SetupSlave(&this->IicInst, this->IPMBAddr >> 1);
 
 	// Start Receiving
@@ -93,17 +85,16 @@ void PS_IPMB::setup_master() {
 		(void)0;
 
 	// Stop any previous operation.
-	XScuGic_Disable(&xInterruptController, this->IntrId);
+	this->disableInterrupts();
 
 	// Reset and configure the device.
 	XIicPs_Reset(&this->IicInst);
 	XIicPs_SetSClk(&this->IicInst, 400000);
-	XIicPs_SetStatusHandler(&this->IicInst, reinterpret_cast<void*>(this), reinterpret_cast<XIicPs_IntrHandler>(PS_IPMB_InterruptPassthrough));
+	XIicPs_SetStatusHandler(&this->IicInst, reinterpret_cast<void*>(this), reinterpret_cast<XIicPs_IntrHandler>(PS_IPMB::_InterruptPassthrough));
 
 	// Start in Master configuration
 	this->master = true;
-	XScuGic_Connect(&xInterruptController, this->IntrId, reinterpret_cast<Xil_InterruptHandler>(XIicPs_MasterInterruptHandler), (void*)&this->IicInst);
-	XScuGic_Enable(&xInterruptController, this->IntrId);
+	this->enableInterrupts();
 }
 
 /**
@@ -129,7 +120,179 @@ bool PS_IPMB::send_message(IPMI_MSG &msg, uint32_t retry) {
 	return isr_result == XIICPS_EVENT_COMPLETE_SEND; // Return wire-level success/failure.
 }
 
-void PS_IPMB::_HandleInterrupt(u32 StatusEvent) {
+
+/**
+ * Helper used by the #XIicPs_VariableLengthSlaveInterruptHandler()
+ *
+ * \note This function is duplicated because it is static in xiicps_slave.c
+ *
+ * @param InstancePtr The IicPs instance pointer.
+ * @return Remaining expected bytes.
+ */
+static s32 SlaveRecvData(XIicPs *InstancePtr)
+{
+	u32 StatusReg;
+	u32 BaseAddr;
+
+	BaseAddr = InstancePtr->Config.BaseAddress;
+
+	StatusReg = XIicPs_ReadReg(BaseAddr, XIICPS_SR_OFFSET);
+
+	while (((StatusReg & XIICPS_SR_RXDV_MASK)!=0x0U) &&
+			((InstancePtr->RecvByteCount > 0) != 0x0U)) {
+		XIicPs_RecvByte(InstancePtr);
+		StatusReg = XIicPs_ReadReg(BaseAddr, XIICPS_SR_OFFSET);
+	}
+
+	return InstancePtr->RecvByteCount;
+}
+
+void PS_IPMB::_InterruptPassthrough(PS_IPMB *ps_ipmb, u32 StatusEvent) {
+	ps_ipmb->_HandleStatus(StatusEvent);
+}
+
+void PS_IPMB::_InterruptHandler() {
+	if (this->master) {
+		XIicPs_MasterInterruptHandler(&(this->IicInst));
+	} else {
+		this->_VariableLengthSlaveInterruptHandler();
+	}
+}
+
+/**
+ * This is a duplicate of the XIicPs_SlaveInterruptHandler with one exception:
+ * It does not treat "receive buffer not filled completely" as an error.  This
+ * allows it to receive IPMB messages without requiring that the length of the
+ * message is known at listen time.
+ *
+ * We consider it an error, not if the buffer is not completely filled, but if
+ * it IS completely filled.  (This would imply an IPMI message was longer than
+ * the specification would allow, as we intend to use slightly excessive
+ * buffers.)
+ *
+ * We also will need to know the length of the message received.  Rather than
+ * writing too much code into this, we will pass out the LeftOver bytes count
+ * from the original function as the top 6 bits of the status value, which were
+ * otherwise unused.
+ *
+ * \param InstancePtr The IicPs instance pointer.
+ */
+void PS_IPMB::_VariableLengthSlaveInterruptHandler()
+{
+	u32 IntrStatusReg;
+	u32 IsSend = 0U;
+	u32 StatusEvent = 0U;
+	s32 LeftOver;
+	u32 BaseAddr;
+
+	/*
+	 * Assert validates the input arguments.
+	 */
+	Xil_AssertVoid(this->IicInst.IsReady == (u32)XIL_COMPONENT_IS_READY);
+
+	BaseAddr = this->IicInst.Config.BaseAddress;
+
+	/*
+	 * Read the Interrupt status register.
+	 */
+	IntrStatusReg = XIicPs_ReadReg(BaseAddr, XIICPS_ISR_OFFSET);
+
+	/*
+	 * Write the status back to clear the interrupts so no events are missed
+	 * while processing this interrupt.
+	 */
+	XIicPs_WriteReg(BaseAddr, XIICPS_ISR_OFFSET, IntrStatusReg);
+
+	/*
+	 * Use the Mask register AND with the Interrupt Status register so
+	 * disabled interrupts are not processed.
+	 */
+	IntrStatusReg &= ~(XIicPs_ReadReg(BaseAddr, XIICPS_IMR_OFFSET));
+
+	/*
+	 * Determine whether the device is sending.
+	 */
+	if (this->IicInst.RecvBufferPtr == NULL) {
+		IsSend = 1U;
+	}
+
+	/* Data interrupt
+	 *
+	 * This means master wants to do more data transfers.
+	 * Also check for completion of transfer, signal upper layer if done.
+	 */
+	if ((u32)0U != (IntrStatusReg & XIICPS_IXR_DATA_MASK)) {
+		if (IsSend != 0x0U) {
+			LeftOver = TransmitFifoFill(&(this->IicInst));
+				/*
+				 * We may finish send here
+				 */
+				if (LeftOver == 0) {
+					StatusEvent |=
+						XIICPS_EVENT_COMPLETE_SEND;
+				}
+		} else {
+			LeftOver = SlaveRecvData(&(this->IicInst));
+
+			/* We may finish the receive here */
+			if (LeftOver == 0) {
+				//UW//StatusEvent |= XIICPS_EVENT_COMPLETE_RECV;
+				StatusEvent |= XIICPS_EVENT_ERROR; //UW//
+			}
+		}
+	}
+
+	/*
+	 * Complete interrupt.
+	 *
+	 * In slave mode, it means the master has done with this transfer, so
+	 * we signal the application using completion event.
+	 */
+	if (0U != (IntrStatusReg & XIICPS_IXR_COMP_MASK)) {
+		if (IsSend != 0x0U) {
+			if (this->IicInst.SendByteCount > 0) {
+				StatusEvent |= XIICPS_EVENT_ERROR;
+			}else {
+				StatusEvent |= XIICPS_EVENT_COMPLETE_SEND;
+			}
+		} else {
+			LeftOver = SlaveRecvData(&(this->IicInst));
+			if (LeftOver > 0) {
+				//UW//StatusEvent |= XIICPS_EVENT_ERROR;
+				StatusEvent |= (LeftOver << 26) | XIICPS_EVENT_COMPLETE_RECV; //UW//
+			} else {
+				//UW//StatusEvent |= XIICPS_EVENT_COMPLETE_RECV;
+				StatusEvent |= XIICPS_EVENT_ERROR; //UW//
+			}
+		}
+	}
+
+	/*
+	 * Nack interrupt, pass this information to application.
+	 */
+	if (0U != (IntrStatusReg & XIICPS_IXR_NACK_MASK)) {
+		StatusEvent |= XIICPS_EVENT_NACK;
+	}
+
+	/*
+	 * All other interrupts are treated as error.
+	 */
+	if (0U != (IntrStatusReg & (XIICPS_IXR_TO_MASK |
+				XIICPS_IXR_RX_UNF_MASK |
+				XIICPS_IXR_TX_OVR_MASK |
+				XIICPS_IXR_RX_OVR_MASK))){
+		StatusEvent |= XIICPS_EVENT_ERROR;
+	}
+
+	/*
+	 * Signal application if there are any events.
+	 */
+	if ((u32)0U != StatusEvent) {
+		this->_HandleStatus(StatusEvent);
+	}
+}
+
+void PS_IPMB::_HandleStatus(u32 StatusEvent) {
 	//#define XIICPS_EVENT_COMPLETE_SEND	0x0001U  /**< Transmit Complete Event*/
 	//#define XIICPS_EVENT_COMPLETE_RECV	0x0002U  /**< Receive Complete Event*/
 	//#define XIICPS_EVENT_TIME_OUT		0x0004U  /**< Transfer timed out */
@@ -169,166 +332,4 @@ void PS_IPMB::_HandleInterrupt(u32 StatusEvent) {
 	}
 
 	portYIELD_FROM_ISR(isrwake);
-}
-
-
-/**
- * Helper used by the #XIicPs_VariableLengthSlaveInterruptHandler()
- *
- * \note This function is duplicated because it is static in xiicps_slave.c
- *
- * @param InstancePtr The IicPs instance pointer.
- * @return Remaining expected bytes.
- */
-static s32 SlaveRecvData(XIicPs *InstancePtr)
-{
-	u32 StatusReg;
-	u32 BaseAddr;
-
-	BaseAddr = InstancePtr->Config.BaseAddress;
-
-	StatusReg = XIicPs_ReadReg(BaseAddr, XIICPS_SR_OFFSET);
-
-	while (((StatusReg & XIICPS_SR_RXDV_MASK)!=0x0U) &&
-			((InstancePtr->RecvByteCount > 0) != 0x0U)) {
-		XIicPs_RecvByte(InstancePtr);
-		StatusReg = XIicPs_ReadReg(BaseAddr, XIICPS_SR_OFFSET);
-	}
-
-	return InstancePtr->RecvByteCount;
-}
-
-/**
- * This is a duplicate of the XIicPs_SlaveInterruptHandler with one exception:
- * It does not treat "receive buffer not filled completely" as an error.  This
- * allows it to receive IPMB messages without requiring that the length of the
- * message is known at listen time.
- *
- * We consider it an error, not if the buffer is not completely filled, but if
- * it IS completely filled.  (This would imply an IPMI message was longer than
- * the specification would allow, as we intend to use slightly excessive
- * buffers.)
- *
- * We also will need to know the length of the message received.  Rather than
- * writing too much code into this, we will pass out the LeftOver bytes count
- * from the original function as the top 6 bits of the status value, which were
- * otherwise unused.
- *
- * \param InstancePtr The IicPs instance pointer.
- */
-static void XIicPs_VariableLengthSlaveInterruptHandler(XIicPs *InstancePtr)
-{
-	u32 IntrStatusReg;
-	u32 IsSend = 0U;
-	u32 StatusEvent = 0U;
-	s32 LeftOver;
-	u32 BaseAddr;
-
-	/*
-	 * Assert validates the input arguments.
-	 */
-	Xil_AssertVoid(InstancePtr != NULL);
-	Xil_AssertVoid(InstancePtr->IsReady == (u32)XIL_COMPONENT_IS_READY);
-
-	BaseAddr = InstancePtr->Config.BaseAddress;
-
-	/*
-	 * Read the Interrupt status register.
-	 */
-	IntrStatusReg = XIicPs_ReadReg(BaseAddr, XIICPS_ISR_OFFSET);
-
-	/*
-	 * Write the status back to clear the interrupts so no events are missed
-	 * while processing this interrupt.
-	 */
-	XIicPs_WriteReg(BaseAddr, XIICPS_ISR_OFFSET, IntrStatusReg);
-
-	/*
-	 * Use the Mask register AND with the Interrupt Status register so
-	 * disabled interrupts are not processed.
-	 */
-	IntrStatusReg &= ~(XIicPs_ReadReg(BaseAddr, XIICPS_IMR_OFFSET));
-
-	/*
-	 * Determine whether the device is sending.
-	 */
-	if (InstancePtr->RecvBufferPtr == NULL) {
-		IsSend = 1U;
-	}
-
-	/* Data interrupt
-	 *
-	 * This means master wants to do more data transfers.
-	 * Also check for completion of transfer, signal upper layer if done.
-	 */
-	if ((u32)0U != (IntrStatusReg & XIICPS_IXR_DATA_MASK)) {
-		if (IsSend != 0x0U) {
-			LeftOver = TransmitFifoFill(InstancePtr);
-				/*
-				 * We may finish send here
-				 */
-				if (LeftOver == 0) {
-					StatusEvent |=
-						XIICPS_EVENT_COMPLETE_SEND;
-				}
-		} else {
-			LeftOver = SlaveRecvData(InstancePtr);
-
-			/* We may finish the receive here */
-			if (LeftOver == 0) {
-				//UW//StatusEvent |= XIICPS_EVENT_COMPLETE_RECV;
-				StatusEvent |= XIICPS_EVENT_ERROR; //UW//
-			}
-		}
-	}
-
-	/*
-	 * Complete interrupt.
-	 *
-	 * In slave mode, it means the master has done with this transfer, so
-	 * we signal the application using completion event.
-	 */
-	if (0U != (IntrStatusReg & XIICPS_IXR_COMP_MASK)) {
-		if (IsSend != 0x0U) {
-			if (InstancePtr->SendByteCount > 0) {
-				StatusEvent |= XIICPS_EVENT_ERROR;
-			}else {
-				StatusEvent |= XIICPS_EVENT_COMPLETE_SEND;
-			}
-		} else {
-			LeftOver = SlaveRecvData(InstancePtr);
-			if (LeftOver > 0) {
-				//UW//StatusEvent |= XIICPS_EVENT_ERROR;
-				StatusEvent |= (LeftOver << 26) | XIICPS_EVENT_COMPLETE_RECV; //UW//
-			} else {
-				//UW//StatusEvent |= XIICPS_EVENT_COMPLETE_RECV;
-				StatusEvent |= XIICPS_EVENT_ERROR; //UW//
-			}
-		}
-	}
-
-	/*
-	 * Nack interrupt, pass this information to application.
-	 */
-	if (0U != (IntrStatusReg & XIICPS_IXR_NACK_MASK)) {
-		StatusEvent |= XIICPS_EVENT_NACK;
-	}
-
-	/*
-	 * All other interrupts are treated as error.
-	 */
-	if (0U != (IntrStatusReg & (XIICPS_IXR_TO_MASK |
-				XIICPS_IXR_RX_UNF_MASK |
-				XIICPS_IXR_TX_OVR_MASK |
-				XIICPS_IXR_RX_OVR_MASK))){
-		StatusEvent |= XIICPS_EVENT_ERROR;
-	}
-
-	/*
-	 * Signal application if there are any events.
-	 */
-	if ((u32)0U != StatusEvent) {
-		InstancePtr->StatusHandler(InstancePtr->CallBackRef,
-					   StatusEvent);
-	}
 }

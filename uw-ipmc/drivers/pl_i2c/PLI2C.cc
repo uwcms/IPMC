@@ -5,9 +5,7 @@
  *      Author: mpv
  */
 
-#include <xiic.h>
-#include <drivers/pl_i2c/PLI2C.h>
-#include <xscugic.h>
+#include "PLI2C.h"
 #include <libs/printf.h>
 #include <libs/except.h>
 
@@ -25,7 +23,9 @@
  */
 #define PLI2C_USE_POOLING
 
-extern XScuGic xInterruptController;
+void PL_I2C::_InterruptHandler() {
+	XIic_InterruptHandler(&(this->IicInst));
+}
 
 static void DataHandler(PL_I2C *InstancePtr, int ByteCount)
 {
@@ -58,8 +58,8 @@ static void StatusHandler(PL_I2C *InstancePtr, int Event)
 	xSemaphoreGiveFromISR(InstancePtr->semaphoreSync, NULL);
 }
 
-PL_I2C::PL_I2C(uint16_t DeviceId, uint32_t IntrId) :
-DeviceId(DeviceId), IntrId(IntrId), I2C() {
+PL_I2C::PL_I2C(uint16_t DeviceId, uint32_t IntrId) : InterruptBasedDriver(IntrId),
+DeviceId(DeviceId) {
 	XIic_Config *ConfigPtr;
 
 	memset((void*)&(this->IicInst), 0, sizeof(IicInst));
@@ -91,19 +91,12 @@ DeviceId(DeviceId), IntrId(IntrId), I2C() {
 	XIic_MultiMasterInclude();
 
 	// Enable interrupts
-	if (XST_SUCCESS !=
-			XScuGic_Connect(&xInterruptController, this->IntrId, XIic_InterruptHandler, (void*)&(this->IicInst)))
-		throw except::hardware_error(stdsprintf("Failed to connect PL_I2C(%hu, %lu) to the GIC.", DeviceId, IntrId));
-	XScuGic_Enable(&xInterruptController, this->IntrId);
+	this->enableInterrupts();
 }
 
 PL_I2C::~PL_I2C() {
 	// Stop the drive
 	vSemaphoreDelete(this->semaphoreSync);
-
-	// Disable the interrupts associated with IIC
-	XScuGic_Disconnect(&xInterruptController, this->IntrId);
-	XScuGic_Disable(&xInterruptController, this->IntrId);
 }
 
 size_t PL_I2C::read(uint8_t addr, uint8_t *buf, size_t len, TickType_t timeout) {

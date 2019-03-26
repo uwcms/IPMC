@@ -27,7 +27,7 @@ public:
 	 * \param obufsize    The size of the output buffer to allocate.
 	 */
 	PS_UART(u32 DeviceId, u32 IntrId, u32 ibufsize = 4096, u32 obufsize = 4096);
-	~PS_UART();
+	virtual ~PS_UART();
 
 	size_t read(u8 *buf, size_t len, TickType_t timeout, TickType_t data_timeout=portMAX_DELAY);
 	size_t write(const u8 *buf, size_t len, TickType_t timeout);

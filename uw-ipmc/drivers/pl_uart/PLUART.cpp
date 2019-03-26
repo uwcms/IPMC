@@ -110,6 +110,7 @@ InterruptBasedDriver(IntrId, 0x3), inbuf(RingBuffer<u8>(ibufsize)), outbuf(RingB
 		throw except::hardware_error(stdsprintf("Self-test failed for PL_UART(%hu, %lu, ...)", DeviceId, IntrId));
 
 	// Enable the interrupt of UartLite so that interrupts will occur.
+	this->enableInterrupts();
 	XUartLite_EnableInterrupt(&(this->UartLite));
 }
 

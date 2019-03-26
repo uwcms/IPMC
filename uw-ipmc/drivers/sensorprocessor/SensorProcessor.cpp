@@ -8,6 +8,7 @@
 #include <drivers/sensorprocessor/SensorProcessor.h>
 
 SensorProcessor::SensorProcessor(uint16_t DeviceId, uint32_t InterruptId, std::vector<ADC::Channel*> &adc_channels) :
+	InterruptBasedDriver(InterruptId),
 	isr_events_received("sensor_processor.isr_events_received"),
 	isr_event_queue_highwater("sensor_processor.isr_event_queue_highwater"),
 	userland_event_queue_highwater("sensor_processor.userland_event_queue_highwater"),
@@ -24,7 +25,7 @@ SensorProcessor::SensorProcessor(uint16_t DeviceId, uint32_t InterruptId, std::v
 	for (unsigned int i = 0; i < adc_channels.size(); ++i)
 		this->adc_channel_map[i] = adc_channels[i];
 
-	this->connectInterrupt(InterruptId);
+	this->enableInterrupts();
 }
 
 SensorProcessor::~SensorProcessor() {

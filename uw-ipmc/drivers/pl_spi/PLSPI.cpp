@@ -233,6 +233,8 @@ PL_SPI::PL_SPI(uint16_t DeviceId, uint32_t IntrId)
 	// Apply proper settings to the IP.
 	if (XST_SUCCESS != XSpi_SetOptions(&this->xspi, XSP_MASTER_OPTION | XSP_MANUAL_SSELECT_OPTION))
 		throw except::hardware_error(stdsprintf("Unable to XSpi_SetOptions on PL_SPI(%hu, %lu)", DeviceId, IntrId));
+
+	this->enableInterrupts();
 }
 
 PL_SPI::~PL_SPI() {

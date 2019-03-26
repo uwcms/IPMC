@@ -15,11 +15,12 @@
 #include <queue.h>
 #include <IPMC.h>
 #include <drivers/generics/SPI.h>
+#include <drivers/InterruptBasedDriver.h>
 
 /**
  * An interrupt-based driver for the PS SPI.
  */
-class PS_SPI : public SPIMaster {
+class PS_SPI : public SPIMaster, protected InterruptBasedDriver {
 public:
 	PS_SPI(u16 DeviceId, u32 IntrId);
 	virtual ~PS_SPI();
@@ -41,7 +42,8 @@ protected:
 	XSpiPs SpiInst;                 ///< The XSpiPs handle of the driven device.
 	QueueHandle_t irq_sync_q;       ///< IRQ-task syncronization queue
 	volatile bool transfer_running; ///< Indicates whether an interrupt-driven transfer is in progress.
-	u32 IntrId;                     ///< Interrupt ID, used to disable interrupts in the destructor.
+
+	void _InterruptHandler();
 
 	/**
 	 * irq transfer status

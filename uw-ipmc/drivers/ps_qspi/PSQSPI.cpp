@@ -46,6 +46,8 @@ PS_QSPI::PS_QSPI(u16 DeviceId, u32 IntrId) : InterruptBasedDriver(IntrId), selec
 			XQSPIPS_FORCE_SSELECT_OPTION);
 
 	XQspiPs_SetClkPrescaler(&this->QspiInst, XQSPIPS_CLK_PRESCALE_2);
+
+	this->enableInterrupts();
 }
 
 PS_QSPI::~PS_QSPI() {

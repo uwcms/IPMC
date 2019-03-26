@@ -13,6 +13,10 @@ static void PS_SPI_InterruptPassthrough(PS_SPI *ps_spi, u32 event_status, u32 by
 	ps_spi->_HandleInterrupt(event_status, byte_count);
 }
 
+void PS_SPI::_InterruptHandler() {
+	XSpiPs_InterruptHandler(&(this->SpiInst));
+}
+
 /**
  * An interrupt-based driver for the PS SPI.
  *
@@ -21,8 +25,7 @@ static void PS_SPI_InterruptPassthrough(PS_SPI *ps_spi, u32 event_status, u32 by
  * \param DeviceId    The DeviceId, used for XUartPs_LookupConfig(), etc
  * \param IntrId      The interrupt ID, for configuring the GIC.
  */
-PS_SPI::PS_SPI(u16 DeviceId, u32 IntrId) :
-	IntrId(IntrId) {
+PS_SPI::PS_SPI(u16 DeviceId, u32 IntrId) : InterruptBasedDriver(IntrId) {
 	this->irq_sync_q = xQueueCreate(1, sizeof(trans_st_t));
 	configASSERT(this->irq_sync_q);
 
@@ -33,11 +36,6 @@ PS_SPI::PS_SPI(u16 DeviceId, u32 IntrId) :
 	if (XST_SUCCESS != XSpiPs_SelfTest(&this->SpiInst))
 		throw except::hardware_error(stdsprintf("Self-test failed for PS_SPI(%hu, %lu)", DeviceId, IntrId));
 	XSpiPs_Reset(&this->SpiInst);
-
-	XScuGic_Connect(&xInterruptController, IntrId,
-			reinterpret_cast<Xil_InterruptHandler>(XSpiPs_InterruptHandler),
-			(void*) &this->SpiInst);
-	XScuGic_Enable(&xInterruptController, IntrId);
 
 	XSpiPs_SetStatusHandler(&this->SpiInst, reinterpret_cast<void*>(this),
 			reinterpret_cast<XSpiPs_StatusHandler>(PS_SPI_InterruptPassthrough));
@@ -52,11 +50,12 @@ PS_SPI::PS_SPI(u16 DeviceId, u32 IntrId) :
 	this->error_byte_count = 0;
 
 	this->transfer_running = false;
+
+	// Enable interrupts
+	this->enableInterrupts();
 }
 
 PS_SPI::~PS_SPI() {
-	XScuGic_Disable(&xInterruptController, this->IntrId);
-	XScuGic_Disconnect(&xInterruptController, this->IntrId);
 }
 
 /**
