@@ -21,10 +21,12 @@ bool SPIFlash::initialize() {
 	if (!Flash::initialize()) return false;
 
 	if (this->parameters.supports114FastRead) {
-
 		// Micron flashes don't need have Quad Bit
 		if (this->manufacturer != ManufacturerID::MICRON) {
-			if (!this->enableQuadBit()) return false;
+			if (!this->enableQuadBit()) {
+				this->initialized = false;
+				return false;
+			}
 		}
 
 		this->quadModeEnabled = true;
@@ -39,7 +41,7 @@ bool SPIFlash::read(uint32_t address, uint8_t *buffer, size_t bytes) {
 	if ((address + bytes) > this->getTotalSize()) return false;
 	if (bankFromAddress(address) != bankFromAddress(address + bytes - 1)) return false; // TODO: For now don't allow reads spanning multiple banks
 
-	size_t dummyBytes = (this->quadModeEnabled)? (this->parameters.fastRead114NumberOfWaits/8) : 0;
+	size_t dummyBytes = (this->quadModeEnabled)? ((this->parameters.fastRead114NumberOfWaits+1)/8) : 0;
 
 	if (!this->selectBank(bankFromAddress(address))) return false;
 
@@ -196,7 +198,7 @@ bool SPIFlash::getJEDECInfo() {
 		for (int i = 0; i <= sfdpheader.num_headers; i++) {
 			if (tableentry[i].id_number == 0x00) {
 				// Main JEDEC header - this is where the gold is!
-				if (tableentry[i].major_revision != 0x01 || tableentry[i].length_words != 9) {
+				if (tableentry[i].major_revision != 0x01 /*|| tableentry[i].length_words != 9*/) {
 					return false; // Only support rev 1
 				}
 
@@ -205,7 +207,7 @@ bool SPIFlash::getJEDECInfo() {
 				std::unique_ptr<uint8_t> dummy(new uint8_t[offset]);
 				if (!dummy.get()) return false; // Not enough memory
 
-				if (!this->spi.transfer_unsafe(dummy.get(), dummy.get(), offset)) {
+				if (!this->spi.transfer_unsafe(dummy.get(), NULL, offset)) {
 					return false; // Failed
 				}
 

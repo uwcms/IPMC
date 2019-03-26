@@ -31,7 +31,7 @@ public:
 	 * Multiple calls will only trigger a single initialization.
 	 * @return true if initialization successful (JEDEC compatible flash detected), false otherwise.
 	 */
-	bool initialize() {
+	virtual bool initialize() {
 		if (this->isInitialized()) return true;
 
 		if (!this->getJEDECInfo()) return false;
