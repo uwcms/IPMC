@@ -64,19 +64,6 @@ VFS::File ESM::createFlashFile() {
 			if (!this->flash->write(0, buffer, size))
 				return 0; // Failed to write
 
-			// Verify
-			std::unique_ptr<uint8_t> tmpbuf(new uint8_t[size]);
-			if (!tmpbuf.get()) return 0; // No memory
-
-			this->flash->read(0, tmpbuf.get(), size);
-
-			for (size_t i = 0; i < size; i++) {
-				if (tmpbuf.get()[i] != buffer[i]) {
-					printf("Byte 0x%08x different.", i);
-					return i; // Return total number of verified bytes
-				}
-			}
-
 			// Write successful
 			return size;
 		}, 256 * 1024);

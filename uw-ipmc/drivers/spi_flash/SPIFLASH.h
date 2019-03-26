@@ -26,21 +26,29 @@ public:
 	SPIFlash(SPIMaster& spi, uint8_t cs);
 	virtual ~SPIFlash() {};
 
+	bool initialize();
+
 	bool read(uint32_t address, uint8_t *buffer, size_t bytes);
 	bool write(uint32_t address, const uint8_t *buffer, size_t bytes);
 
 private:
 	bool getJEDECInfo();
+	bool getManufacturerID();
 	bool disableWriteProtections();
+	bool enableQuadBit();
 	bool enableWriting();
 	bool disableWriting();
 	bool waitForWriteComplete();
+	bool selectBank(uint8_t bank);
+	bool getSelectedBank(uint8_t &bank);
 	bool writePage(uint32_t address, const uint8_t *buffer, size_t bytes);
+	bool eraseSector(uint32_t address);
 	bool eraseSectors(uint32_t address, size_t bytes);
-	StatusRegister getStatusRegister();
+	bool getStatusRegister(StatusRegister &status);
 
 	SPIMaster &spi;
 	uint8_t cs;
+	bool quadModeEnabled;
 };
 
 #endif /* SRC_COMMON_UW_IPMC_DRIVERS_SPI_FLASH_SPIFLASH_H_ */

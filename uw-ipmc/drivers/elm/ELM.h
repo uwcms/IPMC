@@ -28,6 +28,7 @@ public:
 
 protected:
 	friend class elm_bootsource;
+	friend class elm_quiesce;
 
 public:
 	void register_console_commands(CommandParser &parser, const std::string &prefix="");
@@ -68,7 +69,8 @@ protected:
 
 	static uint16_t calculateChecksum(const Packet &p);
 
-	void sendPacket(const Packet &p);
+	bool sendPacket(const Packet &p);
+	bool sendPacket(unsigned int channel, uint8_t *data, uint16_t size);
 //	void sendAck(uint8_t channel);
 
 	int digestInput(Packet &p, TickType_t timeout);
@@ -93,7 +95,7 @@ public:
 //		}
 		elm.linkChannel(this);
 	};
-	~Channel() {
+	virtual ~Channel() {
 //		link.unlinkChannel(this);
 //		vSemaphoreDelete(this->sync);
 	};

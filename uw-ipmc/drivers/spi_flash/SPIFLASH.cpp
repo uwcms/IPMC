@@ -7,21 +7,47 @@
 
 #include "SPIFLASH.h"
 #include <memory>
+#include <libs/Utils.h>
+
+inline static uint32_t bankFromAddress(uint32_t address) {
+	return address >> 24;
+}
 
 SPIFlash::SPIFlash(SPIMaster& spi, uint8_t cs)
-: spi(spi), cs(cs) {
+: spi(spi), cs(cs), quadModeEnabled(false) {
+}
+
+bool SPIFlash::initialize() {
+	if (!Flash::initialize()) return false;
+
+	if (this->parameters.supports114FastRead) {
+
+		// Micron flashes don't need have Quad Bit
+		if (this->manufacturer != ManufacturerID::MICRON) {
+			if (!this->enableQuadBit()) return false;
+		}
+
+		this->quadModeEnabled = true;
+	}
+
+	return true;
 }
 
 bool SPIFlash::read(uint32_t address, uint8_t *buffer, size_t bytes) {
 	if (!this->isInitialized()) return false;
 
 	if ((address + bytes) > this->getTotalSize()) return false;
+	if (bankFromAddress(address) != bankFromAddress(address + bytes - 1)) return false; // TODO: For now don't allow reads spanning multiple banks
+
+	size_t dummyBytes = (this->quadModeEnabled)? (this->parameters.fastRead114NumberOfWaits/8) : 0;
+
+	if (!this->selectBank(bankFromAddress(address))) return false;
 
 	return this->spi.atomic<bool>(this->cs, [=]() {
-		uint8_t command[4];
+		uint8_t command[4 + dummyBytes] = {0};
 
 		// Form the command to execute a read
-		command[0] = 0x03;
+		command[0] = (this->quadModeEnabled)? this->parameters.fastRead114OpCode : 0x03;
 		command[1] = address >> 16;
 		command[2] = address >> 8;
 		command[3] = address;
@@ -45,23 +71,30 @@ bool SPIFlash::write(uint32_t address, const uint8_t *buffer, size_t bytes) {
 	if (bytes == 0) return true;
 	if ((address % this->getSectorSize(0)) != 0) return false; // TODO: For now we only sector aligned start addresses
 
+	std::unique_ptr<uint8_t> tmppage = std::unique_ptr<uint8_t>(new uint8_t[256]);
+	if (!tmppage) return false; // Out of memory
+
 	size_t sectorSize = this->getSectorSize(0);
-	size_t rem = bytes % sectorSize;
+	size_t sectorRem = bytes % sectorSize;
+	size_t sectorCount = bytes / sectorSize + (sectorRem? 1 : 0);
+
+	size_t pagesPerSector = sectorSize / 256;
+
 	std::unique_ptr<uint8_t> tmpbuf = nullptr;
 
-	if (rem > 0) {
+	if (sectorRem > 0) {
 		// Before erasing we need to read the last sector the will get partially erased
 		tmpbuf = std::unique_ptr<uint8_t>(new uint8_t[sectorSize]);
 		if (!tmpbuf) return false; // Out of memory
 
-		size_t bufferOffset = bytes - rem;
+		size_t bufferOffset = bytes - sectorRem;
 		size_t lastSectorAddress = address + bufferOffset;
 		if (!this->read(lastSectorAddress, tmpbuf.get(), sectorSize)) {
 			return false; // Failed
 		}
 
 		// Prefill with buffer data
-		memcpy(tmpbuf.get(), buffer + bufferOffset, rem);
+		memcpy(&*tmpbuf, buffer + bufferOffset, sectorRem);
 	}
 
 	// Disable protections, if any
@@ -69,31 +102,65 @@ bool SPIFlash::write(uint32_t address, const uint8_t *buffer, size_t bytes) {
 		return false; // Unable to disable protections
 	}
 
-	// Erase the sectors
-	size_t eraseRange = address + (bytes - rem) + (rem > 0?sectorSize:0);
-	if (!this->eraseSectors(address, eraseRange)) {
-		return false; // Failed
-	}
+	for (size_t sector = 0; sector < sectorCount; sector++) {
+		size_t sectorAddress = sector * sectorSize;
+		uint8_t *pdata = nullptr;
+		float progress = ((sector+1) * 1.0f) / (sectorCount * 1.0f) * 100.0f;
 
-	// Write pages
-	size_t pageCount = (bytes - rem) / 256;
-	for (size_t page = 0; page < pageCount; page++) {
-		size_t bufferOffset = page * 256;
-		if (!this->writePage(address + bufferOffset, buffer + bufferOffset, 256)) {
+		printf("(%.0f%%) Erasing sector 0x%08x..", progress, sectorAddress);
+
+		if (!this->selectBank(bankFromAddress(sectorAddress))) return false;
+
+		if (!this->eraseSector(sectorAddress)) {
+			printf("Failed to erase sector 0x%08x..", sectorAddress);
 			return false;
 		}
-	}
 
-	// Write the last page
-	if (rem > 0) {
-		size_t pageCount = sectorSize / 256;
-		for (size_t page = 0; page < pageCount; page++) {
-			size_t bufferOffset = page * 256;
-			if (!this->writePage(address + (bytes - rem) + bufferOffset, tmpbuf.get() + bufferOffset, 256)) {
+		if (sectorRem && (sector == (sectorCount-1))) {
+			pdata = &*tmpbuf;
+		} else {
+			pdata = (uint8_t*)buffer + sectorAddress; // Last sector
+		}
+
+		printf("(%.0f%%) Writing %d pages at address 0x%08x..", progress, pagesPerSector, sectorAddress);
+
+
+		for (size_t page = 0; page < pagesPerSector; page++) {
+			size_t pageOffset = page * 256;
+
+			if (!this->writePage(sectorAddress + pageOffset, pdata + pageOffset, 256)) {
+				printf("Failed to write page 0x%08x..", sectorAddress + pageOffset);
+				return false;
+			}
+
+			// Verify
+			if (!this->read(sectorAddress + pageOffset, &*tmppage, 256)) {
+				printf("Failed to read back page 0x%08x..", sectorAddress + pageOffset);
+				return false;
+			}
+
+			if (memcmp(pdata + pageOffset, &*tmppage, 256) != 0) {
+				printf("Mismatch in page 0x%08x..", sectorAddress + pageOffset);
+				printf(formatedHexString(pdata + pageOffset, 256).c_str());
+				printf(formatedHexString(&*tmppage, 256).c_str());
 				return false;
 			}
 		}
 	}
+
+	return true;
+}
+
+bool SPIFlash::getManufacturerID()
+{
+	uint8_t command[4];
+	command[0] = 0x9F;
+
+	if (!this->spi.transfer(this->cs, command, command, sizeof(command))) {
+		return false; // Failed
+	}
+
+	this->manufacturer = command[1];
 
 	return true;
 }
@@ -175,23 +242,34 @@ bool SPIFlash::disableWriteProtections() {
 		}
 	}
 
-	if (!this->enableWriting()) {
+	StatusRegister status;
+	if (!this->getStatusRegister(status)) return false;
+
+	if (status.blockProtect0 == 1 || status.blockProtect1 == 1 ||
+		status.blockProtect2 == 1 || status.blockProtect3 == 1) {
 		return false; // Failed
 	}
 
-	uint8_t command[2] = {0x01, 0};
-	if (!this->spi.transfer(this->cs, command, NULL, sizeof(command))) {
-		return false; // Failed
-	}
+	return true;
+}
 
-	if (!this->waitForWriteComplete()) {
-		return false;
-	}
+bool SPIFlash::enableQuadBit() {
+	if (!this->isInitialized()) return false;
 
-	StatusRegister status = this->getStatusRegister();
+	StatusRegister status;
+	if (!this->getStatusRegister(status)) return false;
 
-	if (status.blockProtect0 == 1 || status.blockProtect1 == 1) {
-		return false; // Failed
+	if (!status.quadEnable) {
+		status.quadEnable = 1;
+
+		if (!this->enableWriting()) {
+			return false; // Failed
+		}
+
+		uint8_t command[2] = {0x01, status._raw};
+		if (!this->spi.transfer(this->cs, command, NULL, sizeof(command))) {
+			return false; // Failed
+		}
 	}
 
 	return true;
@@ -224,12 +302,14 @@ bool SPIFlash::waitForWriteComplete() {
 
 	unsigned int attempts = 0;
 
-	// If more than 100 attempts (100 * 50ms = 5sec) then abort
-	while (attempts < 20) {
-		StatusRegister status = this->getStatusRegister();
+	// Programming a page shouldn't take more than 1.5ms, so a big
+	// delay from FreeRTOS will have a huge speed impact, so don't use it.
+	while (attempts < 20000) {
+		StatusRegister status;
+		if (!this->getStatusRegister(status)) return false;
 
 		if (status.writeInProgress) {
-			vTaskDelay(pdMS_TO_TICKS(50));
+			//vTaskDelay(pdMS_TO_TICKS(50));
 			attempts++;
 		} else {
 			return true;
@@ -239,13 +319,54 @@ bool SPIFlash::waitForWriteComplete() {
 	return false;
 }
 
+bool SPIFlash::selectBank(uint8_t bank) {
+	// This is manufacturer specific and we only support Micron and Macronix
+
+	uint8_t current;
+	if (!this->getSelectedBank(current)) return false;
+
+	if (current != bank) {
+		// Bank change required
+		uint8_t command[2] = {0xC5, bank};
+
+		if (!this->enableWriting()) {
+			return false;
+		}
+
+		if (!this->spi.transfer(this->cs, command, NULL, sizeof(command))) {
+			return false; // Failed
+		}
+
+		uint8_t current;
+		if (!this->getSelectedBank(current)) return false;
+		if (current != bank) {
+			printf("Failed to change to bank %d", bank);
+			return false;
+		}
+	}
+
+	return true;
+}
+
+bool SPIFlash::getSelectedBank(uint8_t &bank) {
+	// This is manufacturer specific and we only support Micron and Macronix
+	uint8_t command[2];
+	command[0] = 0xC8;
+
+	if (!this->spi.transfer(this->cs, command, command, sizeof(command))) {
+		return false; // Failed
+	}
+
+	bank = command[1];
+
+	return true;
+}
+
 bool SPIFlash::writePage(uint32_t address, const uint8_t *buffer, size_t bytes) {
 	if (!this->isInitialized()) return false;
 
 	if (bytes != 256) return false;
 	if ((address % 256) != 0) return false;
-
-	printf("Writing page 0x%08X", address);
 
 	if (!this->enableWriting()) {
 		return false;
@@ -272,6 +393,28 @@ bool SPIFlash::writePage(uint32_t address, const uint8_t *buffer, size_t bytes) 
 	})) return false;
 
 	// Write enable will be cleared automatically
+	return this->waitForWriteComplete();
+}
+
+bool SPIFlash::eraseSector(uint32_t address) {
+	if (!this->isInitialized()) return false;
+
+	if (this->getSectorSize(0) == 0) return false; // Erase not supported??
+	if ((address % this->getSectorSize(0)) != 0) return false;
+
+	if (!this->enableWriting()) {
+		return false;
+	}
+
+	uint8_t command[4];
+	command[0] = this->parameters.sectors[0].opcode;
+	command[1] = address >> 16;
+	command[2] = address >> 8;
+	command[3] = address;
+
+	if (!this->spi.transfer(this->cs, command, NULL, sizeof(command))) {
+		return false; // Failed
+	}
 
 	return this->waitForWriteComplete();
 }
@@ -314,7 +457,7 @@ bool SPIFlash::eraseSectors(uint32_t address, size_t bytes) {
 		for (size_t i = 0; i < sectorsToErase; i++) {
 			uint32_t sectorAddress = address + i * this->getSectorSize(0);
 
-			printf("Erasing sector 0x%08X", sectorAddress);
+			printf("Erasing sector 0x%08lX", sectorAddress);
 
 			if (!this->enableWriting()) {
 				return false;
@@ -341,16 +484,14 @@ bool SPIFlash::eraseSectors(uint32_t address, size_t bytes) {
 	return true;
 }
 
-SPIFlash::StatusRegister SPIFlash::getStatusRegister() {
-	StatusRegister status;
-	status._raw = 0;
+bool SPIFlash::getStatusRegister(Flash::StatusRegister &status) {
 	uint8_t command[2] = {0x05, 0};
 
 	if (!this->spi.transfer(this->cs, command, command, sizeof(command))) {
-		return status; // Failed
+		return false; // Failed
 	}
 
 	status._raw = command[1];
 
-	return status;
+	return true;
 }

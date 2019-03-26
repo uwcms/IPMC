@@ -34,11 +34,11 @@ public:
 	bool initialize() {
 		if (this->isInitialized()) return true;
 
-		if (this->getJEDECInfo()) {
-			this->initialized = true;
-			return true;
-		} else
-			return false;
+		if (!this->getJEDECInfo()) return false;
+		if (!this->getManufacturerID()) return false;
+
+		this->initialized = true;
+		return true;
 	};
 
 	/**
@@ -81,6 +81,12 @@ protected:
 	 */
 	virtual bool getJEDECInfo() = 0;
 
+	/**
+	 * Retrieve the manufacturer ID from flash.
+	 * @return true if successful.
+	 */
+	virtual bool getManufacturerID() = 0;
+
 	///! Disables write protections.
 	virtual bool disableWriteProtections() = 0;
 
@@ -92,6 +98,12 @@ protected:
 
 	///! Wait for a write operation to complete.
 	virtual bool waitForWriteComplete() = 0;
+
+	///! Set the bank in flash (for flashes with > 16MiB).
+	virtual bool selectBank(uint8_t bank) = 0;
+
+	///! Get the currently selected bank.
+	virtual bool getSelectedBank(uint8_t &bank) = 0;
 
 	/**
 	 * Write a single page to the flash.
@@ -187,17 +199,27 @@ protected:
 				uint8_t writeEnableLatch : 1;
 				uint8_t blockProtect0 : 1;
 				uint8_t blockProtect1 : 1;
-				uint8_t : 4;
+				uint8_t blockProtect2 : 1;
+				uint8_t blockProtect3 : 1;
+				uint8_t quadEnable : 1;				///< Flash dependent
+				uint8_t statusRegWriteDisable : 1;	///< Flash dependent
 			};
 			uint8_t _raw;
 		};
 	};
 
 	///! Get the status register from the flash.
-	virtual StatusRegister getStatusRegister() = 0;
+	virtual bool getStatusRegister(StatusRegister &status) = 0;
 
 	bool initialized;					///< Indicates if initialized and if parameters is valid.
 	JEDECFlashParameters parameters;	///< JEDEC parameters of the flash.
+	uint8_t manufacturer;				///< Manufacturer ID of the flash.
+
+	enum ManufacturerID : uint8_t {
+		MICRON = 0x20,
+		MACRONIX = 0xC2
+	};
+
 };
 
 

@@ -99,9 +99,28 @@ public:
 			} else if (!parameters.parameters[1].compare("flash")) {
 				elm.gpio->setChannel(0x0, PL_GPIO::GPIO_CHANNEL2);
 				elm.gpio->setDirection(0x0, PL_GPIO::GPIO_CHANNEL2);
-				return;
+			} else {
+				console->write("Invalid source, see help.\n");
 			}
 		}
+	}
+};
+
+/// A "elm.quiesce" console command.
+class elm_quiesce : public CommandParser::Command {
+public:
+	ELM &elm; ///< ELM object.
+
+	///! Construct the command.
+	elm_quiesce(ELM &elm) : elm(elm) { };
+
+	virtual std::string get_helptext(const std::string &command) const {
+		return command + "\n\n"
+				"Send a quiesce request to the ELM to .\n";
+	}
+
+	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
+		elm.sendPacket(0, (uint8_t*)"q", 1);
 	}
 };
 
@@ -112,6 +131,7 @@ public:
  */
 void ELM::register_console_commands(CommandParser &parser, const std::string &prefix) {
 	parser.register_command(prefix + "bootsource", std::make_shared<elm_bootsource>(*this));
+	parser.register_command(prefix + "quiesce", std::make_shared<elm_quiesce>(*this));
 }
 
 /**
@@ -140,7 +160,7 @@ uint16_t ELM::calculateChecksum(const Packet &p) {
 	return chksum;
 }
 
-void ELM::sendPacket(const Packet &p) {
+bool ELM::sendPacket(const Packet &p) {
 	uint8_t header[] = {LINKPROTO_SOP, p.meta.value};
 	uint16_t chksum = calculateChecksum(p);
 
@@ -152,6 +172,20 @@ void ELM::sendPacket(const Packet &p) {
 		this->uart->write(p.content, p.size);
 //	}
 	this->uart->write((uint8_t*)&chksum, sizeof(chksum));
+
+	return true;
+}
+
+bool ELM::sendPacket(unsigned int channel, uint8_t *data, uint16_t size) {
+	Packet p = {0};
+
+	if (channel > 32) return false;
+
+	p.meta.channel = channel;
+	p.size = size;
+	p.content = data;
+
+	return this->sendPacket(p);
 }
 
 //void ELM::Link::sendAck(uint8_t channel) {
