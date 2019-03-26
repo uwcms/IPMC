@@ -2879,7 +2879,7 @@ static void register_core_console_commands(CommandParser &parser) {
 	console_command_parser.register_command("version", std::make_shared<ConsoleCommand_version>());
 	console_command_parser.register_command("ps", std::make_shared<ConsoleCommand_ps>());
 	console_command_parser.register_command("restart", std::make_shared<ConsoleCommand_restart>());
-	console_command_parser.register_command("flash_info", std::make_shared<ConsoleCommand_flash_info>());
+	console_command_parser.register_command("flash.info", std::make_shared<ConsoleCommand_flash_info>());
 	console_command_parser.register_command("flash.verify", std::make_shared<ConsoleCommand_flash_verify>());
 	console_command_parser.register_command("setauth", std::make_shared<ConsoleCommand_setauth>());
 	if (IPMC_SERIAL == 0 || IPMC_SERIAL == 0xFFFF) // The serial is settable only if unset.  This implements lock on write (+reboot).
