@@ -57,7 +57,7 @@ PS_IPMB::~PS_IPMB() {
  */
 void PS_IPMB::setup_slave() {
 	while (XIicPs_BusIsBusy(&this->IicInst)) {
-		vTaskDelay(pdMS_TO_TICKS(200));
+		vTaskDelay(pdMS_TO_TICKS(1));
 	}
 
 	// Stop any previous operation.
@@ -81,8 +81,9 @@ void PS_IPMB::setup_slave() {
  * Configure the device in master mode.
  */
 void PS_IPMB::setup_master() {
-	while (XIicPs_BusIsBusy(&this->IicInst))
-		(void)0;
+	while (XIicPs_BusIsBusy(&this->IicInst)) {
+		vTaskDelay(pdMS_TO_TICKS(1));
+	}
 
 	// Stop any previous operation.
 	this->disableInterrupts();
