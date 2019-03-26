@@ -59,10 +59,8 @@ public:
 				// FPGA (A0 = 0, A1 = 1)
 				uint32_t value = (1 << this->pins[1]);
 				this->gpio->setChannelMask(value, mask, this->channel);
-				return;
 			} else {
 				console->write("Unknown target, see help.\n");
-				return;
 			}
 		}
 	}

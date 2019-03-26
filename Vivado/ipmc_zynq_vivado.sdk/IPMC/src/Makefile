@@ -23,7 +23,6 @@ export INCLUDE_PATHS = \
 	-I"$(WORKSPACE)/IPMC/src/common/lwIP/src/lwip-2.0.2/src/include" \
 	-I"$(WORKSPACE)/IPMC/src/common/FreeRTOS/portable/GCC/ARM_CA9" \
 	-I"$(WORKSPACE)/IPMC/src/common/FreeRTOS/include" \
-	-I"$(WORKSPACE)/IPMC/src/common/xilisf/include" \
 	-I"$(WORKSPACE)/ipmc_standalone_bsp/ps7_cortexa9_0/include" \
 
 export FUNCTION_WRAPPERS = \
@@ -70,6 +69,7 @@ export CFLAGS = \
 	-MMD -MP -MF"$(patsubst .obj/$(BUILD_CONFIGURATION)/%,.dep/$(BUILD_CONFIGURATION)/%,$@)" \
 	-D XPAR_XISF_FLASH_FAMILY=5 -D XPAR_XISF_INTERFACE_PSQSPI \
 	-D _BSD_SOURCE \
+	-D INCLUDE_DRIVER_COMMAND_SUPPORT \
 
 # -MT"$@" 
 

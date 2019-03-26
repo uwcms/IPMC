@@ -14,7 +14,7 @@ public:
 
 	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
 
-		const std::string RED = ANSICode::color(ANSICode::WHITE, ANSICode::RED, true);
+		const std::string RED = ANSICode::color(ANSICode::RED, ANSICode::NOCOLOR, true);
 		const std::string YELLOW = ANSICode::color(ANSICode::YELLOW, ANSICode::NOCOLOR, true);
 		const std::string NORMAL = ANSICode::color();
 
@@ -111,7 +111,6 @@ public:
 			}
 
 			console->write(color + std::to_string(channel.intf) + "/" + std::to_string(channel.slave) + "/" + std::to_string(channel.adc.getChannel()) + " " + channel.name + " " + stdsprintf("%6.3f", value) + " " + uname[channel.unit] + " " + stdsprintf("(0x%04x)", raw) + NORMAL + "\n");
-			//console->write(std::to_string(channel.intf) + "/" + std::to_string(channel.slave) + "/" + std::to_string(channel.adc.getChannel()) + " " + channel.name + " " + stdsprintf("%6.3f", (float)channel.adc) + " " + channel.unit + "\n");
 		}
 	}
 };

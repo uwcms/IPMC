@@ -36,7 +36,7 @@
 #include <drivers/ps_xadc/PSXADC.h>
 #include <drivers/ps_uart/PSUART.h>
 #include <drivers/ps_spi/PSSPI.h>
-#include <drivers/ps_isfqspi/PSISFQSPI.h>
+#include <drivers/ps_qspi/PSQSPI.h>
 #include <drivers/pl_uart/PLUART.h>
 #include <drivers/pl_gpio/PLGPIO.h>
 #include <drivers/pl_spi/PLSPI.h>
@@ -91,7 +91,7 @@ EventGroupHandle_t init_complete;
 
 PS_WDT *SWDT;
 PS_UART *uart_ps0;
-PS_ISFQSPI *isfqspi;
+PS_QSPI *psqspi;
 XGpioPs gpiops;
 
 LogTree LOG("ipmc");
@@ -136,6 +136,9 @@ PS_XADC *xadc;
 PL_LED *atcaLEDs;
 std::vector<IPMI_LED*> ipmi_leds;  // Blue, Red, Green, Amber
 
+Flash *qspiflash = nullptr;
+bool wasFlashUpgradeSuccessful = true;
+
 static void init_device_sdrs(bool reinit=false);
 static void init_fru_data(bool reinit=false);
 static void tracebuffer_log_handler(LogTree &logtree, const std::string &message, enum LogTree::LogLevel level);
@@ -174,7 +177,10 @@ void driver_init(bool use_pl) {
 	console_log_filter->register_console_commands(console_command_parser);
 	LOG["console_log_command"].register_console_commands(console_command_parser);
 
-	isfqspi = new PS_ISFQSPI(XPAR_PS7_QSPI_0_DEVICE_ID, XPAR_PS7_QSPI_0_INTR);
+	psqspi = new PS_QSPI(XPAR_PS7_QSPI_0_DEVICE_ID, XPAR_PS7_QSPI_0_INTR);
+#ifdef INCLUDE_DRIVER_COMMAND_SUPPORT
+	psqspi->register_console_commands(console_command_parser, "psqspi.");
+#endif
 
 	PS_SPI *ps_spi0 = new PS_SPI(XPAR_PS7_SPI_0_DEVICE_ID, XPAR_PS7_SPI_0_INTR);
 	eeprom_data = new SPI_EEPROM(*ps_spi0, 0, 0x8000, 64);
@@ -292,6 +298,37 @@ void ipmc_service_init() {
 	elm = new ELM(elm_uart, elm_gpio);
 	elm->register_console_commands(console_command_parser, "elm.");
 
+	class ELMMetricsChannel : public ELM::Channel {
+	public:
+		ELMMetricsChannel(ELM &elm) : ELM::Channel(elm, 1) {};
+
+		void recv(uint8_t *content, size_t size) {
+			// Content doesn't need to be null terminated
+			std::string str = "";
+			str.append((char*)content, size);
+
+			// Parse
+			std::vector<std::string> m = stringSplit(str, '\n');
+
+			for (auto str : m) {
+				std::vector<std::string> v = stringSplit(str, ' ');
+				double value = 0.0;
+
+				try {
+					value = std::stod(v[2]);
+				} catch (...) {
+					printf("exception: %s", str);
+				}
+
+				printf("%s: %0.2f", v[1].c_str(), value);
+			}
+		}
+
+		int async_read(uint8_t *content, size_t len, TickType_t timeout, TickType_t data_timeout) { return 0; };
+	};
+
+	new ELMMetricsChannel(*elm);
+
 	{
 		mstatemachine = new MStateMachine(std::dynamic_pointer_cast<HotswapSensor>(ipmc_sensors.find_by_name("Hotswap")), *ipmi_leds[0], LOG["mstatemachine"]);
 		mstatemachine->register_console_commands(console_command_parser, "");
@@ -353,7 +390,26 @@ void ipmc_service_init() {
 		new XVCServer(XPAR_AXI_JTAG_0_BASEADDR);
 
 		// Start FTP server
-		VFS::addFile("virtual/flash.bin", PS_ISFQSPI::createFlashFile(isfqspi, 16 * 1024 * 1024));
+		qspiflash = new SPIFlash(*psqspi, 0);
+		VFS::addFile("virtual/flash.bin", VFS::File(
+				[](uint8_t *buffer, size_t size) -> size_t {
+					// Read
+					qspiflash->initialize();
+					qspiflash->read(0, buffer, size);
+					return size;
+				},
+				[](uint8_t *buffer, size_t size) -> size_t {
+					qspiflash->initialize();
+
+					// Write
+					if (!qspiflash->write(0, buffer, size)) {
+						wasFlashUpgradeSuccessful = false; // Upgrade failed
+						return 0;
+					}
+
+					// Write successful
+					return size;
+				}, 16 * 1024 * 1024));
 		VFS::addFile("virtual/esm.bin", esm->createFlashFile());
 		new FTPServer(Auth::ValidateCredentials);
 
@@ -2803,7 +2859,7 @@ static void tracebuffer_log_handler(LogTree &logtree, const std::string &message
 }
 
 #include "core_console_commands/date.h"
-#include "core_console_commands/flash_info.h"
+#include <core_console_commands/flash.h>
 #include "core_console_commands/ps.h"
 #include "core_console_commands/restart.h"
 #include "core_console_commands/setauth.h"
@@ -2824,6 +2880,7 @@ static void register_core_console_commands(CommandParser &parser) {
 	console_command_parser.register_command("ps", std::make_shared<ConsoleCommand_ps>());
 	console_command_parser.register_command("restart", std::make_shared<ConsoleCommand_restart>());
 	console_command_parser.register_command("flash_info", std::make_shared<ConsoleCommand_flash_info>());
+	console_command_parser.register_command("flash.verify", std::make_shared<ConsoleCommand_flash_verify>());
 	console_command_parser.register_command("setauth", std::make_shared<ConsoleCommand_setauth>());
 	if (IPMC_SERIAL == 0 || IPMC_SERIAL == 0xFFFF) // The serial is settable only if unset.  This implements lock on write (+reboot).
 		console_command_parser.register_command("set_serial", std::make_shared<ConsoleCommand_set_serial>());
