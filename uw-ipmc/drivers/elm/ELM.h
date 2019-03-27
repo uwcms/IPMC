@@ -12,7 +12,7 @@
 #include <semphr.h>
 #include <string>
 #include <drivers/generics/UART.h>
-#include <drivers/pl_gpio/PLGPIO.h>
+#include <drivers/generics/GPIO.h>
 #include <services/console/CommandParser.h>
 #include <services/console/ConsoleSvc.h>
 
@@ -21,7 +21,7 @@
  */
 class ELM {
 public:
-	ELM(UART *uart, PL_GPIO *gpio);
+	ELM(UART *uart, GPIO *targetsel);
 	virtual ~ELM();
 
 	class Channel;
@@ -82,7 +82,7 @@ protected:
 private:
 	SemaphoreHandle_t mutex;
 	UART *uart;
-	PL_GPIO *gpio;
+	GPIO *targetsel;
 	ELM::Channel* channelMapping[32];
 };
 

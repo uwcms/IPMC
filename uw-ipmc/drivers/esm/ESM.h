@@ -13,8 +13,8 @@
 #include <string>
 #include <libs/VFS.h>
 #include <drivers/generics/UART.h>
+#include <drivers/generics/GPIO.h>
 #include <drivers/spi_flash/SPIFLASH.h>
-#include <drivers/pl_gpio/PLGPIO.h>
 #include <services/console/CommandParser.h>
 #include <services/console/ConsoleSvc.h>
 

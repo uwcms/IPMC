@@ -9,11 +9,10 @@
 #include <libs/ThreadingPrimitives.h>
 #include "ELM.h"
 
-ELM::ELM(UART *uart, PL_GPIO *gpio)
-: uart(uart), gpio(gpio) {
+ELM::ELM(UART *uart, GPIO *targetsel)
+: uart(uart), targetsel(targetsel) {
 	// TODO: Should be able to partially take
 	configASSERT(this->uart);
-	configASSERT(this->gpio);
 
 	this->mutex = xSemaphoreCreateMutex();
 	configASSERT(this->mutex);
@@ -80,10 +79,10 @@ public:
 
 	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
 		if (parameters.nargs() == 1) {
-			if ((elm.gpio->getDirection(PL_GPIO::GPIO_CHANNEL2) & 0x03) == 0x03) {
+			if ((elm.targetsel->getDirection() & 0x03) == 0x03) {
 				console->write("ELM override is disabled.\n");
 			} else {
-				if ((elm.gpio->getChannel(PL_GPIO::GPIO_CHANNEL2) & 0x03) == 0x02) {
+				if ((elm.targetsel->getBus() & 0x03) == 0x02) {
 					console->write("ELM override set to sdcard.\n");
 				} else {
 					console->write("ELM override set to flash.\n");
@@ -92,13 +91,13 @@ public:
 		} else {
 			if (!parameters.parameters[1].compare("release")) {
 				// Set pins as inputs
-				elm.gpio->setDirection(0x3, PL_GPIO::GPIO_CHANNEL2);
+				elm.targetsel->setDirection(0x3);
 			} else if (!parameters.parameters[1].compare("sdcard")) {
-				elm.gpio->setChannel(0x2, PL_GPIO::GPIO_CHANNEL2);
-				elm.gpio->setDirection(0x0, PL_GPIO::GPIO_CHANNEL2);
+				elm.targetsel->setBus(0x2);
+				elm.targetsel->setDirection(0x0);
 			} else if (!parameters.parameters[1].compare("flash")) {
-				elm.gpio->setChannel(0x0, PL_GPIO::GPIO_CHANNEL2);
-				elm.gpio->setDirection(0x0, PL_GPIO::GPIO_CHANNEL2);
+				elm.targetsel->setBus(0x0);
+				elm.targetsel->setDirection(0x0);
 			} else {
 				console->write("Invalid source, see help.\n");
 			}
@@ -130,7 +129,8 @@ public:
  * @param prefix A prefix for the registered commands.
  */
 void ELM::register_console_commands(CommandParser &parser, const std::string &prefix) {
-	parser.register_command(prefix + "bootsource", std::make_shared<elm_bootsource>(*this));
+	if (this->targetsel)
+		parser.register_command(prefix + "bootsource", std::make_shared<elm_bootsource>(*this));
 	parser.register_command(prefix + "quiesce", std::make_shared<elm_quiesce>(*this));
 }
 
@@ -140,7 +140,8 @@ void ELM::register_console_commands(CommandParser &parser, const std::string &pr
  * @param prefix A prefix for the registered commands.
  */
 void ELM::deregister_console_commands(CommandParser &parser, const std::string &prefix) {
-	parser.register_command(prefix + "bootsource", NULL);
+	if (this->targetsel)
+		parser.register_command(prefix + "bootsource", NULL);
 }
 
 // TODO: Proper linkage between channels

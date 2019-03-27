@@ -11,8 +11,8 @@
 #include <libs/except.h>
 #include <libs/ThreadingPrimitives.h>
 
-PL_GPIO::PL_GPIO(uint16_t DeviceId)
-: InterruptBasedDriver(), callback(nullptr) {
+PL_GPIO::PL_GPIO(PL_GPIO::BusChannel Channel, uint16_t DeviceId)
+: GPIO(), InterruptBasedDriver(), Channel(Channel), callback(nullptr) {
 	// Initialize the Gpio driver so that it's ready to use.
 	if (XST_SUCCESS != XGpio_Initialize(&(this->Gpio), DeviceId))
 		throw except::hardware_error(stdsprintf("Unable to initialize PL_GPIO(%hu)", DeviceId));
@@ -22,8 +22,8 @@ PL_GPIO::PL_GPIO(uint16_t DeviceId)
 		throw except::hardware_error(stdsprintf("Self-test failed for PL_GPIO(%hu)", DeviceId));
 }
 
-PL_GPIO::PL_GPIO(uint16_t DeviceId, uint32_t IntrId)
-: InterruptBasedDriver(), callback(nullptr) {
+PL_GPIO::PL_GPIO(PL_GPIO::BusChannel Channel, uint16_t DeviceId, uint32_t IntrId)
+: GPIO(), InterruptBasedDriver(), Channel(Channel), callback(nullptr) {
 	// Initialize the Gpio driver so that it's ready to use.
 	if (XST_SUCCESS != XGpio_Initialize(&(this->Gpio), DeviceId))
 		throw except::hardware_error(stdsprintf("Unable to initialize PL_GPIO(%hu, %lu)", DeviceId, IntrId));
@@ -42,12 +42,36 @@ PL_GPIO::PL_GPIO(uint16_t DeviceId, uint32_t IntrId)
 	}
 }
 
-void PL_GPIO::setChannelMask(uint32_t v, uint32_t mask, Channel c) {
-	uint32_t current = this->getChannel(c);
+uint32_t PL_GPIO::getDirection() {
+	return XGpio_GetDataDirection(&(this->Gpio), this->Channel);
+}
 
-	current = (current & ~mask) | (v & mask);
+void PL_GPIO::setDirection(uint32_t d) {
+	XGpio_SetDataDirection(&(this->Gpio), this->Channel, d);
+}
 
-	this->setChannel(current, c);
+void PL_GPIO::setBitDirection(uint32_t b, bool input) {
+	MutexGuard<false>(this->mutex);
+	uint32_t d = this->getDirection();
+	if (input) d |= (1 << b);
+	else d &= ~(1 << b);
+	this->setDirection(d);
+}
+
+uint32_t PL_GPIO::getBus() {
+	return XGpio_DiscreteRead(&(this->Gpio), this->Channel);
+}
+
+void PL_GPIO::setBus(uint32_t v) {
+	XGpio_DiscreteWrite(&(this->Gpio), this->Channel, v);
+}
+
+void PL_GPIO::setPin(uint32_t b) {
+	XGpio_DiscreteSet(&(this->Gpio), this->Channel, 1 << b);
+}
+
+void PL_GPIO::clearPin(uint32_t b) {
+	XGpio_DiscreteClear(&(this->Gpio), this->Channel, 1 << b);
 }
 
 void PL_GPIO::setIRQCallback(std::function<void(uint32_t)> func) {
