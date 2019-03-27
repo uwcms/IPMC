@@ -33,10 +33,11 @@
 #include <services/ipmi/IPMIFormats.h>
 
 /* Include drivers */
+#include <drivers/ps_gpio/PSGPIO.h>
 #include <drivers/ps_xadc/PSXADC.h>
 #include <drivers/ps_uart/PSUART.h>
 #include <drivers/ps_spi/PSSPI.h>
-#include <drivers/ps_isfqspi/PSISFQSPI.h>
+#include <drivers/ps_qspi/PSQSPI.h>
 #include <drivers/pl_uart/PLUART.h>
 #include <drivers/pl_gpio/PLGPIO.h>
 #include <drivers/pl_spi/PLSPI.h>
@@ -78,7 +79,7 @@
 #include <PayloadManager.h>
 
 
-u8 IPMC_HW_REVISION = 1; // TODO: Detect, Update, etc
+u8 IPMC_HW_REVISION = 0;
 uint16_t IPMC_SERIAL = 0xffff;
 
 /**
@@ -89,9 +90,9 @@ uint16_t IPMC_SERIAL = 0xffff;
  */
 EventGroupHandle_t init_complete;
 
-PS_WDT *SWDT;
+PS_WDT *SWDT = NULL;
 PS_UART *uart_ps0;
-PS_ISFQSPI *isfqspi;
+PS_QSPI *psqspi;
 XGpioPs gpiops;
 
 LogTree LOG("ipmc");
@@ -136,6 +137,9 @@ PS_XADC *xadc;
 PL_LED *atcaLEDs;
 std::vector<IPMI_LED*> ipmi_leds;  // Blue, Red, Green, Amber
 
+Flash *qspiflash = nullptr;
+bool wasFlashUpgradeSuccessful = true;
+
 static void init_device_sdrs(bool reinit=false);
 static void init_fru_data(bool reinit=false);
 static void tracebuffer_log_handler(LogTree &logtree, const std::string &message, enum LogTree::LogLevel level);
@@ -174,7 +178,21 @@ void driver_init(bool use_pl) {
 	console_log_filter->register_console_commands(console_command_parser);
 	LOG["console_log_command"].register_console_commands(console_command_parser);
 
-	isfqspi = new PS_ISFQSPI(XPAR_PS7_QSPI_0_DEVICE_ID, XPAR_PS7_QSPI_0_INTR);
+	psqspi = new PS_QSPI(XPAR_PS7_QSPI_0_DEVICE_ID, XPAR_PS7_QSPI_0_INTR);
+#ifdef INCLUDE_DRIVER_COMMAND_SUPPORT
+	psqspi->register_console_commands(console_command_parser, "psqspi.");
+#endif
+
+	// Retrieve the hardware revision number
+	PS_GPIO gpio_hwrev(XPAR_PS7_GPIO_0_DEVICE_ID, {0}); // Only pin 0
+	IPMC_HW_REVISION = (gpio_hwrev.getBus() == 0)? 1 : 0; // Pull-down on revB
+
+	// Retrieve the IPMB address
+	PS_GPIO gpio_ipmbaddr(XPAR_PS7_GPIO_0_DEVICE_ID, {39,40,41,45,47,48,49,50});
+	uint8_t ipmbaddr = gpio_ipmbaddr.getBus(), parity;
+	for (size_t i = 0; i < 8; ++i) parity ^= ((ipmbaddr >> i) & 0x1);
+	// TOOD: Validate parity
+	ipmbaddr = (ipmbaddr & 0x7f) << 1; // The high HA bit on the Zone 1 connector is parity.  IPMB addr is HWaddr<<1
 
 	PS_SPI *ps_spi0 = new PS_SPI(XPAR_PS7_SPI_0_DEVICE_ID, XPAR_PS7_SPI_0_INTR);
 	eeprom_data = new SPI_EEPROM(*ps_spi0, 0, 0x8000, 64);
@@ -194,11 +212,6 @@ void driver_init(bool use_pl) {
 	 */
 	init_device_sdrs(false);
 
-	XGpioPs_Config* gpiops_config = XGpioPs_LookupConfig(XPAR_PS7_GPIO_0_DEVICE_ID);
-	configASSERT(XST_SUCCESS == XGpioPs_CfgInitialize(&gpiops, gpiops_config, gpiops_config->BaseAddr));
-
-	const int hwaddr_gpios[] = {39,40,41,45,47,48,49,50};
-	uint8_t ipmbaddr = IPMBSvc::lookup_ipmb_address(hwaddr_gpios);
 	LogTree &log_ipmb0 = LOG["ipmi"]["ipmb"]["ipmb0"];
 	log_ipmb0.log(stdsprintf("Our IPMB0 address is %02Xh", ipmbaddr), LogTree::LOG_NOTICE);
 	PS_IPMB *ps_ipmb[2];
@@ -242,11 +255,11 @@ void driver_init(bool use_pl) {
 #define ELMRSTn_PIN			2
 #define PWRENA_ACTVn		3
 
-		pl_gpio = new PL_GPIO(XPAR_AXI_GPIO_0_DEVICE_ID);
-		pl_gpio->setChannel((1 << ELMRSTn_PIN) | (1 << DACRSTn_PIN) | (1 << LDACn_PIN));
+		pl_gpio = new PL_GPIO(PL_GPIO::CHANNEL1, XPAR_AXI_GPIO_0_DEVICE_ID);
+		pl_gpio->setBus((1 << ELMRSTn_PIN) | (1 << DACRSTn_PIN) | (1 << LDACn_PIN));
 		pl_gpio->setDirection(0);
 
-		xvctarget_gpio = new PL_GPIO(XPAR_AXI_GPIO_XVCTARGET_DEVICE_ID);
+		xvctarget_gpio = new PL_GPIO(PL_GPIO::CHANNEL1, XPAR_AXI_GPIO_XVCTARGET_DEVICE_ID);
 		configASSERT(xvctarget_gpio);
 
 		SPIMaster *dac_spi = new PL_SPI(XPAR_AXI_QUAD_SPI_DAC_DEVICE_ID, XPAR_FABRIC_AXI_QUAD_SPI_DAC_IP2INTC_IRPT_INTR);
@@ -257,7 +270,7 @@ void driver_init(bool use_pl) {
 		vTaskDelay(pdMS_TO_TICKS(100));
 		dac->sendCommand(LTC2654F::ALL_DACS, LTC2654F::WRITE_AND_UPDATE_REG, 0x7ff);
 
-		handle_gpio = new PL_GPIO(XPAR_AXI_GPIO_HNDL_SW_DEVICE_ID, XPAR_FABRIC_AXI_GPIO_HNDL_SW_IP2INTC_IRPT_INTR);
+		handle_gpio = new PL_GPIO(PL_GPIO::CHANNEL1, XPAR_AXI_GPIO_HNDL_SW_DEVICE_ID, XPAR_FABRIC_AXI_GPIO_HNDL_SW_IP2INTC_IRPT_INTR);
 	}
 }
 
@@ -276,7 +289,7 @@ void ipmc_service_init() {
 
 	// ESM
 	UART* esm_uart = new PL_UART(XPAR_ESM_AXI_UARTLITE_ESM_DEVICE_ID, XPAR_FABRIC_ESM_AXI_UARTLITE_ESM_INTERRUPT_INTR);
-	PL_GPIO* esm_gpio = new PL_GPIO(XPAR_ESM_AXI_GPIO_ESM_DEVICE_ID);
+	PL_GPIO* esm_gpio = new PL_GPIO(PL_GPIO::CHANNEL1, XPAR_ESM_AXI_GPIO_ESM_DEVICE_ID);
 	NegResetPin* esm_reset = new NegResetPin(*esm_gpio, 0);
 
 	PL_SPI* esm_spi = new PL_SPI(XPAR_ESM_AXI_QUAD_SPI_ESM_DEVICE_ID, XPAR_FABRIC_ESM_AXI_QUAD_SPI_ESM_IP2INTC_IRPT_INTR);
@@ -288,9 +301,40 @@ void ipmc_service_init() {
 
 	// ELM
 	UART* elm_uart = new PL_UART(XPAR_ELM_AXI_UARTLITE_0_DEVICE_ID, XPAR_FABRIC_ELM_AXI_UARTLITE_0_INTERRUPT_INTR);
-	PL_GPIO* elm_gpio = new PL_GPIO(XPAR_ELM_AXI_GPIO_0_DEVICE_ID, XPAR_FABRIC_ELM_AXI_GPIO_0_IP2INTC_IRPT_INTR);
+	PL_GPIO* elm_gpio = new PL_GPIO(PL_GPIO::CHANNEL1, XPAR_ELM_AXI_GPIO_0_DEVICE_ID, XPAR_FABRIC_ELM_AXI_GPIO_0_IP2INTC_IRPT_INTR);
 	elm = new ELM(elm_uart, elm_gpio);
 	elm->register_console_commands(console_command_parser, "elm.");
+
+	class ELMMetricsChannel : public ELM::Channel {
+	public:
+		ELMMetricsChannel(ELM &elm) : ELM::Channel(elm, 1) {};
+
+		void recv(uint8_t *content, size_t size) {
+			// Content doesn't need to be null terminated
+			std::string str = "";
+			str.append((char*)content, size);
+
+			// Parse
+			std::vector<std::string> m = stringSplit(str, '\n');
+
+			for (auto str : m) {
+				std::vector<std::string> v = stringSplit(str, ' ');
+				double value = 0.0;
+
+				try {
+					value = std::stod(v[2]);
+				} catch (...) {
+					printf("exception: %s", str);
+				}
+
+				printf("%s: %0.2f", v[1].c_str(), value);
+			}
+		}
+
+		int async_read(uint8_t *content, size_t len, TickType_t timeout, TickType_t data_timeout) { return 0; };
+	};
+
+	new ELMMetricsChannel(*elm);
 
 	{
 		mstatemachine = new MStateMachine(std::dynamic_pointer_cast<HotswapSensor>(ipmc_sensors.find_by_name("Hotswap")), *ipmi_leds[0], LOG["mstatemachine"]);
@@ -353,7 +397,26 @@ void ipmc_service_init() {
 		new XVCServer(XPAR_AXI_JTAG_0_BASEADDR);
 
 		// Start FTP server
-		VFS::addFile("virtual/flash.bin", PS_ISFQSPI::createFlashFile(isfqspi, 16 * 1024 * 1024));
+		qspiflash = new SPIFlash(*psqspi, 0);
+		VFS::addFile("virtual/flash.bin", VFS::File(
+				[](uint8_t *buffer, size_t size) -> size_t {
+					// Read
+					qspiflash->initialize();
+					qspiflash->read(0, buffer, size);
+					return size;
+				},
+				[](uint8_t *buffer, size_t size) -> size_t {
+					qspiflash->initialize();
+
+					// Write
+					if (!qspiflash->write(0, buffer, size)) {
+						wasFlashUpgradeSuccessful = false; // Upgrade failed
+						return 0;
+					}
+
+					// Write successful
+					return size;
+				}, 16 * 1024 * 1024));
 		VFS::addFile("virtual/esm.bin", esm->createFlashFile());
 		new FTPServer(Auth::ValidateCredentials);
 
@@ -2777,7 +2840,7 @@ std::string generate_banner() {
 	bannerstr += "********************************************************************************\n";
 	bannerstr += "\n";
 	bannerstr += std::string("ZYNQ-IPMC - Open-source IPMC hardware and software framework\n");
-	bannerstr += std::string("HW revision : ") + std::to_string(IPMC_HW_REVISION) + "\n"; // TODO
+	bannerstr += std::string("HW revision : rev") + (char)('A'+IPMC_HW_REVISION) + "\n";
 	bannerstr += std::string("SW revision : ") + GIT_DESCRIBE + " (" + GIT_BRANCH + ")\n";
 	if (IPMC_SERIAL != 0xffff & IPMC_SERIAL != 0)
 		bannerstr += std::string("HW serial   : ") + std::to_string(IPMC_SERIAL) + "\n";
@@ -2803,7 +2866,7 @@ static void tracebuffer_log_handler(LogTree &logtree, const std::string &message
 }
 
 #include "core_console_commands/date.h"
-#include "core_console_commands/flash_info.h"
+#include <core_console_commands/flash.h>
 #include "core_console_commands/ps.h"
 #include "core_console_commands/restart.h"
 #include "core_console_commands/setauth.h"
@@ -2823,7 +2886,8 @@ static void register_core_console_commands(CommandParser &parser) {
 	console_command_parser.register_command("version", std::make_shared<ConsoleCommand_version>());
 	console_command_parser.register_command("ps", std::make_shared<ConsoleCommand_ps>());
 	console_command_parser.register_command("restart", std::make_shared<ConsoleCommand_restart>());
-	console_command_parser.register_command("flash_info", std::make_shared<ConsoleCommand_flash_info>());
+	console_command_parser.register_command("flash.info", std::make_shared<ConsoleCommand_flash_info>());
+	console_command_parser.register_command("flash.verify", std::make_shared<ConsoleCommand_flash_verify>());
 	console_command_parser.register_command("setauth", std::make_shared<ConsoleCommand_setauth>());
 	if (IPMC_SERIAL == 0 || IPMC_SERIAL == 0xFFFF) // The serial is settable only if unset.  This implements lock on write (+reboot).
 		console_command_parser.register_command("set_serial", std::make_shared<ConsoleCommand_set_serial>());
@@ -2833,7 +2897,7 @@ static void register_core_console_commands(CommandParser &parser) {
 
 	console_command_parser.register_command("adc", std::make_shared<ConsoleCommand_adc>());
 	console_command_parser.register_command("dac", std::make_shared<ConsoleCommand_dac>());
-	console_command_parser.register_command("xvctarget", std::make_shared<ConsoleCommand_xvctarget>(xvctarget_gpio, PL_GPIO::Channel::GPIO_CHANNEL1, 0, 1));
+	console_command_parser.register_command("xvctarget", std::make_shared<ConsoleCommand_xvctarget>(xvctarget_gpio, 0, 1));
 	StatCounter::register_console_commands(parser);
 }
 

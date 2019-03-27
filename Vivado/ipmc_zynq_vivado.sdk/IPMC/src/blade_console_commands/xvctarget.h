@@ -13,13 +13,12 @@ namespace {
 /// A "xvctarget" console command.
 class ConsoleCommand_xvctarget : public CommandParser::Command {
 public:
-	PL_GPIO *gpio; ///< GPIO IP with pins.
-	PL_GPIO::Channel channel;
+	GPIO *gpio; ///< GPIO IP with pins.
 	uint32_t pins[2]; ///< Pin 0 & 1 for JTAG address
 
 	///! Construct the command.
-	ConsoleCommand_xvctarget(PL_GPIO *gpio, PL_GPIO::Channel channel, uint32_t addr0_pin, uint32_t addr1_pin)
-	: gpio(gpio), channel(channel) {
+	ConsoleCommand_xvctarget(GPIO *gpio, uint32_t addr0_pin, uint32_t addr1_pin)
+	: gpio(gpio) {
 		pins[0] = addr0_pin;
 		pins[1] = addr1_pin;
 	};
@@ -32,7 +31,7 @@ public:
 
 	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
 		if (parameters.nargs() == 1) {
-			uint32_t value = this->gpio->getChannel(this->channel);
+			uint32_t value = this->gpio->getBus();
 			uint32_t masked = value & ((1 << this->pins[0]) | (1 << this->pins[1]));
 
 			if (masked == (1 << this->pins[0])) {
@@ -50,19 +49,17 @@ public:
 			if (!parameters.parameters[1].compare("disconnect")) {
 				// Disconnect (A0 = 1, A1 = 1)
 				uint32_t value = (1 << this->pins[0]) | (1 << this->pins[1]);
-				this->gpio->setChannelMask(value, mask, this->channel);
+				this->gpio->setBusMask(value, mask);
 			} else if (!parameters.parameters[1].compare("elm")) {
 				// ELM  (A0 = 1, A1 = 0)
 				uint32_t value = (1 << this->pins[0]);
-				this->gpio->setChannelMask(value, mask, this->channel);
+				this->gpio->setBusMask(value, mask);
 			} else if (!parameters.parameters[1].compare("fpga")) {
 				// FPGA (A0 = 0, A1 = 1)
 				uint32_t value = (1 << this->pins[1]);
-				this->gpio->setChannelMask(value, mask, this->channel);
-				return;
+				this->gpio->setBusMask(value, mask);
 			} else {
 				console->write("Unknown target, see help.\n");
-				return;
 			}
 		}
 	}
