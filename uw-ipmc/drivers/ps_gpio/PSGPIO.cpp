@@ -84,8 +84,8 @@ void PS_GPIO::setBitDirection(uint32_t b, bool input) {
 	MutexGuard<false>(this->mutex);
 
 	uint32_t dir = XGpioPs_GetDirection(&(this->GpioPs), this->pins[b].bank);
-	if (input) dir &= ~(1 << this->pins[b].pin);
-	else dir |= 1 << this->pins[b].pin;
+	if (input) dir |= 1 << this->pins[b].pin;
+	else dir &= ~(1 << this->pins[b].pin);
 	XGpioPs_SetDirection(&(this->GpioPs), this->pins[b].bank, dir);
 }
 
