@@ -58,6 +58,10 @@ public:
 	SDR_FIELD(sensor_type_code, uint8_t, 12, 7, 0, )
 	SDR_FIELD(event_type_reading_code, uint8_t, 13, 7, 0, )
 
+	/// Threshold comparisons returned.
+	virtual uint8_t threshold_comparisons_returned() const;
+	virtual void threshold_comparisons_returned(uint8_t val);
+
 	/// Assertion / Lower Threshold Reading Mask
 	virtual uint16_t assertion_lower_threshold_reading_mask() const;
 	virtual void assertion_lower_threshold_reading_mask(uint16_t val);

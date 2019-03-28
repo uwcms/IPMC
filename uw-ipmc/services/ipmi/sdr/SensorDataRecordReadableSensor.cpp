@@ -44,23 +44,37 @@ SDR_FIELD(sensor_event_message_control_support, enum SensorDataRecordReadableSen
 SDR_FIELD(sensor_type_code, uint8_t, 12, 7, 0, )
 SDR_FIELD(event_type_reading_code, uint8_t, 13, 7, 0, )
 
+uint8_t SensorDataRecordReadableSensor::threshold_comparisons_returned() const {
+	this->validate();
+	return ((this->sdr_data[17] & 0x70) >> 1) | ((this->sdr_data[15] & 0x70) >> 4);
+}
+void SensorDataRecordReadableSensor::threshold_comparisons_returned(uint8_t val) {
+	this->validate();
+	this->sdr_data[15] &= 0x0f;
+	this->sdr_data[15] |= (val & 0x07) << 4;
+	this->sdr_data[17] &= 0x0f;
+	this->sdr_data[17] |= (val & 0x38) << 1;
+}
+
 uint16_t SensorDataRecordReadableSensor::assertion_lower_threshold_reading_mask() const {
 	this->validate();
-	return (this->sdr_data[15]<<8) | this->sdr_data[14];
+	return ((this->sdr_data[15] & 0x0f)<<8) | this->sdr_data[14];
 }
 void SensorDataRecordReadableSensor::assertion_lower_threshold_reading_mask(uint16_t val) {
 	this->validate();
-	this->sdr_data[15] = val >> 8;
+	this->sdr_data[15] &= 0xf0;
+	this->sdr_data[15] |= (val >> 8) & 0x0f;
 	this->sdr_data[14] = val & 0xff;
 }
 
 uint16_t SensorDataRecordReadableSensor::deassertion_upper_threshold_reading_mask() const {
 	this->validate();
-	return (this->sdr_data[17]<<8) | this->sdr_data[16];
+	return ((this->sdr_data[17] & 0x0f)<<8) | this->sdr_data[16];
 }
 void SensorDataRecordReadableSensor::deassertion_upper_threshold_reading_mask(uint16_t val) {
 	this->validate();
-	this->sdr_data[17] = val >> 8;
+	this->sdr_data[17] &= 0xf0;
+	this->sdr_data[17] |= (val >> 8) & 0x0f;
 	this->sdr_data[16] = val & 0xff;
 }
 
