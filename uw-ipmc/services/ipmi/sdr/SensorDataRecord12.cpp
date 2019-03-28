@@ -18,7 +18,7 @@ void SensorDataRecord12::validate() const {
 	unsigned idlen = ipmi_type_length_field_get_length(std::vector<uint8_t>(std::next(this->sdr_data.begin(), 16), this->sdr_data.end()));
 	if (idlen > 17) // IDString TypeLengthCode (= 1) + IDString Bytes (<= 16)
 		throw invalid_sdr_error("Invalid ID string");
-	if (16+idlen < this->sdr_data.size())
+	if (16+idlen > this->sdr_data.size())
 		throw invalid_sdr_error("Truncated ID string");
 }
 
