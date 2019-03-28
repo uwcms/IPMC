@@ -53,6 +53,11 @@ std::vector<uint8_t> HotswapSensor::get_sensor_reading() {
 	out[3] = this->mstate;
 	return out;
 }
+uint16_t HotswapSensor::get_sensor_event_status(bool *reading_good) {
+	if (reading_good)
+		*reading_good = true;
+	return (1 << this->mstate);
+}
 
 void HotswapSensor::rearm() {
 	/* It is unclear what previous state or reason code I am expected to send in

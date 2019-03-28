@@ -55,6 +55,11 @@ void Sensor::send_event(enum EventDirection direction, const std::vector<uint8_t
 		this->logunique.log_unique(stdsprintf("There is not yet an IPMI Event Receiver.  Discarding events on sensor \"%s\".", sdr->id_string().c_str()), LogTree::LOG_DIAGNOSTIC);
 		return;
 	}
+	if (this->all_events_disabled()) {
+			this->log.log(stdsprintf("Discarding event on \"%s\" sensor: all events disabled on this sensor", sdr->id_string().c_str()), LogTree::LOG_INFO);
+			return;
+	}
+
 	std::vector<uint8_t> data;
 	data.push_back(0x04); // Revision 04h, specified.
 	data.push_back(sdr->sensor_type_code());

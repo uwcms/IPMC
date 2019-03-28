@@ -126,6 +126,22 @@ static void process_threshold(uint16_t &state, uint8_t bit, uint8_t threshold, u
 }
 
 /**
+ * Update thresholds in local cache from the SDR if present.
+ * @param sdr01 The sdr to use.  It must be a type 01 SDR or NULL for NOOP
+ */
+void ThresholdSensor::update_thresholds_from_sdr(std::shared_ptr<const SensorDataRecord01> sdr01) {
+	if (sdr01) {
+		// Update our thresholds from SDR data.
+		this->thresholds.lnc = sdr01->threshold_lnc_rawvalue();
+		this->thresholds.lcr = sdr01->threshold_lcr_rawvalue();
+		this->thresholds.lnr = sdr01->threshold_lnr_rawvalue();
+		this->thresholds.unc = sdr01->threshold_unc_rawvalue();
+		this->thresholds.ucr = sdr01->threshold_ucr_rawvalue();
+		this->thresholds.unr = sdr01->threshold_unr_rawvalue();
+	}
+}
+
+/**
  * Update the internal state of this sensor with the provided float value and
  * generate any relevant events based on this.
  *
@@ -183,16 +199,7 @@ void ThresholdSensor::update_value(const float value, bool in_context, uint64_t 
 
 	const uint8_t byteval = sdr->from_float(value);
 
-	std::shared_ptr<const SensorDataRecord01> sdr01 = std::dynamic_pointer_cast<const SensorDataRecord01>(sdr);
-	if (sdr01) {
-		// Update our thresholds from SDR data.
-		this->thresholds.lnc = sdr01->threshold_lnc_rawvalue();
-		this->thresholds.lcr = sdr01->threshold_lcr_rawvalue();
-		this->thresholds.lnr = sdr01->threshold_lnr_rawvalue();
-		this->thresholds.unc = sdr01->threshold_unc_rawvalue();
-		this->thresholds.ucr = sdr01->threshold_ucr_rawvalue();
-		this->thresholds.unr = sdr01->threshold_unr_rawvalue();
-	}
+	this->update_thresholds_from_sdr(std::dynamic_pointer_cast<const SensorDataRecord01>(sdr));
 
 	// Automatic threshold calculation.
 	const uint8_t hysth = sdr->hysteresis_high();
@@ -332,6 +339,13 @@ std::vector<uint8_t> ThresholdSensor::get_sensor_reading() {
 			(value.byte_value <= this->thresholds.lnc ? 0x01 : 0)
 			);
 	return out;
+}
+
+uint16_t ThresholdSensor::get_sensor_event_status(bool *reading_good) {
+	Value value = this->get_value();
+	if (reading_good)
+		*reading_good = value.in_context && !std::isnan(value.float_value);
+	return value.active_thresholds;
 }
 
 void ThresholdSensor::rearm() {

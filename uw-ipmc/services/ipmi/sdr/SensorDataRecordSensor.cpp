@@ -7,7 +7,7 @@ std::vector<uint8_t> SensorDataRecordSensor::record_key() const {
 	this->validate();
 	return std::vector<uint8_t>(std::next(this->sdr_data.begin(), 5), std::next(this->sdr_data.begin(), 8));
 }
-
+#include <libs/printf.h>
 void SensorDataRecordSensor::validate() const {
 	SensorDataRecord::validate();
 	// Check that the ID field's Type/Length specification is valid.
@@ -16,7 +16,7 @@ void SensorDataRecordSensor::validate() const {
 	unsigned idlen = ipmi_type_length_field_get_length(std::vector<uint8_t>(std::next(this->sdr_data.begin(), this->_get_id_string_offset()), this->sdr_data.end()));
 	if (idlen > 17) // IDString TypeLengthCode (= 1) + IDString Bytes (<= 16)
 		throw invalid_sdr_error("Invalid ID string");
-	if (this->_get_id_string_offset()+idlen < this->sdr_data.size())
+	if (this->_get_id_string_offset()+idlen > this->sdr_data.size())
 		throw invalid_sdr_error("Truncated ID string");
 }
 

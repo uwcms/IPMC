@@ -36,6 +36,7 @@ public:
 	};
 	virtual void transition(uint8_t new_state, enum StateTransitionReason reason, bool send_event=true);
 	virtual std::vector<uint8_t> get_sensor_reading();
+	virtual uint16_t get_sensor_event_status(bool *reading_good=NULL);
 	virtual void rearm();
 
 	/// Return the current M-State

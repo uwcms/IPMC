@@ -1,9 +1,15 @@
 #include <services/ipmi/IPMI.h>
 #include <services/ipmi/ipmbsvc/IPMBSvc.h>
 #include <services/ipmi/sensor/SensorSet.h>
+#include <services/ipmi/sensor/Sensor.h>
+#include <services/ipmi/sensor/ThresholdSensor.h>
 #include <services/ipmi/sdr/SensorDataRepository.h>
 #include <services/ipmi/sdr/SensorDataRecordSensor.h>
+#include <services/ipmi/sdr/SensorDataRecordReadableSensor.h>
+#include <services/ipmi/sdr/SensorDataRecord01.h>
+#include <services/persistentstorage/PersistentStorage.h>
 #include <IPMC.h>
+#include <PayloadManager.h>
 #include "IPMICmd_Index.h"
 
 #define RETURN_ERROR(ipmb, message, completion_code) \
@@ -191,59 +197,251 @@ static void ipmicmd_Get_Sensor_Reading_Factors(IPMBSvc &ipmb, const IPMI_MSG &me
 IPMICMD_INDEX_REGISTER(Get_Sensor_Reading_Factors);
 #endif
 
-#if 0 // Unimplemented.
 static void ipmicmd_Set_Sensor_Hysteresis(IPMBSvc &ipmb, const IPMI_MSG &message) {
-	// Unimplemented.
+	if (message.data_len != 4)
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Request_Data_Length_Invalid);
+	std::shared_ptr<Sensor> sensor;
+	try {
+		sensor = ipmc_sensors.get(message.data[0]);
+	}
+	catch (std::out_of_range) {
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Requested_Sensor_Data_Or_Record_Not_Present);
+	}
+	std::shared_ptr<const SensorDataRecordReadableSensor> sdr = std::dynamic_pointer_cast<const SensorDataRecordReadableSensor>(device_sdr_repo.find(sensor->sdr_key));
+	if (!sdr)
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Requested_Sensor_Data_Or_Record_Not_Present);
+	sensor->all_events_disabled(!(message.data[1] & 0x80));
+	sensor->sensor_scanning_disabled(!(message.data[1] & 0x40));
+	if (message.data_len < 3) {
+		/* If they only sent a byte for global enable/disable, we're not going
+		 * to update our actual specific enables all to zero.  Otherwise it's
+		 * specified that any missing bytes are to be read as 0.
+		 */
+		ipmb.send(message.prepare_reply({IPMI::Completion::Success}));
+		return;
+	}
+	std::shared_ptr<SensorDataRecordReadableSensor> mutable_sdr = std::dynamic_pointer_cast<SensorDataRecordReadableSensor>(sdr->interpret());
+	if (!mutable_sdr) // This is effectively an assertion fail, we shouldn't be able to interpret a ReadableSensor into a non-ReadableSensor
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Invalid_Data_Field_In_Request);
+
+	mutable_sdr->hysteresis_high(message.data[2]);
+	mutable_sdr->hysteresis_low(message.data[3]);
+	device_sdr_repo.add(*mutable_sdr, 0);
+	// Write changes to EEPROM
+	VariablePersistentAllocation sdr_persist(*persistent_storage, PersistentStorageAllocations::WISC_SDR_REPOSITORY);
+	sdr_persist.set_data(device_sdr_repo.u8export());
+	// Update Sensor Processor config
+	payload_manager->refresh_sensor_linkage();
+	// Return success
+	ipmb.send(message.prepare_reply({IPMI::Completion::Success}));
 }
 IPMICMD_INDEX_REGISTER(Set_Sensor_Hysteresis);
-#endif
 
-#if 0 // Unimplemented.
 static void ipmicmd_Get_Sensor_Hysteresis(IPMBSvc &ipmb, const IPMI_MSG &message) {
-	// Unimplemented.
+	if (message.data_len < 1 || message.data_len > 2)
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Request_Data_Length_Invalid);
+	std::shared_ptr<ThresholdSensor> sensor;
+	try {
+		sensor = std::dynamic_pointer_cast<ThresholdSensor>(ipmc_sensors.get(message.data[0]));
+	}
+	catch (std::out_of_range) {
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Requested_Sensor_Data_Or_Record_Not_Present);
+	}
+	std::shared_ptr<const SensorDataRecord01> sdr = std::dynamic_pointer_cast<const SensorDataRecord01>(device_sdr_repo.find(sensor->sdr_key));
+	if (!sdr)
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Requested_Sensor_Data_Or_Record_Not_Present);
+
+	ipmb.send(message.prepare_reply({IPMI::Completion::Success, sdr->hysteresis_high(), sdr->hysteresis_low()}));
 }
 IPMICMD_INDEX_REGISTER(Get_Sensor_Hysteresis);
-#endif
 
-#if 0 // Unimplemented.
 static void ipmicmd_Set_Sensor_Threshold(IPMBSvc &ipmb, const IPMI_MSG &message) {
-	// Unimplemented.
+	if (message.data_len < 2 || message.data_len > 8)
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Request_Data_Length_Invalid);
+	std::shared_ptr<ThresholdSensor> sensor;
+	try {
+		sensor = std::dynamic_pointer_cast<ThresholdSensor>(ipmc_sensors.get(message.data[0]));
+	}
+	catch (std::out_of_range) {
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Requested_Sensor_Data_Or_Record_Not_Present);
+	}
+	std::shared_ptr<const SensorDataRecord01> sdr = std::dynamic_pointer_cast<const SensorDataRecord01>(device_sdr_repo.find(sensor->sdr_key));
+	std::shared_ptr<SensorDataRecord01> mutable_sdr = NULL;
+	if (sdr)
+		mutable_sdr = std::dynamic_pointer_cast<SensorDataRecord01>(sdr->interpret());
+	uint8_t changed_thresholds = message.data[1];
+	if (message.data_len > 2 && changed_thresholds & 1<<0)  {
+		if (mutable_sdr)
+			mutable_sdr->threshold_lnc_rawvalue(message.data[2]);
+		sensor->thresholds.lnc = message.data[2];
+	}
+	if (message.data_len > 3 && changed_thresholds & 1<<1)  {
+		if (mutable_sdr)
+			mutable_sdr->threshold_lcr_rawvalue(message.data[3]);
+		sensor->thresholds.lcr = message.data[3];
+	}
+	if (message.data_len > 4 && changed_thresholds & 1<<2)  {
+		if (mutable_sdr)
+			mutable_sdr->threshold_lnr_rawvalue(message.data[4]);
+		sensor->thresholds.lnr = message.data[4];
+	}
+	if (message.data_len > 5 && changed_thresholds & 1<<3)  {
+		if (mutable_sdr)
+			mutable_sdr->threshold_unc_rawvalue(message.data[5]);
+		sensor->thresholds.unc = message.data[5];
+	}
+	if (message.data_len > 6 && changed_thresholds & 1<<4)  {
+		if (mutable_sdr)
+			mutable_sdr->threshold_ucr_rawvalue(message.data[6]);
+		sensor->thresholds.ucr = message.data[6];
+	}
+	if (message.data_len > 7 && changed_thresholds & 1<<5)  {
+		if (mutable_sdr)
+			mutable_sdr->threshold_unr_rawvalue(message.data[7]);
+		sensor->thresholds.unr = message.data[7];
+	}
+	if (mutable_sdr) {
+		device_sdr_repo.add(*mutable_sdr, 0);
+		// Write changes to EEPROM
+		VariablePersistentAllocation sdr_persist(*persistent_storage, PersistentStorageAllocations::WISC_SDR_REPOSITORY);
+		sdr_persist.set_data(device_sdr_repo.u8export());
+	}
+	// Update Sensor Processor config
+	payload_manager->refresh_sensor_linkage();
+	// Return success
+	ipmb.send(message.prepare_reply({IPMI::Completion::Success}));
 }
 IPMICMD_INDEX_REGISTER(Set_Sensor_Threshold);
-#endif
 
-#if 0 // Unimplemented.
 static void ipmicmd_Get_Sensor_Threshold(IPMBSvc &ipmb, const IPMI_MSG &message) {
-	// Unimplemented.
+	if (message.data_len != 1)
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Request_Data_Length_Invalid);
+	std::shared_ptr<ThresholdSensor> sensor;
+	try {
+		sensor = std::dynamic_pointer_cast<ThresholdSensor>(ipmc_sensors.get(message.data[0]));
+	}
+	catch (std::out_of_range) {
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Requested_Sensor_Data_Or_Record_Not_Present);
+	}
+	sensor->update_thresholds_from_sdr(std::dynamic_pointer_cast<const SensorDataRecord01>(device_sdr_repo.find(sensor->sdr_key)));
+
+	std::vector<uint8_t> rsp{IPMI::Completion::Success, 0x3F};
+	rsp.push_back(sensor->thresholds.lnc);
+	rsp.push_back(sensor->thresholds.lcr);
+	rsp.push_back(sensor->thresholds.lnr);
+	rsp.push_back(sensor->thresholds.unc);
+	rsp.push_back(sensor->thresholds.ucr);
+	rsp.push_back(sensor->thresholds.unr);
+	ipmb.send(message.prepare_reply(rsp));
 }
 IPMICMD_INDEX_REGISTER(Get_Sensor_Threshold);
-#endif
 
-#if 0 // Unimplemented.
 static void ipmicmd_Set_Sensor_Event_Enable(IPMBSvc &ipmb, const IPMI_MSG &message) {
-	// Unimplemented.
+	if (message.data_len < 1 || message.data_len > 6)
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Request_Data_Length_Invalid);
+	std::shared_ptr<Sensor> sensor;
+	try {
+		sensor = ipmc_sensors.get(message.data[0]);
+	}
+	catch (std::out_of_range) {
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Requested_Sensor_Data_Or_Record_Not_Present);
+	}
+	std::shared_ptr<const SensorDataRecordReadableSensor> sdr = std::dynamic_pointer_cast<const SensorDataRecordReadableSensor>(device_sdr_repo.find(sensor->sdr_key));
+	if (!sdr)
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Requested_Sensor_Data_Or_Record_Not_Present);
+	sensor->all_events_disabled(!(message.data[1] & 0x80));
+	sensor->sensor_scanning_disabled(!(message.data[1] & 0x40));
+	if (message.data_len < 3) {
+		/* If they only sent a byte for global enable/disable, we're not going
+		 * to update our actual specific enables all to zero.  Otherwise it's
+		 * specified that any missing bytes are to be read as 0.
+		 */
+		ipmb.send(message.prepare_reply({IPMI::Completion::Success}));
+		return;
+	}
+	// Any missing bytes are to be read as zero.  We'll just fill that in for simplicity.
+	std::vector<uint8_t> msgdata(message.data, message.data + message.data_len);
+	while (msgdata.size() < 6)
+		msgdata.push_back(0);
+
+	std::shared_ptr<SensorDataRecordReadableSensor> mutable_sdr = std::dynamic_pointer_cast<SensorDataRecordReadableSensor>(sdr->interpret());
+	if (!mutable_sdr) // This is effectively an assertion fail, we shouldn't be able to interpret a ReadableSensor into a non-ReadableSensor
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Invalid_Data_Field_In_Request);
+
+	mutable_sdr->ext_assertion_events_enabled((message.data[3]<<8) | message.data[2]);
+	mutable_sdr->ext_deassertion_events_enabled((message.data[5]<<8) | message.data[4]);
+	device_sdr_repo.add(*mutable_sdr, 0);
+	// Write changes to EEPROM
+	VariablePersistentAllocation sdr_persist(*persistent_storage, PersistentStorageAllocations::WISC_SDR_REPOSITORY);
+	sdr_persist.set_data(device_sdr_repo.u8export());
+	// Update Sensor Processor config
+	payload_manager->refresh_sensor_linkage();
+	// Return success
+	ipmb.send(message.prepare_reply({IPMI::Completion::Success}));
 }
 IPMICMD_INDEX_REGISTER(Set_Sensor_Event_Enable);
-#endif
 
-#if 0 // Unimplemented.
 static void ipmicmd_Get_Sensor_Event_Enable(IPMBSvc &ipmb, const IPMI_MSG &message) {
-	// Unimplemented.
+	if (message.data_len != 1)
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Request_Data_Length_Invalid);
+	std::shared_ptr<Sensor> sensor;
+	try {
+		sensor = ipmc_sensors.get(message.data[0]);
+	}
+	catch (std::out_of_range) {
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Requested_Sensor_Data_Or_Record_Not_Present);
+	}
+	std::shared_ptr<const SensorDataRecordSensor> sdr = std::dynamic_pointer_cast<const SensorDataRecordSensor>(device_sdr_repo.find(sensor->sdr_key));
+	if (!sdr)
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Requested_Sensor_Data_Or_Record_Not_Present);
+	std::vector<uint8_t> rsp{IPMI::Completion::Success, 0};
+	if (!sensor->all_events_disabled())
+		rsp[1] |= 0x80;
+	if (!sensor->sensor_scanning_disabled())
+		rsp[1] |= 0x40;
+	std::shared_ptr<const SensorDataRecordReadableSensor> sdr0102 = std::dynamic_pointer_cast<const SensorDataRecordReadableSensor>(sdr);
+	if (!sdr0102 || sensor->all_events_disabled()) {
+		// No further payload is required, or no further payload exists.
+		ipmb.send(message.prepare_reply(rsp));
+		return;
+	}
+	rsp.push_back(sdr0102->ext_assertion_events_enabled() & 0xff);
+	rsp.push_back(sdr0102->ext_assertion_events_enabled() >> 8);
+	rsp.push_back(sdr0102->ext_deassertion_events_enabled() & 0xff);
+	rsp.push_back(sdr0102->ext_deassertion_events_enabled() >> 8);
+	ipmb.send(message.prepare_reply(rsp));
 }
 IPMICMD_INDEX_REGISTER(Get_Sensor_Event_Enable);
-#endif
 
 static void ipmicmd_Rearm_Sensor_Events(IPMBSvc &ipmb, const IPMI_MSG &message) {
 	ipmb.send(message.prepare_reply({IPMI::Completion::Invalid_Command}));
 }
 IPMICMD_INDEX_REGISTER(Rearm_Sensor_Events);
 
-#if 0 // Unimplemented.
 static void ipmicmd_Get_Sensor_Event_Status(IPMBSvc &ipmb, const IPMI_MSG &message) {
-	// Unimplemented.
+	if (message.data_len != 1)
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Request_Data_Length_Invalid);
+	std::shared_ptr<Sensor> sensor;
+	try {
+		sensor = ipmc_sensors.get(message.data[0]);
+	}
+	catch (std::out_of_range) {
+		RETURN_ERROR(ipmb, message, IPMI::Completion::Requested_Sensor_Data_Or_Record_Not_Present);
+	}
+	bool reading_good = true;
+	uint16_t event_status = sensor->get_sensor_event_status(&reading_good);
+	std::vector<uint8_t> payload{IPMI::Completion::Success, 0x00};
+	if (!sensor->all_events_disabled())
+		payload[1] |= 0x80;
+	if (!sensor->sensor_scanning_disabled())
+		payload[1] |= 0x40;
+	if (!reading_good)
+		payload[1] |= 0x20;
+	payload.push_back(event_status & 0xff);
+	payload.push_back(event_status >> 8);
+	ipmb.send(message.prepare_reply(payload));
 }
 IPMICMD_INDEX_REGISTER(Get_Sensor_Event_Status);
-#endif
 
 static void ipmicmd_Get_Sensor_Reading(IPMBSvc &ipmb, const IPMI_MSG &message) {
 	if (message.data_len != 1)

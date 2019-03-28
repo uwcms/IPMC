@@ -9,6 +9,7 @@
 #define SRC_COMMON_UW_IPMC_SERVICES_IPMI_SENSOR_THRESHOLDSENSOR_H_
 
 #include <services/ipmi/sensor/Sensor.h>
+#include <services/ipmi/sdr/SensorDataRecord01.h>
 
 /**
  * A standard threshold sensor.
@@ -38,6 +39,8 @@ public:
 		uint8_t unr;
 	} thresholds;
 
+	void update_thresholds_from_sdr(std::shared_ptr<const SensorDataRecord01> sdr01);
+
 	virtual void update_value(const float value, bool in_context=true, uint64_t value_max_age=UINT64_MAX, uint16_t force_assertions=0, uint16_t force_deassertions=0);
 
 	/// Deny implicit conversions here.  We don't want to allow accidental submission of unconverted ADC Values.
@@ -58,6 +61,7 @@ public:
 
 	virtual Value get_value() const;
 	virtual std::vector<uint8_t> get_sensor_reading();
+	virtual uint16_t get_sensor_event_status(bool *reading_good=NULL);
 	virtual void rearm();
 
 protected:

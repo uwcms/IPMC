@@ -32,6 +32,8 @@ public:
 	virtual void send_event(enum EventDirection direction, const std::vector<uint8_t> &event_data);
 	/// Return the correct IPMI response data (including completion code) for Get Sensor Reading.
 	virtual std::vector<uint8_t> get_sensor_reading() = 0;
+	/// Return the current event status in Get Sensor Event Status form (Platform Event format).
+	virtual uint16_t get_sensor_event_status(bool *reading_good=NULL) = 0;
 	/**
 	 * Rearm the sensor, clearing any existing reading (according to the spec)
 	 * and ensuring that any IPMI events will be resent.
