@@ -281,12 +281,12 @@ bool SensorDataRepository::u8import(const std::vector<uint8_t> &data, reservatio
 		return false; // Invalid checksum.
 
 	// Retrieve Update Timestamp
-	if (data.size() < sizeof(time_t))
+	if (data.size() < 1+sizeof(time_t))
 		return false;
-	std::vector<uint8_t>::size_type cur = 1;
+	std::vector<uint8_t>::size_type cur = 1; // Checksum is byte 0.
 	time_t last_update_ts = 0;
-	for (; cur < sizeof(time_t); ++cur)
-		last_update_ts |= data[cur] << (cur*8);
+	for (; cur-1 < sizeof(time_t); ++cur)
+		last_update_ts |= data[cur] << ((cur-1)*8);
 	if (last_update_ts > this->last_update_ts)
 		this->last_update_ts = last_update_ts;
 
