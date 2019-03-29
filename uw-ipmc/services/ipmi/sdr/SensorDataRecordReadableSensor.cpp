@@ -100,7 +100,7 @@ uint16_t SensorDataRecordReadableSensor::ext_assertion_events_enabled() const {
 	const uint8_t offset = this->_get_ext_data_offset();
 	// If missing or uninitialized, use 'supported' mask instead of enabled mask.
 	if (this->sdr_data.size() < offset+2U || !(this->sdr_data[offset+1] & 0x80))
-		return this->assertion_lower_threshold_reading_mask();
+		return this->assertion_lower_threshold_reading_mask() & 0x0a95 /* disable upper going-low and lower going-high assertions by default */;
 	return 0x7FFF & ((this->sdr_data[offset+1]<<8) | this->sdr_data[offset+0]);
 }
 void SensorDataRecordReadableSensor::ext_assertion_events_enabled(uint16_t val) {
@@ -118,7 +118,7 @@ uint16_t SensorDataRecordReadableSensor::ext_deassertion_events_enabled() const 
 	const uint8_t offset = this->_get_ext_data_offset();
 	// If missing or uninitialized, use 'supported' mask instead of enabled mask.
 	if (this->sdr_data.size() < offset+4U || !(this->sdr_data[offset+3] & 0x80))
-		return this->deassertion_upper_threshold_reading_mask();
+		return this->deassertion_upper_threshold_reading_mask() & 0x0a95 /* disable upper going-low and lower going-high deassertions by default */;
 	return 0x7FFF & ((this->sdr_data[offset+3]<<8) | this->sdr_data[offset+2]);
 }
 void SensorDataRecordReadableSensor::ext_deassertion_events_enabled(uint16_t val) {
