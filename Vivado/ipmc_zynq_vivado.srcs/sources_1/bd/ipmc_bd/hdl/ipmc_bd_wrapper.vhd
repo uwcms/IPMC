@@ -1,7 +1,7 @@
 --Copyright 1986-2018 Xilinx, Inc. All Rights Reserved.
 ----------------------------------------------------------------------------------
 --Tool Version: Vivado v.2018.2 (lin64) Build 2258646 Thu Jun 14 20:02:38 MDT 2018
---Date        : Fri Mar 22 17:30:31 2019
+--Date        : Fri Mar 29 12:31:39 2019
 --Host        : beck.hep.wisc.edu running 64-bit CentOS Linux release 7.6.1810 (Core)
 --Command     : generate_target ipmc_bd_wrapper.bd
 --Design      : ipmc_bd_wrapper
@@ -39,7 +39,11 @@ entity ipmc_bd_wrapper is
     GPIO_0_tri_io : inout STD_LOGIC_VECTOR ( 31 downto 0 );
     GPIO_1_tri_io : inout STD_LOGIC_VECTOR ( 31 downto 0 );
     GPIO_2_tri_io : inout STD_LOGIC_VECTOR ( 31 downto 0 );
-    GPIO_3_tri_io : inout STD_LOGIC_VECTOR ( 12 downto 0 )
+    GPIO_3_tri_io : inout STD_LOGIC_VECTOR ( 12 downto 0 );
+    TCK : out STD_LOGIC;
+    TDI : out STD_LOGIC;
+    TDO : in STD_LOGIC;
+    TMS : out STD_LOGIC
   );
 end ipmc_bd_wrapper;
 
@@ -75,12 +79,16 @@ architecture STRUCTURE of ipmc_bd_wrapper is
     GPIO_1_tri_i : in STD_LOGIC_VECTOR ( 31 downto 0 );
     GPIO_1_tri_o : out STD_LOGIC_VECTOR ( 31 downto 0 );
     GPIO_1_tri_t : out STD_LOGIC_VECTOR ( 31 downto 0 );
+    GPIO_3_tri_i : in STD_LOGIC_VECTOR ( 12 downto 0 );
+    GPIO_3_tri_o : out STD_LOGIC_VECTOR ( 12 downto 0 );
+    GPIO_3_tri_t : out STD_LOGIC_VECTOR ( 12 downto 0 );
     GPIO_2_tri_i : in STD_LOGIC_VECTOR ( 31 downto 0 );
     GPIO_2_tri_o : out STD_LOGIC_VECTOR ( 31 downto 0 );
     GPIO_2_tri_t : out STD_LOGIC_VECTOR ( 31 downto 0 );
-    GPIO_3_tri_i : in STD_LOGIC_VECTOR ( 12 downto 0 );
-    GPIO_3_tri_o : out STD_LOGIC_VECTOR ( 12 downto 0 );
-    GPIO_3_tri_t : out STD_LOGIC_VECTOR ( 12 downto 0 )
+    TDO : in STD_LOGIC;
+    TCK : out STD_LOGIC;
+    TMS : out STD_LOGIC;
+    TDI : out STD_LOGIC
   );
   end component ipmc_bd;
   component IOBUF is
@@ -1642,6 +1650,10 @@ ipmc_bd_i: component ipmc_bd
       GPIO_3_tri_t(3) => GPIO_3_tri_t_3(3),
       GPIO_3_tri_t(2) => GPIO_3_tri_t_2(2),
       GPIO_3_tri_t(1) => GPIO_3_tri_t_1(1),
-      GPIO_3_tri_t(0) => GPIO_3_tri_t_0(0)
+      GPIO_3_tri_t(0) => GPIO_3_tri_t_0(0),
+      TCK => TCK,
+      TDI => TDI,
+      TDO => TDO,
+      TMS => TMS
     );
 end STRUCTURE;
