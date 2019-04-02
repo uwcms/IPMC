@@ -8,6 +8,8 @@
 #ifndef SRC_COMMON_UW_IPMC_DRIVERS_PL_SPI_PLSPI_H_
 #define SRC_COMMON_UW_IPMC_DRIVERS_PL_SPI_PLSPI_H_
 
+#if __has_include(<xspi.h>)
+
 #include <xspi.h>
 #include <drivers/generics/SPI.h>
 #include <drivers/InterruptBasedDriver.h>
@@ -48,5 +50,7 @@ private:
 	QueueHandle_t sync;			///< Internal use. Synchronizes interrupts with waiting threads.
 	void _InterruptHandler();
 };
+
+#endif
 
 #endif /* SRC_COMMON_UW_IPMC_DRIVERS_PL_SPI_PLSPI_H_ */

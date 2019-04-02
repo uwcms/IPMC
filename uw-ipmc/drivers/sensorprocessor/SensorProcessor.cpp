@@ -5,7 +5,9 @@
  *      Author: jtikalsky
  */
 
-#include <drivers/sensorprocessor/SensorProcessor.h>
+#include "SensorProcessor.h"
+
+#if __has_include(<ipmi_sensor_proc.h>)
 
 SensorProcessor::SensorProcessor(uint16_t DeviceId, uint32_t InterruptId, std::vector<ADC::Channel*> &adc_channels) :
 	InterruptBasedDriver(InterruptId),
@@ -130,3 +132,5 @@ bool SensorProcessor::get_isr_event(struct Event &event, TickType_t block_time) 
 	this->events_delivered.increment();
 	return true;
 }
+
+#endif

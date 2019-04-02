@@ -8,6 +8,8 @@
 #ifndef SRC_COMMON_UW_IPMC_DRIVERS_PL_I2C_PLI2C_H_
 #define SRC_COMMON_UW_IPMC_DRIVERS_PL_I2C_PLI2C_H_
 
+#if __has_include(<xiic.h>)
+
 #include <drivers/generics/I2C.h>
 #include <drivers/InterruptBasedDriver.h>
 #include <functional>
@@ -48,5 +50,7 @@ public:
 	volatile uint32_t IrqStatus; ///< Used internally. DO NOT USE.
 	volatile bool wasEvent; ///< Used internally. DO NOT USE.
 };
+
+#endif
 
 #endif /* SRC_COMMON_UW_IPMC_DRIVERS_PL_I2C_PLI2C_H_ */

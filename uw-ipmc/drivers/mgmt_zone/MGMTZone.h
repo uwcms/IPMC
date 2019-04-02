@@ -8,7 +8,8 @@
 #ifndef SRC_COMMON_UW_IPMC_DRIVERS_MGMT_ZONE_MGMTZONE_H_
 #define SRC_COMMON_UW_IPMC_DRIVERS_MGMT_ZONE_MGMTZONE_H_
 
-#include <mgmt_zone_ctrl.h>
+#if __has_include(<mgmt_zone_ctrl.h>)
+
 #include <vector>
 
 /**
@@ -57,5 +58,7 @@ public:
 protected:
 	Mgmt_Zone_Ctrl zone; ///< The Mgmt_Zone_Ctrl instance.
 };
+
+#endif
 
 #endif /* SRC_COMMON_UW_IPMC_DRIVERS_MGMT_ZONE_MGMTZONE_H_ */

@@ -12,6 +12,11 @@
 #include <semphr.h>
 #include <libs/ThreadingPrimitives.h>
 
+#ifdef INCLUDE_DRIVER_COMMAND_SUPPORT
+#include <services/console/ConsoleSvc.h>
+#include <libs/printf.h>
+#endif
+
 /**
  * Abstract class for GPIOs with base functions for bus or individual pin operation declared.
  */
@@ -112,6 +117,86 @@ public:
 	inline bool isPinSet(uint32_t pin) {
 		return (this->getBus() >> pin) & 0x1;
 	};
+
+#ifdef INCLUDE_DRIVER_COMMAND_SUPPORT
+	class ConsoleCommand_gpio_direction : public CommandParser::Command {
+	public:
+		GPIO &gpio;
+
+		ConsoleCommand_gpio_direction(GPIO &gpio) : gpio(gpio) {};
+
+		virtual std::string get_helptext(const std::string &command) const {
+			return command + " [$new_value]\n\n"
+					"Retrieve or set the direction bit array of GPIO module. Bits set as 0 are inputs, outputs are set as 1.\n";
+		}
+
+		virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
+			if (parameters.nargs() == 2) {
+				uint32_t value = 0;
+				if (!parameters.parse_parameters(1, true, &value)) {
+					console->write("Invalid arguments, see help.\n");
+					return;
+				}
+
+				gpio.setDirection(value);
+			} else {
+				uint32_t value = gpio.getDirection();
+				console->write(stdsprintf("0x%08lx\n", value));
+			}
+		}
+	};
+
+	class ConsoleCommand_gpio_read : public CommandParser::Command {
+	public:
+		GPIO &gpio;
+
+		ConsoleCommand_gpio_read(GPIO &gpio) : gpio(gpio) {};
+
+		virtual std::string get_helptext(const std::string &command) const {
+			return command + "\n\n"
+					"Reads the current value of the GPIO module input pins.\n";
+		}
+
+		virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
+			uint32_t value = gpio.getBus();
+			console->write(stdsprintf("0x%08lx\n", value));
+		}
+	};
+
+	class ConsoleCommand_gpio_write : public CommandParser::Command {
+	public:
+		GPIO &gpio;
+
+		ConsoleCommand_gpio_write(GPIO &gpio) : gpio(gpio) {};
+
+		virtual std::string get_helptext(const std::string &command) const {
+			return command + " $new_value\n\n"
+					"Set the output value of pins set as outputs\n";
+		}
+
+		virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
+			uint32_t value = 0;
+			if (!parameters.parse_parameters(1, true, &value)) {
+				console->write("Invalid arguments, see help.\n");
+				return;
+			}
+
+			gpio.setBus(value);
+		}
+	};
+
+	void register_console_commands(CommandParser &parser, const std::string &prefix="") {
+		parser.register_command(prefix + "direction", std::make_shared<ConsoleCommand_gpio_direction>(*this));
+		parser.register_command(prefix + "read", std::make_shared<ConsoleCommand_gpio_read>(*this));
+		parser.register_command(prefix + "write", std::make_shared<ConsoleCommand_gpio_write>(*this));
+	}
+
+	void deregister_console_commands(CommandParser &parser, const std::string &prefix="") {
+		parser.register_command(prefix + "direction", NULL);
+		parser.register_command(prefix + "read", NULL);
+		parser.register_command(prefix + "write", NULL);
+	}
+#endif
 
 protected:
 	SemaphoreHandle_t mutex;

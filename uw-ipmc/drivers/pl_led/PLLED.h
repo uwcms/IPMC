@@ -8,6 +8,8 @@
 #ifndef SRC_COMMON_UW_IPMC_DRIVERS_PL_LED_PLLED_H_
 #define SRC_COMMON_UW_IPMC_DRIVERS_PL_LED_PLLED_H_
 
+#if __has_include(<led_controller.h>)
+
 #include <inttypes.h>
 #include <led_controller.h>
 
@@ -73,5 +75,7 @@ private:
 	PL_LED &controller;  ///< LED controller.
 	uint32_t interface;  ///< LED interface number.
 };
+
+#endif
 
 #endif /* SRC_COMMON_UW_IPMC_DRIVERS_PL_LED_PLLED_H_ */

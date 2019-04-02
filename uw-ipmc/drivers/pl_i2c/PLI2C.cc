@@ -6,6 +6,9 @@
  */
 
 #include "PLI2C.h"
+
+#if __has_include(<xiic.h>)
+
 #include <libs/printf.h>
 #include <libs/except.h>
 
@@ -196,3 +199,5 @@ size_t PL_I2C::write(uint8_t addr, const uint8_t *buf, size_t len, TickType_t ti
 
 	return 0;
 }
+
+#endif

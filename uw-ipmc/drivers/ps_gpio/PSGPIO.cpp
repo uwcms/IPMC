@@ -61,7 +61,9 @@ uint32_t PS_GPIO::getDirection() {
 			t = XGpioPs_GetDirection(&(this->GpioPs), bank);
 		}
 
-		if (t & (1 << this->pins[i].pin)) r |= (1 << i);
+		// This is different than PL_GPIO, pins set as outputs show up as 1,
+		// so invert it to have everything consistent with interface
+		if (!(t & (1 << this->pins[i].pin))) r |= (1 << i);
 	}
 
 	return r;
@@ -72,9 +74,16 @@ void PS_GPIO::setDirection(uint32_t d) {
 
 	for (size_t i = 0; i < this->pinCount; i++) {
 		uint32_t dir = XGpioPs_GetDirection(&(this->GpioPs), this->pins[i].bank);
-		if (d & (1 << i)) dir |= (1 << this->pins[i].pin);
+		if (!(d & (1 << i))) dir |= (1 << this->pins[i].pin);
 		else dir &= ~(1 << this->pins[i].pin);
 		XGpioPs_SetDirection(&(this->GpioPs), this->pins[i].bank, dir);
+	}
+
+	for (size_t i = 0; i < this->pinCount; i++) {
+		uint32_t en = XGpioPs_GetOutputEnable(&(this->GpioPs), this->pins[i].bank);
+		if (!(d & (1 << i))) en |= (1 << this->pins[i].pin);
+		else en &= ~(1 << this->pins[i].pin);
+		XGpioPs_SetOutputEnable(&(this->GpioPs), this->pins[i].bank, en);
 	}
 }
 
@@ -84,7 +93,7 @@ void PS_GPIO::setBitDirection(uint32_t b, bool input) {
 	MutexGuard<false>(this->mutex);
 
 	uint32_t dir = XGpioPs_GetDirection(&(this->GpioPs), this->pins[b].bank);
-	if (input) dir |= 1 << this->pins[b].pin;
+	if (!input) dir |= 1 << this->pins[b].pin;
 	else dir &= ~(1 << this->pins[b].pin);
 	XGpioPs_SetDirection(&(this->GpioPs), this->pins[b].bank, dir);
 }

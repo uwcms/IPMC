@@ -5,7 +5,9 @@
  *      Author: jtikalsky
  */
 
-#include <drivers/ipmb/PSIPMB.h>
+#include "PSIPMB.h"
+
+#if __has_include(<xiicps.h>)
 
 #include "PSIPMB.h"
 #include "IPMC.h"
@@ -334,3 +336,5 @@ void PS_IPMB::_HandleStatus(u32 StatusEvent) {
 
 	portYIELD_FROM_ISR(isrwake);
 }
+
+#endif

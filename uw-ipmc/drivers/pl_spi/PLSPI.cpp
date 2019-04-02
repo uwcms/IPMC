@@ -5,7 +5,10 @@
  *      Author: mpv
  */
 
-#include <drivers/pl_spi/PLSPI.h>
+#include "PLSPI.h"
+
+#if __has_include(<xspi.h>)
+
 #include <libs/printf.h>
 #include <libs/except.h>
 
@@ -286,3 +289,6 @@ void PL_SPI::deselect() {
 	XSpi_SetSlaveSelectReg(&this->xspi, this->xspi.SlaveSelectMask);
 	this->stop();
 }
+
+#endif
+

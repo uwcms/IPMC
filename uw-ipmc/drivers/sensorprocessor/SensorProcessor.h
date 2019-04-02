@@ -8,6 +8,8 @@
 #ifndef SRC_COMMON_UW_IPMC_DRIVERS_SENSORPROCESSOR_SENSORPROCESSOR_H_
 #define SRC_COMMON_UW_IPMC_DRIVERS_SENSORPROCESSOR_SENSORPROCESSOR_H_
 
+#if __has_include(<ipmi_sensor_proc.h>)
+
 #include <stdint.h>
 #include <ipmi_sensor_proc.h>
 #include <FreeRTOS.h>
@@ -60,5 +62,7 @@ protected:
 	std::deque<Event> events; ///< A cache of events received from the ISR but not yet handled.
 	const ADC::Channel **adc_channel_map; ///< A mapping of sensor processor id to ADC::Channel for in-ISR readout.
 };
+
+#endif
 
 #endif /* SRC_COMMON_UW_IPMC_DRIVERS_SENSORPROCESSOR_SENSORPROCESSOR_H_ */

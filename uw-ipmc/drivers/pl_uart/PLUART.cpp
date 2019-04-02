@@ -6,6 +6,9 @@
  */
 
 #include "PLUART.h"
+
+#if __has_include("xuartlite.h")
+
 #include <xscugic.h>
 #include <stdio.h>
 #include "xil_exception.h"
@@ -192,4 +195,6 @@ bool PL_UART::clear() {
 
 	return true;
 }
+
+#endif
 

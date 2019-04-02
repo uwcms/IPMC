@@ -8,7 +8,7 @@
 #ifndef SRC_COMMON_UW_IPMC_DRIVERS_PIM400_PIM400_H_
 #define SRC_COMMON_UW_IPMC_DRIVERS_PIM400_PIM400_H_
 
-#include "drivers/pl_i2c/PLI2C.h"
+#include "drivers/generics/I2C.h"
 #include <IPMC.h>
 
 /**

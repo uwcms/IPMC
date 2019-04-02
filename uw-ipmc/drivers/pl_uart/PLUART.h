@@ -8,6 +8,8 @@
 #ifndef SRC_COMMON_UW_IPMC_DRIVERS_PL_UART_PLUART_H_
 #define SRC_COMMON_UW_IPMC_DRIVERS_PL_UART_PLUART_H_
 
+#if __has_include("xuartlite.h")
+
 #include <stdio.h>
 #include <FreeRTOS.h>
 #include <semphr.h>
@@ -54,5 +56,7 @@ private:
 	WaitList readwait;     			///< A waitlist for blocking read operations.
 	WaitList writewait;    			///< A waitlist for blocking write operations.
 };
+
+#endif
 
 #endif /* SRC_COMMON_UW_IPMC_DRIVERS_PL_UART_PLUART_H_ */

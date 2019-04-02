@@ -8,6 +8,8 @@
 #ifndef SRC_COMMON_UW_IPMC_DRIVERS_PS_IPMB_AB_PSIPMB_H_
 #define SRC_COMMON_UW_IPMC_DRIVERS_PS_IPMB_AB_PSIPMB_H_
 
+#if __has_include(<xiicps.h>)
+
 #include <functional>
 #include "xiicps.h"
 #include <FreeRTOS.h>
@@ -55,5 +57,7 @@ protected:
 	virtual void setup_slave();
 	virtual void setup_master();
 };
+
+#endif
 
 #endif /* SRC_COMMON_UW_IPMC_DRIVERS_PS_IPMB_AB_PSIPMB_H_ */

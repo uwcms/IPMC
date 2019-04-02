@@ -5,10 +5,12 @@
  *      Author: mpv
  */
 
+#include "PLLED.h"
+
+#if __has_include(<led_controller.h>)
+
 #include <libs/ThreadingPrimitives.h>
 #include <string>
-
-#include "PLLED.h"
 
 PL_LED::PL_LED(uint16_t deviceId, uint32_t plFrequency) :
 plFrequency(plFrequency) {
@@ -47,3 +49,6 @@ void LED::pulse(uint32_t periodMs) {
 
 	LED_Controller_Set(&(this->controller.ledController), this->interface, 1, periodInTicks, 0);
 }
+
+#endif
+

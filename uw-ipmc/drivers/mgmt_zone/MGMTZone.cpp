@@ -5,8 +5,11 @@
  *      Author: jtikalsky
  */
 
+#include "MGMTZone.h"
+
+#if __has_include(<mgmt_zone_ctrl.h>)
+
 #include <mgmt_zone_ctrl.h>
-#include <drivers/mgmt_zone/MGMTZone.h>
 #include "FreeRTOS.h"
 #include <libs/printf.h>
 #include <libs/except.h>
@@ -154,3 +157,6 @@ bool MGMT_Zone::get_power_state(bool *in_transition) {
 		*in_transition = transitioning;
 	return active;
 }
+
+#endif
+

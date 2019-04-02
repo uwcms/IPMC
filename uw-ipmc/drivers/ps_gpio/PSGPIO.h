@@ -25,7 +25,7 @@ public:
 	/**
 	 * Create a PL based GPIO interface without interrupt support.
 	 * @param DeviceId The device ID, normally XPAR_AXI_GPIO_<>.
-	 * @param pins Colection of
+	 * @param pins Colection of pins to form the virtual bus
 	 */
 	PS_GPIO(uint16_t DeviceId, std::vector<uint8_t> pins);
 	virtual ~PS_GPIO();
