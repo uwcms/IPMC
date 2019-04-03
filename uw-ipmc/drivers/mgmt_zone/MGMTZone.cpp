@@ -9,7 +9,6 @@
 
 #if __has_include(<mgmt_zone_ctrl.h>)
 
-#include <mgmt_zone_ctrl.h>
 #include "FreeRTOS.h"
 #include <libs/printf.h>
 #include <libs/except.h>

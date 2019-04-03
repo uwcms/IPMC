@@ -8,9 +8,11 @@
 #ifndef SRC_COMMON_UW_IPMC_DRIVERS_MGMT_ZONE_MGMTZONE_H_
 #define SRC_COMMON_UW_IPMC_DRIVERS_MGMT_ZONE_MGMTZONE_H_
 
-#if __has_include(<mgmt_zone_ctrl.h>)
+//#if __has_include(<mgmt_zone_ctrl.h>)
 
+#include <xil_types.h>
 #include <vector>
+#include <mgmt_zone_ctrl.h>
 
 /**
  * A single management zone.
@@ -59,6 +61,6 @@ protected:
 	Mgmt_Zone_Ctrl zone; ///< The Mgmt_Zone_Ctrl instance.
 };
 
-#endif
+//#endif
 
 #endif /* SRC_COMMON_UW_IPMC_DRIVERS_MGMT_ZONE_MGMTZONE_H_ */
