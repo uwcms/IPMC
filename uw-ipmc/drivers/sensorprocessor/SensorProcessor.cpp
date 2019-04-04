@@ -112,7 +112,7 @@ void SensorProcessor::_InterruptHandler() {
 		}
 	}
 	IPMI_Sensor_Proc_Ack_IRQ(&this->processor, IPMI_Sensor_Proc_Get_IRQ_Status(&this->processor));
-	this->isr_event_queue_highwater.high_water(uxQueueMessagesWaiting(this->isrq));
+	this->isr_event_queue_highwater.high_water(uxQueueMessagesWaitingFromISR(this->isrq));
 }
 
 bool SensorProcessor::get_isr_event(struct Event &event, TickType_t block_time) {
