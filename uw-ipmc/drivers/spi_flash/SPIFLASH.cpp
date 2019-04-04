@@ -105,7 +105,7 @@ bool SPIFlash::write(uint32_t address, const uint8_t *buffer, size_t bytes) {
 	}
 
 	for (size_t sector = 0; sector < sectorCount; sector++) {
-		size_t sectorAddress = sector * sectorSize;
+		size_t sectorAddress = address + sector * sectorSize;
 		uint8_t *pdata = nullptr;
 		float progress = ((sector+1) * 1.0f) / (sectorCount * 1.0f) * 100.0f;
 
