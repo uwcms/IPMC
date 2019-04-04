@@ -10,6 +10,7 @@
 
 #include <stdint.h>
 #include <string>
+#include <libs/VFS.h>
 
 /**
  * Abstract flash interface.
@@ -72,6 +73,34 @@ public:
 		if ((sector > 4) || (this->parameters.sectors[sector].size == 0)) return 0;
 
 		return (1 << (this->parameters.sectors[sector].size));
+	}
+
+	/**
+	 * Generates an VFS file linked to the Flash that can be added to the
+	 * virtual file system, allowing flash programming via ethernet or console.
+	 * @param address The start address in the flash.
+	 * @param bytes Number of bytes to associate with virtual file.
+	 * @return The file that can be used with VFS::addFile.
+	 */
+	VFS::File createFlashFile(size_t address, size_t bytes) {
+		if (bytes == 0) throw std::runtime_error("Flash size cannot be zero");
+		if (!this->initialized) throw std::runtime_error("Flash device is not initialized");
+		if ((address % 256) != 0) throw std::runtime_error("Start address is not page aligned");
+		if (address + bytes > this->getTotalSize()) throw std::runtime_error("File size exceeds flash total size");
+
+		return VFS::File(
+			[this, address, bytes](uint8_t *buffer, size_t size) -> size_t {
+				// Read
+				if (size > bytes) return 0; // Read request too large
+				if (!this->read(address, buffer, size)) return 0; // Failed to read
+				return size;
+			},
+			[this, address, bytes](uint8_t *buffer, size_t size) -> size_t {
+				// Write
+				if (size > bytes) return 0; // Write request too large
+				if (!this->write(address, buffer, size)) return 0; // Failed to write
+				return size;
+			}, bytes);
 	}
 
 protected:
