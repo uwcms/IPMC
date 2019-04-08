@@ -20,6 +20,7 @@ entity mgmt_zone_ctrl_v1_0 is
 
         hard_fault : in std_logic_vector(C_HF_CNT - 1 downto 0);
         pwr_en : inout std_logic_vector(C_PWREN_CNT - 1 downto 0);
+        pwr_en_debug : out std_logic_vector(C_PWREN_CNT - 1 downto 0);
         mz_enabled : out std_logic_vector(C_MZ_CNT - 1 downto 0);
 		irq	: out std_logic;
 
@@ -209,6 +210,8 @@ mgmt_zone_ctrl_v1_0_S_AXI_inst : entity work.mgmt_zone_ctrl_v1_0_S_AXI
              
              s_pwr_en_output_lvl_vio(idx) <= s_pwr_lvl(idx);
              s_pwr_en_output_drive_vio(idx) <= s_pwr_en_drive(idx);
+             
+             pwr_en_debug(idx) <= s_pwr_lvl(idx);
 
     end generate;
 
