@@ -368,8 +368,25 @@ static void ipmicmd_Set_Sensor_Event_Enable(IPMBSvc &ipmb, const IPMI_MSG &messa
 	if (!mutable_sdr) // This is effectively an assertion fail, we shouldn't be able to interpret a ReadableSensor into a non-ReadableSensor
 		RETURN_ERROR(ipmb, message, IPMI::Completion::Invalid_Data_Field_In_Request);
 
-	mutable_sdr->ext_assertion_events_enabled((message.data[3]<<8) | message.data[2]);
-	mutable_sdr->ext_deassertion_events_enabled((message.data[5]<<8) | message.data[4]);
+	uint16_t assertions = (message.data[3]<<8) | message.data[2];
+	uint16_t deassertions = (message.data[5]<<8) | message.data[4];
+
+	if ((message.data[1] & 0x30) == 0x10) {
+		// Enable Selected
+		assertions   |= mutable_sdr->ext_assertion_events_enabled();
+		deassertions |= mutable_sdr->ext_deassertion_events_enabled();
+	}
+	else if ((message.data[1] & 0x30) == 0x20) {
+		// Disable Selected
+		assertions   = mutable_sdr->ext_assertion_events_enabled() & ~assertions;
+		deassertions = mutable_sdr->ext_deassertion_events_enabled() & ~deassertions;
+	}
+	else {
+		// Do not change individual enables 0x00, OR, Reserved 0x30.
+		ipmb.send(message.prepare_reply({IPMI::Completion::Success}));
+	}
+	mutable_sdr->ext_assertion_events_enabled(assertions);
+	mutable_sdr->ext_deassertion_events_enabled(deassertions);
 	device_sdr_repo.add(*mutable_sdr, 0);
 	// Write changes to EEPROM
 	VariablePersistentAllocation sdr_persist(*persistent_storage, PersistentStorageAllocations::WISC_SDR_REPOSITORY);
