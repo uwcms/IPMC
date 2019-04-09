@@ -71,7 +71,8 @@ architecture arch_imp of mgmt_zone_ctrl_v1_0 is
     signal s_MZ_soft_fault         :  STD_LOGIC_VECTOR(C_MZ_CNT-1 downto 0);
     signal s_MZ_pwr_off_seq_init   :  STD_LOGIC_VECTOR(C_MZ_CNT-1 downto 0);
     signal s_MZ_pwr_on_seq_init    :  STD_LOGIC_VECTOR(C_MZ_CNT-1 downto 0);
-    
+    signal s_MZ_pwr_on_seq_init_d1 :  STD_LOGIC_VECTOR(C_MZ_CNT-1 downto 0);
+
     signal s_pwr_en_MZ_cfg       :  t_slv_arr_16(C_PWREN_CNT-1 downto 0);
     
     signal s_pwr_en_tmr_cfg      :  t_slv_arr_32(C_PWREN_CNT-1 downto 0);
@@ -184,6 +185,8 @@ mgmt_zone_ctrl_v1_0_S_AXI_inst : entity work.mgmt_zone_ctrl_v1_0_S_AXI
                   
                   );
                 end generate;
+        
+    s_MZ_pwr_on_seq_init_d1 <= s_MZ_pwr_on_seq_init when rising_edge(s_axi_aclk);
     
     gen_pwr_en : for idx in 0 to C_PWREN_CNT-1 generate
     
@@ -198,7 +201,7 @@ mgmt_zone_ctrl_v1_0_S_AXI_inst : entity work.mgmt_zone_ctrl_v1_0_S_AXI
                    MZ_soft_fault_i           => s_MZ_soft_fault,
                    MZ_holdoff_i              => s_MZ_holdoff,
                    MZ_pwr_off_seq_init_i     => s_MZ_pwr_off_seq_init,
-                   MZ_pwr_on_seq_init_i      => s_MZ_pwr_on_seq_init,
+                   MZ_pwr_on_seq_init_i      => s_MZ_pwr_on_seq_init_d1, -- 1 clk dly to prevent race condition
                    pwr_en_MZ_cfg_i           => s_pwr_en_MZ_cfg(idx)(C_MZ_CNT-1 downto 0),
                    pwr_en_tmr_cfg_i          => s_pwr_en_tmr_cfg(idx),
                    pwr_en_state_o            => s_pwr_en_state(idx),
