@@ -60,7 +60,7 @@ protected:
 	const uint32_t sensor_count; ///< The number of sensors connected to the processor.
 	QueueHandle_t isrq; ///< A delivery queue for ISR events
 	std::deque<Event> events; ///< A cache of events received from the ISR but not yet handled.
-	const ADC::Channel **adc_channel_map; ///< A mapping of sensor processor id to ADC::Channel for in-ISR readout.
+	std::vector<ADC::Channel*> adc_channel_map; ///< A mapping of sensor processor id to ADC::Channel for in-ISR readout.
 };
 
 #endif
