@@ -7,7 +7,7 @@
 
 #include "PSIPMB.h"
 
-#if __has_include(<xiicps.h>)
+#if XSDK_INDEXING || __has_include(<xiicps.h>)
 
 #include "PSIPMB.h"
 #include "IPMC.h"

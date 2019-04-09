@@ -7,7 +7,7 @@
 
 #include "MGMTZone.h"
 
-#if __has_include(<mgmt_zone_ctrl.h>)
+#if XSDK_INDEXING || __has_include(<mgmt_zone_ctrl.h>)
 
 #include "FreeRTOS.h"
 #include <libs/printf.h>

@@ -1,5 +1,5 @@
 /*
- * PSIPMBAB.h
+ * PSIPMB.h
  *
  *  Created on: Oct 24, 2017
  *      Author: jtikalsky
@@ -8,7 +8,8 @@
 #ifndef SRC_COMMON_UW_IPMC_DRIVERS_PS_IPMB_AB_PSIPMB_H_
 #define SRC_COMMON_UW_IPMC_DRIVERS_PS_IPMB_AB_PSIPMB_H_
 
-#if __has_include(<xiicps.h>)
+#if XSDK_INDEXING || __has_include(<xiicps.h>)
+#define PSIPMB_DRIVER_INCLUDED
 
 #include <functional>
 #include "xiicps.h"

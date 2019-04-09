@@ -7,7 +7,7 @@
 
 #include "PLUART.h"
 
-#if __has_include("xuartlite.h")
+#if XSDK_INDEXING || __has_include("xuartlite.h")
 
 #include <xscugic.h>
 #include <stdio.h>

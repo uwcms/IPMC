@@ -7,7 +7,7 @@
 
 #include "SensorProcessor.h"
 
-#if __has_include(<ipmi_sensor_proc.h>)
+#if XSDK_INDEXING || __has_include(<ipmi_sensor_proc.h>)
 
 SensorProcessor::SensorProcessor(uint16_t DeviceId, uint32_t InterruptId, std::vector<ADC::Channel*> &adc_channels) :
 	InterruptBasedDriver(InterruptId),

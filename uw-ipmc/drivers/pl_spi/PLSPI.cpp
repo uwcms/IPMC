@@ -7,7 +7,7 @@
 
 #include "PLSPI.h"
 
-#if __has_include(<xspi.h>)
+#if XSDK_INDEXING || __has_include(<xspi.h>)
 
 #include <libs/printf.h>
 #include <libs/except.h>

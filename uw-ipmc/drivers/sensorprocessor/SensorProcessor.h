@@ -8,7 +8,8 @@
 #ifndef SRC_COMMON_UW_IPMC_DRIVERS_SENSORPROCESSOR_SENSORPROCESSOR_H_
 #define SRC_COMMON_UW_IPMC_DRIVERS_SENSORPROCESSOR_SENSORPROCESSOR_H_
 
-#if __has_include(<ipmi_sensor_proc.h>)
+#if XSDK_INDEXING  || __has_include(<ipmi_sensor_proc.h>)
+#define SENSORPROCESSOR_DRIVER_INCLUDED
 
 #include <stdint.h>
 #include <ipmi_sensor_proc.h>

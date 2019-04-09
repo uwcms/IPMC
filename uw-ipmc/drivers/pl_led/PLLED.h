@@ -8,7 +8,8 @@
 #ifndef SRC_COMMON_UW_IPMC_DRIVERS_PL_LED_PLLED_H_
 #define SRC_COMMON_UW_IPMC_DRIVERS_PL_LED_PLLED_H_
 
-#if __has_include(<led_controller.h>)
+#if XSDK_INDEXING || __has_include(<led_controller.h>)
+#define PLLED_DRIVER_INCLUDED
 
 #include <inttypes.h>
 #include <led_controller.h>

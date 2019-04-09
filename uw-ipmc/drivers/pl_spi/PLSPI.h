@@ -8,7 +8,8 @@
 #ifndef SRC_COMMON_UW_IPMC_DRIVERS_PL_SPI_PLSPI_H_
 #define SRC_COMMON_UW_IPMC_DRIVERS_PL_SPI_PLSPI_H_
 
-#if __has_include(<xspi.h>)
+#if XSDK_INDEXING || __has_include(<xspi.h>)
+#define PLSPI_DRIVER_INCLUDED
 
 #include <xspi.h>
 #include <drivers/generics/SPI.h>
