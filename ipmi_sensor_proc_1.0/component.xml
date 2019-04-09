@@ -229,6 +229,28 @@
         </spirit:parameter>
       </spirit:parameters>
     </spirit:busInterface>
+    <spirit:busInterface>
+      <spirit:name>irq_o</spirit:name>
+      <spirit:busType spirit:vendor="xilinx.com" spirit:library="signal" spirit:name="interrupt" spirit:version="1.0"/>
+      <spirit:abstractionType spirit:vendor="xilinx.com" spirit:library="signal" spirit:name="interrupt_rtl" spirit:version="1.0"/>
+      <spirit:master/>
+      <spirit:portMaps>
+        <spirit:portMap>
+          <spirit:logicalPort>
+            <spirit:name>INTERRUPT</spirit:name>
+          </spirit:logicalPort>
+          <spirit:physicalPort>
+            <spirit:name>irq_o</spirit:name>
+          </spirit:physicalPort>
+        </spirit:portMap>
+      </spirit:portMaps>
+      <spirit:parameters>
+        <spirit:parameter>
+          <spirit:name>SENSITIVITY</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.IRQ_O.SENSITIVITY" spirit:choiceRef="choice_list_9ca20931">LEVEL_HIGH</spirit:value>
+        </spirit:parameter>
+      </spirit:parameters>
+    </spirit:busInterface>
   </spirit:busInterfaces>
   <spirit:memoryMaps>
     <spirit:memoryMap>
@@ -776,6 +798,13 @@
       <spirit:enumeration>32</spirit:enumeration>
     </spirit:choice>
     <spirit:choice>
+      <spirit:name>choice_list_9ca20931</spirit:name>
+      <spirit:enumeration>LEVEL_HIGH</spirit:enumeration>
+      <spirit:enumeration>LEVEL_LOW</spirit:enumeration>
+      <spirit:enumeration>EDGE_RISING</spirit:enumeration>
+      <spirit:enumeration>EDGE_FALLING</spirit:enumeration>
+    </spirit:choice>
+    <spirit:choice>
       <spirit:name>choice_list_9d8b0d81</spirit:name>
       <spirit:enumeration>ACTIVE_HIGH</spirit:enumeration>
       <spirit:enumeration>ACTIVE_LOW</spirit:enumeration>
@@ -1094,13 +1123,13 @@
       </xilinx:taxonomies>
       <xilinx:displayName>ipmi_sensor_proc_v1.0</xilinx:displayName>
       <xilinx:vendorDisplayName>University of Wisconsin-Madison</xilinx:vendorDisplayName>
-      <xilinx:coreRevision>20</xilinx:coreRevision>
+      <xilinx:coreRevision>21</xilinx:coreRevision>
       <xilinx:upgrades>
         <xilinx:canUpgradeFrom>user.org:user:ipmi_sensor_proc:1.0</xilinx:canUpgradeFrom>
         <xilinx:canUpgradeFrom>user.org:user:ipmi_sensor_proc:2.0</xilinx:canUpgradeFrom>
         <xilinx:canUpgradeFrom>user.org:user:ipmi_sensor_proc:2.1</xilinx:canUpgradeFrom>
       </xilinx:upgrades>
-      <xilinx:coreCreationDateTime>2019-04-05T14:53:52Z</xilinx:coreCreationDateTime>
+      <xilinx:coreCreationDateTime>2019-04-09T19:39:42Z</xilinx:coreCreationDateTime>
       <xilinx:tags>
         <xilinx:tag xilinx:name="user.org:user:ipmi_sensor_proc:2.0_ARCHIVE_LOCATION">/scratch/ales/repos/IPMC/Vivado/ip_repo/ipmi_sensor_proc_1.0</xilinx:tag>
         <xilinx:tag xilinx:name="user.org:user:ipmi_sensor_proc:2.1_ARCHIVE_LOCATION">/scratch/ales/repos/IPMC/Vivado/ip_repo/ipmi_sensor_proc_1.0</xilinx:tag>
@@ -1111,7 +1140,7 @@
     </xilinx:coreExtensions>
     <xilinx:packagingInfo>
       <xilinx:xilinxVersion>2018.2</xilinx:xilinxVersion>
-      <xilinx:checksum xilinx:scope="busInterfaces" xilinx:value="7c46a31e"/>
+      <xilinx:checksum xilinx:scope="busInterfaces" xilinx:value="c49cab3b"/>
       <xilinx:checksum xilinx:scope="memoryMaps" xilinx:value="70ec2b56"/>
       <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="510e78d0"/>
       <xilinx:checksum xilinx:scope="ports" xilinx:value="9060232a"/>
