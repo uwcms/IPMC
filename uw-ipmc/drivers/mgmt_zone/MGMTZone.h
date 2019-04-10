@@ -1,5 +1,5 @@
 /*
- * MGMTZone.hMgmt_Zone_Ctrl_Initialize
+ * MGMTZone.h
  *
  *  Created on: Mar 20, 2018
  *      Author: jtikalsky
@@ -8,9 +8,12 @@
 #ifndef SRC_COMMON_UW_IPMC_DRIVERS_MGMT_ZONE_MGMTZONE_H_
 #define SRC_COMMON_UW_IPMC_DRIVERS_MGMT_ZONE_MGMTZONE_H_
 
-#if __has_include(<mgmt_zone_ctrl.h>)
+#if XSDK_INDEXING || __has_include(<mgmt_zone_ctrl.h>)
+#define MGMTZONE_DRIVER_INCLUDED
 
+#include <xil_types.h>
 #include <vector>
+#include <mgmt_zone_ctrl.h>
 
 /**
  * A single management zone.

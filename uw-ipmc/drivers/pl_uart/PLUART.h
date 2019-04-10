@@ -8,7 +8,8 @@
 #ifndef SRC_COMMON_UW_IPMC_DRIVERS_PL_UART_PLUART_H_
 #define SRC_COMMON_UW_IPMC_DRIVERS_PL_UART_PLUART_H_
 
-#if __has_include("xuartlite.h")
+#if XSDK_INDEXING || __has_include("xuartlite.h")
+#define PLUART_DRIVER_INCLUDED
 
 #include <stdio.h>
 #include <FreeRTOS.h>

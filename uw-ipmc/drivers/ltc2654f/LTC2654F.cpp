@@ -10,8 +10,6 @@
 
 LTC2654F::LTC2654F(SPIMaster& spi, uint8_t cs, bool is12Bits) :
 is12Bits(is12Bits), spi(spi), cs(cs) {
-	// Set internal reference
-	this->sendCommand(ALL_DACS, SELECT_INTERNAL_REF, 0);
 }
 
 bool LTC2654F::sendCommand(Address addr, Command cmd, uint16_t val) {
@@ -26,6 +24,6 @@ bool LTC2654F::sendCommand(Address addr, Command cmd, uint16_t val) {
 		data[2] = val;
 	}
 
-	return this->spi.transfer(this->cs, data, NULL, sizeof(data));
+	return this->spi.transfer(this->cs, data, NULL, sizeof(data), pdMS_TO_TICKS(1000));
 }
 

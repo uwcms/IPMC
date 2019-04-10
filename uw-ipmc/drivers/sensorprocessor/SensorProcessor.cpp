@@ -7,15 +7,16 @@
 
 #include "SensorProcessor.h"
 
-#if __has_include(<ipmi_sensor_proc.h>)
+#if XSDK_INDEXING || __has_include(<ipmi_sensor_proc.h>)
 
 SensorProcessor::SensorProcessor(uint16_t DeviceId, uint32_t InterruptId, std::vector<ADC::Channel*> &adc_channels) :
 	InterruptBasedDriver(InterruptId),
 	isr_events_received("sensor_processor.isr_events_received"),
 	isr_event_queue_highwater("sensor_processor.isr_event_queue_highwater"),
 	userland_event_queue_highwater("sensor_processor.userland_event_queue_highwater"),
-	events_delivered("sensor_processor.events_delivered"),
-	sensor_count(adc_channels.size()) {
+	events_delivered("sensor_processor.isr_events_delivered"),
+	sensor_count(adc_channels.size()),
+	adc_channel_map(adc_channels) {
 
 	IPMI_Sensor_Proc_Initialize(&this->processor, DeviceId);
 	IPMI_Sensor_Proc_Reset(&this->processor);
@@ -24,8 +25,8 @@ SensorProcessor::SensorProcessor(uint16_t DeviceId, uint32_t InterruptId, std::v
 	this->isrq = xQueueCreate(this->sensor_count + this->sensor_count/2, sizeof(Event));
 
 	// In the ISR we'll need to sample the sensors latest values
-	for (unsigned int i = 0; i < adc_channels.size(); ++i)
-		this->adc_channel_map[i] = adc_channels[i];
+//	for (unsigned int i = 0; i < adc_channels.size(); ++i)
+//		this->adc_channel_map[i] = adc_channels[i];
 
 	this->enableInterrupts();
 }
@@ -112,7 +113,7 @@ void SensorProcessor::_InterruptHandler() {
 		}
 	}
 	IPMI_Sensor_Proc_Ack_IRQ(&this->processor, IPMI_Sensor_Proc_Get_IRQ_Status(&this->processor));
-	this->isr_event_queue_highwater.high_water(uxQueueMessagesWaiting(this->isrq));
+	this->isr_event_queue_highwater.high_water(uxQueueMessagesWaitingFromISR(this->isrq));
 }
 
 bool SensorProcessor::get_isr_event(struct Event &event, TickType_t block_time) {

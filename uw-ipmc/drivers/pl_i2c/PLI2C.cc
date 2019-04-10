@@ -7,7 +7,7 @@
 
 #include "PLI2C.h"
 
-#if __has_include(<xiic.h>)
+#if XSDK_INDEXING || __has_include(<xiic.h>)
 
 #include <libs/printf.h>
 #include <libs/except.h>

@@ -7,7 +7,7 @@
 
 #include "PLLED.h"
 
-#if __has_include(<led_controller.h>)
+#if XSDK_INDEXING || __has_include(<led_controller.h>)
 
 #include <libs/ThreadingPrimitives.h>
 #include <string>

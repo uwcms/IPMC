@@ -8,7 +8,8 @@
 #ifndef SRC_COMMON_UW_IPMC_DRIVERS_SENSORPROCESSOR_SENSORPROCESSOR_H_
 #define SRC_COMMON_UW_IPMC_DRIVERS_SENSORPROCESSOR_SENSORPROCESSOR_H_
 
-#if __has_include(<ipmi_sensor_proc.h>)
+#if XSDK_INDEXING  || __has_include(<ipmi_sensor_proc.h>)
+#define SENSORPROCESSOR_DRIVER_INCLUDED
 
 #include <stdint.h>
 #include <ipmi_sensor_proc.h>
@@ -60,7 +61,7 @@ protected:
 	const uint32_t sensor_count; ///< The number of sensors connected to the processor.
 	QueueHandle_t isrq; ///< A delivery queue for ISR events
 	std::deque<Event> events; ///< A cache of events received from the ISR but not yet handled.
-	const ADC::Channel **adc_channel_map; ///< A mapping of sensor processor id to ADC::Channel for in-ISR readout.
+	std::vector<ADC::Channel*> adc_channel_map; ///< A mapping of sensor processor id to ADC::Channel for in-ISR readout.
 };
 
 #endif
