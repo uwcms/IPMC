@@ -265,5 +265,7 @@ u32 IPMI_Sensor_Proc_Get_IRQ_Status(const IPMI_Sensor_Proc *InstancePtr)
 
 void IPMI_Sensor_Proc_Ack_IRQ(const IPMI_Sensor_Proc *InstancePtr, u32 irq_ack)
 {
-	IPMI_Sensor_Proc_WriteReg(InstancePtr->BaseAddress, IRQ_ACK_REG, irq_ack);
+	IPMI_Sensor_Proc_WriteReg(InstancePtr->BaseAddress, IRQ_ACK_REG, 0);
+    IPMI_Sensor_Proc_WriteReg(InstancePtr->BaseAddress, IRQ_ACK_REG, irq_ack);
+    IPMI_Sensor_Proc_WriteReg(InstancePtr->BaseAddress, IRQ_ACK_REG, 0);
 }
