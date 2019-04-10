@@ -14,7 +14,7 @@ SensorProcessor::SensorProcessor(uint16_t DeviceId, uint32_t InterruptId, std::v
 	isr_events_received("sensor_processor.isr_events_received"),
 	isr_event_queue_highwater("sensor_processor.isr_event_queue_highwater"),
 	userland_event_queue_highwater("sensor_processor.userland_event_queue_highwater"),
-	events_delivered("sensor_processor.events_delivered"),
+	events_delivered("sensor_processor.isr_events_delivered"),
 	sensor_count(adc_channels.size()),
 	adc_channel_map(adc_channels) {
 
