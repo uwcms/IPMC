@@ -244,8 +244,8 @@ void ThresholdSensor::update_value(const float value, bool in_context, uint64_t 
 
 	const uint16_t supported_assertion_mask = sdr->assertion_lower_threshold_reading_mask();
 	const uint16_t supported_deassertion_mask = sdr->deassertion_upper_threshold_reading_mask();
-	const uint16_t enabled_assertion_mask = sdr->ext_assertion_events_enabled();
-	const uint16_t enabled_deassertion_mask = sdr->ext_deassertion_events_enabled();
+	const uint16_t enabled_assertion_mask = this->assertion_events_enabled();
+	const uint16_t enabled_deassertion_mask = this->deassertion_events_enabled();
 	for (std::vector<struct ThresholdEvent>::iterator it = events.begin(), eit = events.end(); it != eit; ++it) {
 		if (
 				(it->direction == Sensor::EVENT_ASSERTION && !(supported_assertion_mask & (1 << it->bit))) ||

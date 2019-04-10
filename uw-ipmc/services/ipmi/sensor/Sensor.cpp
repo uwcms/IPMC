@@ -25,7 +25,8 @@
  */
 Sensor::Sensor(const std::vector<uint8_t> &sdr_key, LogTree &log)
 	: sdr_key(sdr_key), log(log), logunique(log, pdMS_TO_TICKS(10000)),
-	  _all_events_disabled(false), _sensor_scanning_disabled(false) {
+	  _all_events_disabled(false), _sensor_scanning_disabled(false),
+	  _assertion_events_enabled(0xffff), _deassertion_events_enabled(0xffff) {
 	if (sdr_key.size() != 3)
 		throw std::domain_error("A Sensor SDR key must be 3 bytes.");
 }

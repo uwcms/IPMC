@@ -121,18 +121,6 @@ public:
 	 */
 	virtual float to_float(uint8_t value) const = 0;
 
-	/**
-	 * Extended Sensor State Storage: Event Enables
-	 *
-	 * \note Defaults will be read from the main SDR if uninitialized.
-	 */
-	///@{
-	uint16_t ext_assertion_events_enabled() const;
-	void ext_assertion_events_enabled(uint16_t val);
-	uint16_t ext_deassertion_events_enabled() const;
-	void ext_deassertion_events_enabled(uint16_t val);
-	///@}
-
 	static const std::map<uint8_t, std::string> sensor_unit_type_codes; ///< A table of human readable sensor unit types.
 };
 

@@ -95,42 +95,6 @@ SDR_FIELD(units_percentage, bool, 20, 0, 0, )
 SDR_FIELD(units_base_unit, uint8_t, 21, 7, 1, )
 SDR_FIELD(units_modifier_unit, uint8_t, 22, 7, 1, )
 
-uint16_t SensorDataRecordReadableSensor::ext_assertion_events_enabled() const {
-	this->validate();
-	const uint8_t offset = this->_get_ext_data_offset();
-	// If missing or uninitialized, use 'supported' mask instead of enabled mask.
-	if (this->sdr_data.size() < offset+2U || !(this->sdr_data[offset+1] & 0x80))
-		return this->assertion_lower_threshold_reading_mask() & 0x0a95 /* disable upper going-low and lower going-high assertions by default */;
-	return 0x7FFF & ((this->sdr_data[offset+1]<<8) | this->sdr_data[offset+0]);
-}
-void SensorDataRecordReadableSensor::ext_assertion_events_enabled(uint16_t val) {
-	this->validate();
-	const uint8_t offset = this->_get_ext_data_offset();
-	if (this->sdr_data.size() < offset+2U)
-		this->sdr_data.resize(offset+2U);
-	val |= 0x8000; // Set "initialized marker" bit.
-	this->sdr_data[offset+1] = val >> 8;
-	this->sdr_data[offset+0] = val & 0xff;
-}
-
-uint16_t SensorDataRecordReadableSensor::ext_deassertion_events_enabled() const {
-	this->validate();
-	const uint8_t offset = this->_get_ext_data_offset();
-	// If missing or uninitialized, use 'supported' mask instead of enabled mask.
-	if (this->sdr_data.size() < offset+4U || !(this->sdr_data[offset+3] & 0x80))
-		return this->deassertion_upper_threshold_reading_mask() & 0x0a95 /* disable upper going-low and lower going-high deassertions by default */;
-	return 0x7FFF & ((this->sdr_data[offset+3]<<8) | this->sdr_data[offset+2]);
-}
-void SensorDataRecordReadableSensor::ext_deassertion_events_enabled(uint16_t val) {
-	this->validate();
-	const uint8_t offset = this->_get_ext_data_offset();
-	if (this->sdr_data.size() < offset+4U)
-		this->sdr_data.resize(offset+4U);
-	val |= 0x8000; // Set "initialized marker" bit.
-	this->sdr_data[offset+3] = val >> 8;
-	this->sdr_data[offset+2] = val & 0xff;
-}
-
 const std::map<uint8_t, std::string> SensorDataRecordReadableSensor::sensor_unit_type_codes = {
 		{ 0,  "unspecified"           },
 		{ 1,  "degrees C"             },

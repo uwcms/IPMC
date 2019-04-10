@@ -24,6 +24,11 @@ public:
 	ThresholdSensor(const std::vector<uint8_t> &sdr_key, LogTree &log);
 	virtual ~ThresholdSensor();
 
+	// If these have never been set (i.e. are 0xffff), for THRESHOLD sensors, we'll default to only Upper going-high and Lower going-low enabled.
+	virtual uint16_t assertion_events_enabled() { return this->_assertion_events_enabled == 0xffff ? 0x0a95 : this->_assertion_events_enabled; };
+	virtual uint16_t deassertion_events_enabled() { return this->_deassertion_events_enabled == 0xffff ? 0x0a95 : this->_deassertion_events_enabled; };
+
+
 	/**
 	 * This structure holds the raw threshold values to be used for automatic
 	 * threshold comparisons for sensors with Type 02 SDRs (which do not contain
@@ -63,6 +68,7 @@ public:
 	virtual std::vector<uint8_t> get_sensor_reading();
 	virtual uint16_t get_sensor_event_status(bool *reading_good=NULL);
 	virtual void rearm();
+
 
 protected:
 	float last_value; ///< The last value stored.

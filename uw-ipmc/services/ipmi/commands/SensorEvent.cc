@@ -346,9 +346,6 @@ static void ipmicmd_Set_Sensor_Event_Enable(IPMBSvc &ipmb, const IPMI_MSG &messa
 	catch (std::out_of_range) {
 		RETURN_ERROR(ipmb, message, IPMI::Completion::Requested_Sensor_Data_Or_Record_Not_Present);
 	}
-	std::shared_ptr<const SensorDataRecordReadableSensor> sdr = std::dynamic_pointer_cast<const SensorDataRecordReadableSensor>(device_sdr_repo.find(sensor->sdr_key));
-	if (!sdr)
-		RETURN_ERROR(ipmb, message, IPMI::Completion::Requested_Sensor_Data_Or_Record_Not_Present);
 	sensor->all_events_disabled(!(message.data[1] & 0x80));
 	sensor->sensor_scanning_disabled(!(message.data[1] & 0x40));
 	if (message.data_len < 3) {
@@ -364,33 +361,25 @@ static void ipmicmd_Set_Sensor_Event_Enable(IPMBSvc &ipmb, const IPMI_MSG &messa
 	while (msgdata.size() < 6)
 		msgdata.push_back(0);
 
-	std::shared_ptr<SensorDataRecordReadableSensor> mutable_sdr = std::dynamic_pointer_cast<SensorDataRecordReadableSensor>(sdr->interpret());
-	if (!mutable_sdr) // This is effectively an assertion fail, we shouldn't be able to interpret a ReadableSensor into a non-ReadableSensor
-		RETURN_ERROR(ipmb, message, IPMI::Completion::Invalid_Data_Field_In_Request);
-
 	uint16_t assertions = (message.data[3]<<8) | message.data[2];
 	uint16_t deassertions = (message.data[5]<<8) | message.data[4];
 
 	if ((message.data[1] & 0x30) == 0x10) {
 		// Enable Selected
-		assertions   |= mutable_sdr->ext_assertion_events_enabled();
-		deassertions |= mutable_sdr->ext_deassertion_events_enabled();
+		assertions   |= sensor->assertion_events_enabled();
+		deassertions |= sensor->deassertion_events_enabled();
 	}
 	else if ((message.data[1] & 0x30) == 0x20) {
 		// Disable Selected
-		assertions   = mutable_sdr->ext_assertion_events_enabled() & ~assertions;
-		deassertions = mutable_sdr->ext_deassertion_events_enabled() & ~deassertions;
+		assertions   = sensor->assertion_events_enabled() & ~assertions;
+		deassertions = sensor->deassertion_events_enabled() & ~deassertions;
 	}
 	else {
 		// Do not change individual enables 0x00, OR, Reserved 0x30.
 		ipmb.send(message.prepare_reply({IPMI::Completion::Success}));
 	}
-	mutable_sdr->ext_assertion_events_enabled(assertions);
-	mutable_sdr->ext_deassertion_events_enabled(deassertions);
-	device_sdr_repo.add(*mutable_sdr, 0);
-	// Write changes to EEPROM
-	VariablePersistentAllocation sdr_persist(*persistent_storage, PersistentStorageAllocations::WISC_SDR_REPOSITORY);
-	sdr_persist.set_data(device_sdr_repo.u8export());
+	sensor->assertion_events_enabled(assertions);
+	sensor->deassertion_events_enabled(deassertions);
 	// Update Sensor Processor config
 	payload_manager->refresh_sensor_linkage();
 	// Return success
@@ -408,24 +397,17 @@ static void ipmicmd_Get_Sensor_Event_Enable(IPMBSvc &ipmb, const IPMI_MSG &messa
 	catch (std::out_of_range) {
 		RETURN_ERROR(ipmb, message, IPMI::Completion::Requested_Sensor_Data_Or_Record_Not_Present);
 	}
-	std::shared_ptr<const SensorDataRecordSensor> sdr = std::dynamic_pointer_cast<const SensorDataRecordSensor>(device_sdr_repo.find(sensor->sdr_key));
-	if (!sdr)
-		RETURN_ERROR(ipmb, message, IPMI::Completion::Requested_Sensor_Data_Or_Record_Not_Present);
 	std::vector<uint8_t> rsp{IPMI::Completion::Success, 0};
 	if (!sensor->all_events_disabled())
 		rsp[1] |= 0x80;
 	if (!sensor->sensor_scanning_disabled())
 		rsp[1] |= 0x40;
-	std::shared_ptr<const SensorDataRecordReadableSensor> sdr0102 = std::dynamic_pointer_cast<const SensorDataRecordReadableSensor>(sdr);
-	if (!sdr0102 || sensor->all_events_disabled()) {
-		// No further payload is required, or no further payload exists.
-		ipmb.send(message.prepare_reply(rsp));
-		return;
-	}
-	rsp.push_back(sdr0102->ext_assertion_events_enabled() & 0xff);
-	rsp.push_back(sdr0102->ext_assertion_events_enabled() >> 8);
-	rsp.push_back(sdr0102->ext_deassertion_events_enabled() & 0xff);
-	rsp.push_back(sdr0102->ext_deassertion_events_enabled() >> 8);
+	uint16_t assert_events = sensor->assertion_events_enabled();
+	uint16_t deassert_events = sensor->deassertion_events_enabled();
+	rsp.push_back(assert_events & 0xff);
+	rsp.push_back(assert_events >> 8);
+	rsp.push_back(deassert_events & 0xff);
+	rsp.push_back(deassert_events >> 8);
 	ipmb.send(message.prepare_reply(rsp));
 }
 IPMICMD_INDEX_REGISTER(Get_Sensor_Event_Enable);

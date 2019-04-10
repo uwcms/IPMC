@@ -42,10 +42,14 @@ public:
 
 	/// IPMI sensor runtime configuration.
 	///@{
-	void all_events_disabled(bool disabled) { this->_all_events_disabled = disabled; };
-	bool all_events_disabled() { return this->_all_events_disabled; };
-	void sensor_scanning_disabled(bool disabled) { this->_sensor_scanning_disabled = disabled; };
-	bool sensor_scanning_disabled() { return this->_sensor_scanning_disabled; };
+	virtual void all_events_disabled(bool disabled) { this->_all_events_disabled = disabled; };
+	virtual bool all_events_disabled() { return this->_all_events_disabled; };
+	virtual void sensor_scanning_disabled(bool disabled) { this->_sensor_scanning_disabled = disabled; };
+	virtual bool sensor_scanning_disabled() { return this->_sensor_scanning_disabled; };
+	virtual void assertion_events_enabled(uint16_t events) { this->_assertion_events_enabled = events & 0x7fff; };
+	virtual uint16_t assertion_events_enabled() { return this->_assertion_events_enabled & 0x7fff; };
+	virtual void deassertion_events_enabled(uint16_t events) { this->_deassertion_events_enabled = events & 0x7fff; };
+	virtual uint16_t deassertion_events_enabled() { return this->_deassertion_events_enabled & 0x7fff; };
 	///@}
 
 	std::string sensor_identifier() const;
@@ -53,6 +57,8 @@ public:
 protected:
 	bool _all_events_disabled; ///< All IPMI events from this sensor are disabled.
 	bool _sensor_scanning_disabled; ///< Sensor scanning is disabled for this sensor.
+	uint16_t _assertion_events_enabled; ///< Assertion events enabled. (max 0x0fff, but 0xffff on init to distinguish unset)
+	uint16_t _deassertion_events_enabled; ///< Deassertion events enabled. (max 0x0fff, but 0xffff on init to distinguish unset)
 };
 
 #endif /* SRC_COMMON_UW_IPMC_SERVICES_IPMI_SENSOR_SENSOR_H_ */
