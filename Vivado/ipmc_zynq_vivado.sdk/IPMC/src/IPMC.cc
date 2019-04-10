@@ -65,6 +65,7 @@
 
 u8 IPMC_HW_REVISION = 0;
 uint16_t IPMC_SERIAL = 0xffff;
+u8 IMAGE_LOADED = 0;
 
 /**
  * A FreeRTOS EventGroup initialized by main() before the scheduler starts.
@@ -143,6 +144,9 @@ void driver_init(bool use_pl) {
 	psqspi->register_console_commands(console_command_parser, "psqspi.");
 #endif
 
+#define REBOOT_STATUS_REG (XPS_SYS_CTRL_BASEADDR + 0x258)
+	IMAGE_LOADED = (Xil_In32(REBOOT_STATUS_REG) >> 24) & 0xF;
+
 	// Retrieve the hardware revision number
 	PS_GPIO gpio_hwrev(XPAR_PS7_GPIO_0_DEVICE_ID, {0}); // Only pin 0
 	IPMC_HW_REVISION = (gpio_hwrev.getBus() == 0)? 1 : 0; // Pull-down on revB
@@ -213,25 +217,23 @@ void ipmc_service_init() {
 
 		// Start FTP server
 		qspiflash = new SPIFlash(*psqspi, 0);
-		VFS::addFile("virtual/flash.bin", VFS::File(
-				[](uint8_t *buffer, size_t size) -> size_t {
-					// Read
-					qspiflash->initialize();
-					qspiflash->read(0, buffer, size);
-					return size;
-				},
-				[](uint8_t *buffer, size_t size) -> size_t {
-					qspiflash->initialize();
+		qspiflash->initialize();
 
-					// Write
-					if (!qspiflash->write(0, buffer, size)) {
-						wasFlashUpgradeSuccessful = false; // Upgrade failed
-						return 0;
-					}
+#define MB * (1024 * 1024)
 
-					// Write successful
-					return size;
-				}, 16 * 1024 * 1024));
+		if (qspiflash->getTotalSize() == (64 MB)) {
+			VFS::addFile("virtual/fallback.bin", qspiflash->createFlashFile(0 MB, 16 MB));
+			VFS::addFile("virtual/A.bin", qspiflash->createFlashFile(16 MB, 16 MB));
+			VFS::addFile("virtual/B.bin", qspiflash->createFlashFile(32 MB, 16 MB));
+			VFS::addFile("virtual/test.bin", qspiflash->createFlashFile(48 MB, 16 MB));
+		} else if (qspiflash->getTotalSize() == (16 MB)) {
+			VFS::addFile("virtual/A.bin", qspiflash->createFlashFile(0 MB, 16 MB));
+		} else {
+			throw std::runtime_error("Unsupported QSPI flash size detected");
+		}
+
+#undef MB
+
 		new FTPServer(Auth::ValidateCredentials);
 
 	});
@@ -264,6 +266,9 @@ std::string generate_banner() {
 	bannerstr += std::string("Build conf  : ") + BUILD_CONFIGURATION + "\n";
 	bannerstr += std::string("OS version  : FreeRTOS ") + tskKERNEL_VERSION_NUMBER + "\n";
 
+	const char* imageNames[] = {"fallback", "A", "B", "test"};
+	bannerstr += std::string("Flash image : ") + ((IMAGE_LOADED > 3)?"Unknown":imageNames[IMAGE_LOADED]) + "\n";
+
 	if (GIT_STATUS[0] != '\0')
 		bannerstr += std::string("\n") + GIT_STATUS; // contains a trailing \n
 	bannerstr += "\n";
@@ -288,6 +293,7 @@ static void tracebuffer_log_handler(LogTree &logtree, const std::string &message
 #include "core_console_commands/upload.h"
 #include "core_console_commands/uptime.h"
 #include "core_console_commands/version.h"
+#include "core_console_commands/boottarget.h"
 
 #include "blade_console_commands/adc.h"
 
@@ -305,6 +311,7 @@ static void register_core_console_commands(CommandParser &parser) {
 	console_command_parser.register_command("upload", std::make_shared<ConsoleCommand_upload>());
 	console_command_parser.register_command("throw", std::make_shared<ConsoleCommand_throw>());
 	console_command_parser.register_command("trace", std::make_shared<ConsoleCommand_trace>());
+	console_command_parser.register_command("boottarget", std::make_shared<ConsoleCommand_boottarget>(eeprom_mac));
 
 	console_command_parser.register_command("adc", std::make_shared<ConsoleCommand_adc>());
 	StatCounter::register_console_commands(parser);
