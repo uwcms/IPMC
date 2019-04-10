@@ -157,7 +157,7 @@ extern XDcfg *DcfgInstPtr;
 * @note		None
 *
 ****************************************************************************/
-u32 LoadBootImage(void)
+u32 LoadBootImage(u32 startAddressOffset)
 {
 	u32 RebootStatusRegister = 0;
 	u32 MultiBootReg = 0;
@@ -222,6 +222,8 @@ u32 LoadBootImage(void)
 									* GOLDEN_IMAGE_OFFSET;
 	}
 
+	ImageStartAddress += startAddressOffset;
+
 	fsbl_printf(DEBUG_INFO,"Image Start Address: 0x%08lx\r\n",ImageStartAddress);
 
 	/*
@@ -231,7 +233,8 @@ u32 LoadBootImage(void)
 	if (Status != XST_SUCCESS) {
 		fsbl_printf(DEBUG_GENERAL, "Partition Header Load Failed\r\n");
 		OutputStatus(GET_HEADER_INFO_FAIL);
-		FsblFallback();
+		//FsblFallback();
+		return 0xffffffff;
 	}
 
 	/*
@@ -261,7 +264,8 @@ u32 LoadBootImage(void)
 				fsbl_printf(DEBUG_GENERAL,
 						"Read Partition Header signature Failed\r\n");
 				OutputStatus(GET_HEADER_INFO_FAIL);
-				FsblFallback();
+				//FsblFallback();
+				return 0xffffffff;
 			}
 			HeaderSize=TOTAL_HEADER_SIZE+RSA_SIGNATURE_SIZE;
 
@@ -270,7 +274,8 @@ u32 LoadBootImage(void)
 				fsbl_printf(DEBUG_GENERAL,
 						"Partition Header signature Failed\r\n");
 				OutputStatus(GET_HEADER_INFO_FAIL);
-				FsblFallback();
+				//FsblFallback();
+				return 0xffffffff;
 			}
 #else
 			/*
@@ -278,7 +283,8 @@ u32 LoadBootImage(void)
 			 */
 			fsbl_printf(DEBUG_GENERAL,"RSA_SUPPORT_NOT_ENABLED_FAIL\r\n");
 			OutputStatus(RSA_SUPPORT_NOT_ENABLED_FAIL);
-			FsblFallback();
+			//FsblFallback();
+			return 0xffffffff;
 #endif
 		}
 	}
@@ -315,7 +321,8 @@ u32 LoadBootImage(void)
 		if (Status != XST_SUCCESS) {
 			fsbl_printf(DEBUG_GENERAL, "INVALID_HEADER_FAIL\r\n");
 			OutputStatus(INVALID_HEADER_FAIL);
-			FsblFallback();
+			//FsblFallback();
+			return 0xffffffff;
 		}
 
 		/*
@@ -414,7 +421,8 @@ u32 LoadBootImage(void)
 				fsbl_printf(DEBUG_GENERAL,
 						"INVALID_LOAD_ADDRESS_FAIL\r\n");
 				OutputStatus(INVALID_LOAD_ADDRESS_FAIL);
-				FsblFallback();
+				//FsblFallback();
+				return 0xffffffff;
 			}
 		}
 
@@ -422,7 +430,8 @@ u32 LoadBootImage(void)
 			fsbl_printf(DEBUG_GENERAL,
 					"INVALID_LOAD_ADDRESS_FAIL\r\n");
 			OutputStatus(INVALID_LOAD_ADDRESS_FAIL);
-			FsblFallback();
+			//FsblFallback();
+			return 0xffffffff;
 		}
 
         /*
@@ -441,7 +450,8 @@ u32 LoadBootImage(void)
 			if (Status != XST_SUCCESS) {
 				fsbl_printf(DEBUG_GENERAL,"FSBL_BEFORE_BSTREAM_HOOK_FAIL\r\n");
 				OutputStatus(FSBL_BEFORE_BSTREAM_HOOK_FAIL);
-				FsblFallback();
+				//FsblFallback();
+				return 0xffffffff;
 			}
 		}
 
@@ -452,7 +462,8 @@ u32 LoadBootImage(void)
 		if (Status != XST_SUCCESS) {
 			fsbl_printf(DEBUG_GENERAL,"PARTITION_MOVE_FAIL\r\n");
 			OutputStatus(PARTITION_MOVE_FAIL);
-			FsblFallback();
+			//FsblFallback();
+			return 0xffffffff;
 		}
 
 		if ((SignedPartitionFlag) || (PartitionChecksumFlag)) {
@@ -477,7 +488,8 @@ u32 LoadBootImage(void)
 				if (Status != XST_SUCCESS) {
 					fsbl_printf(DEBUG_GENERAL,"PARTITION_CHECKSUM_FAIL\r\n");
 					OutputStatus(PARTITION_CHECKSUM_FAIL);
-					FsblFallback();
+					//FsblFallback();
+					return 0xffffffff;
 				}
 
 				fsbl_printf(DEBUG_INFO, "Partition Validation Done\r\n");
@@ -496,7 +508,8 @@ u32 LoadBootImage(void)
 		        	Xil_DCacheDisable();
 					fsbl_printf(DEBUG_GENERAL,"AUTHENTICATION_FAIL\r\n");
 					OutputStatus(AUTHENTICATION_FAIL);
-					FsblFallback();
+					//FsblFallback();
+					return 0xffffffff;
 				}
 				fsbl_printf(DEBUG_INFO,"Authentication Done\r\n");
 				Xil_DCacheFlush();
@@ -507,7 +520,8 @@ u32 LoadBootImage(void)
 				 */
 				fsbl_printf(DEBUG_GENERAL,"RSA_SUPPORT_NOT_ENABLED_FAIL\r\n");
 				OutputStatus(RSA_SUPPORT_NOT_ENABLED_FAIL);
-				FsblFallback();
+				//FsblFallback();
+				return 0xffffffff;
 #endif
 			}
 
@@ -521,7 +535,8 @@ u32 LoadBootImage(void)
 				if (Status != XST_SUCCESS) {
 					fsbl_printf(DEBUG_GENERAL,"DECRYPTION_FAIL\r\n");
 					OutputStatus(DECRYPTION_FAIL);
-					FsblFallback();
+					//FsblFallback();
+					return 0xffffffff;
 				}
 			}
 
@@ -537,7 +552,8 @@ u32 LoadBootImage(void)
 				if (Status != XST_SUCCESS) {
 					fsbl_printf(DEBUG_GENERAL,"BITSTREAM_DOWNLOAD_FAIL\r\n");
 					OutputStatus(BITSTREAM_DOWNLOAD_FAIL);
-					FsblFallback();
+					//FsblFallback();
+					return 0xffffffff;
 				}
 			}
 		}
@@ -551,7 +567,8 @@ u32 LoadBootImage(void)
 			if (Status != XST_SUCCESS) {
 				fsbl_printf(DEBUG_GENERAL,"FSBL_AFTER_BSTREAM_HOOK_FAIL\r\n");
 				OutputStatus(FSBL_AFTER_BSTREAM_HOOK_FAIL);
-				FsblFallback();
+				//FsblFallback();
+				return 0xffffffff;
 			}
 		}
 		/*

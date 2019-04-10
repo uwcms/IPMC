@@ -128,9 +128,7 @@
 
 #include "fsbl.h"
 #include "qspi.h"
-#include "nand.h"
 #include "nor.h"
-#include "sd.h"
 #include "pcap.h"
 #include "image_mover.h"
 #include "xparameters.h"
@@ -153,6 +151,8 @@
 #ifdef RSA_SUPPORT
 #include "rsa.h"
 #endif
+
+#include "ipmc.h"
 
 /************************** Constant Definitions *****************************/
 
@@ -222,6 +222,13 @@ extern u8 BitstreamFlag;
 #ifdef XPAR_PS7_QSPI_LINEAR_0_S_AXI_BASEADDR
 extern u32 QspiFlashSize;
 #endif
+
+u8 prevImage = 0xff, curImage = 0xff, imageMain = 0;
+const char* imageNames[] = {"fallback", "A", "B", "test"};
+#define IMAGE_NUMBER_TO_ADDRESS(IMAGE) ((IMAGE) * 16 * 1024 * 1024)
+
+static u32 bootAndHandoff();
+
 /*****************************************************************************/
 /**
 *
@@ -240,7 +247,6 @@ extern u32 QspiFlashSize;
 int main(void)
 {
 	u32 BootModeRegister = 0;
-	u32 HandoffAddress = 0;
 	u32 Status = XST_SUCCESS;
 	u32 RegVal;
 	/*
@@ -379,6 +385,49 @@ int main(void)
 	 * Store FSBL run state in Reboot Status Register
 	 */
 	MarkFSBLIn();
+
+	fsbl_printf(DEBUG_INFO,"\r\n");
+
+	tag_image(0xF);
+
+	/* Check IPMC hardware revision */
+	u32 revision = get_ipmc_hw_rev();
+	if (revision == 0xff) {
+		fsbl_printf(DEBUG_GENERAL,"Failed to retrieve IPMC hardware revision, assuming revA\r\n");
+		revision = 0;
+	}
+	fsbl_printf(DEBUG_INFO,"IPMC rev%c detected\r\n", (u8)revision + 'A');
+
+	/* Check the target image to load */
+	curImage = get_ipmc_target_image();
+	if (curImage == 0xff) {
+		fsbl_printf(DEBUG_GENERAL,"Failed to read target image from SPI EEPROM, picking fallback\r\n");
+		curImage = 0;
+	}
+	fsbl_printf(DEBUG_INFO,"EEPROM set to boot image 0x%02x\r\n", curImage);
+
+	/* Validation */
+	if (revision == 0) {
+		curImage = 0; /* QSPI in revA is only 16MB */
+		imageMain = 0;
+	}
+	else if (revision == 1) {
+		/* Highest bit of curImage will indicate the test image */
+		imageMain = curImage & 0x7F;
+
+		if (imageMain > 2) {
+			fsbl_printf(DEBUG_GENERAL,"Target image is outside allowed range, defaulting to fallback\r\n");
+			imageMain = 0;
+			curImage = 0;
+		} else {
+			if (curImage & 0x80) {
+				curImage = 3; /* Test image, main image will allow us to fallback to the correct one in case of failure */
+			}
+		}
+	}
+	fsbl_printf(DEBUG_INFO,"Will attempt to boot image %d (%s)\r\n", curImage, (revision != 0)?imageNames[curImage]:"A");
+
+	fsbl_printf(DEBUG_INFO,"\r\n");
 
 	/*
 	 * Read bootmode register
@@ -561,6 +610,45 @@ int main(void)
 	 */
 	XWdtPs_RestartWdt(&Watchdog);
 #endif
+	/*
+	 * Load boot image
+	 */
+	do {
+		Status = bootAndHandoff();
+
+		if (Status == XST_FAILURE) {
+			/* Failed to boot and handoff, attempt another image */
+			prevImage = curImage;
+
+			if (curImage == 3) {
+				/* Test image loading failed, attempt to load main image */
+				curImage = imageMain;
+			} else if (curImage == imageMain) {
+				/* Main image loading failed, attempt to load previous main image */
+				if (imageMain == 0) break;
+				else if (imageMain == 1) curImage = 2;
+				else curImage = 1;
+			} else {
+				curImage = 0;
+			}
+
+			fsbl_printf(DEBUG_GENERAL,"Unable to load image %d (%s), trying image %d(%s)\r\n",
+					prevImage, imageNames[prevImage], curImage, imageNames[curImage]);
+		}
+	} while (prevImage != 0);
+
+	FsblFallback();
+
+#else
+	OutputStatus(NO_DDR);
+	FsblFallback();
+#endif
+
+	return Status;
+}
+
+u32 bootAndHandoff() {
+	u32 HandoffAddress;
 
 	/*
 	 * This used only in case of E-Fuse encryption
@@ -571,7 +659,12 @@ int main(void)
 	/*
 	 * Load boot image
 	 */
-	HandoffAddress = LoadBootImage();
+	HandoffAddress = LoadBootImage(IMAGE_NUMBER_TO_ADDRESS(curImage));
+
+	if (HandoffAddress == 0xffffffff) {
+		fsbl_printf(DEBUG_INFO,"Failed to load image at address 0x%08x\r\n", IMAGE_NUMBER_TO_ADDRESS(curImage));
+		return XST_FAILURE;
+	}
 
 	fsbl_printf(DEBUG_INFO,"Handoff Address: 0x%08lx\r\n",HandoffAddress);
 
@@ -584,18 +677,15 @@ int main(void)
 	FsblMeasurePerfTime(tCur,tEnd);
 #endif
 
+	tag_image(curImage);
+
 	/*
 	 * FSBL handoff to valid handoff address or
 	 * exit in JTAG
 	 */
 	FsblHandoff(HandoffAddress);
 
-#else
-	OutputStatus(NO_DDR);
-	FsblFallback();
-#endif
-
-	return Status;
+	return XST_SUCCESS;
 }
 
 /******************************************************************************/
@@ -697,7 +787,7 @@ void FsblFallback(void)
 			/*
 			 * Load next valid image
 			 */
-			HandoffAddr = LoadBootImage();
+			HandoffAddr = LoadBootImage(0);
 
 			/*
 			 * Handoff to next image

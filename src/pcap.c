@@ -94,7 +94,6 @@
 /***************************** Include Files *********************************/
 
 #include "pcap.h"
-#include "nand.h"		/* For NAND geometry information */
 #include "fsbl.h"
 #include "image_mover.h"	/* For MoveImage */
 #include "xparameters.h"

@@ -132,7 +132,7 @@ struct HeaderArray {
 #define MoverOut32		Xil_Out32
 
 /************************** Function Prototypes ******************************/
-u32 LoadBootImage(void);
+u32 LoadBootImage(u32 startAddressOffset);
 u32 GetPartitionHeaderInfo(u32 ImageBaseAddress);
 u32 PartitionMove(u32 ImageBaseAddress, PartHeader *Header);
 u32 ValidatePartitionHeaderChecksum(struct HeaderArray *H);
