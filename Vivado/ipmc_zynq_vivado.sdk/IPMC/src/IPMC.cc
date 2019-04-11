@@ -144,12 +144,15 @@ void driver_init(bool use_pl) {
 	psqspi->register_console_commands(console_command_parser, "psqspi.");
 #endif
 
-#define REBOOT_STATUS_REG (XPS_SYS_CTRL_BASEADDR + 0x258)
-	IMAGE_LOADED = (Xil_In32(REBOOT_STATUS_REG) >> 24) & 0xF;
-
 	// Retrieve the hardware revision number
 	PS_GPIO gpio_hwrev(XPAR_PS7_GPIO_0_DEVICE_ID, {0}); // Only pin 0
 	IPMC_HW_REVISION = (gpio_hwrev.getBus() == 0)? 1 : 0; // Pull-down on revB
+
+#define REBOOT_STATUS_REG (XPS_SYS_CTRL_BASEADDR + 0x258)
+	u32 reboot_status = Xil_In32(REBOOT_STATUS_REG) >> 24;
+	if (reboot_status & 0x4) IMAGE_LOADED = 3;
+	else IMAGE_LOADED = reboot_status & 0x3;
+	if (IPMC_HW_REVISION == 0) IMAGE_LOADED = 0;
 
 	// Retrieve the IPMB address
 	PS_GPIO gpio_ipmbaddr(XPAR_PS7_GPIO_0_DEVICE_ID, {39,40,41,45,47,48,49,50});
@@ -169,6 +172,10 @@ void driver_init(bool use_pl) {
 	configASSERT(eeprom_mac->read(0, reinterpret_cast<uint8_t*>(&IPMC_SERIAL), sizeof(IPMC_SERIAL)));
 
 	xadc = new PS_XADC(XPAR_XADCPS_0_DEVICE_ID);
+
+	// Initialize the QSPI flash driver
+	qspiflash = new SPIFlash(*psqspi, 0);
+	qspiflash->initialize();
 
 	gpio[4] = new PS_GPIO(XPAR_PS7_GPIO_0_DEVICE_ID, {10,11,12,13});
 	gpio[5] = new PS_GPIO(XPAR_PS7_GPIO_0_DEVICE_ID, {39,40,41,45,47,48,49,50});
@@ -216,8 +223,6 @@ void ipmc_service_init() {
 		new Lwiperf(5001);
 
 		// Start FTP server
-		qspiflash = new SPIFlash(*psqspi, 0);
-		qspiflash->initialize();
 
 #define MB * (1024 * 1024)
 
@@ -267,7 +272,7 @@ std::string generate_banner() {
 	bannerstr += std::string("OS version  : FreeRTOS ") + tskKERNEL_VERSION_NUMBER + "\n";
 
 	const char* imageNames[] = {"fallback", "A", "B", "test"};
-	bannerstr += std::string("Flash image : ") + ((IMAGE_LOADED > 3)?"Unknown":imageNames[IMAGE_LOADED]) + "\n";
+	bannerstr += std::string("Flash image : ") + ((IMAGE_LOADED > 3)?"Unknown":imageNames[IMAGE_LOADED]) + " (" + std::to_string(IMAGE_LOADED) + ")\n";
 
 	if (GIT_STATUS[0] != '\0')
 		bannerstr += std::string("\n") + GIT_STATUS; // contains a trailing \n
@@ -304,7 +309,7 @@ static void register_core_console_commands(CommandParser &parser) {
 	console_command_parser.register_command("ps", std::make_shared<ConsoleCommand_ps>());
 	console_command_parser.register_command("restart", std::make_shared<ConsoleCommand_restart>());
 	console_command_parser.register_command("flash.info", std::make_shared<ConsoleCommand_flash_info>());
-	console_command_parser.register_command("flash.verify", std::make_shared<ConsoleCommand_flash_verify>());
+	console_command_parser.register_command("flash.verify", std::make_shared<ConsoleCommand_flash_verify>(*qspiflash));
 	console_command_parser.register_command("setauth", std::make_shared<ConsoleCommand_setauth>());
 	if (IPMC_SERIAL == 0 || IPMC_SERIAL == 0xFFFF) // The serial is settable only if unset.  This implements lock on write (+reboot).
 		console_command_parser.register_command("set_serial", std::make_shared<ConsoleCommand_set_serial>());
