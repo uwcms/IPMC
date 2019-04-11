@@ -33,13 +33,13 @@ public:
 			return;
 		}
 
-		if ((original & 0x7F) > 2) image = 0;
+		if ((original & 0x03) > 2) image = 0;
 		else image = original;
 
 		if (parameters.nargs() == 1) {
 			std::string msg = "Target boot image is ";
 
-			if (image & 0x80) image = 3;
+			if (image & 0x04) image = 3;
 
 			switch (image) {
 			case 0: msg += "fallback"; break;
@@ -60,7 +60,7 @@ public:
 			} else if (!parameters.parameters[1].compare("B")) {
 				target = 2;
 			} else if (!parameters.parameters[1].compare("test")) {
-				target = 0x80 | (image & 0x3);
+				target = 0x04 | (image & 0x3);
 			} else {
 				console->write("Unknown image name, see help.\n");
 			}
