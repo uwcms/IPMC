@@ -105,7 +105,8 @@ bool SPIFlash::write(uint32_t address, const uint8_t *buffer, size_t bytes) {
 	}
 
 	for (size_t sector = 0; sector < sectorCount; sector++) {
-		size_t sectorAddress = address + sector * sectorSize;
+		size_t sectorOffset = sector * sectorSize;
+		size_t sectorAddress = address + sectorOffset;
 		uint8_t *pdata = nullptr;
 		float progress = ((sector+1) * 1.0f) / (sectorCount * 1.0f) * 100.0f;
 
@@ -119,9 +120,9 @@ bool SPIFlash::write(uint32_t address, const uint8_t *buffer, size_t bytes) {
 		}
 
 		if (sectorRem && (sector == (sectorCount-1))) {
-			pdata = &*tmpbuf;
+			pdata = &*tmpbuf; // Last sector
 		} else {
-			pdata = (uint8_t*)buffer + sectorAddress; // Last sector
+			pdata = (uint8_t*)buffer + sectorOffset;
 		}
 
 		printf("(%.0f%%) Writing %d pages at address 0x%08x..", progress, pagesPerSector, sectorAddress);
@@ -339,7 +340,6 @@ bool SPIFlash::selectBank(uint8_t bank) {
 			return false; // Failed
 		}
 
-		uint8_t current;
 		if (!this->getSelectedBank(current)) return false;
 		if (current != bank) {
 			printf("Failed to change to bank %d", bank);
