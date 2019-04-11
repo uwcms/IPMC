@@ -14,7 +14,9 @@ u8 get_ipmc_hw_rev();
 
 u8 get_ipmc_target_image();
 
-void tag_image(u8 image);
+void set_tag(u8 val);
+
+u8 get_tag();
 
 
 #endif /* SRC_IPMC_H_ */

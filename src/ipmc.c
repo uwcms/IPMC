@@ -89,15 +89,21 @@ u8 get_ipmc_target_image() {
 	return Buffer[2];
 }
 
-void tag_image(u8 image) {
+void set_tag(u8 val) {
 	u32 RebootStatusRegister = 0;
 
 	RebootStatusRegister = Xil_In32(REBOOT_STATUS_REG);
-	RebootStatusRegister &= 0x0F000000;
+	RebootStatusRegister &= ~(0x0F000000);
 
-	image &= 0x0F;
-
-	RebootStatusRegister |= (image << 24);
+	RebootStatusRegister |= ((val << 24) & 0x0F000000);
 
 	Xil_Out32(REBOOT_STATUS_REG, RebootStatusRegister);
+}
+
+u8 get_tag() {
+	u32 RebootStatusRegister = 0;
+
+	RebootStatusRegister = Xil_In32(REBOOT_STATUS_REG);
+
+	return (RebootStatusRegister >> 24) & 0xF;
 }

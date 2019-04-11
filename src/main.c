@@ -223,6 +223,7 @@ extern u8 BitstreamFlag;
 extern u32 QspiFlashSize;
 #endif
 
+u8 forcedBoot = 0;
 u8 prevImage = 0xff, curImage = 0xff, imageMain = 0;
 const char* imageNames[] = {"fallback", "A", "B", "test"};
 #define IMAGE_NUMBER_TO_ADDRESS(IMAGE) ((IMAGE) * 16 * 1024 * 1024)
@@ -388,7 +389,25 @@ int main(void)
 
 	fsbl_printf(DEBUG_INFO,"\r\n");
 
-	tag_image(0xF);
+	/**
+	 * Deciding what image will boot happens in two steps:
+	 * Step 1) Check the REBOOT_STATUS low nibble bits (bits 27:24).
+	 * The IPMC SW can set these bits to force a specific image to load during a reboot.
+	 * Bit 3 Force reboot (yes/no)
+	 * Bit 2: Boot test image
+	 * Bit 1-0: Image selection for 0 (fallback), 1 (A) and 2 (B)
+	 * Note: For IPMC revA only fallback is supported.
+	 *
+	 * Bit 3 is automatically cleared by the FSBL
+	 *
+	 * Step 2) If no forced boot is required then byte 2 of the MAC EEPROM is read and the
+	 * same 4 bits are read. Bit 3 is ignored because the EEPROM cannot force a boot.
+	 *
+	 * After boot bits 26:24 in REBOOT_STATUS will reflect the image that got loaded.
+	 */
+
+	/* Understand if this is part of an IPMC reset command */
+	forcedBoot = get_tag() & 0x8;
 
 	/* Check IPMC hardware revision */
 	u32 revision = get_ipmc_hw_rev();
@@ -399,33 +418,41 @@ int main(void)
 	fsbl_printf(DEBUG_INFO,"IPMC rev%c detected\r\n", (u8)revision + 'A');
 
 	/* Check the target image to load */
-	curImage = get_ipmc_target_image();
-	if (curImage == 0xff) {
-		fsbl_printf(DEBUG_GENERAL,"Failed to read target image from SPI EEPROM, picking fallback\r\n");
-		curImage = 0;
+	if (forcedBoot == 0) {
+		/* Pick target image from EEPROM */
+		curImage = get_ipmc_target_image();
+		if (curImage == 0xff) {
+			fsbl_printf(DEBUG_GENERAL,"Failed to read target image from SPI EEPROM, picking fallback\r\n");
+			curImage = 0;
+		}
+		fsbl_printf(DEBUG_INFO,"EEPROM set to boot image 0x%02x\r\n", curImage);
+	} else {
+		curImage = get_tag() & 0x7;
+		fsbl_printf(DEBUG_INFO,"Forced reboot mode set to boot image 0x%02x\r\n", curImage);
 	}
-	fsbl_printf(DEBUG_INFO,"EEPROM set to boot image 0x%02x\r\n", curImage);
 
 	/* Validation */
 	if (revision == 0) {
 		curImage = 0; /* QSPI in revA is only 16MB */
 		imageMain = 0;
-	}
-	else if (revision == 1) {
-		/* Highest bit of curImage will indicate the test image */
-		imageMain = curImage & 0x7F;
+	} else if (revision == 1) {
+		/* 3rd bit of curImage will indicate the test image */
+		imageMain = curImage & 0x03;
 
 		if (imageMain > 2) {
 			fsbl_printf(DEBUG_GENERAL,"Target image is outside allowed range, defaulting to fallback\r\n");
 			imageMain = 0;
 			curImage = 0;
 		} else {
-			if (curImage & 0x80) {
+			if (curImage & 0x04) {
 				curImage = 3; /* Test image, main image will allow us to fallback to the correct one in case of failure */
 			}
 		}
 	}
 	fsbl_printf(DEBUG_INFO,"Will attempt to boot image %d (%s)\r\n", curImage, (revision != 0)?imageNames[curImage]:"A");
+
+	/* Set default tag */
+	set_tag(0x7);
 
 	fsbl_printf(DEBUG_INFO,"\r\n");
 
@@ -677,7 +704,11 @@ u32 bootAndHandoff() {
 	FsblMeasurePerfTime(tCur,tEnd);
 #endif
 
-	tag_image(curImage);
+	if (curImage == 3) {
+		set_tag((imageMain & 0x3) | 0x4);
+	} else {
+		set_tag(curImage);
+	}
 
 	/*
 	 * FSBL handoff to valid handoff address or
