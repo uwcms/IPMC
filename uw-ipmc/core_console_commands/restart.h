@@ -14,6 +14,8 @@ public:
 	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
 		// See section 26.2.3 in UG585 - System Software Reset
 
+#define SLCR_UNLOCK_REG (XPS_SYS_CTRL_BASEADDR + 0x008)
+#define PSS_RST_CTRL_REG (XPS_SYS_CTRL_BASEADDR + 0x200)
 #define REBOOT_STATUS_REG (XPS_SYS_CTRL_BASEADDR + 0x258)
 
 		if (parameters.nargs() > 1) {
@@ -38,6 +40,9 @@ public:
 			uint32_t reboot_status = Xil_In32(REBOOT_STATUS_REG);
 			reboot_status &= ~(0x0F000000);
 			reboot_status |= ((target << 24) & 0x0F000000);
+			console->write(stdsprintf("Setting REBOOT_STATUS to 0x%08x.\n", reboot_status));
+
+			Xil_Out32(SLCR_UNLOCK_REG, 0xDF0D); // Unlock key
 			Xil_Out32(REBOOT_STATUS_REG, reboot_status);
 		}
 
@@ -51,11 +56,8 @@ public:
 			console->write("Restarting...\n");
 			vTaskDelay(pdMS_TO_TICKS(100));
 
-			volatile uint32_t* slcr_unlock_reg = (uint32_t*)(0xF8000000 + 0x008); // SLCR is at 0xF8000000
-			volatile uint32_t* pss_rst_ctrl_reg = (uint32_t*)(0xF8000000 + 0x200);
-
-			*slcr_unlock_reg = 0xDF0D; // Unlock key
-			*pss_rst_ctrl_reg = 1;
+			Xil_Out32(SLCR_UNLOCK_REG, 0xDF0D); // Unlock key
+			Xil_Out32(PSS_RST_CTRL_REG, 1);
 		} else {
 			console->write("Restart is disabled due to a failed firmware attempt (flash may be corrupted).\n");
 		}
