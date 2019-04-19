@@ -289,14 +289,14 @@ void Mgmt_Zone_Ctrl_Get_MZ_Cfg(Mgmt_Zone_Ctrl *InstancePtr, u32 MZ, MZ_config * 
 		}
 	}
 
-	if (mz_pwr_on_cnt != 0)
-		mz_pwr = MZ_PWR_ON;
-	else if (mz_pwr_trans_on_cnt != 0)
-		mz_pwr = MZ_PWR_TRANS_ON;
-	else if (mz_pwr_trans_off_cnt != 0)
-		mz_pwr = MZ_PWR_TRANS_OFF;
-	else
-		mz_pwr = MZ_PWR_OFF;
+    if (mz_pwr_trans_on_cnt != 0)
+        mz_pwr = MZ_PWR_TRANS_ON;
+    else if (mz_pwr_trans_off_cnt != 0)
+        mz_pwr = MZ_PWR_TRANS_OFF;
+    else if (mz_pwr_on_cnt != 0)
+        mz_pwr = MZ_PWR_ON;
+    else
+        mz_pwr = MZ_PWR_OFF;
 
 	return mz_pwr;
 
