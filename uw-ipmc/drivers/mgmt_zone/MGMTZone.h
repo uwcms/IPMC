@@ -14,6 +14,7 @@
 #include <xil_types.h>
 #include <vector>
 #include <mgmt_zone_ctrl.h>
+#include <libs/ThreadingPrimitives.h>
 
 /**
  * A single management zone.
@@ -53,6 +54,30 @@ public:
 	virtual void set_power_state(PowerAction action);
 	virtual bool get_power_state(bool *in_transition=NULL);
 
+	/**
+	 * Retrieve the desired power state (whether the zone is enabled or enabling
+	 * according to the last state specifically set).
+	 *
+	 * \note This value is not affected by faults, either hard OR soft faults.
+	 *       This means that set_power_state(KILL) will not change the desired
+	 *       state, and OFF must also be subsequently set to acknowledge it.
+	 *
+	 * @return true if on, else false
+	 */
+	virtual bool get_desired_power_state() { return this->_desired_power_state; };
+
+	/**
+	 * Retrieve the tick64 timestamp that the desired power state was last changed.
+	 *
+	 * \note This value is not affected by faults, either hard OR soft faults.
+	 *       This means that set_power_state(KILL) will not update this timestamp
+	 *       and OFF must also be subsequently used if this is desired.
+	 *
+	 * @return tick64 timestamp of last change
+	 */
+	virtual uint64_t last_transition_start_ts() { return this->_last_transition_start_ts; };
+	virtual void reset_last_transition_start_ts() { this->_last_transition_start_ts = get_tick64(); };
+
 	/// Get the number of power enables on this MZ controller.
 	virtual u32 get_pen_count() const { return this->zone.pwren_cnt; };
 	/// Get the number of hardfault inputs on this MZ controller.
@@ -60,6 +85,8 @@ public:
 
 protected:
 	Mgmt_Zone_Ctrl zone; ///< The Mgmt_Zone_Ctrl instance.
+	bool _desired_power_state;
+	uint64_t _last_transition_start_ts; ///< The timestamp of the start of the last transition.
 };
 
 #endif

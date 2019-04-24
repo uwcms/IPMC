@@ -77,12 +77,21 @@ void Sensor::send_event(enum EventDirection direction, const std::vector<uint8_t
  * sensor in logs.  It includes the SDR Key, and if the SDR can be located, the
  * sensor name stored in it.
  *
+ * @param name_only Return only the sensor name, not a full ID string including key bytes.
  * @return A human-readable unique identifer for this sensor
  */
-std::string Sensor::sensor_identifier() const {
+std::string Sensor::sensor_identifier(bool name_only) const {
 	std::shared_ptr<const SensorDataRecordSensor> sdr = std::dynamic_pointer_cast<const SensorDataRecordSensor>(device_sdr_repo.find(this->sdr_key));
-	if (sdr)
-		return stdsprintf("%02hhx%02hhx%02hhx (%s)", this->sdr_key[0], this->sdr_key[1], this->sdr_key[2], sdr->id_string().c_str());
-	else
-		return stdsprintf("%02hhx%02hhx%02hhx (<No SDR Located>)", this->sdr_key[0], this->sdr_key[1], this->sdr_key[2]);
+	if (sdr) {
+		if (name_only)
+			return sdr->id_string();
+		else
+			return stdsprintf("%02hhx%02hhx%02hhx (%s)", this->sdr_key[0], this->sdr_key[1], this->sdr_key[2], sdr->id_string().c_str());
+	}
+	else {
+		if (name_only)
+			return "<No SDR Located>";
+		else
+			return stdsprintf("%02hhx%02hhx%02hhx (<No SDR Located>)", this->sdr_key[0], this->sdr_key[1], this->sdr_key[2]);
+	}
 }

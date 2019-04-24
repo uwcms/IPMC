@@ -41,8 +41,8 @@ ThresholdSensor::ThresholdSensor(const std::vector<uint8_t> &sdr_key, LogTree &l
 	}
 	this->last_value = NAN;
 	this->value_expiration = UINT64_MAX;
-	this->active_thresholds = 0;
-	this->in_context = false;
+	this->active_events = 0;
+	this->event_context = 0;
 }
 
 ThresholdSensor::~ThresholdSensor() {
@@ -59,6 +59,22 @@ struct ThresholdEvent {
 	uint8_t value; ///< The value triggering the event.
 	uint8_t threshold; ///< The threshold triggering the event.
 };
+
+/**
+ * Update thresholds in local cache from the SDR if present.
+ * @param sdr01 The sdr to use.  It must be a type 01 SDR or NULL for NOOP
+ */
+void ThresholdSensor::update_thresholds_from_sdr(std::shared_ptr<const SensorDataRecord01> sdr01) {
+	if (sdr01) {
+		// Update our thresholds from SDR data.
+		this->thresholds.lnc = sdr01->threshold_lnc_rawvalue();
+		this->thresholds.lcr = sdr01->threshold_lcr_rawvalue();
+		this->thresholds.lnr = sdr01->threshold_lnr_rawvalue();
+		this->thresholds.unc = sdr01->threshold_unc_rawvalue();
+		this->thresholds.ucr = sdr01->threshold_ucr_rawvalue();
+		this->thresholds.unr = sdr01->threshold_unr_rawvalue();
+	}
+}
 
 /**
  * Performs the appropriate calculations for a given threshold, and generates
@@ -126,19 +142,52 @@ static void process_threshold(uint16_t &state, uint8_t bit, uint8_t threshold, u
 }
 
 /**
- * Update thresholds in local cache from the SDR if present.
- * @param sdr01 The sdr to use.  It must be a type 01 SDR or NULL for NOOP
+ * Perform all threshold processing on the supplied value and return the
+ * resultant state.
+ *
+ * @param[in]  state The initial event state
+ * @param[in]  event_context The event context to use when processing
+ * @param[in]  thresholds The threshold configuration to use for processing
+ * @param[in]  hystl Going-low hystersis
+ * @param[in]  hysth Going-high hysteresis
+ * @param[in]  byteval The value to process
+ * @param[out] events A list of generated events
+ * @param[in]  force_assertions A mask of assertion events to send regardless of actual value
+ * @param[in]  force_deassertions A mask of deassertion events to send regardless of actual value
+ * @return The final event state
  */
-void ThresholdSensor::update_thresholds_from_sdr(std::shared_ptr<const SensorDataRecord01> sdr01) {
-	if (sdr01) {
-		// Update our thresholds from SDR data.
-		this->thresholds.lnc = sdr01->threshold_lnc_rawvalue();
-		this->thresholds.lcr = sdr01->threshold_lcr_rawvalue();
-		this->thresholds.lnr = sdr01->threshold_lnr_rawvalue();
-		this->thresholds.unc = sdr01->threshold_unc_rawvalue();
-		this->thresholds.ucr = sdr01->threshold_ucr_rawvalue();
-		this->thresholds.unr = sdr01->threshold_unr_rawvalue();
-	}
+static uint16_t process_thresholds(uint16_t state, uint16_t event_context, const struct ThresholdSensor::threshold_configuration &thresholds, uint8_t hystl, uint8_t hysth, uint8_t byteval, std::vector<struct ThresholdEvent> &events, uint16_t force_assertions, uint16_t force_deassertions) {
+	if (event_context & (1 << 0))
+		process_threshold(state,  0, thresholds.lnc, hystl, byteval, events, force_assertions & (1<<0), force_deassertions & (1<<0));
+	if (event_context & (1 << 1))
+		process_threshold(state,  1, thresholds.lnc, hysth, byteval, events, force_assertions & (1<<1), force_deassertions & (1<<1));
+
+	if (event_context & (1 << 2))
+		process_threshold(state,  2, thresholds.lcr, hystl, byteval, events, force_assertions & (1<<2), force_deassertions & (1<<2));
+	if (event_context & (1 << 3))
+		process_threshold(state,  3, thresholds.lcr, hysth, byteval, events, force_assertions & (1<<3), force_deassertions & (1<<3));
+
+	if (event_context & (1 << 4))
+		process_threshold(state,  4, thresholds.lnr, hystl, byteval, events, force_assertions & (1<<4), force_deassertions & (1<<4));
+	if (event_context & (1 << 5))
+		process_threshold(state,  5, thresholds.lnr, hysth, byteval, events, force_assertions & (1<<5), force_deassertions & (1<<5));
+
+	if (event_context & (1 << 6))
+		process_threshold(state,  6, thresholds.unc, hystl, byteval, events, force_assertions & (1<<6), force_deassertions & (1<<6));
+	if (event_context & (1 << 7))
+		process_threshold(state,  7, thresholds.unc, hysth, byteval, events, force_assertions & (1<<7), force_deassertions & (1<<7));
+
+	if (event_context & (1 << 8))
+		process_threshold(state,  8, thresholds.ucr, hystl, byteval, events, force_assertions & (1<<8), force_deassertions & (1<<8));
+	if (event_context & (1 << 9))
+		process_threshold(state,  9, thresholds.ucr, hysth, byteval, events, force_assertions & (1<<9), force_deassertions & (1<<9));
+
+	if (event_context & (1 << 10))
+		process_threshold(state, 10, thresholds.unr, hystl, byteval, events, force_assertions & (1<<10), force_deassertions & (1<<10));
+	if (event_context & (1 << 11))
+		process_threshold(state, 11, thresholds.unr, hysth, byteval, events, force_assertions & (1<<11), force_deassertions & (1<<11));
+
+	return state;
 }
 
 /**
@@ -172,7 +221,7 @@ void ThresholdSensor::update_thresholds_from_sdr(std::shared_ptr<const SensorDat
  *       bit  1: 1b = lower non-critical going high occurred
  *       bit  0: 1b = lower non-critical going low occurred
  */
-void ThresholdSensor::update_value(const float value, bool in_context, uint64_t value_max_age, uint16_t force_assertions, uint16_t force_deassertions) {
+void ThresholdSensor::update_value(const float value, uint16_t event_context, uint64_t value_max_age, uint16_t force_assertions, uint16_t force_deassertions) {
 	MutexGuard<false> lock(this->value_mutex, true);
 	this->last_value = value;
 
@@ -182,10 +231,11 @@ void ThresholdSensor::update_value(const float value, bool in_context, uint64_t 
 	else
 		this->value_expiration = now + value_max_age;
 
-	this->in_context = in_context;
-
-	if (std::isnan(value) || !in_context)
+	if (std::isnan(value)) {
+		// If the value is expired or unavailable, treat all events as out of context.
+		this->event_context = 0;
 		return;
+	}
 
 	std::shared_ptr<const SensorDataRecordReadableSensor> sdr = std::dynamic_pointer_cast<const SensorDataRecordReadableSensor>(device_sdr_repo.find(this->sdr_key));
 	if (!sdr) {
@@ -205,25 +255,48 @@ void ThresholdSensor::update_value(const float value, bool in_context, uint64_t 
 	const uint8_t hysth = sdr->hysteresis_high();
 	const uint8_t hystl = sdr->hysteresis_low();
 
+	event_context &= 0x0fff; // Limit to actual range.
+	if (this->event_context != event_context) {
+		// Events are going out of or coming into context.
+
+		uint16_t nominal_event_status = 0x0a95; // A default nominal event status
+
+		std::shared_ptr<const SensorDataRecord01> sdr01 = std::dynamic_pointer_cast<const SensorDataRecord01>(sdr);
+		if (sdr01 && sdr01->nominal_reading_specified()) {
+			// We have an SDR with a nominal value, so we'll calculate the REAL nominal event status.
+			std::vector<struct ThresholdEvent> ignore_events;
+			nominal_event_status = process_thresholds(0, 0x0fff, this->thresholds, hystl, hysth, sdr01->nominal_reading_rawvalue(), ignore_events, 0, 0);
+		}
+
+		uint16_t changed_bits = this->event_context ^ event_context;
+		uint16_t nominalize_bits = changed_bits | ~event_context;
+
+		this->log.log(stdsprintf("Sensor %s: Nominalizing events 0x%04hx (0x%04hx -> 0x%04hx) based on nominal mask 0x%04hx @ 0x%02hhx (%f)",
+				this->sensor_identifier().c_str(),
+				nominalize_bits, this->event_context, event_context,
+				nominal_event_status,
+				sdr01->nominal_reading_rawvalue(),
+				sdr01->to_float(sdr01->nominal_reading_rawvalue())
+				), LogTree::LOG_DIAGNOSTIC);
+
+		this->event_context = event_context; // Update the event context.
+		this->active_events &= ~nominalize_bits; // Clear all out of context event assertions.
+		this->active_events |= nominalize_bits & nominal_event_status; // Assert any asserted-while-nominal out of context events.
+
+		/* Don't process forced events on bits just coming into context.
+		 * We don't want to absorb old state from the sensor processor.
+		 */
+		force_assertions &= ~nominalize_bits;
+		force_deassertions &= ~nominalize_bits;
+
+		this->log.log(stdsprintf("Sensor %s: Outcome 0x%04hx",
+				this->sensor_identifier().c_str(),
+				this->active_events
+				), LogTree::LOG_DIAGNOSTIC);
+	}
+
 	std::vector<struct ThresholdEvent> events;
-
-	process_threshold(this->active_thresholds,  0, this->thresholds.lnc, hystl, byteval, events, force_assertions & (1<<0), force_deassertions & (1<<0));
-	process_threshold(this->active_thresholds,  1, this->thresholds.lnc, hysth, byteval, events, force_assertions & (1<<1), force_deassertions & (1<<1));
-
-	process_threshold(this->active_thresholds,  2, this->thresholds.lcr, hystl, byteval, events, force_assertions & (1<<2), force_deassertions & (1<<2));
-	process_threshold(this->active_thresholds,  3, this->thresholds.lcr, hysth, byteval, events, force_assertions & (1<<3), force_deassertions & (1<<3));
-
-	process_threshold(this->active_thresholds,  4, this->thresholds.lnr, hystl, byteval, events, force_assertions & (1<<4), force_deassertions & (1<<4));
-	process_threshold(this->active_thresholds,  5, this->thresholds.lnr, hysth, byteval, events, force_assertions & (1<<5), force_deassertions & (1<<5));
-
-	process_threshold(this->active_thresholds,  6, this->thresholds.unc, hystl, byteval, events, force_assertions & (1<<6), force_deassertions & (1<<6));
-	process_threshold(this->active_thresholds,  7, this->thresholds.unc, hysth, byteval, events, force_assertions & (1<<7), force_deassertions & (1<<7));
-
-	process_threshold(this->active_thresholds,  8, this->thresholds.ucr, hystl, byteval, events, force_assertions & (1<<8), force_deassertions & (1<<8));
-	process_threshold(this->active_thresholds,  9, this->thresholds.ucr, hysth, byteval, events, force_assertions & (1<<9), force_deassertions & (1<<9));
-
-	process_threshold(this->active_thresholds, 10, this->thresholds.unr, hystl, byteval, events, force_assertions & (1<<10), force_deassertions & (1<<10));
-	process_threshold(this->active_thresholds, 11, this->thresholds.unr, hysth, byteval, events, force_assertions & (1<<11), force_deassertions & (1<<11));
+	this->active_events = process_thresholds(this->active_events, this->event_context, this->thresholds, hystl, hysth, byteval, events, force_assertions, force_deassertions);
 
 	lock.release();
 
@@ -247,7 +320,13 @@ void ThresholdSensor::update_value(const float value, bool in_context, uint64_t 
 	const uint16_t enabled_assertion_mask = this->assertion_events_enabled();
 	const uint16_t enabled_deassertion_mask = this->deassertion_events_enabled();
 	for (std::vector<struct ThresholdEvent>::iterator it = events.begin(), eit = events.end(); it != eit; ++it) {
-		if (
+		if ( !(this->event_context & (1 << it->bit)) ) {
+			this->log.log(stdsprintf("Sensor %s: %s %s event for value 0x%02hhx (%f), threshold 0x%02hhx is out of context and will not be sent",
+					this->sensor_identifier().c_str(),
+					threshold_names.at(it->bit).c_str(), (it->direction == Sensor::EVENT_ASSERTION ? "assertion" : "deassertion"),
+					it->value, value, it->threshold), LogTree::LOG_DIAGNOSTIC);
+		}
+		else if (
 				(it->direction == Sensor::EVENT_ASSERTION && !(supported_assertion_mask & (1 << it->bit))) ||
 				(it->direction == Sensor::EVENT_DEASSERTION && !(supported_deassertion_mask & (1 << it->bit)))
 				) {
@@ -256,7 +335,7 @@ void ThresholdSensor::update_value(const float value, bool in_context, uint64_t 
 					threshold_names.at(it->bit).c_str(), (it->direction == Sensor::EVENT_ASSERTION ? "assertion" : "deassertion"),
 					it->value, value, it->threshold), LogTree::LOG_DIAGNOSTIC);
 		}
-		if (
+		else if (
 				(it->direction == Sensor::EVENT_ASSERTION && !(enabled_assertion_mask & (1 << it->bit))) ||
 				(it->direction == Sensor::EVENT_DEASSERTION && !(enabled_deassertion_mask & (1 << it->bit)))
 				) {
@@ -297,11 +376,12 @@ ThresholdSensor::Value ThresholdSensor::get_value() const {
 	uint64_t now = get_tick64();
 	value.float_value = this->last_value;
 	value.byte_value = 0xFF;
-	value.active_thresholds = this->active_thresholds;
-	value.in_context = this->in_context;
+	value.active_events = this->active_events;
+	value.event_context = this->event_context;
 	if (now >= this->value_expiration) {
 		value.float_value = NAN;
-		value.active_thresholds = 0;
+		value.active_events = 0;
+		value.event_context = 0;
 	}
 	lock.release();
 	if (std::isnan(value.float_value))
@@ -344,8 +424,8 @@ std::vector<uint8_t> ThresholdSensor::get_sensor_reading() {
 uint16_t ThresholdSensor::get_sensor_event_status(bool *reading_good) {
 	Value value = this->get_value();
 	if (reading_good)
-		*reading_good = value.in_context && !std::isnan(value.float_value);
-	return value.active_thresholds;
+		*reading_good = !std::isnan(value.float_value);
+	return value.active_events;
 }
 
 void ThresholdSensor::rearm() {
@@ -355,7 +435,8 @@ void ThresholdSensor::rearm() {
 	MutexGuard<false> lock(this->value_mutex, true);
 	this->last_value = NAN;
 	this->value_expiration = UINT64_MAX;
-	this->active_thresholds = 0;
+	this->active_events = 0;
+	this->event_context = 0; // We'll put this out of context so its active events are reinitialized to nominal rather than spewing deasserts on SER/etc.
 	lock.release();
 	this->log.log(stdsprintf("Sensor %s rearmed!", this->sensor_identifier().c_str()), LogTree::LOG_INFO);
 }

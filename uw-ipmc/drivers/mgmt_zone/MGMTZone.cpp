@@ -12,6 +12,7 @@
 #include "FreeRTOS.h"
 #include <libs/printf.h>
 #include <libs/except.h>
+#include <libs/ThreadingPrimitives.h>
 
 /**
  * Instantiate a MZ.
@@ -20,7 +21,7 @@
  * @param MZNo The number of the MZ within its controller.
  */
 MGMT_Zone::MGMT_Zone(u16 DeviceId, u32 MZNo)
-	: DeviceId(DeviceId), MZNo(MZNo) {
+	: DeviceId(DeviceId), MZNo(MZNo), _desired_power_state(false), _last_transition_start_ts(0) {
 	if (XST_SUCCESS != Mgmt_Zone_Ctrl_Initialize(&this->zone, DeviceId))
 		throw except::hardware_error(stdsprintf("Unable to initialize MGMT_Zone(%hu, %lu)", DeviceId, MZNo));
 }
@@ -128,10 +129,21 @@ u32 MGMT_Zone::get_pen_status(bool apply_mask) {
  */
 void MGMT_Zone::set_power_state(PowerAction action) {
 	switch (action) {
-	case ON:   Mgmt_Zone_Ctrl_Pwr_ON_Seq(&this->zone, this->MZNo); break;
-	case OFF:  Mgmt_Zone_Ctrl_Pwr_OFF_Seq(&this->zone, this->MZNo); break;
-	case KILL: Mgmt_Zone_Ctrl_Dispatch_Soft_Fault(&this->zone, this->MZNo); break;
-	default:   throw std::domain_error(stdsprintf("Invalid PowerAction %u supplied to set_power_state() for MZ %lu", static_cast<unsigned int>(action), this->MZNo));
+	case ON:
+		Mgmt_Zone_Ctrl_Pwr_ON_Seq(&this->zone, this->MZNo);
+		this->_desired_power_state = true;
+		this->_last_transition_start_ts = get_tick64();
+		break;
+	case OFF:
+		Mgmt_Zone_Ctrl_Pwr_OFF_Seq(&this->zone, this->MZNo);
+		this->_desired_power_state = false;
+		this->_last_transition_start_ts = get_tick64();
+		break;
+	case KILL:
+		Mgmt_Zone_Ctrl_Dispatch_Soft_Fault(&this->zone, this->MZNo);
+		break;
+	default:
+		throw std::domain_error(stdsprintf("Invalid PowerAction %u supplied to set_power_state() for MZ %lu", static_cast<unsigned int>(action), this->MZNo));
 	}
 }
 

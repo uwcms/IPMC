@@ -52,7 +52,7 @@ public:
 	virtual uint16_t deassertion_events_enabled() { return this->_deassertion_events_enabled & 0x7fff; };
 	///@}
 
-	std::string sensor_identifier() const;
+	std::string sensor_identifier(bool name_only=false) const;
 
 protected:
 	bool _all_events_disabled; ///< All IPMI events from this sensor are disabled.
