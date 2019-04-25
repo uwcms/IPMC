@@ -13,7 +13,7 @@ static void ipmicmd_Get_Device_ID(IPMBSvc &ipmb, const IPMI_MSG &message) {
 	reply->data[2] |= 1<<7; // Device provides Device SDRs
 	reply->data[2] |= IPMC_HW_REVISION & 0x0f; // Device revision, binary encoded.
 	reply->data[3] = IPMC_FW_REVISION[0] & 0x7f;
-	if (/* TODO: !SDR_REPOSITORY_LOADED */ !sdr_repo.size())
+	if (/* !SDR_REPOSITORY_LOADED */ false)
 		reply->data[3] |= 0x80;
 	reply->data[4] = ( (IPMC_FW_REVISION[1]/10) << 4 ) | (IPMC_FW_REVISION[1]%10); // BCD FW Minor Rev
 	reply->data[5] = 0x02; // IPMI Version, BCD, Reverse Nibbles.
