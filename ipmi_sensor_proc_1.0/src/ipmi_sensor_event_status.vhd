@@ -55,6 +55,9 @@ architecture ipmi_sensor_event_status_arch of ipmi_sensor_event_status is
 
   signal s_MZ_hard_fault_UNRH : std_logic_vector(C_SENSOR_CNT-1 downto 0);
   signal s_MZ_hard_fault_LNRL : std_logic_vector(C_SENSOR_CNT-1 downto 0);
+  
+  signal event_assert_en_d1   : t_slv_arr_12(C_SENSOR_CNT-1 downto 0);
+  signal event_deassert_en_d1   : t_slv_arr_12(C_SENSOR_CNT-1 downto 0);
 
   function or_reduce_2d (input : in t_slv_arr_12; size : in integer) return std_logic is
     variable v_or : std_logic := '0';
@@ -68,6 +71,9 @@ architecture ipmi_sensor_event_status_arch of ipmi_sensor_event_status is
   end function;
 
 begin
+
+  event_assert_en_d1 <= event_assert_en_i when rising_edge(clk_i);
+  event_deassert_en_d1 <= event_deassert_en_i when rising_edge(clk_i);
 
   process(clk_i) is
   begin
@@ -96,8 +102,10 @@ begin
       process(clk_i) is
       begin
         if rising_edge(clk_i) then
-          s_event_status_rise(idx)(idx2) <= (s_event_status(idx)(idx2) and not s_event_status_d1(idx)(idx2))
-                                            and event_assert_en_i(idx)(idx2);
+          s_event_status_rise(idx)(idx2) <= ((s_event_status(idx)(idx2) and not s_event_status_d1(idx)(idx2))
+                                            and event_assert_en_i(idx)(idx2)) or
+                                            (s_event_status(idx)(idx2) and
+                                            (event_assert_en_i(idx)(idx2) and not event_assert_en_d1(idx)(idx2))); -- Also rise event alert when unmasking takes place
 
           if(event_assert_rearm_i(idx)(idx2) = '1') then
             s_event_assert_status(idx)(idx2) <= '0';
@@ -143,7 +151,9 @@ begin
     begin
       if rising_edge(clk_i) then
 
-        MZ_hard_fault_i(idx) <= s_MZ_hard_fault_UNRH(idx) or s_MZ_hard_fault_LNRL(idx);
+        --MZ_hard_fault_i(idx) <= s_MZ_hard_fault_UNRH(idx) or s_MZ_hard_fault_LNRL(idx);
+        MZ_hard_fault_i(idx) <= (event_assert_en_i(idx)(C_UNR_H) and s_event_status(idx)(C_UNR_H)) or
+                                (event_assert_en_i(idx)(C_LNR_L) and s_event_status(idx)(C_LNR_L));
       end if;
     end process;
   end generate;
@@ -153,8 +163,10 @@ begin
       process(clk_i) is
       begin
         if rising_edge(clk_i) then
-          s_event_status_fall(idx)(idx2) <= (not s_event_status(idx)(idx2) and s_event_status_d1(idx)(idx2))
-                                            and event_deassert_en_i(idx)(idx2);
+          s_event_status_fall(idx)(idx2) <= ((not s_event_status(idx)(idx2) and s_event_status_d1(idx)(idx2))
+                                            and event_deassert_en_i(idx)(idx2)) or
+                                            (not s_event_status(idx)(idx2) and
+                                            (event_deassert_en_i(idx)(idx2) and not event_deassert_en_d1(idx)(idx2))); -- Also rise event alert when unmasking takes place;
 
           if(event_deassert_rearm_i(idx)(idx2) = '1') then
             s_event_deassert_status(idx)(idx2) <= '0';
