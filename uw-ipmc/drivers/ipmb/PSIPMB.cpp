@@ -113,10 +113,16 @@ bool PS_IPMB::send_message(IPMI_MSG &msg, uint32_t retry) {
 
 	MutexGuard<false> lock(this->mutex, true);
 	this->setup_master();
-	XIicPs_MasterSend(&this->IicInst, msgbuf, msglen, msg.rsSA>>1);
 
 	u32 isr_result;
-	xQueueReceive(this->sendresult_q, &isr_result, portMAX_DELAY);
+	xQueueReceive(this->sendresult_q, &isr_result, 0); // Clear any late/delayed result.
+	XIicPs_MasterSend(&this->IicInst, msgbuf, msglen, msg.rsSA>>1);
+
+	if (pdFAIL == xQueueReceive(this->sendresult_q, &isr_result, pdMS_TO_TICKS(10))) {
+		// We didn't get a response. Move on with our lives.
+		// 32 bytes at 100MHz would have been 2.56ms, so we're well past it at 10.
+		isr_result = XIICPS_EVENT_ERROR;
+	}
 
 	this->setup_slave(); // Return to slave mode.
 
