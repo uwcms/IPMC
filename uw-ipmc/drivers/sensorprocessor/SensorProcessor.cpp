@@ -94,13 +94,12 @@ Thr_Cfg SensorProcessor::get_thresholds(uint32_t channel) {
 void SensorProcessor::set_event_enable(uint32_t channel, uint16_t assert, uint16_t deassert) {
 	uint16_t old_assert, old_deassert;
 	IPMI_Sensor_Proc_Get_Event_Enable(&this->processor, channel, &old_assert, &old_deassert);
-	/* Rearm/clear any newly-enabled events, so old state of any kind can't end up triggered.
+	/* Rearm/clear any about to be enabled events, so old state doesn't end up
+	 * confusing anything.  I'm not positive if this is necessary, but it won't
+	 * hurt.
 	 *
-	 * We can't miss things this way, though, both because we're only
-	 * manipulating bits not yet enabled, and because if these bits had asserted,
-	 * the ISR would have beaten us to them.
-	 *
-	 * I'm not sure if the sensor processor requires this, but it can't *hurt*.
+	 * The Sensor Processor IP will reassert any events active at the moment that
+	 * they are enabled.
 	 */
 	IPMI_Sensor_Proc_Rearm_Event_Enable(&this->processor, channel, assert & ~old_assert, deassert & ~old_deassert);
 	IPMI_Sensor_Proc_Set_Event_Enable(&this->processor, channel, assert, deassert);
