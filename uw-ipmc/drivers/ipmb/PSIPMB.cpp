@@ -35,7 +35,8 @@ PS_IPMB::PS_IPMB(u16 DeviceId, u32 IntrId, u8 IPMBAddr) : InterruptBasedDriver(I
 		IPMBAddr(IPMBAddr), messages_received(stdsprintf("ipmb0.ps_ipmb.%hu.messages_received", DeviceId)),
 		invalid_messages_received(stdsprintf("ipmb0.ps_ipmb.%hu.invalid_messages_received", DeviceId)),
 		incoming_messages_missed(stdsprintf("ipmb0.ps_ipmb.%hu.incoming_messages_missed", DeviceId)),
-		unexpected_send_result_interrupts(stdsprintf("ipmb0.ps_ipmb.%hu.unexpected_send_result_interrupts", DeviceId)) {
+		unexpected_send_result_interrupts(stdsprintf("ipmb0.ps_ipmb.%hu.unexpected_send_result_interrupts", DeviceId)),
+		lost_transmit_interrutpts(stdsprintf("ipmb0.ps_ipmb.%hu.lost_transmit_interrupts", DeviceId)) {
 	this->mutex = xSemaphoreCreateMutex();
 	configASSERT(this->mutex);
 
@@ -122,6 +123,7 @@ bool PS_IPMB::send_message(IPMI_MSG &msg, uint32_t retry) {
 		// We didn't get a response. Move on with our lives.
 		// 32 bytes at 100MHz would have been 2.56ms, so we're well past it at 10.
 		isr_result = XIICPS_EVENT_ERROR;
+		this->lost_transmit_interrutpts.increment();
 	}
 
 	this->setup_slave(); // Return to slave mode.
