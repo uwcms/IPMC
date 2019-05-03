@@ -18,7 +18,7 @@
 #include <cmath>
 
 ThresholdSensor::ThresholdSensor(const std::vector<uint8_t> &sdr_key, LogTree &log)
-	: Sensor(sdr_key, log) {
+	: Sensor(sdr_key, log), nominal_event_status_override_value(0xFFFF) {
 	this->value_mutex = xSemaphoreCreateMutex();
 	std::shared_ptr<const SensorDataRecord01> sdr01 = std::dynamic_pointer_cast<const SensorDataRecord01>(device_sdr_repo.find(this->sdr_key));
 	if (sdr01) {
@@ -86,10 +86,10 @@ void ThresholdSensor::update_thresholds_from_sdr(std::shared_ptr<const SensorDat
  * @param[in] hysteresis The hysteresis for this threshold
  * @param[in] value The value to be compared
  * @param[out] events IPMI event data in "Platform Event Message" "Event Data" format.
- * @param[in] force_assert send an assertion event regardless of current value
- * @param[in] force_deassert send a deassertion event regardless of current value
+ * @param[in] extra_assert send an assertion event regardless of current value
+ * @param[in] extra_deassert send a deassertion event regardless of current value
  */
-static void process_threshold(uint16_t &state, uint8_t bit, uint8_t threshold, uint8_t hysteresis, uint8_t value, std::vector<struct ThresholdEvent> &events, bool force_assert, bool force_deassert) {
+static void process_threshold(uint16_t &state, uint8_t bit, uint8_t threshold, uint8_t hysteresis, uint8_t value, std::vector<struct ThresholdEvent> &events, bool extra_assert, bool extra_deassert) {
 	bool assert = false, deassert = false;
 
 	const int intthresh = static_cast<int>(threshold);
@@ -121,7 +121,7 @@ static void process_threshold(uint16_t &state, uint8_t bit, uint8_t threshold, u
 	if (deassert)
 		state &= ~(1<<bit);
 
-	if (deassert || force_deassert) {
+	if (deassert || extra_deassert) {
 		// Send deassertion event.
 		struct ThresholdEvent event_data;
 		event_data.direction = Sensor::EVENT_DEASSERTION;
@@ -130,7 +130,7 @@ static void process_threshold(uint16_t &state, uint8_t bit, uint8_t threshold, u
 		event_data.threshold = threshold;
 		events.push_back(event_data);
 	}
-	if (assert || force_assert) {
+	if (assert || extra_assert) {
 		// Send the appropriate event.
 		struct ThresholdEvent event_data;
 		event_data.direction = Sensor::EVENT_ASSERTION;
@@ -152,40 +152,40 @@ static void process_threshold(uint16_t &state, uint8_t bit, uint8_t threshold, u
  * @param[in]  hysth Going-high hysteresis
  * @param[in]  byteval The value to process
  * @param[out] events A list of generated events
- * @param[in]  force_assertions A mask of assertion events to send regardless of actual value
- * @param[in]  force_deassertions A mask of deassertion events to send regardless of actual value
+ * @param[in]  extra_assertions A mask of assertion events to send regardless of actual value
+ * @param[in]  extra_deassertions A mask of deassertion events to send regardless of actual value
  * @return The final event state
  */
-static uint16_t process_thresholds(uint16_t state, uint16_t event_context, const struct ThresholdSensor::threshold_configuration &thresholds, uint8_t hystl, uint8_t hysth, uint8_t byteval, std::vector<struct ThresholdEvent> &events, uint16_t force_assertions, uint16_t force_deassertions) {
+static uint16_t process_thresholds(uint16_t state, uint16_t event_context, const struct ThresholdSensor::threshold_configuration &thresholds, uint8_t hystl, uint8_t hysth, uint8_t byteval, std::vector<struct ThresholdEvent> &events, uint16_t extra_assertions, uint16_t extra_deassertions) {
 	if (event_context & (1 << 0))
-		process_threshold(state,  0, thresholds.lnc, hystl, byteval, events, force_assertions & (1<<0), force_deassertions & (1<<0));
+		process_threshold(state,  0, thresholds.lnc, hystl, byteval, events, extra_assertions & (1<<0), extra_deassertions & (1<<0));
 	if (event_context & (1 << 1))
-		process_threshold(state,  1, thresholds.lnc, hysth, byteval, events, force_assertions & (1<<1), force_deassertions & (1<<1));
+		process_threshold(state,  1, thresholds.lnc, hysth, byteval, events, extra_assertions & (1<<1), extra_deassertions & (1<<1));
 
 	if (event_context & (1 << 2))
-		process_threshold(state,  2, thresholds.lcr, hystl, byteval, events, force_assertions & (1<<2), force_deassertions & (1<<2));
+		process_threshold(state,  2, thresholds.lcr, hystl, byteval, events, extra_assertions & (1<<2), extra_deassertions & (1<<2));
 	if (event_context & (1 << 3))
-		process_threshold(state,  3, thresholds.lcr, hysth, byteval, events, force_assertions & (1<<3), force_deassertions & (1<<3));
+		process_threshold(state,  3, thresholds.lcr, hysth, byteval, events, extra_assertions & (1<<3), extra_deassertions & (1<<3));
 
 	if (event_context & (1 << 4))
-		process_threshold(state,  4, thresholds.lnr, hystl, byteval, events, force_assertions & (1<<4), force_deassertions & (1<<4));
+		process_threshold(state,  4, thresholds.lnr, hystl, byteval, events, extra_assertions & (1<<4), extra_deassertions & (1<<4));
 	if (event_context & (1 << 5))
-		process_threshold(state,  5, thresholds.lnr, hysth, byteval, events, force_assertions & (1<<5), force_deassertions & (1<<5));
+		process_threshold(state,  5, thresholds.lnr, hysth, byteval, events, extra_assertions & (1<<5), extra_deassertions & (1<<5));
 
 	if (event_context & (1 << 6))
-		process_threshold(state,  6, thresholds.unc, hystl, byteval, events, force_assertions & (1<<6), force_deassertions & (1<<6));
+		process_threshold(state,  6, thresholds.unc, hystl, byteval, events, extra_assertions & (1<<6), extra_deassertions & (1<<6));
 	if (event_context & (1 << 7))
-		process_threshold(state,  7, thresholds.unc, hysth, byteval, events, force_assertions & (1<<7), force_deassertions & (1<<7));
+		process_threshold(state,  7, thresholds.unc, hysth, byteval, events, extra_assertions & (1<<7), extra_deassertions & (1<<7));
 
 	if (event_context & (1 << 8))
-		process_threshold(state,  8, thresholds.ucr, hystl, byteval, events, force_assertions & (1<<8), force_deassertions & (1<<8));
+		process_threshold(state,  8, thresholds.ucr, hystl, byteval, events, extra_assertions & (1<<8), extra_deassertions & (1<<8));
 	if (event_context & (1 << 9))
-		process_threshold(state,  9, thresholds.ucr, hysth, byteval, events, force_assertions & (1<<9), force_deassertions & (1<<9));
+		process_threshold(state,  9, thresholds.ucr, hysth, byteval, events, extra_assertions & (1<<9), extra_deassertions & (1<<9));
 
 	if (event_context & (1 << 10))
-		process_threshold(state, 10, thresholds.unr, hystl, byteval, events, force_assertions & (1<<10), force_deassertions & (1<<10));
+		process_threshold(state, 10, thresholds.unr, hystl, byteval, events, extra_assertions & (1<<10), extra_deassertions & (1<<10));
 	if (event_context & (1 << 11))
-		process_threshold(state, 11, thresholds.unr, hysth, byteval, events, force_assertions & (1<<11), force_deassertions & (1<<11));
+		process_threshold(state, 11, thresholds.unr, hysth, byteval, events, extra_assertions & (1<<11), extra_deassertions & (1<<11));
 
 	return state;
 }
@@ -204,10 +204,10 @@ static uint16_t process_thresholds(uint16_t state, uint16_t event_context, const
  * @param value_max_age The number of ticks after which the value should be
  *                      considered to be out of date and should be replaced with
  *                      NAN.
- * @param force_assertions Force these event assertions regardless of the (non-NaN) value.
- * @param force_deassertions Force these event deassertions regardless of the (non-NaN) value.
+ * @param extra_assertions Send these event assertions regardless of the (non-NaN) value.
+ * @param extra_deassertions Send these event deassertions regardless of the (non-NaN) value.
  *
- * @note For force_(de)assertions, the following bitmask is interpreted:
+ * @note For extra_(de)assertions, the following bitmask is interpreted:
  *       bit 11: 1b = upper non-recoverable going high occurred
  *       bit 10: 1b = upper non-recoverable going low occurred
  *       bit  9: 1b = upper critical going high occurred
@@ -221,7 +221,7 @@ static uint16_t process_thresholds(uint16_t state, uint16_t event_context, const
  *       bit  1: 1b = lower non-critical going high occurred
  *       bit  0: 1b = lower non-critical going low occurred
  */
-void ThresholdSensor::update_value(const float value, uint16_t event_context, uint64_t value_max_age, uint16_t force_assertions, uint16_t force_deassertions) {
+void ThresholdSensor::update_value(const float value, uint16_t event_context, uint64_t value_max_age, uint16_t extra_assertions, uint16_t extra_deassertions) {
 	MutexGuard<false> lock(this->value_mutex, true);
 	this->last_value = value;
 
@@ -257,46 +257,70 @@ void ThresholdSensor::update_value(const float value, uint16_t event_context, ui
 
 	event_context &= 0x0fff; // Limit to actual range.
 	if (this->event_context != event_context) {
-		// Events are going out of or coming into context.
+		// Events are going out of or coming into context or we're initializing.
+
+		const uint16_t changed_bits = this->event_context ^ event_context;
+		const uint16_t nominalize_bits = changed_bits | ~event_context;
 
 		uint16_t nominal_event_status = 0x0a95; // A default nominal event status
 
-		std::shared_ptr<const SensorDataRecord01> sdr01 = std::dynamic_pointer_cast<const SensorDataRecord01>(sdr);
-		if (sdr01 && sdr01->nominal_reading_specified()) {
-			// We have an SDR with a nominal value, so we'll calculate the REAL nominal event status.
-			std::vector<struct ThresholdEvent> ignore_events;
-			nominal_event_status = process_thresholds(0, 0x0fff, this->thresholds, hystl, hysth, sdr01->nominal_reading_rawvalue(), ignore_events, 0, 0);
+		if (this->nominal_event_status_override_value != 0xFFFF) {
+			nominal_event_status = this->nominal_event_status_override_value;
+
+			this->log.log(stdsprintf("Sensor %s: Nominalizing events 0x%04hx (0x%04hx -> 0x%04hx) based on nominal event mask override value.",
+					this->sensor_identifier().c_str(),
+					nominalize_bits, this->event_context, event_context,
+					nominal_event_status
+					), LogTree::LOG_DIAGNOSTIC);
 		}
+		else {
+			std::shared_ptr<const SensorDataRecord01> sdr01 = std::dynamic_pointer_cast<const SensorDataRecord01>(sdr);
+			if (sdr01 && sdr01->nominal_reading_specified()) {
+				// We have an SDR with a nominal value, so we'll calculate the REAL nominal event status.
+				std::vector<struct ThresholdEvent> ignore_events;
+				nominal_event_status = process_thresholds(0, 0x0fff, this->thresholds, hystl, hysth, sdr01->nominal_reading_rawvalue(), ignore_events, 0, 0);
 
-		uint16_t changed_bits = this->event_context ^ event_context;
-		uint16_t nominalize_bits = changed_bits | ~event_context;
-
-		this->log.log(stdsprintf("Sensor %s: Nominalizing events 0x%04hx (0x%04hx -> 0x%04hx) based on nominal mask 0x%04hx @ 0x%02hhx (%f)",
-				this->sensor_identifier().c_str(),
-				nominalize_bits, this->event_context, event_context,
-				nominal_event_status,
-				sdr01->nominal_reading_rawvalue(),
-				sdr01->to_float(sdr01->nominal_reading_rawvalue())
-				), LogTree::LOG_DIAGNOSTIC);
+				this->log.log(stdsprintf("Sensor %s: Nominalizing events 0x%04hx (0x%04hx -> 0x%04hx) based on nominal mask 0x%04hx @ 0x%02hhx (%f)",
+						this->sensor_identifier().c_str(),
+						nominalize_bits, this->event_context, event_context,
+						nominal_event_status,
+						sdr01->nominal_reading_rawvalue(),
+						sdr01->to_float(sdr01->nominal_reading_rawvalue())
+						), LogTree::LOG_DIAGNOSTIC);
+			}
+		}
 
 		this->event_context = event_context; // Update the event context.
 		this->active_events &= ~nominalize_bits; // Clear all out of context event assertions.
 		this->active_events |= nominalize_bits & nominal_event_status; // Assert any asserted-while-nominal out of context events.
 
-		/* Don't process forced events on bits just coming into context.
+		/* Don't process extra events on bits just coming into context.
 		 * We don't want to absorb old state from the sensor processor.
 		 */
-		force_assertions &= ~nominalize_bits;
-		force_deassertions &= ~nominalize_bits;
+		extra_assertions &= ~nominalize_bits;
+		extra_deassertions &= ~nominalize_bits;
 
-		this->log.log(stdsprintf("Sensor %s: Outcome 0x%04hx",
+		this->log.log(stdsprintf("Sensor %s: Outcome 0x%04hx, with Extras +0x%04hx -0x%04hx",
 				this->sensor_identifier().c_str(),
-				this->active_events
+				this->active_events,
+				extra_assertions,
+				extra_deassertions
 				), LogTree::LOG_DIAGNOSTIC);
 	}
 
+	/* Don't process extra events that move toward the pre-existing state, but
+	 * which are also not blips. (on and off in the same window).
+	 *
+	 * They'll get caught by the normal event processing, and this will
+	 * keep us from getting waves of extra messages when sensors go into context.
+	 */
+	uint16_t extra_blips = extra_assertions & extra_deassertions;
+
+	extra_assertions &= extra_blips | ~this->active_events;
+	extra_deassertions &= extra_blips | this->active_events;
+
 	std::vector<struct ThresholdEvent> events;
-	this->active_events = process_thresholds(this->active_events, this->event_context, this->thresholds, hystl, hysth, byteval, events, force_assertions, force_deassertions);
+	this->active_events = process_thresholds(this->active_events, this->event_context, this->thresholds, hystl, hysth, byteval, events, extra_assertions, extra_deassertions);
 
 	lock.release();
 
@@ -359,6 +383,32 @@ void ThresholdSensor::update_value(const float value, uint16_t event_context, ui
 	}
 
 	this->logunique.clean();
+}
+
+/**
+ * Override the auto-calculated nominal event status mask.
+ *
+ * This value is used to initialize event bits that come into context or are
+ * rearmed while it is set.
+ *
+ * @param mask The new mask to set, or 0xFFFF to clear the override.
+ */
+void ThresholdSensor::nominal_event_status_override(uint16_t mask) {
+	MutexGuard<false> lock(this->value_mutex, true);
+	this->nominal_event_status_override_value = mask;
+}
+
+/**
+ * Retrieve the override value for the nominal event status mask.
+ *
+ * This value is used to initialize event bits that come into context or are
+ * rearmed while it is set.
+ *
+ * @return The override mask, or 0xFFFF if disabled.
+ */
+uint16_t ThresholdSensor::nominal_event_status_override() {
+	MutexGuard<false> lock(this->value_mutex, true);
+	return this->nominal_event_status_override_value;
 }
 
 /**

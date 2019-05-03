@@ -20,6 +20,7 @@ public:
 	 * Instantiate a standard threshold sensor.
 	 * @param sdr_key The SDR key bytes to retrieve a matching SDR from the device_sdr_repo.
 	 * @param log A LogTree for this object.
+	 * @param initialize_on_first_update If true, the first update_value() call will initialize the sensor only and not send event messages.
 	 */
 	ThresholdSensor(const std::vector<uint8_t> &sdr_key, LogTree &log);
 	virtual ~ThresholdSensor();
@@ -46,15 +47,18 @@ public:
 
 	void update_thresholds_from_sdr(std::shared_ptr<const SensorDataRecord01> sdr01);
 
-	virtual void update_value(const float value, uint16_t event_context=0xffff, uint64_t value_max_age=UINT64_MAX, uint16_t force_assertions=0, uint16_t force_deassertions=0);
+	virtual void update_value(const float value, uint16_t event_context=0xffff, uint64_t value_max_age=UINT64_MAX, uint16_t extra_assertions=0, uint16_t extra_deassertions=0);
 
 	/// Deny implicit conversions here.  We don't want to allow accidental submission of unconverted ADC Values.
 	///@{
-	virtual void update_value(const uint32_t value, uint16_t event_context=0x7fff, uint64_t value_max_age=UINT64_MAX, uint16_t force_assertions=0, uint16_t force_deassertions=0) = delete;
-	virtual void update_value(const uint16_t value, uint16_t event_context=0x7fff, uint64_t value_max_age=UINT64_MAX, uint16_t force_assertions=0, uint16_t force_deassertions=0) = delete;
-	virtual void update_value(const uint8_t value, uint16_t event_context=0x7fff, uint64_t value_max_age=UINT64_MAX, uint16_t force_assertions=0, uint16_t force_deassertions=0) = delete;
-	virtual void update_value(const int value, uint16_t event_context=0x7fff, uint64_t value_max_age=UINT64_MAX, uint16_t force_assertions=0, uint16_t force_deassertions=0) = delete;
+	virtual void update_value(const uint32_t value, uint16_t event_context=0x7fff, uint64_t value_max_age=UINT64_MAX, uint16_t extra_assertions=0, uint16_t extra_deassertions=0) = delete;
+	virtual void update_value(const uint16_t value, uint16_t event_context=0x7fff, uint64_t value_max_age=UINT64_MAX, uint16_t extra_assertions=0, uint16_t extra_deassertions=0) = delete;
+	virtual void update_value(const uint8_t value, uint16_t event_context=0x7fff, uint64_t value_max_age=UINT64_MAX, uint16_t extra_assertions=0, uint16_t extra_deassertions=0) = delete;
+	virtual void update_value(const int value, uint16_t event_context=0x7fff, uint64_t value_max_age=UINT64_MAX, uint16_t extra_assertions=0, uint16_t extra_deassertions=0) = delete;
 	///@}
+
+	virtual void nominal_event_status_override(uint16_t mask);
+	virtual uint16_t nominal_event_status_override();
 
 	/// A threshold sensor current value state.
 	typedef struct {
@@ -75,6 +79,7 @@ protected:
 	uint64_t value_expiration; ///< The timestamp at which the value is no longer valid.
 	uint16_t active_events; ///< Currently active events
 	uint16_t event_context; ///< A mask of events that are in context and can be active.
+	uint16_t nominal_event_status_override_value; ///< An overriden "nominal event mask".  Valid range: 0x000-0xFFF.  0xFFFF = disabled.
 	SemaphoreHandle_t value_mutex; ///< A mutex protecting value fields.
 };
 
