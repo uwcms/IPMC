@@ -24,7 +24,7 @@
  * Pooling in the driver can be enabled by uncommenting the #define
  * below.
  */
-#define PLI2C_USE_POOLING
+//#define PLI2C_USE_POOLING
 
 void PL_I2C::_InterruptHandler() {
 	XIic_InterruptHandler(&(this->IicInst));
@@ -102,15 +102,22 @@ PL_I2C::~PL_I2C() {
 	vSemaphoreDelete(this->semaphoreSync);
 }
 
-size_t PL_I2C::read(uint8_t addr, uint8_t *buf, size_t len, TickType_t timeout) {
+size_t PL_I2C::read(uint8_t addr, uint8_t *buf, size_t len, TickType_t timeout, bool repeatedStart) {
 #ifdef PLI2C_USE_POOLING
 
-	return XIic_Recv(this->IicInst.BaseAddress,addr, buf, len, XIIC_STOP);
+	u8 option = (repeatedStart)? XIIC_CR_REPEATED_START_MASK : XIIC_STOP;
+
+	return XIic_Recv(this->IicInst.BaseAddress, addr, buf, len, option);
 
 #else
 
 	XIic_SetAddress(&(this->IicInst), XII_ADDR_TO_SEND_TYPE, addr);
-	XIic_Start(&(this->IicInst));
+
+	if (!(this->IicInst.Options & XII_REPEATED_START_OPTION))
+		XIic_Start(&(this->IicInst));
+
+	if (repeatedStart) this->IicInst.Options |= XII_REPEATED_START_OPTION;
+	else this->IicInst.Options &= ~XII_REPEATED_START_OPTION;
 
 	do {
 		if (XIic_MasterRecv(&(this->IicInst), buf, len) != XST_IIC_BUS_BUSY)
@@ -131,12 +138,14 @@ size_t PL_I2C::read(uint8_t addr, uint8_t *buf, size_t len, TickType_t timeout) 
 		return 0;
 	}
 
-	XIic_Stop(&(this->IicInst));
+	if (!repeatedStart)
+		XIic_Stop(&(this->IicInst));
 
 	// Execute check
 	if (this->wasEvent) {
 		// Something went wrong
 		// Check this->IrqStatus for error code if required
+		printf("Bad I2C reply: %d", this->IrqStatus);
 		return 0;
 	} else {
 		if (this->IrqStatus != 0)
@@ -151,15 +160,22 @@ size_t PL_I2C::read(uint8_t addr, uint8_t *buf, size_t len, TickType_t timeout) 
 	return 0;
 }
 
-size_t PL_I2C::write(uint8_t addr, const uint8_t *buf, size_t len, TickType_t timeout) {
+size_t PL_I2C::write(uint8_t addr, const uint8_t *buf, size_t len, TickType_t timeout, bool repeatedStart) {
 #ifdef PLI2C_USE_POOLING
 
-	return XIic_Send(this->IicInst.BaseAddress,addr, (u8*)buf, len, XIIC_STOP);
+	u8 option = (repeatedStart)? XIIC_CR_REPEATED_START_MASK : XIIC_STOP;
+
+	return XIic_Send(this->IicInst.BaseAddress,addr, (u8*)buf, len, option);
 
 #else
 
 	XIic_SetAddress(&(this->IicInst), XII_ADDR_TO_SEND_TYPE, addr);
-	XIic_Start(&(this->IicInst));
+
+	if (!(this->IicInst.Options & XII_REPEATED_START_OPTION))
+		XIic_Start(&(this->IicInst));
+
+	if (repeatedStart) this->IicInst.Options |= XII_REPEATED_START_OPTION;
+	else this->IicInst.Options &= ~XII_REPEATED_START_OPTION;
 
 	do {
 		if (XIic_MasterSend(&(this->IicInst), (u8*)buf, len) != XST_IIC_BUS_BUSY)
@@ -180,12 +196,14 @@ size_t PL_I2C::write(uint8_t addr, const uint8_t *buf, size_t len, TickType_t ti
 		return 0;
 	}
 
-	XIic_Stop(&(this->IicInst));
+	if (!repeatedStart)
+		XIic_Stop(&(this->IicInst));
 
 	// Execute check
 	if (this->wasEvent) {
 		// Something went wrong
 		// Check this->IrqStatus for error code if required
+		printf("Bad I2C reply: %d", this->IrqStatus);
 		return 0;
 	} else {
 		if (this->IrqStatus != 0)
@@ -199,5 +217,29 @@ size_t PL_I2C::write(uint8_t addr, const uint8_t *buf, size_t len, TickType_t ti
 
 	return 0;
 }
+
+//void PL_I2C::chain(std::function<void(void)> lambda_func) {
+//	MutexGuard<false> lock(this->mutex, true);
+//
+//	/*
+//	 * Start the IIC device.
+//	 */
+//	uint32_t Status = XIic_Start(&this->IicInst);
+//	if (Status != XST_SUCCESS) {
+//		return;
+//	}
+//
+//	/*
+//	 * Set the Repeated Start option.
+//	 */
+//	this->IicInst.Options = XII_REPEATED_START_OPTION;
+//
+//	lambda_func();
+//
+//	Status = XIic_Stop(&this->IicInst);
+//	if (Status != XST_SUCCESS) {
+//		return;
+//	}
+//}
 
 #endif

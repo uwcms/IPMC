@@ -36,8 +36,10 @@ public:
 	PL_I2C(uint16_t DeviceId, uint32_t IntrId);
 	virtual ~PL_I2C();
 
-	size_t read(uint8_t addr, uint8_t *buf, size_t len, TickType_t timeout=portMAX_DELAY);
-	size_t write(uint8_t addr, const uint8_t *buf, size_t len, TickType_t timeout=portMAX_DELAY);
+	size_t read(uint8_t addr, uint8_t *buf, size_t len, TickType_t timeout=portMAX_DELAY, bool repeatedStart = false);
+	size_t write(uint8_t addr, const uint8_t *buf, size_t len, TickType_t timeout=portMAX_DELAY, bool repeatedStart = false);
+
+	//void chain(std::function<void(void)> lambda_func);
 
 protected:
 	void _InterruptHandler();
