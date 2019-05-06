@@ -11,6 +11,24 @@ proc init_gui { IPINST } {
 
 }
 
+proc update_PARAM_VALUE.C_CHANNELS { PARAM_VALUE.C_CHANNELS } {
+	# Procedure called to update C_CHANNELS when any of the dependent parameters in the arguments change
+}
+
+proc validate_PARAM_VALUE.C_CHANNELS { PARAM_VALUE.C_CHANNELS } {
+	# Procedure called to validate C_CHANNELS
+	return true
+}
+
+proc update_PARAM_VALUE.C_CHANNELS_OUT { PARAM_VALUE.C_CHANNELS_OUT } {
+	# Procedure called to update C_CHANNELS_OUT when any of the dependent parameters in the arguments change
+}
+
+proc validate_PARAM_VALUE.C_CHANNELS_OUT { PARAM_VALUE.C_CHANNELS_OUT } {
+	# Procedure called to validate C_CHANNELS_OUT
+	return true
+}
+
 proc update_PARAM_VALUE.C_OUT_INTERFACE { PARAM_VALUE.C_OUT_INTERFACE } {
 	# Procedure called to update C_OUT_INTERFACE when any of the dependent parameters in the arguments change
 }
@@ -93,5 +111,15 @@ proc update_MODELPARAM_VALUE.C_SLAVES { MODELPARAM_VALUE.C_SLAVES PARAM_VALUE.C_
 proc update_MODELPARAM_VALUE.C_OUT_INTERFACE { MODELPARAM_VALUE.C_OUT_INTERFACE PARAM_VALUE.C_OUT_INTERFACE } {
 	# Procedure called to set VHDL generic/Verilog parameter value(s) based on TCL parameter value
 	set_property value [get_property value ${PARAM_VALUE.C_OUT_INTERFACE}] ${MODELPARAM_VALUE.C_OUT_INTERFACE}
+}
+
+proc update_MODELPARAM_VALUE.C_CHANNELS { MODELPARAM_VALUE.C_CHANNELS PARAM_VALUE.C_CHANNELS } {
+	# Procedure called to set VHDL generic/Verilog parameter value(s) based on TCL parameter value
+	set_property value [get_property value ${PARAM_VALUE.C_CHANNELS}] ${MODELPARAM_VALUE.C_CHANNELS}
+}
+
+proc update_MODELPARAM_VALUE.C_CHANNELS_OUT { MODELPARAM_VALUE.C_CHANNELS_OUT PARAM_VALUE.C_CHANNELS_OUT } {
+	# Procedure called to set VHDL generic/Verilog parameter value(s) based on TCL parameter value
+	set_property value [get_property value ${PARAM_VALUE.C_CHANNELS_OUT}] ${MODELPARAM_VALUE.C_CHANNELS_OUT}
 }
 

@@ -10,7 +10,10 @@ entity ad7689 is
 		C_s_axi_ADDR_WIDTH	: integer	:= 10;
 		
 		C_SLAVES : integer range 1 to 4 := 3;
-		C_OUT_INTERFACE : string        := "PARALLEL"
+		C_OUT_INTERFACE : string        := "PARALLEL";
+		
+		C_CHANNELS : integer            := 9;
+		C_CHANNELS_OUT : integer        := 8
 	);
 	port (
         -- SPI interface
@@ -27,8 +30,8 @@ entity ad7689 is
         cnv_error : out std_logic;
         
         -- ADC parallel interface
-        cnv_value_par : out std_logic_vector((16 * 9 * C_SLAVES)-1 downto 0);
-        cnv_valid_par : out std_logic_vector((9 * C_SLAVES)-1 downto 0);
+        cnv_value_par : out std_logic_vector((16 * C_CHANNELS_OUT * C_SLAVES)-1 downto 0);
+        cnv_valid_par : out std_logic_vector((C_CHANNELS_OUT * C_SLAVES)-1 downto 0);
 
 		-- Ports of Axi Slave Bus Interface s_axi
 		s_axi_aclk	    : in std_logic;
@@ -94,7 +97,7 @@ architecture arch_imp of ad7689 is
     
     
     --- NEW
-    signal r_adc_reading_array : std_logic_vector ((16 * 9 * C_SLAVES)-1 downto 0);
+    signal r_adc_reading_array : std_logic_vector ((16 * C_CHANNELS * C_SLAVES)-1 downto 0);
 
 begin
 
@@ -183,7 +186,7 @@ begin
                if (rising_edge(s_axi_aclk)) then
                    if (r_cnv_done = '1') then
                        if ((to_integer(unsigned(r_cnv_slave)) = I) and (to_integer(unsigned(r_cnv_channel)) = K)) then
-                           r_adc_reading_array((I*9 + (K+1))*16-1 downto (I*9 + K)*16) <= r_cnv_value;
+                           r_adc_reading_array((I*C_CHANNELS + (K+1))*16-1 downto (I*C_CHANNELS + K)*16) <= r_cnv_value;
                        end if;
                    end if;
                end if;
@@ -204,14 +207,14 @@ begin
         -- Parallel bus interface
         process (s_axi_aclk) begin
             if rising_edge(s_axi_aclk) then
+                cnv_value_par <= (others => '0');
+                cnv_valid_par <= (others => '0');
                 if (r_cnv_done = '1') then
-                    cnv_value_par <= (others => '0');
-                    cnv_valid_par <= (others => '0');
                     for i in 0 to C_SLAVES-1 loop
-                        for k in 0 to 8 loop
+                        for k in 0 to C_CHANNELS_OUT-1 loop
                             if ((to_integer(unsigned(r_cnv_slave)) = i) and (to_integer(unsigned(r_cnv_channel)) = k)) then
-                                cnv_value_par((i*9 + (k+1))*16-1 downto (i*9 + k)*16) <= r_cnv_value;
-                                cnv_valid_par(i*9 + k) <= '1'; 
+                                cnv_value_par((i*C_CHANNELS_OUT + (k+1))*16-1 downto (i*C_CHANNELS_OUT + k)*16) <= r_cnv_value;
+                                cnv_valid_par(i*C_CHANNELS_OUT + k) <= '1'; 
                             end if;
                         end loop;
                     end loop;
