@@ -37,7 +37,7 @@ PS_GPIO::PS_GPIO(uint16_t DeviceId, std::vector<uint8_t> pins) : GPIO(), pinCoun
 	}
 
 	this->pins = new pinInfo[this->pinCount];
-	if (!this->pins) throw except::hardware_error("Out-of-memory");
+	if (!this->pins) throw std::runtime_error("Out-of-memory");
 
 	for (size_t i = 0; i < this->pinCount; i++) {
 		XGpioPs_GetBankPin(pins[i], &(this->pins[i].bank), &(this->pins[i].pin));
