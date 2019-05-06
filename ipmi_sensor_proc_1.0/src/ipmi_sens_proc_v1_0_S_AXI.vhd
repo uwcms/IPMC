@@ -19,7 +19,7 @@ entity ipmi_sens_proc_v1_0_S_AXI is
     (
       ipmi_lgc_rst : out std_logic;
 
-      sensor_raw_reading : in t_slv_arr_16(C_SENSOR_CNT-1 downto 0);
+      --sensor_raw_reading : in t_slv_arr_16(C_SENSOR_CNT-1 downto 0);
       sensor_thr_status  : in t_slv_arr_6(C_SENSOR_CNT-1 downto 0);
 
       event_irq_ack : out std_logic;
@@ -45,9 +45,9 @@ entity ipmi_sens_proc_v1_0_S_AXI is
       cap_bram_wr_start        : out std_logic;
       cap_bram_wr_stop         : out std_logic;
 
-      dpram_isp_addr : out t_slv_arr_6(7 downto 0);
+      dpram_isp_addr : out std_logic_vector(5 downto 0);
       dpram_isp_we   : out std_logic_vector(7 downto 0);
-      dpram_isp_din  : out t_slv_arr_16(7 downto 0);
+      dpram_isp_din  : out std_logic_vector(15 downto 0);
       dpram_isp_dout : in  t_slv_arr_16(7 downto 0);
 
       s_axi_aclk    : in  std_logic;
@@ -233,7 +233,7 @@ begin
                                     s_ipmi_lgc_rst,
                                     event_irq_req,
                                     s_event_irq_ack,
-                                    sensor_raw_reading,
+                                    --sensor_raw_reading,
                                     sensor_thr_status,
                                     s_dpram_isp_dout_r,
                                     s_cap_bram_dout,
@@ -251,7 +251,7 @@ begin
         when C_EV_IRQ_ACK_ADDR      => S_AXI_RDATA(0) <= s_event_irq_ack;
         when C_BRAM_CAP_CTRL_ADDR   => S_AXI_RDATA(1 downto 0) <= s_cap_bram_ctrl;
 
-        when C_RAW_READING_ADDR to C_RAW_READING_ADDR+(64-1)*4 => S_AXI_RDATA(15 downto 0) <= sensor_raw_reading((local_address-C_RAW_READING_ADDR)/4);
+        --when C_RAW_READING_ADDR to C_RAW_READING_ADDR+(64-1)*4 => S_AXI_RDATA(15 downto 0) <= sensor_raw_reading((local_address-C_RAW_READING_ADDR)/4);
         when C_THR_STATUS_ADDR to C_THR_STATUS_ADDR+(64-1)*4   => S_AXI_RDATA(7 downto 0)  <= "11" &sensor_thr_status((local_address-C_THR_STATUS_ADDR)/4);
 
         when C_EV_ASSERT_EN_ADDR to C_EV_ASSERT_EN_ADDR+(64-1)*4           => S_AXI_RDATA(11 downto 0) <= s_event_assert_en((local_address-C_EV_ASSERT_EN_ADDR)/4);
@@ -536,11 +536,8 @@ begin
     cap_bram_addr(idx)   <= local_address_slv(11 downto 2);
   end generate;
 
-
-  gen_dpram_signals : for idx in 0 to 7 generate
-    dpram_isp_din(idx)  <= S_AXI_WDATA(15 downto 0);
-    dpram_isp_addr(idx) <= local_address_slv(7 downto 2);
-  end generate;
+  dpram_isp_din  <= S_AXI_WDATA(15 downto 0);
+  dpram_isp_addr <= local_address_slv(7 downto 2);
 
   event_assert_en      <= s_event_assert_en(C_SENSOR_CNT-1 downto 0);
   event_deassert_en    <= s_event_deassert_en(C_SENSOR_CNT-1 downto 0);

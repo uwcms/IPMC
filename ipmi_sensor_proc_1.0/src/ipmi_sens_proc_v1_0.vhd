@@ -7,7 +7,7 @@ use work.ipmi_sensor_proc_pkg.all;
 entity ipmi_sens_proc_v1_0 is
   generic (
 
-    C_SENSOR_CNT        : integer := 18;
+    C_SENSOR_CNT        : integer range 1 to 64 := 18;
     C_SENSOR_DATA_WIDTH : integer := 16;
 
     -- Parameters of Axi Slave Bus Interface S_AXI
@@ -16,8 +16,9 @@ entity ipmi_sens_proc_v1_0 is
     );
   port (
 
-    sensor_data_i : in std_logic_vector(C_SENSOR_CNT * C_SENSOR_DATA_WIDTH - 1 downto 0);
-    sensor_vld_i  : in std_logic_vector(C_SENSOR_CNT-1 downto 0);
+    sensor_data_i : in std_logic_vector(C_SENSOR_DATA_WIDTH - 1 downto 0);
+    sensor_id_i : in std_logic_vector(5 downto 0);
+    sensor_vld_i  : in std_logic;
 
     MZ_hard_fault_o : out std_logic_vector(C_SENSOR_CNT-1 downto 0);
 
@@ -105,10 +106,6 @@ architecture arch_imp of ipmi_sens_proc_v1_0 is
 
   signal s_ipmi_lgc_rst : std_logic := '0';
 
-  signal s_arb_sensor_data : std_logic_vector(C_SENSOR_DATA_WIDTH - 1 downto 0);
-  signal s_arb_sensor_vld  : std_logic;
-  signal s_arb_sensor_cnt  : unsigned(5 downto 0);
-
   signal s_fifo_sd_din  : std_logic_vector(21 downto 0);
   signal s_fifo_sd_dout : std_logic_vector(21 downto 0);
 
@@ -139,10 +136,10 @@ architecture arch_imp of ipmi_sens_proc_v1_0 is
   signal s_sensor_cnt_deser  : unsigned (C_SENSOR_DATA_WIDTH+6-1 downto C_SENSOR_DATA_WIDTH);
 
 
-  signal s_isp_addr_p0 : t_slv_arr_6(7 downto 0);
+  signal s_isp_addr_p0 : std_logic_vector(5 downto 0);
   signal s_isp_addr_p1 : t_slv_arr_6(7 downto 0);
 
-  signal s_isp_din_p0  : t_slv_arr_16(7 downto 0);
+  signal s_isp_din_p0  : std_logic_vector(15 downto 0);
   signal s_isp_dout_p0 : t_slv_arr_16(7 downto 0);
   signal s_isp_dout_p1 : t_slv_arr_16(7 downto 0);
 
@@ -182,7 +179,7 @@ architecture arch_imp of ipmi_sens_proc_v1_0 is
 
   signal s_sensor_thr : std_logic_vector (5 downto 0);
 
-  signal s_sensor_raw_reading : t_slv_arr_16(C_SENSOR_CNT-1 downto 0);
+  signal s_sensor_raw_reading : std_logic_vector(C_SENSOR_DATA_WIDTH-1 downto 0);
 
   signal s_sensor_thr_status : t_slv_arr_6(C_SENSOR_CNT-1 downto 0);
 
@@ -195,18 +192,18 @@ architecture arch_imp of ipmi_sens_proc_v1_0 is
 
 begin
 
-  gen_bram : for idx in 0 to C_SENSOR_CNT-1 generate
-  
-   process(s_axi_aclk) is
-    begin
-      if rising_edge(s_axi_aclk) then
-        if (s_ipmi_lgc_rst = '1') then
-          s_sensor_raw_reading(idx) <= (others => '0');
-        elsif (sensor_vld_i(idx) = '1') then
-            s_sensor_raw_reading(idx) <= sensor_data_i((idx + 1) * C_SENSOR_DATA_WIDTH - 1 downto idx*C_SENSOR_DATA_WIDTH);
-        end if;
+  process(s_axi_aclk) is
+  begin
+    if rising_edge(s_axi_aclk) then
+      if (s_ipmi_lgc_rst = '1') then
+        s_sensor_raw_reading <= (others => '0');
+      elsif (sensor_vld_i = '1') then
+          s_sensor_raw_reading <= sensor_data_i;
       end if;
-    end process;
+    end if;
+  end process;
+
+  gen_bram : for idx in 0 to C_SENSOR_CNT-1 generate
     
    process(s_axi_aclk) is
      begin
@@ -226,7 +223,7 @@ begin
          if (s_ipmi_lgc_rst = '1') then
              s_cap_bram_we_sensor(idx) <= '0';
              s_cap_bram_addr_sensor(idx) <= (others => '1');         
-         elsif (s_cap_bram_wr_in_progress(idx) = '1' and sensor_vld_i(idx) = '1')then
+         elsif (s_cap_bram_wr_in_progress(idx) = '1' and sensor_vld_i = '1' and unsigned(sensor_id_i) = idx) then
             s_cap_bram_we_sensor(idx) <= '1';
             s_cap_bram_addr_sensor(idx) <= std_logic_vector(unsigned(s_cap_bram_addr_sensor(idx)) + 1);
             if (s_cap_bram_addr_sensor(idx) = "1111111111") then
@@ -238,7 +235,7 @@ begin
          
          if (s_ipmi_lgc_rst = '1' or s_cap_bram_wr_start = '1') then
                 s_cap_bram_post_trig_sample(idx) <= "0000000000" ;      
-         elsif (s_event_irq_req = '1' and sensor_vld_i(idx) = '1')then
+         elsif (s_event_irq_req = '1' and sensor_vld_i = '1' and unsigned(sensor_id_i) = idx) then
             s_cap_bram_post_trig_sample(idx) <= std_logic_vector(unsigned(s_cap_bram_post_trig_sample(idx)) + 1);
              if (s_cap_bram_post_trig_sample(idx) = "1000000000") then
                  s_cap_bram_post_trig_sample(idx) <= "1000000000";
@@ -261,7 +258,7 @@ begin
         enb    => '1',
         web(0) => s_cap_bram_we_sensor(idx),
         addrb  => s_cap_bram_addr_sensor(idx),
-        dinb   => s_sensor_raw_reading(idx),
+        dinb   => s_sensor_raw_reading,
         doutb  => open
         );
      
@@ -277,7 +274,7 @@ begin
     port map (
       ipmi_lgc_rst => s_ipmi_lgc_rst,
 
-      sensor_raw_reading => s_sensor_raw_reading,
+      --sensor_raw_reading => s_sensor_raw_reading,
       sensor_thr_status  => s_sensor_thr_status,
 
       event_irq_ack => s_event_irq_ack,
@@ -331,28 +328,9 @@ begin
       S_AXI_RREADY  => s_axi_rready
       );
 
-  i_sensor_arbit_engine : entity work.sensor_arbit_engine
-    generic map (
-
-      C_SENSOR_CNT        => C_SENSOR_CNT,
-      C_SENSOR_DATA_WIDTH => C_SENSOR_DATA_WIDTH
-      )
-    port map (
-      clk_i => s_axi_aclk,
-      rst_i => s_ipmi_lgc_rst,
-
-      sensor_data_i => sensor_data_i,
-      sensor_vld_i  => sensor_vld_i,
-
-      sensor_data_o => s_arb_sensor_data,
-      sensor_vld_o  => s_arb_sensor_vld,
-      sensor_cnt_o  => s_arb_sensor_cnt
-
-      );
-
-  s_fifo_sd_din(C_SENSOR_DATA_WIDTH - 1 downto 0)                       <= s_arb_sensor_data;
-  s_fifo_sd_din(C_SENSOR_DATA_WIDTH + 6 - 1 downto C_SENSOR_DATA_WIDTH) <= std_logic_vector(s_arb_sensor_cnt);
-  s_fifo_sd_wren                                                        <= s_arb_sensor_vld;
+  s_fifo_sd_din(C_SENSOR_DATA_WIDTH - 1 downto 0)                       <= sensor_data_i;
+  s_fifo_sd_din(C_SENSOR_DATA_WIDTH + 6 - 1 downto C_SENSOR_DATA_WIDTH) <= sensor_id_i;
+  s_fifo_sd_wren                                                        <= sensor_vld_i;
 
   i_fifo_sensor_data : fifo_sensor_data
     port map (
@@ -435,8 +413,8 @@ begin
 
     i_distram_dp_64x16_ipmi_sensor_params : distram_dp_64x16
       port map (
-        a    => s_isp_addr_p0(idx),
-        d    => s_isp_din_p0(idx),
+        a    => s_isp_addr_p0,
+        d    => s_isp_din_p0,
         dpra => s_isp_addr_p1(idx),
         clk  => s_axi_aclk,
         we   => s_isp_we_p0(idx),

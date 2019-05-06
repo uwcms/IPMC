@@ -56,8 +56,15 @@ architecture ipmi_sensor_event_status_arch of ipmi_sensor_event_status is
   signal s_MZ_hard_fault_UNRH : std_logic_vector(C_SENSOR_CNT-1 downto 0);
   signal s_MZ_hard_fault_LNRL : std_logic_vector(C_SENSOR_CNT-1 downto 0);
   
-  signal event_assert_en_d1   : t_slv_arr_12(C_SENSOR_CNT-1 downto 0);
-  signal event_deassert_en_d1   : t_slv_arr_12(C_SENSOR_CNT-1 downto 0);
+  signal s_event_assert_en_d1   : t_slv_arr_12(C_SENSOR_CNT-1 downto 0);
+  signal s_event_deassert_en_d1   : t_slv_arr_12(C_SENSOR_CNT-1 downto 0);
+  signal s_event_status_rst : t_slv_arr_12(C_SENSOR_CNT-1 downto 0);
+  
+  signal s_event_status_rst_d1 : t_slv_arr_12(C_SENSOR_CNT-1 downto 0);
+  signal s_event_status_rst_d2 : t_slv_arr_12(C_SENSOR_CNT-1 downto 0);
+  signal s_event_status_rst_d3 : t_slv_arr_12(C_SENSOR_CNT-1 downto 0);
+  
+  signal s_event_status_rst_4c : t_slv_arr_12(C_SENSOR_CNT-1 downto 0);
 
   function or_reduce_2d (input : in t_slv_arr_12; size : in integer) return std_logic is
     variable v_or : std_logic := '0';
@@ -72,8 +79,18 @@ architecture ipmi_sensor_event_status_arch of ipmi_sensor_event_status is
 
 begin
 
-  event_assert_en_d1 <= event_assert_en_i when rising_edge(clk_i);
-  event_deassert_en_d1 <= event_deassert_en_i when rising_edge(clk_i);
+  s_event_assert_en_d1 <= event_assert_en_i when rising_edge(clk_i);
+  s_event_deassert_en_d1 <= event_deassert_en_i when rising_edge(clk_i);
+  
+  gen_event_status_rst_L1 : for idx in 0 to C_SENSOR_CNT-1 generate
+    gen_event_status_rst_L2 : for idx2 in 0 to 11 generate
+      s_event_status_rst(idx)(idx2) <= (event_assert_en_i(idx)(idx2) and not s_event_assert_en_d1(idx)(idx2)) or (event_deassert_en_i(idx)(idx2) and not s_event_deassert_en_d1(idx)(idx2));
+      s_event_status_rst_d1(idx)(idx2) <= s_event_status_rst(idx)(idx2) when rising_edge(clk_i);
+      s_event_status_rst_d2(idx)(idx2) <= s_event_status_rst_d1(idx)(idx2) when rising_edge(clk_i);
+      s_event_status_rst_d3(idx)(idx2) <= s_event_status_rst_d2(idx)(idx2) when rising_edge(clk_i);
+      s_event_status_rst_4c(idx)(idx2) <= '1' when s_event_status_rst(idx)(idx2) = '1' or s_event_status_rst_d1(idx)(idx2) = '1' or s_event_status_rst_d2(idx)(idx2) = '1' or s_event_status_rst_d3(idx)(idx2) = '1' else '0';
+    end generate gen_event_status_rst_L2;
+  end generate gen_event_status_rst_L1;
 
   process(clk_i) is
   begin
@@ -83,29 +100,45 @@ begin
       end if;
     end if;
   end process;
-
-  process(clk_i) is
-  begin
-    if rising_edge(clk_i) then
-      if (rst_i = '1') then
-        s_event_status <= (others => (others => '0'));
-      elsif (event_wr_i = '1') then
-        s_event_status(to_integer(sensor_cnt_i)) <= event_status_next_i;
-      end if;
-    end if;
-  end process;
-
-  s_event_status_d1 <= s_event_status when rising_edge(clk_i);
+  
+  gen_event_status_L1 : for idx in 0 to C_SENSOR_CNT-1 generate
+    gen_event_status_L2 : for idx2 in 0 to 11 generate
+    process (clk_i) begin
+        if rising_edge(clk_i) then
+          if (rst_i = '1') then
+            s_event_status(idx)(idx2) <= '0';
+          elsif (s_event_status_rst_4c(idx)(idx2) = '1') then
+            s_event_status(idx)(idx2) <= '0';
+          elsif (event_wr_i = '1' and to_integer(sensor_cnt_i) = idx) then
+            s_event_status(idx)(idx2) <= event_status_next_i(idx2);
+          else
+            s_event_status(idx)(idx2) <= s_event_status(idx)(idx2); -- No change
+          end if;
+        end if;
+      end process;
+    
+      process (clk_i) begin
+        if rising_edge(clk_i) then
+          if (rst_i = '1') then
+            s_event_status_d1(idx)(idx2) <= '0';
+          elsif (s_event_status_rst_4c(idx)(idx2) = '1') then
+            s_event_status_d1(idx)(idx2) <= '0';
+          else
+            s_event_status_d1(idx)(idx2) <= s_event_status(idx)(idx2);
+          end if;
+        end if;
+      end process;
+    
+    end generate gen_event_status_L2;
+  end generate gen_event_status_L1;
 
   gen_assert_L1 : for idx in 0 to C_SENSOR_CNT-1 generate
     gen_assert_L2 : for idx2 in 0 to 11 generate
       process(clk_i) is
       begin
         if rising_edge(clk_i) then
-          s_event_status_rise(idx)(idx2) <= ((s_event_status(idx)(idx2) and not s_event_status_d1(idx)(idx2))
-                                            and event_assert_en_i(idx)(idx2)) or
-                                            (s_event_status(idx)(idx2) and
-                                            (event_assert_en_i(idx)(idx2) and not event_assert_en_d1(idx)(idx2))); -- Also rise event alert when unmasking takes place
+          s_event_status_rise(idx)(idx2) <= (s_event_status(idx)(idx2) and not s_event_status_d1(idx)(idx2))
+                                            and s_event_assert_en_d1(idx)(idx2); 
 
           if(event_assert_rearm_i(idx)(idx2) = '1') then
             s_event_assert_status(idx)(idx2) <= '0';
@@ -163,10 +196,8 @@ begin
       process(clk_i) is
       begin
         if rising_edge(clk_i) then
-          s_event_status_fall(idx)(idx2) <= ((not s_event_status(idx)(idx2) and s_event_status_d1(idx)(idx2))
-                                            and event_deassert_en_i(idx)(idx2)) or
-                                            (not s_event_status(idx)(idx2) and
-                                            (event_deassert_en_i(idx)(idx2) and not event_deassert_en_d1(idx)(idx2))); -- Also rise event alert when unmasking takes place;
+          s_event_status_fall(idx)(idx2) <= (not s_event_status(idx)(idx2) and s_event_status_d1(idx)(idx2))
+                                            and s_event_deassert_en_d1(idx)(idx2);
 
           if(event_deassert_rearm_i(idx)(idx2) = '1') then
             s_event_deassert_status(idx)(idx2) <= '0';
