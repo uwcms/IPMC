@@ -11,25 +11,26 @@
 #if XSDK_INDEXING || __has_include(<led_controller.h>)
 #define PLLED_DRIVER_INCLUDED
 
+#include <drivers/generics/LED.h>
 #include <inttypes.h>
 #include <led_controller.h>
 
-class LED; // Pre-declaration
+class PL_LED; // Pre-declaration
 
 /**
  * PL LED Controller high-level driver.
  * Check LED class on how to control individual LEDs.
  */
-class PL_LED {
+class PL_LEDController{
 public:
 	/**
 	 * Create a PL based LED Controller interface.
 	 * @param deviceId The device ID, normally XPAR_AXI_LED_CONTROLLER_<>.
 	 * @param plFrequency Frequency of the LED Controller.
 	 */
-	PL_LED(uint16_t deviceId, uint32_t plFrequency);
+	PL_LEDController(uint16_t deviceId, uint32_t plFrequency);
 
-	friend class LED;
+	friend class PL_LED;
 private:
 	LED_Controller ledController;   ///< LED controller info.
 	uint32_t plFrequency;           ///< IP frequency, used for timing operations.
@@ -38,14 +39,14 @@ private:
 /**
  * Individual LED control from a single controller.
  */
-class LED {
+class PL_LED : public LED {
 public:
 	/**
 	 * Create a new LED interface from a PL LED Controller.
 	 * @param controller Reference of the target controller.
 	 * @param interface LED interface number in the controller.
 	 */
-	LED(PL_LED &controller, uint32_t interface);
+	PL_LED(PL_LEDController &controller, uint32_t interface);
 
 	///! Turn the LED on.
 	void on();
@@ -73,7 +74,7 @@ public:
 	void pulse(uint32_t periodMs);
 
 private:
-	PL_LED &controller;  ///< LED controller.
+	PL_LEDController &controller;  ///< LED controller.
 	uint32_t interface;  ///< LED interface number.
 };
 
