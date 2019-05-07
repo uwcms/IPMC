@@ -267,7 +267,7 @@ void ThresholdSensor::update_value(const float value, uint16_t event_context, ui
 		if (this->nominal_event_status_override_value != 0xFFFF) {
 			nominal_event_status = this->nominal_event_status_override_value;
 
-			this->log.log(stdsprintf("Sensor %s: Nominalizing events 0x%04hx (0x%04hx -> 0x%04hx) based on nominal event mask override value.",
+			this->log.log(stdsprintf("Sensor %s: Nominalizing events 0x%04hx (0x%04hx -> 0x%04hx) based on nominal event mask override value 0x%04hx.",
 					this->sensor_identifier().c_str(),
 					nominalize_bits, this->event_context, event_context,
 					nominal_event_status
