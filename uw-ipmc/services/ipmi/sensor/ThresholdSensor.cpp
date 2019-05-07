@@ -294,12 +294,6 @@ void ThresholdSensor::update_value(const float value, uint16_t event_context, ui
 		this->active_events &= ~nominalize_bits; // Clear all out of context event assertions.
 		this->active_events |= nominalize_bits & nominal_event_status; // Assert any asserted-while-nominal out of context events.
 
-		/* Don't process extra events on bits just coming into context.
-		 * We don't want to absorb old state from the sensor processor.
-		 */
-		extra_assertions &= ~nominalize_bits;
-		extra_deassertions &= ~nominalize_bits;
-
 		this->log.log(stdsprintf("Sensor %s: Outcome 0x%04hx, with Extras +0x%04hx -0x%04hx",
 				this->sensor_identifier().c_str(),
 				this->active_events,
