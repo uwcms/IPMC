@@ -200,13 +200,9 @@ IPMICMD_INDEX_REGISTER(Get_Sensor_Reading_Factors);
 static void ipmicmd_Set_Sensor_Hysteresis(IPMBSvc &ipmb, const IPMI_MSG &message) {
 	if (message.data_len != 4)
 		RETURN_ERROR(ipmb, message, IPMI::Completion::Request_Data_Length_Invalid);
-	std::shared_ptr<Sensor> sensor;
-	try {
-		sensor = ipmc_sensors.get(message.data[0]);
-	}
-	catch (std::out_of_range) {
+	std::shared_ptr<Sensor> sensor = ipmc_sensors.get(message.data[0]);
+	if (!sensor)
 		RETURN_ERROR(ipmb, message, IPMI::Completion::Requested_Sensor_Data_Or_Record_Not_Present);
-	}
 	std::shared_ptr<const SensorDataRecordReadableSensor> sdr = std::dynamic_pointer_cast<const SensorDataRecordReadableSensor>(device_sdr_repo.find(sensor->sdr_key));
 	if (!sdr)
 		RETURN_ERROR(ipmb, message, IPMI::Completion::Requested_Sensor_Data_Or_Record_Not_Present);
@@ -240,13 +236,9 @@ IPMICMD_INDEX_REGISTER(Set_Sensor_Hysteresis);
 static void ipmicmd_Get_Sensor_Hysteresis(IPMBSvc &ipmb, const IPMI_MSG &message) {
 	if (message.data_len < 1 || message.data_len > 2)
 		RETURN_ERROR(ipmb, message, IPMI::Completion::Request_Data_Length_Invalid);
-	std::shared_ptr<ThresholdSensor> sensor;
-	try {
-		sensor = std::dynamic_pointer_cast<ThresholdSensor>(ipmc_sensors.get(message.data[0]));
-	}
-	catch (std::out_of_range) {
+	std::shared_ptr<ThresholdSensor> sensor = std::dynamic_pointer_cast<ThresholdSensor>(ipmc_sensors.get(message.data[0]));
+	if (!sensor)
 		RETURN_ERROR(ipmb, message, IPMI::Completion::Requested_Sensor_Data_Or_Record_Not_Present);
-	}
 	std::shared_ptr<const SensorDataRecord01> sdr = std::dynamic_pointer_cast<const SensorDataRecord01>(device_sdr_repo.find(sensor->sdr_key));
 	if (!sdr)
 		RETURN_ERROR(ipmb, message, IPMI::Completion::Requested_Sensor_Data_Or_Record_Not_Present);
@@ -258,13 +250,9 @@ IPMICMD_INDEX_REGISTER(Get_Sensor_Hysteresis);
 static void ipmicmd_Set_Sensor_Threshold(IPMBSvc &ipmb, const IPMI_MSG &message) {
 	if (message.data_len < 2 || message.data_len > 8)
 		RETURN_ERROR(ipmb, message, IPMI::Completion::Request_Data_Length_Invalid);
-	std::shared_ptr<ThresholdSensor> sensor;
-	try {
-		sensor = std::dynamic_pointer_cast<ThresholdSensor>(ipmc_sensors.get(message.data[0]));
-	}
-	catch (std::out_of_range) {
+	std::shared_ptr<ThresholdSensor> sensor = std::dynamic_pointer_cast<ThresholdSensor>(ipmc_sensors.get(message.data[0]));
+	if (!sensor)
 		RETURN_ERROR(ipmb, message, IPMI::Completion::Requested_Sensor_Data_Or_Record_Not_Present);
-	}
 	std::shared_ptr<const SensorDataRecord01> sdr = std::dynamic_pointer_cast<const SensorDataRecord01>(device_sdr_repo.find(sensor->sdr_key));
 	std::shared_ptr<SensorDataRecord01> mutable_sdr = NULL;
 	if (sdr)
@@ -316,13 +304,9 @@ IPMICMD_INDEX_REGISTER(Set_Sensor_Threshold);
 static void ipmicmd_Get_Sensor_Threshold(IPMBSvc &ipmb, const IPMI_MSG &message) {
 	if (message.data_len != 1)
 		RETURN_ERROR(ipmb, message, IPMI::Completion::Request_Data_Length_Invalid);
-	std::shared_ptr<ThresholdSensor> sensor;
-	try {
-		sensor = std::dynamic_pointer_cast<ThresholdSensor>(ipmc_sensors.get(message.data[0]));
-	}
-	catch (std::out_of_range) {
+	std::shared_ptr<ThresholdSensor> sensor = std::dynamic_pointer_cast<ThresholdSensor>(ipmc_sensors.get(message.data[0]));
+	if (!sensor)
 		RETURN_ERROR(ipmb, message, IPMI::Completion::Requested_Sensor_Data_Or_Record_Not_Present);
-	}
 	sensor->update_thresholds_from_sdr(std::dynamic_pointer_cast<const SensorDataRecord01>(device_sdr_repo.find(sensor->sdr_key)));
 
 	std::vector<uint8_t> rsp{IPMI::Completion::Success, 0x3F};
@@ -339,13 +323,9 @@ IPMICMD_INDEX_REGISTER(Get_Sensor_Threshold);
 static void ipmicmd_Set_Sensor_Event_Enable(IPMBSvc &ipmb, const IPMI_MSG &message) {
 	if (message.data_len < 1 || message.data_len > 6)
 		RETURN_ERROR(ipmb, message, IPMI::Completion::Request_Data_Length_Invalid);
-	std::shared_ptr<Sensor> sensor;
-	try {
-		sensor = ipmc_sensors.get(message.data[0]);
-	}
-	catch (std::out_of_range) {
+	std::shared_ptr<Sensor> sensor = ipmc_sensors.get(message.data[0]);
+	if (!sensor)
 		RETURN_ERROR(ipmb, message, IPMI::Completion::Requested_Sensor_Data_Or_Record_Not_Present);
-	}
 	sensor->all_events_disabled(!(message.data[1] & 0x80));
 	sensor->sensor_scanning_disabled(!(message.data[1] & 0x40));
 	if (message.data_len < 3) {
@@ -390,13 +370,9 @@ IPMICMD_INDEX_REGISTER(Set_Sensor_Event_Enable);
 static void ipmicmd_Get_Sensor_Event_Enable(IPMBSvc &ipmb, const IPMI_MSG &message) {
 	if (message.data_len != 1)
 		RETURN_ERROR(ipmb, message, IPMI::Completion::Request_Data_Length_Invalid);
-	std::shared_ptr<Sensor> sensor;
-	try {
-		sensor = ipmc_sensors.get(message.data[0]);
-	}
-	catch (std::out_of_range) {
+	std::shared_ptr<Sensor> sensor = ipmc_sensors.get(message.data[0]);
+	if (!sensor)
 		RETURN_ERROR(ipmb, message, IPMI::Completion::Requested_Sensor_Data_Or_Record_Not_Present);
-	}
 	std::vector<uint8_t> rsp{IPMI::Completion::Success, 0};
 	if (!sensor->all_events_disabled())
 		rsp[1] |= 0x80;
@@ -420,13 +396,9 @@ IPMICMD_INDEX_REGISTER(Rearm_Sensor_Events);
 static void ipmicmd_Get_Sensor_Event_Status(IPMBSvc &ipmb, const IPMI_MSG &message) {
 	if (message.data_len != 1)
 		RETURN_ERROR(ipmb, message, IPMI::Completion::Request_Data_Length_Invalid);
-	std::shared_ptr<Sensor> sensor;
-	try {
-		sensor = ipmc_sensors.get(message.data[0]);
-	}
-	catch (std::out_of_range) {
+	std::shared_ptr<Sensor> sensor = ipmc_sensors.get(message.data[0]);
+	if (!sensor)
 		RETURN_ERROR(ipmb, message, IPMI::Completion::Requested_Sensor_Data_Or_Record_Not_Present);
-	}
 	bool reading_good = true;
 	uint16_t event_status = sensor->get_sensor_event_status(&reading_good);
 	std::vector<uint8_t> payload{IPMI::Completion::Success, 0x00};
@@ -445,13 +417,9 @@ IPMICMD_INDEX_REGISTER(Get_Sensor_Event_Status);
 static void ipmicmd_Get_Sensor_Reading(IPMBSvc &ipmb, const IPMI_MSG &message) {
 	if (message.data_len != 1)
 		RETURN_ERROR(ipmb, message, IPMI::Completion::Request_Data_Length_Invalid);
-	std::shared_ptr<Sensor> sensor;
-	try {
-		sensor = ipmc_sensors.get(message.data[0]);
-	}
-	catch (std::out_of_range) {
+	std::shared_ptr<Sensor> sensor = ipmc_sensors.get(message.data[0]);
+	if (!sensor)
 		RETURN_ERROR(ipmb, message, IPMI::Completion::Requested_Sensor_Data_Or_Record_Not_Present);
-	}
 	ipmb.send(message.prepare_reply(sensor->get_sensor_reading()));
 }
 IPMICMD_INDEX_REGISTER(Get_Sensor_Reading);
