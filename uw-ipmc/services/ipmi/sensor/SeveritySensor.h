@@ -34,6 +34,8 @@ public:
 		TRANS_INFO         = 8, //!< Informational
 	};
 
+	static const char *StateTransitionLabels[9];
+
 	virtual void transition(enum Level level, bool send_event=true);
 	virtual std::vector<uint8_t> get_sensor_reading();
 	virtual uint16_t get_sensor_event_status(bool *reading_good=NULL);

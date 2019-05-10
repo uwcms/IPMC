@@ -144,3 +144,15 @@ enum SeveritySensor::Level SeveritySensor::get_raw_severity_level() const {
 enum SeveritySensor::StateTransition SeveritySensor::get_sensor_value() const {
 	return this->status;
 }
+
+const char *SeveritySensor::StateTransitionLabels[9] = {
+	"transition to OK",
+	"transition to Non-Critical from OK",
+	"transition to Critical from less severe",
+	"transition to Non-recoverable from less severe",
+	"transition to Non-Critical from more severe",
+	"transition to Critical from Non-recoverable",
+	"transition to Non-recoverable",
+	"Monitor",
+	"Informational",
+};
