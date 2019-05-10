@@ -43,6 +43,8 @@ ThresholdSensor::ThresholdSensor(const std::vector<uint8_t> &sdr_key, LogTree &l
 	this->value_expiration = UINT64_MAX;
 	this->active_events = 0;
 	this->event_context = 0;
+	this->last_enabled_assertions = 0;
+	this->last_enabled_deassertions = 0;
 }
 
 ThresholdSensor::~ThresholdSensor() {
@@ -249,7 +251,8 @@ void ThresholdSensor::update_value(const float value, uint16_t event_context, ui
 
 	const uint8_t byteval = sdr->from_float(value);
 
-	this->update_thresholds_from_sdr(std::dynamic_pointer_cast<const SensorDataRecord01>(sdr));
+	std::shared_ptr<const SensorDataRecord01> sdr01 = std::dynamic_pointer_cast<const SensorDataRecord01>(sdr);
+	this->update_thresholds_from_sdr(sdr01);
 
 	// Automatic threshold calculation.
 	const uint8_t hysth = sdr->hysteresis_high();
@@ -273,21 +276,18 @@ void ThresholdSensor::update_value(const float value, uint16_t event_context, ui
 					nominal_event_status
 					), LogTree::LOG_DIAGNOSTIC);
 		}
-		else {
-			std::shared_ptr<const SensorDataRecord01> sdr01 = std::dynamic_pointer_cast<const SensorDataRecord01>(sdr);
-			if (sdr01 && sdr01->nominal_reading_specified()) {
-				// We have an SDR with a nominal value, so we'll calculate the REAL nominal event status.
-				std::vector<struct ThresholdEvent> ignore_events;
-				nominal_event_status = process_thresholds(0, 0x0fff, this->thresholds, hystl, hysth, sdr01->nominal_reading_rawvalue(), ignore_events, 0, 0);
+		else if (sdr01 && sdr01->nominal_reading_specified()) {
+			// We have an SDR with a nominal value, so we'll calculate the REAL nominal event status.
+			std::vector<struct ThresholdEvent> ignore_events;
+			nominal_event_status = process_thresholds(0, 0x0fff, this->thresholds, hystl, hysth, sdr01->nominal_reading_rawvalue(), ignore_events, 0, 0);
 
-				this->log.log(stdsprintf("Sensor %s: Nominalizing events 0x%04hx (0x%04hx -> 0x%04hx) based on nominal mask 0x%04hx @ 0x%02hhx (%f)",
-						this->sensor_identifier().c_str(),
-						nominalize_bits, this->event_context, event_context,
-						nominal_event_status,
-						sdr01->nominal_reading_rawvalue(),
-						sdr01->to_float(sdr01->nominal_reading_rawvalue())
-						), LogTree::LOG_DIAGNOSTIC);
-			}
+			this->log.log(stdsprintf("Sensor %s: Nominalizing events 0x%04hx (0x%04hx -> 0x%04hx) based on nominal mask 0x%04hx @ 0x%02hhx (%f)",
+					this->sensor_identifier().c_str(),
+					nominalize_bits, this->event_context, event_context,
+					nominal_event_status,
+					sdr01->nominal_reading_rawvalue(),
+					sdr01->to_float(sdr01->nominal_reading_rawvalue())
+					), LogTree::LOG_DIAGNOSTIC);
 		}
 
 		this->event_context = event_context; // Update the event context.
@@ -316,6 +316,14 @@ void ThresholdSensor::update_value(const float value, uint16_t event_context, ui
 	std::vector<struct ThresholdEvent> events;
 	this->active_events = process_thresholds(this->active_events, this->event_context, this->thresholds, hystl, hysth, byteval, events, extra_assertions, extra_deassertions);
 
+	const uint16_t supported_assertion_mask = sdr->assertion_lower_threshold_reading_mask();
+	const uint16_t supported_deassertion_mask = sdr->deassertion_upper_threshold_reading_mask();
+	const uint16_t enabled_assertion_mask = this->assertion_events_enabled();
+	const uint16_t enabled_deassertion_mask = this->deassertion_events_enabled();
+
+	this->last_enabled_assertions = supported_assertion_mask & enabled_assertion_mask;
+	this->last_enabled_deassertions = supported_deassertion_mask & enabled_deassertion_mask;
+
 	lock.release();
 
 	static const std::vector<std::string> threshold_names{
@@ -333,10 +341,6 @@ void ThresholdSensor::update_value(const float value, uint16_t event_context, ui
 		"UNR going-high",
 	};
 
-	const uint16_t supported_assertion_mask = sdr->assertion_lower_threshold_reading_mask();
-	const uint16_t supported_deassertion_mask = sdr->deassertion_upper_threshold_reading_mask();
-	const uint16_t enabled_assertion_mask = this->assertion_events_enabled();
-	const uint16_t enabled_deassertion_mask = this->deassertion_events_enabled();
 	for (std::vector<struct ThresholdEvent>::iterator it = events.begin(), eit = events.end(); it != eit; ++it) {
 		if ( !(this->event_context & (1 << it->bit)) ) {
 			this->log.log(stdsprintf("Sensor %s: %s %s event for value 0x%02hhx (%f), threshold 0x%02hhx is out of context and will not be sent",
@@ -422,10 +426,14 @@ ThresholdSensor::Value ThresholdSensor::get_value() const {
 	value.byte_value = 0xFF;
 	value.active_events = this->active_events;
 	value.event_context = this->event_context;
+	value.enabled_assertions = this->last_enabled_assertions;
+	value.enabled_deassertions = this->last_enabled_deassertions;
 	if (now >= this->value_expiration) {
 		value.float_value = NAN;
 		value.active_events = 0;
 		value.event_context = 0;
+		value.enabled_assertions = 0;
+		value.enabled_deassertions = 0;
 	}
 	lock.release();
 	if (std::isnan(value.float_value))

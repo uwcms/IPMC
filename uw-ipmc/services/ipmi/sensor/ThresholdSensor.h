@@ -66,6 +66,8 @@ public:
 		uint8_t byte_value; ///< The IPMI byte value, 0xFF if no SDR is available (but 0xFF is a valid value).
 		uint16_t active_events; ///< The currently active events.
 		uint16_t event_context; ///< A mask of events that are in context and being processed as of last reading.
+		uint16_t enabled_assertions; ///< The event assertions (enabled & supported) at last update.
+		uint16_t enabled_deassertions; ///< The event deassertions (enabled & supported) at last update.
 	} Value;
 
 	virtual Value get_value() const;
@@ -79,6 +81,8 @@ protected:
 	uint64_t value_expiration; ///< The timestamp at which the value is no longer valid.
 	uint16_t active_events; ///< Currently active events
 	uint16_t event_context; ///< A mask of events that are in context and can be active.
+	uint16_t last_enabled_assertions; ///< A mask of event assertions that were (enabled & supported) at last update.
+	uint16_t last_enabled_deassertions; ///< A mask of event deassertions that were (enabled & supported) at last update.
 	uint16_t nominal_event_status_override_value; ///< An overriden "nominal event mask".  Valid range: 0x000-0xFFF.  0xFFFF = disabled.
 	SemaphoreHandle_t value_mutex; ///< A mutex protecting value fields.
 };
