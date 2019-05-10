@@ -58,6 +58,9 @@ public:
 	virtual void deactivate_fru() { this->reevaluate(ACTREQ_DEACTIVATE_COMMANDED, HANDLE_NULL); };
 	///@}
 
+	virtual void fault_lock(bool state);
+	virtual bool fault_lock() const { return this->_fault_locked; };
+
 	/// Retrieve current M-state
 	virtual uint8_t mstate() { return this->_mstate; };
 
@@ -77,6 +80,7 @@ protected:
 	bool _activation_locked:1; ///< Activation Locked bit
 	bool _deactivation_locked:1; ///< Deactivation Locked bit
 	bool _startup_locked:1; ///< An internal activation lock during boot.
+	bool _fault_locked:1; ///< A fault has occured and we will not enter M2 until the handle is opened.
 
 	enum HandleState _physical_handle_state:2; ///< The physical handle state.
 	enum HandleState _override_handle_state:2; ///< The handle override state.

@@ -13,7 +13,7 @@
 
 MStateMachine::MStateMachine(std::shared_ptr<HotswapSensor> hotswap_sensor, IPMI_LED &blue_led, LogTree &log)
 	: deactivate_payload(NULL), _mstate(1), hotswap_sensor(hotswap_sensor), blue_led(blue_led), log(log),
-	  _activation_locked(false), _deactivation_locked(false), _startup_locked(true),
+	  _activation_locked(false), _deactivation_locked(false), _startup_locked(true), _fault_locked(false),
 	  _physical_handle_state(HANDLE_OPEN), _override_handle_state(HANDLE_NULL) {
 	this->mutex = xSemaphoreCreateRecursiveMutex();
 	configASSERT(this->mutex);
@@ -65,6 +65,8 @@ void MStateMachine::physical_handle_state(enum HandleState state) {
 		this->_startup_locked = false;
 		this->hotswap_sensor->rearm();
 	}
+	if (this->effective_handle_state() == HANDLE_OPEN)
+		this->_fault_locked = false;
 	this->reevaluate(ACTREQ_NONE, old_state);
 }
 
@@ -77,6 +79,8 @@ void MStateMachine::override_handle_state(enum HandleState state) {
 	MutexGuard<true> lock(this->mutex, true);
 	enum HandleState old_state = this->effective_handle_state();
 	this->_override_handle_state = state;
+	if (this->effective_handle_state() == HANDLE_OPEN)
+		this->_fault_locked = false;
 	this->reevaluate(ACTREQ_NONE, old_state);
 }
 
@@ -102,6 +106,19 @@ void MStateMachine::payload_deactivation_complete() {
 		this->transition(1, HotswapSensor::TRANS_NORMAL);
 }
 
+/**
+ * Change the state of the fault lock flag.  When this flag is true, we will not
+ * go from M1 to M2.  This flag is to be automatically cleared when the handle
+ * is out.
+ *
+ * @param state The new fault lock flag state
+ */
+void MStateMachine::fault_lock(bool state) {
+	MutexGuard<true> lock(this->mutex, true);
+	this->_fault_locked = state;
+	this->reevaluate();
+}
+
 void MStateMachine::reevaluate(enum ActivationRequest activation_request, enum HandleState previous_handle_state) {
 	MutexGuard<true> lock(this->mutex, true);
 	if (!this->hotswap_sensor)
@@ -122,7 +139,7 @@ void MStateMachine::reevaluate(enum ActivationRequest activation_request, enum H
 		throw std::logic_error("We should never be in M0");
 		break;
 	case 1:
-		if (handle_state == HANDLE_CLOSED && !this->_activation_locked && !this->_startup_locked)
+		if (handle_state == HANDLE_CLOSED && !this->_activation_locked && !this->_startup_locked && !this->_fault_locked)
 			this->transition(2, (previous_handle_state != handle_state ? HotswapSensor::TRANS_OPERATOR_SWITCH : HotswapSensor::TRANS_NORMAL));
 		break;
 	case 2:
@@ -156,7 +173,7 @@ void MStateMachine::reevaluate(enum ActivationRequest activation_request, enum H
 	case 4:
 		if (handle_state == HANDLE_OPEN && !this->_deactivation_locked)
 			this->transition(5, (previous_handle_state != handle_state ? HotswapSensor::TRANS_OPERATOR_SWITCH : HotswapSensor::TRANS_NORMAL));
-		if (activation_request == ACTREQ_DEACTIVATE_COMMANDED) {
+		else if (activation_request == ACTREQ_DEACTIVATE_COMMANDED) {
 			this->transition(6, HotswapSensor::TRANS_COMMANDED_BY_SHELF);
 			reevaluate_again = true;
 		}
@@ -164,7 +181,7 @@ void MStateMachine::reevaluate(enum ActivationRequest activation_request, enum H
 	case 5:
 		if (activation_request == ACTREQ_ACTIVATE_COMMANDED)
 			this->transition(4, HotswapSensor::TRANS_COMMANDED_BY_SHELF);
-		if (activation_request == ACTREQ_DEACTIVATE_COMMANDED) {
+		else if (activation_request == ACTREQ_DEACTIVATE_COMMANDED) {
 			this->transition(6, HotswapSensor::TRANS_COMMANDED_BY_SHELF);
 			reevaluate_again = true;
 		}
