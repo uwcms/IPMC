@@ -144,4 +144,8 @@ bool SensorProcessor::get_isr_event(struct Event &event, TickType_t block_time) 
 	return true;
 }
 
+void SensorProcessor::get_current_event_status(uint32_t channel, uint16_t &assert, uint16_t &deassert) {
+	IPMI_Sensor_Proc_Get_Latched_Event_Status(&this->processor, channel, &assert, &deassert);
+}
+
 #endif

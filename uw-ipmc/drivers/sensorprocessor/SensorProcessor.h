@@ -48,6 +48,8 @@ public:
 
 	bool get_isr_event(struct Event &event, TickType_t block_time);
 
+	void get_current_event_status(uint32_t channel, uint16_t &assert, uint16_t &deassert);
+
 	StatCounter isr_events_received;
 	StatCounter isr_event_queue_highwater;
 	StatCounter userland_event_queue_highwater;
