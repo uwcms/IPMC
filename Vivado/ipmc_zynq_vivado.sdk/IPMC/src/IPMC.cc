@@ -227,10 +227,11 @@ void ipmc_service_init() {
 #define MB * (1024 * 1024)
 
 		if (qspiflash->getTotalSize() == (64 MB)) {
-			VFS::addFile("virtual/fallback.bin", qspiflash->createFlashFile(0 MB, 16 MB));
-			VFS::addFile("virtual/A.bin", qspiflash->createFlashFile(16 MB, 16 MB));
-			VFS::addFile("virtual/B.bin", qspiflash->createFlashFile(32 MB, 16 MB));
-			VFS::addFile("virtual/test.bin", qspiflash->createFlashFile(48 MB, 16 MB));
+			// SPIFlash::ResetBank is called when reading/writing to avoid being in incorrect bank if there is a WDT reset
+			VFS::addFile("virtual/fallback.bin", qspiflash->createFlashFile(0 MB, 16 MB, SPIFlash::ResetBank));
+			VFS::addFile("virtual/A.bin", qspiflash->createFlashFile(16 MB, 16 MB, SPIFlash::ResetBank));
+			VFS::addFile("virtual/B.bin", qspiflash->createFlashFile(32 MB, 16 MB, SPIFlash::ResetBank));
+			VFS::addFile("virtual/test.bin", qspiflash->createFlashFile(48 MB, 16 MB, SPIFlash::ResetBank));
 		} else if (qspiflash->getTotalSize() == (16 MB)) {
 			VFS::addFile("virtual/A.bin", qspiflash->createFlashFile(0 MB, 16 MB));
 		} else {
