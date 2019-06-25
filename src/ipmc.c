@@ -7,6 +7,7 @@
 
 #include "ipmc.h"
 #include "fsbl.h"
+#include "image_mover.h"
 
 #include "xparameters.h"
 #include "xgpiops.h"
@@ -36,9 +37,7 @@ u8 get_ipmc_hw_rev() {
 	return (DataRead == 0)? 1 : 0;
 }
 
-
-
-u8 get_ipmc_target_image() {
+TargetRecord get_eeprom_boot_record() {
 	int Status;
 	u8 Buffer[3];
 	XSpiPs_Config *SpiConfig;
@@ -89,21 +88,133 @@ u8 get_ipmc_target_image() {
 	return Buffer[2];
 }
 
-void set_tag(u8 val) {
-	u32 RebootStatusRegister = 0;
-
-	RebootStatusRegister = Xil_In32(REBOOT_STATUS_REG);
-	RebootStatusRegister &= ~(0x0F000000);
-
-	RebootStatusRegister |= ((val << 24) & 0x0F000000);
-
-	Xil_Out32(REBOOT_STATUS_REG, RebootStatusRegister);
-}
-
-u8 get_tag() {
+u8 get_bootreg_tag() {
 	u32 RebootStatusRegister = 0;
 
 	RebootStatusRegister = Xil_In32(REBOOT_STATUS_REG);
 
 	return (RebootStatusRegister >> 24) & 0xF;
 }
+
+void set_bootreg_tag(u8 force_boot, u8 force_test_image, u8 target_image) {
+	u32 RebootStatusRegister = 0, BootTag = 0;
+
+	force_boot = (force_boot > 0)?1:0;
+	force_test_image = (force_test_image > 0)?1:0;
+	target_image &= 0x3;
+
+	BootTag = (force_boot << 3) | (force_test_image << 2) | target_image;
+
+	RebootStatusRegister = Xil_In32(REBOOT_STATUS_REG);
+	RebootStatusRegister &= ~(0x0F000000);
+
+	RebootStatusRegister |= ((BootTag << 24) & 0x0F000000);
+
+	Xil_Out32(REBOOT_STATUS_REG, RebootStatusRegister);
+}
+
+TargetRecord get_bootreg_record() {
+	return (get_bootreg_tag() & 0x07);
+}
+
+u8 is_record_valid(TargetRecord record) {
+	/* 5-highest bits need to be zero and the target image cannot be 3 (out of range) */
+	if ((record & 0xf8) || ((record & 0x3) == 3)) return 0;
+
+	return 1;
+}
+
+u8 is_forced_boot() {
+	return (get_bootreg_tag() >> 3) == 1;
+}
+
+u8 is_test_image(TargetRecord record) {
+	return (record >> 2) == 1;
+}
+
+u8 get_regular_boot_target(TargetRecord record) {
+	return (record & 0x3);
+}
+
+u8 get_final_boot_target(TargetRecord record) {
+	if (is_test_image(record)) return 3;
+	else return get_regular_boot_target(record);
+}
+
+u32 verify_image(u8 image) {
+	u32 Status = 0;
+	u32 FsblLength = 0;
+	u32 PartitionHeaderOffset = 0;
+	u32 PartitionCount = 0;
+	u32 PartitionIdx = 0;
+
+	u32 ImageBaseAddress = (u32)image << 24;
+
+	PartHeader PartitionHeader[MAX_PARTITION_NUMBER] = {0};
+
+    /*
+     * Get the length of the FSBL from BootHeader
+     */
+    Status = GetFsblLength(ImageBaseAddress, &FsblLength);
+    if (Status != XST_SUCCESS) {
+    	fsbl_printf(DEBUG_GENERAL, "[IPMC-VERIFY]: Get Header Start Address Failed\r\n");
+    	return XST_FAILURE;
+    }
+
+    /*
+    * Get the start address of the partition header table
+    */
+    Status = GetPartitionHeaderStartAddr(ImageBaseAddress, &PartitionHeaderOffset);
+    if (Status != XST_SUCCESS) {
+    	fsbl_printf(DEBUG_GENERAL, "[IPMC-VERIFY]: Get Header Start Address Failed\r\n");
+    	return XST_FAILURE;
+    }
+
+    /*
+     * Header offset on flash
+     */
+    PartitionHeaderOffset += ImageBaseAddress;
+
+    fsbl_printf(DEBUG_INFO,"[IPMC-VERIFY]: Partition Header Offset:0x%08lx\r\n", PartitionHeaderOffset);
+
+    /*
+     * Load all partitions header data in to global variable
+     */
+    Status = LoadPartitionsHeaderInfo(PartitionHeaderOffset, &PartitionHeader[0]);
+    if (Status != XST_SUCCESS) {
+    	fsbl_printf(DEBUG_GENERAL, "[IPMC-VERIFY]: Header Information Load Failed\r\n");
+    	return XST_FAILURE;
+    }
+
+    /*
+     * Get partitions count from partitions header information
+     */
+	PartitionCount = GetPartitionCount(&PartitionHeader[0]);
+    fsbl_printf(DEBUG_INFO, "Partition Count: %lu\r\n", PartitionCount);
+
+    /*
+     * A valid IPMC partition will have at least 3 images: FSBL, PL, ELF
+     */
+    if (PartitionCount >= MAX_PARTITION_NUMBER) {
+    	fsbl_printf(DEBUG_GENERAL, "[IPMC-VERIFY]: Invalid number of partitions in image\r\n");
+    } else if (PartitionCount < 3) {
+    	fsbl_printf(DEBUG_GENERAL, "[IPMC-VERIFY]: Image has less than 3 partitions\r\n");
+    	return XST_FAILURE;
+    }
+
+    for (PartitionIdx = 0; PartitionIdx < PartitionCount; PartitionIdx++) {
+    	PartHeader *HeaderPtr = &PartitionHeader[PartitionIdx];
+
+		/*
+		 * Validate partition header
+		 */
+		Status = ValidateHeader(HeaderPtr);
+		if (Status != XST_SUCCESS) {
+			fsbl_printf(DEBUG_GENERAL, "[IPMC-VERIFY]: Header in partition %d failed verification\r\n", PartitionIdx);
+			return XST_FAILURE;
+		}
+    }
+
+    return XST_SUCCESS;
+}
+

@@ -176,7 +176,6 @@ extern char* getPS7MessageInfo(unsigned key);
 extern int ps7_post_config();
 #endif
 
-static void Update_MultiBootRegister(void);
 /* Exception handlers */
 static void RegisterHandlers(void);
 static void Undef_Handler (void);
@@ -223,8 +222,8 @@ extern u8 BitstreamFlag;
 extern u32 QspiFlashSize;
 #endif
 
-u8 forcedBoot = 0;
-u8 prevImage = 0xff, curImage = 0xff, imageMain = 0;
+TargetRecord targetRecord = 0;
+u8 targetImage = 0;
 const char* imageNames[] = {"fallback", "A", "B", "test"};
 #define IMAGE_NUMBER_TO_ADDRESS(IMAGE) ((IMAGE) * 16 * 1024 * 1024)
 
@@ -250,6 +249,8 @@ int main(void)
 	u32 BootModeRegister = 0;
 	u32 Status = XST_SUCCESS;
 	u32 RegVal;
+	u8 BankSel;
+
 	/*
 	 * PCW initialization for MIO,PLL,CLK and DDR
 	 */
@@ -386,75 +387,6 @@ int main(void)
 	 * Store FSBL run state in Reboot Status Register
 	 */
 	MarkFSBLIn();
-
-	fsbl_printf(DEBUG_INFO,"\r\n");
-
-	/**
-	 * Deciding what image will boot happens in two steps:
-	 * Step 1) Check the REBOOT_STATUS low nibble bits (bits 27:24).
-	 * The IPMC SW can set these bits to force a specific image to load during a reboot.
-	 * Bit 3 Force reboot (yes/no)
-	 * Bit 2: Boot test image
-	 * Bit 1-0: Image selection for 0 (fallback), 1 (A) and 2 (B)
-	 * Note: For IPMC revA only fallback is supported.
-	 *
-	 * Bit 3 is automatically cleared by the FSBL
-	 *
-	 * Step 2) If no forced boot is required then byte 2 of the MAC EEPROM is read and the
-	 * same 4 bits are read. Bit 3 is ignored because the EEPROM cannot force a boot.
-	 *
-	 * After boot bits 26:24 in REBOOT_STATUS will reflect the image that got loaded.
-	 */
-
-	/* Understand if this is part of an IPMC reset command */
-	forcedBoot = get_tag() & 0x8;
-
-	/* Check IPMC hardware revision */
-	u32 revision = get_ipmc_hw_rev();
-	if (revision == 0xff) {
-		fsbl_printf(DEBUG_GENERAL,"Failed to retrieve IPMC hardware revision, assuming revA\r\n");
-		revision = 0;
-	}
-	fsbl_printf(DEBUG_INFO,"IPMC rev%c detected\r\n", (u8)revision + 'A');
-
-	/* Check the target image to load */
-	if (forcedBoot == 0) {
-		/* Pick target image from EEPROM */
-		curImage = get_ipmc_target_image();
-		if (curImage == 0xff) {
-			fsbl_printf(DEBUG_GENERAL,"Failed to read target image from SPI EEPROM, picking fallback\r\n");
-			curImage = 0;
-		}
-		fsbl_printf(DEBUG_INFO,"EEPROM set to boot image 0x%02x\r\n", curImage);
-	} else {
-		curImage = get_tag() & 0x7;
-		fsbl_printf(DEBUG_INFO,"Forced reboot mode set to boot image 0x%02x\r\n", curImage);
-	}
-
-	/* Validation */
-	if (revision == 0) {
-		curImage = 0; /* QSPI in revA is only 16MB */
-		imageMain = 0;
-	} else if (revision == 1) {
-		/* 3rd bit of curImage will indicate the test image */
-		imageMain = curImage & 0x03;
-
-		if (imageMain > 2) {
-			fsbl_printf(DEBUG_GENERAL,"Target image is outside allowed range, defaulting to fallback\r\n");
-			imageMain = 0;
-			curImage = 0;
-		} else {
-			if (curImage & 0x04) {
-				curImage = 3; /* Test image, main image will allow us to fallback to the correct one in case of failure */
-			}
-		}
-	}
-	fsbl_printf(DEBUG_INFO,"Will attempt to boot image %d (%s)\r\n", curImage, (revision != 0)?imageNames[curImage]:"A");
-
-	/* Set default tag */
-	set_tag(0x7);
-
-	fsbl_printf(DEBUG_INFO,"\r\n");
 
 	/*
 	 * Read bootmode register
@@ -637,32 +569,111 @@ int main(void)
 	 */
 	XWdtPs_RestartWdt(&Watchdog);
 #endif
+
+	fsbl_printf(DEBUG_INFO,"\r\n");
+
+	/**
+	 * Deciding what image will boot happens in two steps:
+	 * Step 1) Check the REBOOT_STATUS low nibble bits (bits 27:24).
+	 * The IPMC SW can set these bits to force a specific image to load during a reboot.
+	 * Bit 3 Force reboot (yes/no)
+	 * Bit 2: Boot test image
+	 * Bit 1-0: Image selection for 0 (fallback), 1 (A) and 2 (B)
+	 * Note: For IPMC revA only fallback is supported.
+	 *
+	 * Bit 3 is automatically cleared by the FSBL.
+	 *
+	 * Step 2) If no forced boot is required then byte 2 of the MAC EEPROM is read and the
+	 * same 4 bits are read. Bit 3 is ignored because the EEPROM cannot force a boot.
+	 *
+	 * After boot bits 26:24 in REBOOT_STATUS will reflect the image that got loaded.
+	 */
+
+	/* Check IPMC hardware revision */
+	u32 revision = get_ipmc_hw_rev();
+	if (revision == 0xff) {
+		fsbl_printf(DEBUG_GENERAL,"Failed to retrieve IPMC hardware revision, assuming revA\r\n");
+		revision = 0;
+	}
+	fsbl_printf(DEBUG_INFO,"IPMC rev%c detected\r\n", (u8)revision + 'A');
+
+	if (is_forced_boot()) {
+		targetRecord = get_bootreg_record();
+		fsbl_printf(DEBUG_INFO,"Forced reboot mode set to boot image 0x%02x (possible image load fail)\r\n", targetRecord);
+	} else {
+		/* No, so pick target image from EEPROM */
+		targetRecord = get_eeprom_boot_record();
+		fsbl_printf(DEBUG_INFO,"EEPROM set to boot image 0x%02x\r\n", targetRecord);
+	}
+
+	/* Validate the boot record */
+	if (!is_record_valid(targetRecord)) {
+		fsbl_printf(DEBUG_GENERAL,"Failed to parse intended target image, defaulting to fallback\r\n");
+		targetRecord = 0;
+	}
+
+	/* Revision adjustments */
+	if (revision == 0) {
+		targetRecord = 0; /* QSPI in revA is only 16MB, only one image supported */
+	}
+
+	targetImage = get_final_boot_target(targetRecord);
+
+	fsbl_printf(DEBUG_INFO,"Will attempt to boot image %d (%s)\r\n", targetImage, imageNames[targetImage]);
+
+	/* Check if we are on the correct partition */
+	if (ReadBankSelect(&BankSel) != XST_SUCCESS) {
+		fsbl_printf(DEBUG_GENERAL,"Failed to read current flash partition\r\n");
+	}
+	fsbl_printf(DEBUG_INFO,"Current selected flash partition is %d\r\n", BankSel);
+
+	if (BankSel != targetImage) {
+		/* Partition swap will be required, check if it is a valid image before continuing */
+		if (verify_image(targetImage) == XST_SUCCESS) {
+			/* Image is valid, select image and reboot */
+			SendBankSelect(targetImage);
+			FsblFallback();
+		} else {
+			/* Image is not valid */
+			if (is_test_image(targetRecord)) {
+				fsbl_printf(DEBUG_GENERAL,"Desired image %d (%s) seems corrupt, booting regular image instead.\r\n", targetImage, imageNames[targetImage]);
+				targetRecord = get_eeprom_boot_record(); // Use the EEPROM target image here instead
+				targetImage = get_regular_boot_target(targetRecord);
+				if (verify_image(targetImage) == XST_SUCCESS) {
+					SendBankSelect(targetImage);
+					set_bootreg_tag(TRUE, FALSE, targetImage);
+					FsblFallback();
+				} else {
+					fsbl_printf(DEBUG_GENERAL,"Regular image %d (%s) seems corrupt, booting fallback instead.\r\n", targetImage, imageNames[targetImage]);
+					SendBankSelect(0);
+					set_bootreg_tag(TRUE, FALSE, 0);
+					FsblFallback();
+				}
+			} else {
+				fsbl_printf(DEBUG_GENERAL,"Desired image %d (%s) seems corrupt, booting fallback instead.\r\n", targetImage, imageNames[targetImage]);
+				SendBankSelect(0);
+				set_bootreg_tag(TRUE, FALSE, 0);
+				FsblFallback();
+			}
+		}
+	}
+
+	/* All checks regarding the boot targets have passed, this is the image we want to boot */
+	if (is_test_image(targetRecord)) set_bootreg_tag(FALSE, TRUE, get_regular_boot_target(targetRecord));
+	else set_bootreg_tag(FALSE, FALSE, targetImage);
+
+	fsbl_printf(DEBUG_INFO,"\r\n");
+
 	/*
 	 * Load boot image
 	 */
-	do {
-		Status = bootAndHandoff();
+	Status = bootAndHandoff();
 
-		if (Status == XST_FAILURE) {
-			/* Failed to boot and handoff, attempt another image */
-			prevImage = curImage;
+	if ((get_final_boot_target(targetRecord) == 0) && (Status != XST_SUCCESS)) {
+		fsbl_printf(DEBUG_INFO,"\r\n!!!! Fallback image seems corrupt, aborting boot !!!!\r\n");
 
-			if (curImage == 3) {
-				/* Test image loading failed, attempt to load main image */
-				curImage = imageMain;
-			} else if (curImage == imageMain) {
-				/* Main image loading failed, attempt to load previous main image */
-				if (imageMain == 0) break;
-				else if (imageMain == 1) curImage = 2;
-				else curImage = 1;
-			} else {
-				curImage = 0;
-			}
-
-			fsbl_printf(DEBUG_GENERAL,"Unable to load image %d (%s), trying image %d(%s)\r\n",
-					prevImage, imageNames[prevImage], curImage, imageNames[curImage]);
-		}
-	} while (prevImage != 0);
+		while(1);
+	}
 
 	FsblFallback();
 
@@ -686,10 +697,10 @@ u32 bootAndHandoff() {
 	/*
 	 * Load boot image
 	 */
-	HandoffAddress = LoadBootImage(IMAGE_NUMBER_TO_ADDRESS(curImage));
+	HandoffAddress = LoadBootImage(IMAGE_NUMBER_TO_ADDRESS(targetImage));
 
 	if (HandoffAddress == 0xffffffff) {
-		fsbl_printf(DEBUG_INFO,"Failed to load image at address 0x%08x\r\n", IMAGE_NUMBER_TO_ADDRESS(curImage));
+		fsbl_printf(DEBUG_INFO,"Failed to load image at address 0x%08x\r\n", IMAGE_NUMBER_TO_ADDRESS(targetImage));
 		return XST_FAILURE;
 	}
 
@@ -703,12 +714,6 @@ u32 bootAndHandoff() {
 	fsbl_printf(DEBUG_GENERAL,"Total Execution time is ");
 	FsblMeasurePerfTime(tCur,tEnd);
 #endif
-
-	if (curImage == 3) {
-		set_tag((imageMain & 0x3) | 0x4);
-	} else {
-		set_tag(curImage);
-	}
 
 	/*
 	 * FSBL handoff to valid handoff address or
@@ -759,7 +764,8 @@ void FsblFallback(void)
 	/*
 	 * update the Multiboot Register for Golden search hunt
 	 */
-	Update_MultiBootRegister();
+	// We don't want this, it will make the boot address drift everytime we fallback
+	//Update_MultiBootRegister();
 
 	/*
 	 * Notify Boot ROM something is wrong
@@ -1153,45 +1159,6 @@ static void FIQ_Handler (void)
 	fsbl_printf(DEBUG_GENERAL,"FIQ_HANDLER \r\n");
 	ErrorLockdown (EXCEPTION_ID_FIQ_INT);
 }
-
-
-/******************************************************************************/
-/**
-*
-* This function Updates the Multi boot Register to enable golden image
-* search for boot rom
-*
-* @param None
-*
-* @return
-* return  none
-*
-****************************************************************************/
-static void Update_MultiBootRegister(void)
-{
-	u32 MultiBootReg = 0;
-
-	if (Silicon_Version != SILICON_VERSION_1) {
-		/*
-		 * Read the mulitboot register
-		 */
-		MultiBootReg =	XDcfg_ReadReg(DcfgInstPtr->Config.BaseAddr,
-					XDCFG_MULTIBOOT_ADDR_OFFSET);
-
-		/*
-		 * Incrementing multiboot register by one
-		 */
-		MultiBootReg++;
-
-		XDcfg_WriteReg(DcfgInstPtr->Config.BaseAddr,
-				XDCFG_MULTIBOOT_ADDR_OFFSET,
-				MultiBootReg);
-
-		fsbl_printf(DEBUG_INFO,"Updated MultiBootReg = 0x%08lx\r\n",
-				MultiBootReg);
-	}
-}
-
 
 /******************************************************************************
 *

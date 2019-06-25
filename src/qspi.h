@@ -116,6 +116,7 @@ u32 QspiAccess( u32 SourceAddress,
 
 u32 FlashReadID(void);
 u32 SendBankSelect(u8 BankSel);
+u32 ReadBankSelect(u8 *BankSel);
 /************************** Variable Definitions *****************************/
 
 

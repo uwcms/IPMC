@@ -776,6 +776,7 @@ u32 QspiAccess( u32 SourceAddress, u32 DestinationAddress, u32 LengthBytes)
 u32 SendBankSelect(u8 BankSel)
 {
 	u32 Status;
+	u8 CurBank;
 
 	/*
 	 * bank select commands for Micron and Spansion are different
@@ -824,6 +825,35 @@ u32 SendBankSelect(u8 BankSel)
 	/*
 	 * For testing - Read bank to verify
 	 */
+	Status = ReadBankSelect(&CurBank);
+	if (Status != XST_SUCCESS) {
+		return XST_FAILURE;
+	}
+
+	if (CurBank != BankSel) {
+		fsbl_printf(DEBUG_INFO, "BankSel %d != Register Read %d\n\r", BankSel,
+				ReadBuffer[1]);
+		return XST_FAILURE;
+	}
+
+	return XST_SUCCESS;
+}
+
+/******************************************************************************
+*
+* This functions selects the current bank
+*
+* @param	BankSel is the bank selected in the flash device(s).
+*
+* @return	XST_SUCCESS if bank selected
+*			XST_FAILURE if selection failed
+* @note		None.
+*
+******************************************************************************/
+u32 ReadBankSelect(u8 *BankSel)
+{
+	u32 Status;
+
 	if (QspiFlashMake == SPANSION_ID) {
 		WriteBuffer[COMMAND_OFFSET]   = BANK_REG_RD;
 		WriteBuffer[ADDRESS_1_OFFSET] = 0x00;
@@ -854,13 +884,10 @@ u32 SendBankSelect(u8 BankSel)
 		}
 	}
 
-	if (ReadBuffer[1] != BankSel) {
-		fsbl_printf(DEBUG_INFO, "BankSel %d != Register Read %d\n\r", BankSel,
-				ReadBuffer[1]);
-		return XST_FAILURE;
-	}
+	*BankSel = ReadBuffer[1];
 
 	return XST_SUCCESS;
 }
+
 #endif
 
