@@ -53,6 +53,9 @@ public:
 			xSemaphoreTake(psdone, portMAX_DELAY);
 			vSemaphoreDelete(psdone);
 
+			if (qspiflash != nullptr)
+				SPIFlash::ResetBank(qspiflash);
+
 			console->write("Restarting...\n");
 			vTaskDelay(pdMS_TO_TICKS(100));
 
