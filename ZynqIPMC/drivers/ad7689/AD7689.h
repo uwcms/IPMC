@@ -13,17 +13,19 @@
 #include <services/console/CommandParser.h>
 #include "ad7689_s.h"
 
-class AD7689 : public ADC {
+class AD7689 final : public ADC {
 public:
-	AD7689(uint16_t DeviceId, uint32_t SlaveInterface = 0);
+	AD7689(uint16_t DeviceId, const std::string &Name, uint32_t SlaveInterface = 0);
 	virtual ~AD7689();
 
 	void setSamplingFrequency(uint32_t hz);
 	float getTemperature();
 
-	virtual uint16_t getRawReading(uint8_t channel) const;
-	virtual float convertReading(uint16_t raw_reading) const;
-	virtual uint16_t convertReading(float reading) const;
+	virtual const uint32_t readRaw(size_t channel) const;
+	virtual const float readVolts(size_t channel) const;
+
+	virtual const uint32_t voltsToRaw(float volts) const;
+	virtual const float rawToVolts(uint32_t raw) const;
 
 	void register_console_commands(CommandParser &parser, const std::string &prefix="");
 	void deregister_console_commands(CommandParser &parser, const std::string &prefix="");

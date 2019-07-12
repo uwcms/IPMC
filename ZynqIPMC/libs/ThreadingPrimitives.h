@@ -242,6 +242,7 @@ protected:
 	const SemaphoreHandle_t mutex; ///< The mutex managed.
 };
 
+// TODO: Revise where this gets used
 /**
  * A ScopedGuard servicing FreeRTOS critical sections.
  *

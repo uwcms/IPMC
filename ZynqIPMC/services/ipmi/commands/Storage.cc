@@ -1,3 +1,4 @@
+#include <Core.h>
 #include <services/ipmi/IPMI.h>
 #include <services/ipmi/ipmbsvc/IPMBSvc.h>
 #include <services/ipmi/sdr/SensorDataRepository.h>

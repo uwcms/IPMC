@@ -151,6 +151,8 @@ namespace PersistentStorageAllocations {
 	PERSISTENT_STORAGE_ALLOCATE(0x0102, WISC_INFLUXDB_CONFIG); ///< InfluxDB configuration
 	PERSISTENT_STORAGE_ALLOCATE(0x0103, WISC_NETWORK_AUTH); ///< Auth configuration for network services
 	PERSISTENT_STORAGE_ALLOCATE(0x0104, WISC_FRU_DATA); ///< The FRU Data Area
+	/* Application specific, not a vendor */
+	PERSISTENT_STORAGE_ALLOCATE(0xFE00, APPLICATION_CONFIG); ///< For application configuration
 };
 
 #undef PERSISTENT_STORAGE_ALLOCATE

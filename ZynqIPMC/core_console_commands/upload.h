@@ -43,11 +43,11 @@ public:
 		size_t timeout_sec = 5 + (size / 10000); // Will wait 5 seconds plus 1 second for every 10kByte.
 
 		// Discard any incoming window size data, etc.
-		uart_ps0->clear();
+		psuart0->clear();
 		console->write("Reading incoming serial stream for " + std::to_string(timeout_sec) + " seconds..\n");
 
 		// Read the file from serial
-		size_t bytesread = uart_ps0->read(buf.get(), size, portMAX_DELAY, configTICK_RATE_HZ * timeout_sec);
+		size_t bytesread = psuart0->read(buf.get(), size, portMAX_DELAY, configTICK_RATE_HZ * timeout_sec);
 
 		if (bytesread != size) {
 			console->write("Failed to read all bytes from the stream, only " + std::to_string(bytesread) + " bytes were read.\n");

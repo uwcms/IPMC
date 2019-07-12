@@ -105,7 +105,7 @@ protected:
 		 * @param prompt The prompt to be used by this input buffer.
 		 * @param maxlen The maximum size limit to this buffer.
 		 */
-		InputBuffer(std::string prompt, size_type maxlen=0) : cursor(0), prompt(prompt), maxlen(maxlen), cols(80), rows(24), overwrite_mode(false) { };
+		InputBuffer(std::string prompt, size_type maxlen=0) : cursor(0), prompt(prompt), maxlen(maxlen), overwrite_mode(false), cols(80), rows(24) { };
 		std::string buffer; ///< The buffer.
 		size_type cursor; ///< The cursor position within the buffer.
 		std::string prompt; ///< The prompt used for this input line.

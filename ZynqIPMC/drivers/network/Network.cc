@@ -5,6 +5,22 @@
  *      Author: mpvl
  */
 
+#include <string>
+#include <sstream>
+#include <iomanip>
+
+// TODO: Needs readjustment
+static const std::string mac_to_string(const uint8_t mac[6]) {
+	std::stringstream ss;
+
+	for (size_t i = 0; i < 6; i++) {
+	    ss << "0x" << std::setfill('0') << std::setw(2) << std::hex << mac[i];
+	    if (i != 5) ss << ":";
+	}
+
+	return ss.str();
+}
+
 #include <IPMC.h>
 #include "libs/Utils.h"
 #include <string.h>
@@ -161,7 +177,7 @@ namespace {
 		}
 
 		virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
-			// See http://www.ieee802.org/3/cf/public/jan17/wilton_3cf_03_0117.pdf to added better statistics
+			// See http://www.ieee802.org/3/cf/public/jan17/wilton_3cf_03_0117.pdf to add better statistics
 			static uint64_t rxbytes = 0, txbytes = 0;
 			static uint32_t emac_cksum_err = 0;
 
@@ -176,7 +192,7 @@ namespace {
 			txbytes += (txbytes_h << 32) | txbytes_l;
 
 			console->write(std::string("Network status: Link is ") + (pNetworkInstance->isLinkUp()?"UP":"DOWN")+ ", interface is " + (pNetworkInstance->isInterfaceUp()?"UP":"DOWN") + "\n");
-			console->write( stdsprintf("MAC Address: %02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx\n", mac_address[0], mac_address[1], mac_address[2], mac_address[3], mac_address[4], mac_address[5]));
+			console->write(std::string("MAC Address: ") + mac_to_string(network.mac) + "\n");
 			console->write(std::string("IP Address:  ") + pNetworkInstance->getIPString() + "\n");
 			console->write(std::string("Netmask:     ") + pNetworkInstance->getNetmaskString() + "\n");
 			console->write(std::string("Gateway:     ") + pNetworkInstance->getGatewayString() + "\n");

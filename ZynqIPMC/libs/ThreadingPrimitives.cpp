@@ -308,6 +308,7 @@ static void uwtask_run(void *stdfunc_cb) {
 	vTaskDelete(NULL);
 }
 
+// TODO: Rename function
 /**
  * Runs the supplied std::function in a new thread, cleaning up the thread when it
  * returns.
@@ -325,7 +326,7 @@ TaskHandle_t UWTaskCreate(const std::string name, BaseType_t priority, std::func
 	if (pdFAIL == xTaskCreate(
 			uwtask_run,
 			name.c_str(),
-			(stack_words ? stack_words : UWIPMC_STANDARD_STACK_SIZE) + 40 /* UWTaskCreate wrappers/etc consume 40 words of stack */,
+			(stack_words ? stack_words : ZYNQIPMC_BASE_STACK_SIZE) + 40 /* UWTaskCreate wrappers/etc consume 40 words of stack */,
 			new std::function<void(void)>(thread_func),
 			priority,
 			&handle))

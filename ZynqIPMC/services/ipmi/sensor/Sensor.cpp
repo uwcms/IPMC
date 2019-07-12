@@ -15,6 +15,7 @@
 #include <libs/printf.h>
 #include <libs/except.h>
 #include <IPMC.h>
+#include <Core.h>
 #include <math.h>
 
 /**
@@ -47,9 +48,9 @@ void Sensor::send_event(enum EventDirection direction, const std::vector<uint8_t
 		return;
 	}
 
-	EventReceiver er;
+	IPMBSvc::EventReceiver er;
 	CriticalGuard critical(true);
-	memcpy(&er, &ipmi_event_receiver, sizeof(EventReceiver));
+	memcpy(&er, &ipmi_event_receiver, sizeof(IPMBSvc::EventReceiver));
 	critical.release();
 
 	if (!ipmi_event_receiver.ipmb || ipmi_event_receiver.addr == 0xFF /* Disabled */) {

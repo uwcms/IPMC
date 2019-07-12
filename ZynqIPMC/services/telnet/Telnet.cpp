@@ -6,6 +6,7 @@
  */
 
 #include <IPMC.h>
+#include <Core.h>
 #include <FreeRTOS.h>
 #include <task.h>
 
@@ -31,7 +32,7 @@ void _thread_telnetd(void *p) {
 TelnetServer::TelnetServer(LogTree &logtree)
 	: logtree(logtree) {
 	this->connection_pool_limiter = xSemaphoreCreateCounting(50,50);
-	xTaskCreate(_thread_telnetd, "telnetd", UWIPMC_STANDARD_STACK_SIZE, this, TASK_PRIORITY_SERVICE, NULL);
+	xTaskCreate(_thread_telnetd, "telnetd", ZYNQIPMC_BASE_STACK_SIZE, this, TASK_PRIORITY_SERVICE, NULL);
 }
 
 TelnetServer::~TelnetServer() {
@@ -64,6 +65,9 @@ void TelnetServer::thread_telnetd() {
 		// Launch a new telnet instance if client is valid
 
 		TelnetClient *c = new TelnetClient(client, this->logtree, this->connection_pool_limiter);
+		if (c == nullptr) {
+			throw std::runtime_error("Failed to create Telnet client instance");
+		}
 	}
 
 	vTaskDelete(NULL);
@@ -81,7 +85,7 @@ TelnetClient::TelnetClient(std::shared_ptr<Socket> s, LogTree &logtree, Semaphor
 	CriticalGuard critical(true);
 	this->session_serial = this->next_session_serial++;
 	critical.release();
-	xTaskCreate(_thread_telnetc, stdsprintf("telnetd.%x", this->session_serial).c_str(), UWIPMC_STANDARD_STACK_SIZE, this, TASK_PRIORITY_INTERACTIVE, NULL);
+	xTaskCreate(_thread_telnetc, stdsprintf("telnetd.%lx", this->session_serial).c_str(), ZYNQIPMC_BASE_STACK_SIZE, this, TASK_PRIORITY_INTERACTIVE, NULL);
 }
 
 namespace {
@@ -162,12 +166,12 @@ void TelnetClient::thread_telnetc() {
 	//AbsoluteTimeout unauthenticated_timeout(60 * configTICK_RATE_HZ);
 
 	const SocketAddress &addr = this->socket->getSocketAddress();
-	LogTree &log = this->logtree[stdsprintf("%s:%hu-%x", addr.getAddress().c_str(), addr.getPort(), this->session_serial)];
+	LogTree &log = this->logtree[stdsprintf("%s:%hu-%lx", addr.getAddress().c_str(), addr.getPort(), this->session_serial)];
 	log.log(stdsprintf("Telnet connection received from %s:%hu", addr.getAddress().c_str(), addr.getPort()), LogTree::LOG_INFO);
 
 	uint64_t bptimeout = TelnetClient::get_badpass_timeout();
 	if (bptimeout) {
-		this->socket->send(stdsprintf("This service is currently unavailable for %u seconds due to excessive password failures.\r\n", bptimeout/configTICK_RATE_HZ));
+		this->socket->send(stdsprintf("This service is currently unavailable for %llu seconds due to excessive password failures.\r\n", bptimeout/configTICK_RATE_HZ));
 		log.log(stdsprintf("Telnet connection from %s:%hu rejected", addr.getAddress().c_str(), addr.getPort()), LogTree::LOG_INFO);
 		delete &log;
 		delete this;
@@ -206,7 +210,7 @@ void TelnetClient::thread_telnetc() {
 
 		bptimeout = TelnetClient::get_badpass_timeout();
 		if (bptimeout) {
-			this->socket->send(stdsprintf("This service is currently unavailable for %u seconds due to excessive password failures.\r\n", bptimeout/configTICK_RATE_HZ));
+			this->socket->send(stdsprintf("This service is currently unavailable for %llu seconds due to excessive password failures.\r\n", bptimeout/configTICK_RATE_HZ));
 			log.log(stdsprintf("Telnet connection from %s:%hu rejected", addr.getAddress().c_str(), addr.getPort()), LogTree::LOG_INFO);
 			delete &log;
 			break;
@@ -235,7 +239,7 @@ void TelnetClient::thread_telnetc() {
 						this->socket,
 						proto,
 						*telnet_command_parser,
-						stdsprintf("telnetd.%x", this->session_serial),
+						stdsprintf("telnetd.%lx", this->session_serial),
 						log,
 						true,
 						4,

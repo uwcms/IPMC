@@ -117,7 +117,7 @@ void SensorProcessor::_InterruptHandler() {
 		if (evt.event_thresholds_assert || evt.event_thresholds_deassert) {
 			IPMI_Sensor_Proc_Rearm_Event_Enable(&this->processor, channel, evt.event_thresholds_assert, evt.event_thresholds_deassert);
 			evt.channel = channel;
-			evt.reading_from_isr = (uint16_t)(*this->adc_channel_map[channel]);
+			evt.reading_from_isr = this->adc_channel_map[channel]->readRaw();
 			this->isr_events_received.increment();
 			xQueueSendFromISR(this->isrq, &evt, &higher_priority_woken);
 		}

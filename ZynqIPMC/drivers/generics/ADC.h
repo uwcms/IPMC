@@ -9,43 +9,64 @@
 #define SRC_COMMON_UW_IPMC_DRIVERS_GENERICS_ADC_H_
 
 #include <stdint.h>
+#include <string>
 
 class ADC {
 public:
-	virtual float getReading (uint8_t channel) const final { return this->convertReading(this->getRawReading(channel)); };
-	virtual uint16_t getRawReading(uint8_t channel) const = 0;
-	virtual float convertReading(uint16_t raw_reading) const = 0;
-	virtual uint16_t convertReading(float reading) const = 0;
+	ADC(uint8_t precision, const std::string &identifier = "Unknown") : kPrecision(precision), kIdentifier(identifier) {};
 
+	virtual const uint32_t readRaw(size_t channel) const = 0;
+	virtual const float readVolts(size_t channel) const = 0;
+
+	virtual const uint32_t voltsToRaw(float volts) const = 0;
+	virtual const float rawToVolts(uint32_t raw) const = 0;
+
+	inline const uint8_t getPrecision() { return kPrecision; };
+	inline const std::string& getIdentifier() { return kIdentifier; };
+
+private:
+	const uint8_t kPrecision;		///< Maximum value when using readRaw().
+	const std::string kIdentifier;	///< Name/identifier of the ADC, used to print channel info.
+
+public:
 	class Channel {
 	public:
 		using Callback = float (*)(float);
-		Channel(ADC& adc, uint8_t channel, float factor = 1.0) : adc(adc), channel(channel), factor(factor) {};
-		Channel(ADC& adc, uint8_t channel, Callback callback, Callback callback_reverse) : adc(adc), channel(channel), callback(callback), callback_reverse(callback_reverse) { };
-		explicit operator float() const {
-			return convert_from_raw(this->adc.getRawReading(this->channel));
+
+		Channel(ADC &adc, size_t channel, float factor = 1.0) : adc(adc), kChannel(channel), factor(factor) {};
+		Channel(ADC &adc, size_t channel, Callback factorFn, Callback revFactorFn) : adc(adc), kChannel(channel), factorFn(factorFn), revFactorFn(revFactorFn) {};
+
+		inline const uint32_t readRaw() const { return adc.readRaw(this->kChannel); };
+		inline const float readFloat() const {
+			return this->rawToFloat(this->adc.readRaw(this->kChannel));
 		};
-		explicit operator uint16_t() const {
-			return this->adc.getRawReading(this->channel);
-		}
-		float convert_from_raw(uint16_t r) const {
-			float v = this->adc.convertReading(r);
-			if (this->callback)
-				return this->callback(v);
-			return v * this->factor;
+
+		float rawToFloat(uint32_t raw) const {
+			float volts = this->adc.rawToVolts(raw);
+			if (this->factorFn) {
+				return this->factorFn(volts);
+			} else {
+				return volts * this->factor;
+			}
 		};
-		uint16_t convert_to_raw(float v) const {
-			if (this->callback_reverse)
-				return this->adc.convertReading(this->callback_reverse(v));
-			return this->adc.convertReading(v / this->factor);
+
+		uint32_t floatToRaw(float f) const {
+			if (this->revFactorFn) {
+				return this->adc.voltsToRaw(this->revFactorFn(f));
+			} else {
+				return this->adc.voltsToRaw(f / this->factor);
+			}
 		}
-		inline uint8_t getChannel() const { return this->channel; };
+
+		inline ADC& getADC() const { return this->adc; };
+		inline size_t getChannelNumber() const { return this->kChannel; };
+
 	private:
 		ADC& adc;
-		uint8_t channel;
-		Callback callback = nullptr;
-		Callback callback_reverse = nullptr;
-		float factor = 1.0;
+		const size_t kChannel;
+		float factor = 1.0;				///< Used if ADC has a linear conversion.
+		Callback factorFn = nullptr;	///< Used if the ADC has a non-linear conversion.
+		Callback revFactorFn = nullptr;	///< Used to reverse the non-linear conversion.
 	};
 };
 

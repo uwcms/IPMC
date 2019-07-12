@@ -9,6 +9,7 @@
 #include <services/ipmi/sdr/SensorDataRecord01.h>
 #include <services/persistentstorage/PersistentStorage.h>
 #include <IPMC.h>
+#include <Core.h>
 #include <PayloadManager.h>
 #include "IPMICmd_Index.h"
 

@@ -8,12 +8,9 @@
 #include <drivers/ad7689/AD7689.h>
 #include <services/console/ConsoleSvc.h>
 
-#define ADC_RAW_TO_V(v) ((float)(v) * 2500.0 / 65535.0 / 1000.0)
-#define V_TO_ADC_RAW(v) ((uint16_t)((v) / 2500.0 * 65545.0 * 1000.0))
-#define ADC_V_TO_C(v) ((v) * 25000.0 / 283.0)
+AD7689::AD7689(uint16_t DeviceId, const std::string &Name, uint32_t SlaveInterface) :
+ADC(16, Name), SlaveInterface(SlaveInterface) {
 
-AD7689::AD7689(uint16_t DeviceId, uint32_t SlaveInterface) :
-SlaveInterface(SlaveInterface) {
 	// Initialize the low level driver
 	configASSERT(XST_SUCCESS == AD7689_S_Initialize(&(this->adc), DeviceId));
 
@@ -31,22 +28,26 @@ void AD7689::setSamplingFrequency(uint32_t hz) {
 
 float AD7689::getTemperature() {
 	// Channel 8 is the internal temperature monitor
-	return ADC_V_TO_C(this->getReading(8));
+	return this->readVolts(8) * 25000.0 / 283.0;
 }
 
-uint16_t AD7689::getRawReading(uint8_t channel) const {
+const uint32_t AD7689::readRaw(size_t channel) const {
 	uint16_t val;
 	// TODO: Throw if invalid channel
 	AD7689_S_Get_Reading(&(this->adc), this->SlaveInterface, channel, &val);
 	return val;
 }
 
-float AD7689::convertReading(uint16_t raw_reading) const {
-	return ADC_RAW_TO_V(raw_reading);
+const float AD7689::readVolts(size_t channel) const {
+	return this->rawToVolts(this->readRaw(channel));
 }
 
-uint16_t AD7689::convertReading(float reading) const {
-	return V_TO_ADC_RAW(reading);
+const uint32_t AD7689::voltsToRaw(float volts) const {
+	return ((uint16_t)((volts) / 2500.0 * 65545.0 * 1000.0));
+}
+
+const float AD7689::rawToVolts(uint32_t raw) const {
+	return ((float)(raw) * 2500.0 / 65535.0 / 1000.0);
 }
 
 /// A "adc.override" console command.

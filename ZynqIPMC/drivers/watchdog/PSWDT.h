@@ -19,7 +19,7 @@
  */
 class PS_WDT {
 public:
-	PS_WDT(u32 DeviceId, u8 num_slots, LogTree &log, std::function<void(void)> on_trip=NULL);
+	PS_WDT(u32 DeviceId, u8 num_slots, LogTree &log, std::function<void(void)> on_trip = nullptr);
 	virtual ~PS_WDT();
 
 	typedef uint32_t slot_handle_t; ///< A type for watchdog slot handles.

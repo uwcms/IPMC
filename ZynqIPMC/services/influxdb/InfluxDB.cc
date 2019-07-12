@@ -7,6 +7,7 @@
 
 // TODO: Consider implementing retries if failed to push metrics
 
+#include <Core.h>
 #include "InfluxDB.h"
 #include <semphr.h>
 #include <task.h>

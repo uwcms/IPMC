@@ -83,8 +83,12 @@ public:
 	/// Get the number of hardfault inputs on this MZ controller.
 	virtual u32 get_hardfault_count() const { return this->zone.hf_cnt; };
 
+	inline void set_name(const std::string &name) { this->name = name; };
+	inline const std::string& get_name() const { return this->name; };
+
 protected:
 	Mgmt_Zone_Ctrl zone; ///< The Mgmt_Zone_Ctrl instance.
+	std::string name;
 	bool _desired_power_state;
 	uint64_t _last_transition_start_ts; ///< The timestamp of the start of the last transition.
 };

@@ -61,6 +61,15 @@ public:
 	virtual void register_console_commands(CommandParser &parser, const std::string &prefix="");
 	virtual void deregister_console_commands(CommandParser &parser, const std::string &prefix="");
 
+	/**
+	 * TODO
+	 */
+	typedef struct {
+		IPMBSvc *ipmb;
+		uint8_t lun;
+		uint8_t addr;
+	} EventReceiver;
+
 protected:
 	/**
 	 * A record representing a message in the outgoing message queue.

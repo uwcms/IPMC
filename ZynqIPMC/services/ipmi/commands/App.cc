@@ -3,6 +3,7 @@
 #include <services/ipmi/sdr/SensorDataRepository.h>
 #include "IPMICmd_Index.h"
 #include <IPMC.h>
+#include <Core.h>
 
 // IPM Device “Global” Commands
 

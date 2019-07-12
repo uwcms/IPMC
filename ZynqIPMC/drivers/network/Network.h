@@ -58,12 +58,12 @@ public:
 
 	const unsigned int DHCP_TIMEOUT_SEC = 20; ///< DHCP timeout in seconds
 
-private:
+public: // TODO: Make private
 	uint8_t mac[6]; ///< The MAC address used to configure lwIP
 
 	struct netif netif;
 
-public:
+public: // TODO: Make private
 	void thread_network_start(); ///< \protected Internal. Do not use.
 	LogTree &logtree; ///<\protected Internal. Do not use.
 };

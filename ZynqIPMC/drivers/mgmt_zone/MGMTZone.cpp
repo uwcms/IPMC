@@ -21,7 +21,7 @@
  * @param MZNo The number of the MZ within its controller.
  */
 MGMT_Zone::MGMT_Zone(u16 DeviceId, u32 MZNo)
-	: DeviceId(DeviceId), MZNo(MZNo), _desired_power_state(false), _last_transition_start_ts(0) {
+	: DeviceId(DeviceId), MZNo(MZNo), name(""), _desired_power_state(false), _last_transition_start_ts(0) {
 	if (XST_SUCCESS != Mgmt_Zone_Ctrl_Initialize(&this->zone, DeviceId))
 		throw except::hardware_error(stdsprintf("Unable to initialize MGMT_Zone(%hu, %lu)", DeviceId, MZNo));
 }
