@@ -18,7 +18,7 @@
 #include <deque>
 #include <vector>
 #include <drivers/InterruptBasedDriver.h>
-#include <drivers/generics/ADC.h>
+#include <drivers/generics/adc.h>
 #include <libs/StatCounter.h>
 
 class SensorProcessor : protected InterruptBasedDriver {

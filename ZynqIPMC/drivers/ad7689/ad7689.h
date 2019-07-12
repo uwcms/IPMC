@@ -19,12 +19,11 @@
 #define SRC_COMMON_ZYNQIPMC_DRIVERS_AD7689_AD7689_H_
 
 // Only include driver if the AD7689 is detected in the BSP.
-#if XSDK_INDEXING || __has_include(<ad7689_s.h>)
+#if XSDK_INDEXING || __has_include("ad7689_s.h")
 
 #include "ad7689_s.h"
-#include <drivers/generics/ADC.h>
+#include <drivers/generics/adc.h>
 #include <services/console/ConsoleSvc.h>
-#include <services/console/CommandParser.h>
 
 /**
  * Driver for the AD7689 PL firmware IP.
@@ -36,7 +35,7 @@ class AD7689 final : public ADC, public ConsoleCommandSupport {
 public:
 	/**
 	 * Interfaces with a single AD7689 chip through an AD7689 PL IP and slave interface.
-	 * @param device_id AD7689 device ID, normally starts at 0.
+	 * @param device_id Hardware device ID, normally XPAR_XADCPS_<>_DEVICE_ID. Check xparameters.h.
 	 * @param name Custom name to identify the ADC object.
 	 * @param slave_interface Target slave interface, defined in the firmware.
 	 * @throw std::out_of_range if slave_interface is outside range.
@@ -51,18 +50,18 @@ public:
 	//! Returns the ADC internal temperature in Celsius.
 	float getTemperature();
 
-	// From parent class ADC:
+	// From base class ADC:
 	virtual const uint32_t readRaw(size_t channel) const;
 	virtual const float readVolts(size_t channel) const;
 	virtual const uint32_t voltsToRaw(float volts) const;
 	virtual const float rawToVolts(uint32_t raw) const;
 
-	// From parent class ConsoleCommandSupport:
+	// From base class ConsoleCommandSupport:
 	virtual void registerConsoleCommands(CommandParser &parser, const std::string &prefix="");
 	virtual void deregisterConsoleCommands(CommandParser &parser, const std::string &prefix="");
 
 	//! Allows to override the ADC values from the console, useful for testing and debugging.
-	class Override : public CommandParser::Command {
+	class Override final : public CommandParser::Command {
 	public:
 		Override(AD7689 &adc) : adc(adc) { };
 		virtual std::string get_helptext(const std::string &command) const;

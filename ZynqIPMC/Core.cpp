@@ -11,10 +11,10 @@
 // TODO: Change this?
 #include <BoardPayloadManager.h>
 
-#include <drivers/ps_gpio/PSGPIO.h>
 #include <drivers/ps_spi/PSSPI.h>
 #include <drivers/ipmb/PSIPMB.h>
 #include <drivers/ipmb/IPMBPair.h>
+#include <drivers/ps_gpio/ps_gpio.h>
 #include <drivers/spi_flash/SPIFLASH.h>
 
 #include <services/console/UARTConsoleSvc.h>
@@ -105,19 +105,19 @@ void core_driver_init() {
 	configASSERT(eeprom_mac->read(0, reinterpret_cast<uint8_t*>(&IPMC_SERIAL), sizeof(IPMC_SERIAL)));
 
 	// Retrieve the hardware revision number
-	PS_GPIO gpio_hwrev(XPAR_PS7_GPIO_0_DEVICE_ID, {0}); // Only pin 0
-	IPMC_HW_REVISION = (gpio_hwrev.getBus() == 0)? 1 : 0; // Pull-down on revB
+	PSGPIO gpio_hwrev(XPAR_PS7_GPIO_0_DEVICE_ID, {0}); // Only pin 0
+	IPMC_HW_REVISION = (gpio_hwrev.getBusValue() == 0)? 1 : 0; // Pull-down on revB
 
 	// Configure the XVC pins which are assigned differently from revA to revB
-	PS_GPIO gpio_xvc_config = PS_GPIO(XPAR_PS7_GPIO_0_DEVICE_ID, {54, 55});
-	gpio_xvc_config.setDirection(0);
-	if (IPMC_HW_REVISION == 0) gpio_xvc_config.setBus(0x3);
-	else gpio_xvc_config.setBus(0x2);
+	PSGPIO gpio_xvc_config(XPAR_PS7_GPIO_0_DEVICE_ID, {54, 55});
+	gpio_xvc_config.setBusDirection(0);
+	if (IPMC_HW_REVISION == 0) gpio_xvc_config.setBusValue(0x3);
+	else gpio_xvc_config.setBusValue(0x2);
 
 #ifdef ENABLE_IPMI
 	// Retrieve the IPMB address
-	PS_GPIO gpio_ipmbaddr(XPAR_PS7_GPIO_0_DEVICE_ID, {39,40,41,45,47,48,49,50});
-	uint8_t ipmbaddr = gpio_ipmbaddr.getBus(), parity;
+	PSGPIO gpio_ipmbaddr(XPAR_PS7_GPIO_0_DEVICE_ID, {39,40,41,45,47,48,49,50});
+	uint8_t ipmbaddr = gpio_ipmbaddr.getBusValue(), parity;
 	for (size_t i = 0; i < 8; ++i) parity ^= ((ipmbaddr >> i) & 0x1);
 	// TOOD: Validate parity
 	ipmbaddr = (ipmbaddr & 0x7f) << 1; // The high HA bit on the Zone 1 connector is parity.  IPMB addr is HWaddr<<1

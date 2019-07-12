@@ -26,11 +26,11 @@ AD7689::AD7689(uint16_t device_id, const std::string &identifier, uint32_t slave
 ADC(16, identifier), kSlaveInterface(slave_interface) {
 	// Initialize the low level driver
 	if (AD7689_S_Initialize(&(this->adc), device_id) != XST_SUCCESS) {
-		throw except::hardware_error("Failed to initialize low level AD7689 driver for ADC '" + identifier + "'");
+		throw except::hardware_error("Unable to initialize AD7689(device_id=" + std::to_string(device_id) + ")");
 	}
 
 	if (slave_interface > this->adc.SlaveCount) {
-		throw std::out_of_range("Slave interface number (" + std::to_string(slave_interface) + ") for ADC '" + identifier + "' is out-of-range");
+		throw std::out_of_range("Slave interface number (" + std::to_string(slave_interface) + ") for AD7689(device_id=" + std::to_string(device_id) + ") is out-of-range");
 	}
 
 	// Apply default configurations

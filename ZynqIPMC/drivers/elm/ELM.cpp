@@ -79,10 +79,10 @@ public:
 
 	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
 		if (parameters.nargs() == 1) {
-			if ((elm.targetsel->getDirection() & 0x03) == 0x03) {
+			if ((elm.targetsel->getBusDirection() & 0x03) == 0x03) {
 				console->write("ELM override is disabled.\n");
 			} else {
-				if ((elm.targetsel->getBus() & 0x03) == 0x02) {
+				if ((elm.targetsel->getBusValue() & 0x03) == 0x02) {
 					console->write("ELM override set to sdcard.\n");
 				} else {
 					console->write("ELM override set to flash.\n");
@@ -91,13 +91,13 @@ public:
 		} else {
 			if (!parameters.parameters[1].compare("release")) {
 				// Set pins as inputs
-				elm.targetsel->setDirection(0x3);
+				elm.targetsel->setBusDirection(0x3);
 			} else if (!parameters.parameters[1].compare("sdcard")) {
-				elm.targetsel->setBus(0x2);
-				elm.targetsel->setDirection(0x0);
+				elm.targetsel->setBusValue(0x2);
+				elm.targetsel->setBusDirection(0x0);
 			} else if (!parameters.parameters[1].compare("flash")) {
-				elm.targetsel->setBus(0x0);
-				elm.targetsel->setDirection(0x0);
+				elm.targetsel->setBusValue(0x0);
+				elm.targetsel->setBusDirection(0x0);
 			} else {
 				console->write("Invalid source, see help.\n");
 			}

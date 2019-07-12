@@ -8,8 +8,8 @@
 #ifndef SRC_COMMON_UW_IPMC_DRIVERS_PS_XADC_PSXADC_H_
 #define SRC_COMMON_UW_IPMC_DRIVERS_PS_XADC_PSXADC_H_
 
+#include <drivers/generics/adc.h>
 #include <xadcps.h>
-#include <drivers/generics/ADC.h>
 
 class PS_XADC : public ADC {
 public:

@@ -8,12 +8,12 @@
 #ifndef SRC_COMMON_UW_IPMC_DRIVERS_ESM_ESM_H_
 #define SRC_COMMON_UW_IPMC_DRIVERS_ESM_ESM_H_
 
+#include <drivers/generics/gpio.h>
 #include <FreeRTOS.h>
 #include <semphr.h>
 #include <string>
 #include <libs/VFS.h>
 #include <drivers/generics/UART.h>
-#include <drivers/generics/GPIO.h>
 #include <drivers/spi_flash/SPIFLASH.h>
 #include <services/console/CommandParser.h>
 #include <services/console/ConsoleSvc.h>
