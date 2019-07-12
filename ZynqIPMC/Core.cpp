@@ -157,6 +157,8 @@ void core_service_init() {
 
 	// TODO: Change this?
 	payload_manager = new BoardPayloadManager(mstatemachine, LOG["payload_manager"]);
+	payload_manager->Config();
+
 	payload_manager->register_console_commands(console_command_parser, "payload.");
 	// IPMC Sensors have been instantiated already, so we can do this linkage now.
 	payload_manager->refresh_sensor_linkage();
