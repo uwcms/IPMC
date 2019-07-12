@@ -8,11 +8,11 @@
 #ifndef SRC_COMMON_ZYNQIPMC_PAYLOADMANAGER_H_
 #define SRC_COMMON_ZYNQIPMC_PAYLOADMANAGER_H_
 
+#include <drivers/ad7689/ad7689.h>
 #include <services/ipmi/MStateMachine.h>
 #include <services/console/ConsoleSvc.h>
 #include <drivers/mgmt_zone/MGMTZone.h>
 #include <drivers/generics/ADC.h>
-#include <drivers/ad7689/AD7689.h>
 #include <drivers/sensorprocessor/SensorProcessor.h>
 #include <services/ipmi/sensor/ThresholdSensor.h>
 #include <services/ipmi/sensor/SeveritySensor.h>

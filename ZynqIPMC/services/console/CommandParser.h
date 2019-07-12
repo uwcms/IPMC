@@ -204,4 +204,10 @@ public:
 	CommandParser *chain; ///< A chained command parser used for unknown commands if not NULL.
 };
 
+class ConsoleCommandSupport {
+public:
+	virtual void registerConsoleCommands(CommandParser &parser, const std::string &prefix="") = 0;
+	virtual void deregisterConsoleCommands(CommandParser &parser, const std::string &prefix="") = 0;
+};
+
 #endif /* SRC_COMMON_UW_IPMC_LIBS_COMMANDPARSER_H_ */
