@@ -59,7 +59,8 @@ PS_IPMB::~PS_IPMB() {
  * Configure the device in slave mode and initiate receiving.
  */
 void PS_IPMB::setup_slave() {
-	while (XIicPs_BusIsBusy(&this->IicInst)) {
+	TickType_t timeout = 20;
+	while (--timeout && XIicPs_BusIsBusy(&this->IicInst)) {
 		vTaskDelay(pdMS_TO_TICKS(1));
 	}
 
@@ -84,7 +85,8 @@ void PS_IPMB::setup_slave() {
  * Configure the device in master mode.
  */
 void PS_IPMB::setup_master() {
-	while (XIicPs_BusIsBusy(&this->IicInst)) {
+	TickType_t timeout = 20;
+	while (--timeout && XIicPs_BusIsBusy(&this->IicInst)) {
 		vTaskDelay(pdMS_TO_TICKS(1));
 	}
 

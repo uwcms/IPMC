@@ -65,7 +65,33 @@ IPMBSvc::IPMBSvc(IPMB *ipmb, uint8_t ipmb_address, IPMICommandParser *command_pa
 	ipmb->set_incoming_message_queue(this->recvq);
 
 	if (this->wdt) {
-		this->wdt_slot = this->wdt->register_slot(configTICK_RATE_HZ*10);
+		/* The watchdog interval is set in consideration of the following factors:
+		 *
+		 * On the bench, the IPMB will not be available.  Attempts to send will
+		 * result in the bus never ceasing to be busy for whatever underlying
+		 * reason.  We wait for this condition before changing back from master
+		 * to slave mode.  We have set a timeout of 20ms there.  An individual
+		 * 40 byte I2C message on a 100khz bus will take 4ms.  This should be
+		 * therefore more than sufficient to finish transmitting our message
+		 * in a real operational environment.
+		 *
+		 * However, it is possible in the case of interesting adc or sensor
+		 * values, something common in a bench environment, that the send queue
+		 * could saturate.  Below, we will attempt to send each message once
+		 * before we return to the top of the loop where we service the WDT.
+		 *
+		 * It is not reasonable to attempt to service the WDT after only a
+		 * partial thread mainloop, as this could result in undetectable hangs,
+		 * so instead we will set a 15 second WDT timeout on the IPMB.
+		 *
+		 * This allows us to have 15000 ticks / 300 messages (more than can be
+		 * allocated sequence numbers for a single message type and target),
+		 * with a window of 50ms per message.  This easily allows us to clear
+		 * even two (both setup slave and setup master, though we believe only
+		 * setup slave will hang) timeouts of 20ms, and still have 10ms to
+		 * allocate to other processing.
+		 */
+		this->wdt_slot = this->wdt->register_slot(configTICK_RATE_HZ*15);
 		this->wdt->activate_slot(this->wdt_slot);
 	}
 
