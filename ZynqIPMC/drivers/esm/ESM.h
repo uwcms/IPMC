@@ -14,7 +14,7 @@
 #include <string>
 #include <libs/VFS.h>
 #include <drivers/generics/UART.h>
-#include <drivers/spi_flash/SPIFLASH.h>
+#include <drivers/spi_flash/spi_flash.h>
 #include <services/console/CommandParser.h>
 #include <services/console/ConsoleSvc.h>
 

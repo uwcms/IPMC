@@ -1,27 +1,39 @@
 /*
- * SPIFLASH.cpp
+ * This file is part of the ZYNQ-IPMC Framework.
  *
- *  Created on: Aug 20, 2018
- *      Author: mpv
+ * The ZYNQ-IPMC Framework is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ZYNQ-IPMC Framework is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "SPIFLASH.h"
+#include <drivers/spi_flash/spi_flash.h>
 #include <memory>
 #include <libs/Utils.h>
+#include <libs/printf.h>
 
+//! Returns the flash bank number from an address.
 inline static uint32_t bankFromAddress(uint32_t address) {
 	return address >> 24;
 }
 
-SPIFlash::SPIFlash(SPIMaster& spi, uint8_t cs)
-: spi(spi), cs(cs), quadModeEnabled(false) {
+SPIFlash::SPIFlash(SPIMaster& spi, size_t chip_select, LogTree &log)
+: spi(spi), kChipSelect(chip_select), log(log), quadModeEnabled(false) {
 }
 
 bool SPIFlash::initialize() {
 	if (!Flash::initialize()) return false;
 
 	if (this->parameters.supports114FastRead) {
-		// Micron flashes don't need have Quad Bit
+		// Micron flashes don't have Quad Bit
 		if (this->manufacturer != ManufacturerID::MICRON) {
 			if (!this->enableQuadBit()) {
 				this->initialized = false;
@@ -45,7 +57,7 @@ bool SPIFlash::read(uint32_t address, uint8_t *buffer, size_t bytes) {
 
 	if (!this->selectBank(bankFromAddress(address))) return false;
 
-	return this->spi.atomic<bool>(this->cs, [=]() {
+	return this->spi.atomic<bool>(this->kChipSelect, [=]() {
 		uint8_t command[4 + dummyBytes] = {0};
 
 		// Form the command to execute a read
@@ -110,12 +122,12 @@ bool SPIFlash::write(uint32_t address, const uint8_t *buffer, size_t bytes) {
 		uint8_t *pdata = nullptr;
 		float progress = ((sector+1) * 1.0f) / (sectorCount * 1.0f) * 100.0f;
 
-		printf("(%.0f%%) Erasing sector 0x%08x..", progress, sectorAddress);
+		log.log(stdsprintf("(%.0f%%) Programming sector 0x%08x", progress, sectorAddress), LogTree::LOG_NOTICE);
 
 		if (!this->selectBank(bankFromAddress(sectorAddress))) return false;
 
 		if (!this->eraseSector(sectorAddress)) {
-			printf("Failed to erase sector 0x%08x..", sectorAddress);
+			log.log(stdsprintf("Failed to erase sector 0x%08x", sectorAddress), LogTree::LOG_ERROR);
 			return false;
 		}
 
@@ -125,27 +137,28 @@ bool SPIFlash::write(uint32_t address, const uint8_t *buffer, size_t bytes) {
 			pdata = (uint8_t*)buffer + sectorOffset;
 		}
 
-		printf("(%.0f%%) Writing %d pages at address 0x%08x..", progress, pagesPerSector, sectorAddress);
+		// Minimize verbosity
+		//log.log(stdsprintf("(%.0f%%) Writing %d pages at address 0x%08x", progress, pagesPerSector, sectorAddress), LogTree::LOG_NOTICE);
 
 
 		for (size_t page = 0; page < pagesPerSector; page++) {
 			size_t pageOffset = page * 256;
 
 			if (!this->writePage(sectorAddress + pageOffset, pdata + pageOffset, 256)) {
-				printf("Failed to write page 0x%08x..", sectorAddress + pageOffset);
+				log.log(stdsprintf("Failed to write page 0x%08x", sectorAddress + pageOffset), LogTree::LOG_ERROR);
 				return false;
 			}
 
 			// Verify
 			if (!this->read(sectorAddress + pageOffset, &*tmppage, 256)) {
-				printf("Failed to read back page 0x%08x..", sectorAddress + pageOffset);
+				log.log(stdsprintf("Failed to read back page 0x%08x", sectorAddress + pageOffset), LogTree::LOG_ERROR);
 				return false;
 			}
 
 			if (memcmp(pdata + pageOffset, &*tmppage, 256) != 0) {
-				printf("Mismatch in page 0x%08x..", sectorAddress + pageOffset);
-				printf(formatedHexString(pdata + pageOffset, 256).c_str());
-				printf(formatedHexString(&*tmppage, 256).c_str());
+				log.log(stdsprintf("Mismatch in written page 0x%08x", sectorAddress + pageOffset), LogTree::LOG_ERROR);
+//				log.log(formatedHexString(pdata + pageOffset, 256), LogTree::LOG_ERROR);
+//				log.log(formatedHexString(&*tmppage, 256), LogTree::LOG_ERROR);
 				return false;
 			}
 		}
@@ -159,7 +172,7 @@ bool SPIFlash::getManufacturerID()
 	uint8_t command[4];
 	command[0] = 0x9F;
 
-	if (!this->spi.transfer(this->cs, command, command, sizeof(command))) {
+	if (!this->spi.transfer(this->kChipSelect, command, command, sizeof(command))) {
 		return false; // Failed
 	}
 
@@ -170,7 +183,7 @@ bool SPIFlash::getManufacturerID()
 
 bool SPIFlash::getJEDECInfo() {
 	// Based on JESD216
-	return this->spi.atomic<bool>(this->cs, [=]() {
+	return this->spi.atomic<bool>(this->kChipSelect, [=]() {
 		uint8_t command[5] = {0};
 
 		// Form the command to execute a read
@@ -236,7 +249,7 @@ bool SPIFlash::disableWriteProtections() {
 			command[0] = 0x50;
 		}
 
-		if (!this->spi.transfer(this->cs, command, NULL, sizeof(command))) {
+		if (!this->spi.transfer(this->kChipSelect, command, NULL, sizeof(command))) {
 			return false; // Failed
 		}
 
@@ -270,7 +283,7 @@ bool SPIFlash::enableQuadBit() {
 		}
 
 		uint8_t command[2] = {0x01, status._raw};
-		if (!this->spi.transfer(this->cs, command, NULL, sizeof(command))) {
+		if (!this->spi.transfer(this->kChipSelect, command, NULL, sizeof(command))) {
 			return false; // Failed
 		}
 	}
@@ -282,7 +295,7 @@ bool SPIFlash::enableWriting() {
 	if (!this->isInitialized()) return false;
 
 	uint8_t command[1] = {0x06};
-	if (!this->spi.transfer(this->cs, command, NULL, sizeof(command))) {
+	if (!this->spi.transfer(this->kChipSelect, command, NULL, sizeof(command))) {
 		return false; // Failed
 	}
 
@@ -293,7 +306,7 @@ bool SPIFlash::disableWriting() {
 	if (!this->isInitialized()) return false;
 
 	uint8_t command[1] = {0x04};
-	if (!this->spi.transfer(this->cs, command, NULL, sizeof(command))) {
+	if (!this->spi.transfer(this->kChipSelect, command, NULL, sizeof(command))) {
 		return false; // Failed
 	}
 
@@ -336,13 +349,13 @@ bool SPIFlash::selectBank(uint8_t bank) {
 			return false;
 		}
 
-		if (!this->spi.transfer(this->cs, command, NULL, sizeof(command))) {
+		if (!this->spi.transfer(this->kChipSelect, command, NULL, sizeof(command))) {
 			return false; // Failed
 		}
 
 		if (!this->getSelectedBank(current)) return false;
 		if (current != bank) {
-			printf("Failed to change to bank %d", bank);
+			log.log(stdsprintf("Failed to change to bank %d", bank), LogTree::LOG_ERROR);
 			return false;
 		}
 	}
@@ -355,7 +368,7 @@ bool SPIFlash::getSelectedBank(uint8_t &bank) {
 	uint8_t command[2];
 	command[0] = 0xC8;
 
-	if (!this->spi.transfer(this->cs, command, command, sizeof(command))) {
+	if (!this->spi.transfer(this->kChipSelect, command, command, sizeof(command))) {
 		return false; // Failed
 	}
 
@@ -374,7 +387,7 @@ bool SPIFlash::writePage(uint32_t address, const uint8_t *buffer, size_t bytes) 
 		return false;
 	}
 
-	if (!this->spi.atomic<bool>(this->cs, [=]() {
+	if (!this->spi.atomic<bool>(this->kChipSelect, [=]() {
 		uint8_t command[4];
 
 		// Form the command to execute a read
@@ -414,7 +427,7 @@ bool SPIFlash::eraseSector(uint32_t address) {
 	command[2] = address >> 8;
 	command[3] = address;
 
-	if (!this->spi.transfer(this->cs, command, NULL, sizeof(command))) {
+	if (!this->spi.transfer(this->kChipSelect, command, NULL, sizeof(command))) {
 		return false; // Failed
 	}
 
@@ -429,7 +442,7 @@ bool SPIFlash::eraseSectors(uint32_t address, size_t bytes) {
 	if ((address % this->getSectorSize(0)) != 0) return false;
 
 	if (address == 0 && bytes == this->getTotalSize()) {
-		printf("Erasing chip");
+		log.log("Erasing the whole chip", LogTree::LOG_NOTICE);
 
 		if (!this->enableWriting()) {
 			return false;
@@ -437,7 +450,7 @@ bool SPIFlash::eraseSectors(uint32_t address, size_t bytes) {
 
 		// Erase the whole chip
 		uint8_t command[1] = {0x60};
-		if (!this->spi.transfer(this->cs, command, NULL, sizeof(command))) {
+		if (!this->spi.transfer(this->kChipSelect, command, NULL, sizeof(command))) {
 			return false; // Failed
 		}
 
@@ -459,7 +472,7 @@ bool SPIFlash::eraseSectors(uint32_t address, size_t bytes) {
 		for (size_t i = 0; i < sectorsToErase; i++) {
 			uint32_t sectorAddress = address + i * this->getSectorSize(0);
 
-			printf("Erasing sector 0x%08lX", sectorAddress);
+			log.log(stdsprintf("Erasing sector 0x%08lX", sectorAddress), LogTree::LOG_NOTICE);
 
 			if (!this->enableWriting()) {
 				return false;
@@ -471,7 +484,7 @@ bool SPIFlash::eraseSectors(uint32_t address, size_t bytes) {
 			command[2] = sectorAddress >> 8;
 			command[3] = sectorAddress;
 
-			if (!this->spi.transfer(this->cs, command, NULL, sizeof(command))) {
+			if (!this->spi.transfer(this->kChipSelect, command, NULL, sizeof(command))) {
 				return false; // Failed
 			}
 
@@ -489,7 +502,7 @@ bool SPIFlash::eraseSectors(uint32_t address, size_t bytes) {
 bool SPIFlash::getStatusRegister(Flash::StatusRegister &status) {
 	uint8_t command[2] = {0x05, 0};
 
-	if (!this->spi.transfer(this->cs, command, command, sizeof(command))) {
+	if (!this->spi.transfer(this->kChipSelect, command, command, sizeof(command))) {
 		return false; // Failed
 	}
 

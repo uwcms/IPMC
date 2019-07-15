@@ -1,15 +1,24 @@
 /*
- * Flash.h
+ * This file is part of the ZYNQ-IPMC Framework.
  *
- *  Created on: Aug 27, 2018
- *      Author: mpv
+ * The ZYNQ-IPMC Framework is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ZYNQ-IPMC Framework is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef SRC_COMMON_UW_IPMC_DRIVERS_GENERICS_FLASH_H_
-#define SRC_COMMON_UW_IPMC_DRIVERS_GENERICS_FLASH_H_
+#ifndef SRC_COMMON_ZYNQIPMC_DRIVERS_GENERICS_FLASH_H_
+#define SRC_COMMON_ZYNQIPMC_DRIVERS_GENERICS_FLASH_H_
 
 #include <stdint.h>
-#include <string>
 #include <libs/VFS.h>
 
 /**
@@ -24,7 +33,7 @@ class Flash {
 public:
 	Flash() : initialized(false), parameters({0}) {};
 
-	///! true if the flash has already been initialized, false otherwise.
+	//! true if the flash has already been initialized, false otherwise.
 	inline bool isInitialized() { return this->initialized; };
 
 	/**
@@ -62,13 +71,13 @@ public:
 	 */
 	virtual bool write(uint32_t address, const uint8_t *buffer, size_t bytes) = 0;
 
-	///! Returns the flash size in bytes or zero if flash wasn't been initialized or is incompatible.
+	//! Returns the flash size in bytes or zero if flash wasn't been initialized or is incompatible.
 	inline size_t getTotalSize() {
 		if (this->parameters.memoryDensityExp) return (1 << (this->parameters.memoryDensity >> 3));
 		else return ((this->parameters.memoryDensity+1) >> 3);
 	}
 
-	///! Returns the flash sector size in bytes or zero if flash wasn't been initialized yet.
+	//! Returns the flash sector size in bytes or zero if flash wasn't been initialized yet.
 	inline size_t getSectorSize(uint8_t sector = 0) {
 		if ((sector > 4) || (this->parameters.sectors[sector].size == 0)) return 0;
 
@@ -78,9 +87,10 @@ public:
 	/**
 	 * Generates an VFS file linked to the Flash that can be added to the
 	 * virtual file system, allowing flash programming via ethernet or console.
-	 * @param address The start address in the flash.
+	 * @param address Start address in the flash.
 	 * @param bytes Number of bytes to associate with virtual file.
-	 * @return The file that can be used with VFS::addFile.
+	 * @return VFS::File that can be used with VFS::addFile.
+	 * @throw std::runtime_error if address and size checks fail.
 	 */
 	VFS::File createFlashFile(size_t address, size_t bytes) {
 		if (bytes == 0) throw std::runtime_error("Flash size cannot be zero");
@@ -116,22 +126,22 @@ protected:
 	 */
 	virtual bool getManufacturerID() = 0;
 
-	///! Disables write protections.
+	//! Disables write protections.
 	virtual bool disableWriteProtections() = 0;
 
-	///! Enables writing to the flash. Automatically de-asserted after a write operation.
+	//! Enables writing to the flash. Automatically de-asserted after a write operation.
 	virtual bool enableWriting() = 0;
 
-	///! Disable writing to the flash.
+	//! Disable writing to the flash.
 	virtual bool disableWriting() = 0;
 
-	///! Wait for a write operation to complete.
+	//! Wait for a write operation to complete.
 	virtual bool waitForWriteComplete() = 0;
 
-	///! Set the bank in flash (for flashes with > 16MiB).
+	//! Set the bank in flash (for flashes with > 16MiB).
 	virtual bool selectBank(uint8_t bank) = 0;
 
-	///! Get the currently selected bank.
+	//! Get the currently selected bank.
 	virtual bool getSelectedBank(uint8_t &bank) = 0;
 
 	/**
@@ -153,6 +163,7 @@ protected:
 	 */
 	virtual bool eraseSectors(uint32_t address, size_t bytes) = 0;
 
+	//! Discoverable parameter header definition
 	struct SFDP_First_Header {
 		uint32_t signature : 32;
 		uint8_t minor_revision : 8;
@@ -161,6 +172,7 @@ protected:
 		uint8_t : 8;
 	};
 
+	//! Discoverable parameter table entry definition
 	struct SFDP_Table_Entry {
 		uint8_t id_number : 8;
 		uint8_t minor_revision : 8;
@@ -170,6 +182,7 @@ protected:
 		uint8_t : 8;
 	};
 
+	//! JEDEC parameters definition
 	struct JEDECFlashParameters {
 		// Word 1
 		uint32_t blockSectorEraseSize : 2;
@@ -221,6 +234,7 @@ protected:
 		struct Sector {uint8_t size; uint8_t opcode;} sectors[4];
 	};
 
+	//! Flash internal status register definition
 	struct StatusRegister {
 		union {
 			struct {
@@ -237,13 +251,14 @@ protected:
 		};
 	};
 
-	///! Get the status register from the flash.
+	//! Get the status register from the flash.
 	virtual bool getStatusRegister(StatusRegister &status) = 0;
 
 	bool initialized;					///< Indicates if initialized and if parameters is valid.
 	JEDECFlashParameters parameters;	///< JEDEC parameters of the flash.
 	uint8_t manufacturer;				///< Manufacturer ID of the flash.
 
+	//! List of flash manufacturers and their IDs.
 	enum ManufacturerID : uint8_t {
 		MICRON = 0x20,
 		MACRONIX = 0xC2
@@ -251,6 +266,4 @@ protected:
 
 };
 
-
-
-#endif /* SRC_COMMON_UW_IPMC_DRIVERS_GENERICS_FLASH_H_ */
+#endif /* SRC_COMMON_ZYNQIPMC_DRIVERS_GENERICS_FLASH_H_ */

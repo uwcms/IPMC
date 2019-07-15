@@ -15,8 +15,7 @@
 #include <drivers/ipmb/PSIPMB.h>
 #include <drivers/ipmb/IPMBPair.h>
 #include <drivers/ps_gpio/ps_gpio.h>
-#include <drivers/spi_flash/SPIFLASH.h>
-
+#include <drivers/spi_flash/spi_flash.h>
 #include <services/console/UARTConsoleSvc.h>
 #include <services/ipmi/commands/IPMICmd_Index.h>
 
@@ -90,7 +89,7 @@ void core_driver_init() {
 #endif
 
 	// Initialize QSPI flash
-	qspiflash = new SPIFlash(*psqspi, 0);
+	qspiflash = new SPIFlash(*psqspi, 0, LOG["flash"]);
 	qspiflash->initialize();
 
 	// Configuration and MAC EEPROM

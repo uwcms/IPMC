@@ -8,7 +8,7 @@
 #ifndef SRC_COMMON_ZYNQIPMC_CORE_H_
 #define SRC_COMMON_ZYNQIPMC_CORE_H_
 
-#include <drivers/generics/Flash.h>
+#include <drivers/generics/flash.h>
 #include <drivers/watchdog/PSWDT.h>
 #include <drivers/ps_uart/PSUART.h>
 #include <drivers/ps_qspi/PSQSPI.h>
