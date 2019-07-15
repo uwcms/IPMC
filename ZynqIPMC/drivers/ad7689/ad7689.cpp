@@ -52,16 +52,12 @@ const uint32_t AD7689::readRaw(size_t channel) const {
 	uint16_t val;
 
 	if (channel > 7) {
-		throw std::runtime_error("Target channel ( " + std::to_string(channel) + ") is out-of-range, maximum is 7");
+		throw std::out_of_range("Target channel ( " + std::to_string(channel) + ") is out-of-range, maximum is 7");
 	}
 
 	AD7689_S_Get_Reading(&(this->adc), this->kSlaveInterface, channel, &val);
 
 	return val;
-}
-
-const float AD7689::readVolts(size_t channel) const {
-	return this->rawToVolts(this->readRaw(channel));
 }
 
 const uint32_t AD7689::voltsToRaw(float volts) const {

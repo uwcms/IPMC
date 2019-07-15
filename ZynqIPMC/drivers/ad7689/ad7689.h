@@ -52,7 +52,7 @@ public:
 
 	// From base class ADC:
 	virtual const uint32_t readRaw(size_t channel) const;
-	virtual const float readVolts(size_t channel) const;
+	//virtual const float readVolts(size_t channel) const; // Don't override
 	virtual const uint32_t voltsToRaw(float volts) const;
 	virtual const float rawToVolts(uint32_t raw) const;
 

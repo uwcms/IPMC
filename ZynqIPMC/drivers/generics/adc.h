@@ -52,9 +52,10 @@ public:
 	 * @param channel Target channel within the ADC source.
 	 * @return Channel reading in volts.
 	 * @throw Should throw std::out_of_range if channel is out-of-range.
-	 * @note Pure virtual, must be implemented by the ADC source child class.
 	 */
-	virtual const float readVolts(size_t channel) const = 0;
+	virtual const float readVolts(size_t channel) const {
+		return this->rawToVolts(this->readRaw(channel));
+	}
 
 	//! Converts a raw reading to volts. Formula is ADC dependent and must be implemented.
 	virtual const float rawToVolts(uint32_t raw) const = 0;
