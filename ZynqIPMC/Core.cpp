@@ -29,7 +29,7 @@
 LogTree LOG("ipmc");
 
 PS_WDT  *swdt    = nullptr;
-PS_UART *psuart0 = nullptr;
+PSUART *psuart0 = nullptr;
 Flash   *qspiflash = nullptr;
 
 SPI_EEPROM *eeprom_mac;
@@ -77,7 +77,7 @@ void core_driver_init() {
 	/* We use a large outbuf to prevent bursts of log messages (such as IPMI
 	 * logs from FRU Data reads) from overflowing.
 	 */
-	psuart0 = new PS_UART(XPAR_PS7_UART_0_DEVICE_ID, XPAR_PS7_UART_0_INTR, 4096, 1<<16);
+	psuart0 = new PSUART(XPAR_PS7_UART_0_DEVICE_ID, XPAR_PS7_UART_0_INTR, 4096, 1<<16);
 	console_log_filter = new LogTree::Filter(LOG, console_log_handler, LogTree::LOG_NOTICE);
 	console_log_filter->register_console_commands(console_command_parser);
 	LOG["console_log_command"].register_console_commands(console_command_parser);

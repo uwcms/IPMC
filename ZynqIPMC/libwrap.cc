@@ -6,7 +6,6 @@
  */
 
 #include <IPMC.h>
-#include <drivers/ps_uart/PSUART.h>
 #include <libs/StatCounter.h>
 #include <libs/LogTree.h>
 #include <libs/printf.h>
@@ -20,6 +19,7 @@
 #include <stdarg.h>
 #include <algorithm>
 #include <ctype.h>
+#include <drivers/ps_uart/ps_uart.h>
 
 #include <time.h>
 #include <sys/time.h>

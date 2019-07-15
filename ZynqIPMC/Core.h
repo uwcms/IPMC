@@ -10,8 +10,8 @@
 
 #include <drivers/generics/flash.h>
 #include <drivers/watchdog/PSWDT.h>
-#include <drivers/ps_uart/PSUART.h>
 #include <drivers/ps_qspi/PSQSPI.h>
+#include <drivers/ps_uart/ps_uart.h>
 #include <drivers/spi_eeprom/SPIEEPROM.h>
 
 #include <services/persistentstorage/PersistentStorage.h>
@@ -27,7 +27,7 @@
 extern LogTree LOG;
 
 extern PS_WDT  *swdt;		///< System Watchdog Timer
-extern PS_UART *psuart0;	///< PS UART (interface 0)
+extern PSUART  *psuart0;	///< PS UART (interface 0)
 extern Flash   *qspiflash;	///< QSPI interface to on-board Flash
 
 extern SPI_EEPROM *eeprom_mac;

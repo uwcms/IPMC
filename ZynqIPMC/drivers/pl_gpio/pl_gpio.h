@@ -77,7 +77,7 @@ public:
 	inline bool supportsInterrupts() { return this->gpio.InterruptPresent; };
 
 private:
-	void _InterruptHandler();
+	virtual void _InterruptHandler();
 
 	mutable XGpio gpio;						///< Internal GPIO driver data.
 	const BusChannel kChannel;				///< Associated channel.

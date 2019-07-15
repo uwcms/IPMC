@@ -20,31 +20,27 @@
 // Only include driver if PL UART in the BSP.
 #if XSDK_INDEXING || __has_include("xuartlite.h")
 
-#include <xscugic.h>
-#include <stdio.h>
-#include "xil_exception.h"
 #include "xuartlite_l.h"
-#include <libs/printf.h>
+#include <stdio.h>
 #include <libs/except.h>
-#include <libs/ThreadingPrimitives.h>
 
 void PLUART::_InterruptHandler()
 {
 	// Note: Interrupts won't be disabled while running this interrupt.
 	// If nesting is enabled that this cause problems.
 
-	this->_Recv();
-	this->_Send();
+	this->recv();
+	this->send();
 
 	// TODO: Do error detection, inc. streambuffer full
 }
 
-void PLUART::_Recv() {
+void PLUART::recv() {
 	// Read status register
 	uint8_t status_reg = XUartLite_GetStatusReg(this->uartlite.RegBaseAddress);
 
 	if ((status_reg & (XUL_SR_RX_FIFO_FULL | XUL_SR_RX_FIFO_VALID_DATA)) != 0) {
-		u8 *ptr = nullptr;
+		uint8_t *ptr = nullptr;
 		size_t max_bytes = 0;
 		size_t byte_count = 0;
 
@@ -77,12 +73,12 @@ void PLUART::_Recv() {
 	}
 }
 
-void PLUART::_Send() {
+void PLUART::send() {
 	// Read status register
 	uint8_t status_reg = XUartLite_GetStatusReg(this->uartlite.RegBaseAddress);
 
 	if (((status_reg & XUL_SR_TX_FIFO_EMPTY) != 0) && !this->outbuf.empty()) {
-		u8 *ptr = nullptr;
+		uint8_t *ptr = nullptr;
 		size_t max_bytes = 0;
 		size_t byte_count = 0;
 
@@ -113,8 +109,8 @@ void PLUART::_Send() {
 	}
 }
 
-PLUART::PLUART(uint16_t device_id, uint32_t intr_id, size_t ibufsize, size_t obufsize) :
-InterruptBasedDriver(intr_id, 0x3), inbuf(RingBuffer<u8>(ibufsize)), outbuf(RingBuffer<u8>(obufsize)) {
+PLUART::PLUART(uint16_t device_id, uint16_t intr_id, size_t ibufsize, size_t obufsize) :
+InterruptBasedDriver(intr_id, 0x3), inbuf(RingBuffer<uint8_t>(ibufsize)), outbuf(RingBuffer<uint8_t>(obufsize)) {
 	// Initialize the UartLite driver so that it's ready to use.
 	if (XST_SUCCESS != XUartLite_Initialize(&(this->uartlite), device_id)) {
 		throw except::hardware_error("Unable to initialize PLUART(device_id=" + std::to_string(device_id) + ")");
@@ -133,7 +129,7 @@ InterruptBasedDriver(intr_id, 0x3), inbuf(RingBuffer<u8>(ibufsize)), outbuf(Ring
 PLUART::~PLUART() {
 }
 
-size_t PLUART::read(u8 *buf, size_t len, TickType_t timeout, TickType_t data_timeout) {
+size_t PLUART::read(uint8_t *buf, size_t len, TickType_t timeout, TickType_t data_timeout) {
 	configASSERT(!(IN_INTERRUPT() || IN_CRITICAL())); // Don't allow in interrupts and critical regions
 
 	AbsoluteTimeout abstimeout(timeout);
@@ -167,7 +163,7 @@ size_t PLUART::read(u8 *buf, size_t len, TickType_t timeout, TickType_t data_tim
 	return bytesread;
 }
 
-size_t PLUART::write(const u8 *buf, size_t len, TickType_t timeout) {
+size_t PLUART::write(const uint8_t *buf, size_t len, TickType_t timeout) {
 	configASSERT(!(IN_INTERRUPT() || IN_CRITICAL())); // Don't allow in interrupts and critical regions
 
 	AbsoluteTimeout abstimeout(timeout);
@@ -185,7 +181,7 @@ size_t PLUART::write(const u8 *buf, size_t len, TickType_t timeout) {
 		if (batch_byteswritten) {
 			this->disableInterrupts();
 
-			this->_Send();
+			this->send();
 
 			this->enableInterrupts();
 		}
