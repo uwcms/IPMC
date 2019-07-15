@@ -23,7 +23,7 @@
 
 #include "xgpio.h"
 #include <drivers/generics/gpio.h>
-#include <drivers/InterruptBasedDriver.h>
+#include <drivers/interrupt_based_driver.h>
 #include <functional>
 
 // TODO: Interrupt can only be controlled by a single class so multiple channels with interrupts are not supported

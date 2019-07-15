@@ -15,7 +15,7 @@
 #include <queue.h>
 #include <IPMC.h>
 #include <drivers/generics/SPI.h>
-#include <drivers/InterruptBasedDriver.h>
+#include <drivers/interrupt_based_driver.h>
 
 /**
  * An interrupt-based driver for the PS SPI.

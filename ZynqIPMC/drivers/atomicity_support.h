@@ -1,12 +1,22 @@
 /*
- * AddressableChainSupport.h
+ * This file is part of the ZYNQ-IPMC Framework.
  *
- *  Created on: Aug 20, 2018
- *      Author: mpv
+ * The ZYNQ-IPMC Framework is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ZYNQ-IPMC Framework is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef SRC_COMMON_UW_IPMC_DRIVERS_ATOMICITYSUPPORT_H_
-#define SRC_COMMON_UW_IPMC_DRIVERS_ATOMICITYSUPPORT_H_
+#ifndef SRC_COMMON_ZYNQIPMC_DRIVERS_ATOMICITY_SUPPORT_H_
+#define SRC_COMMON_ZYNQIPMC_DRIVERS_ATOMICITY_SUPPORT_H_
 
 #include <FreeRTOS.h>
 #include <libs/ThreadingPrimitives.h>
@@ -17,8 +27,14 @@
 // Maybe add a set of default throws in ThreadingPrimitives.h?
 
 /**
- * Adds support for atomicity in drivers.
- * If the driver supports select then use AddressableAtomicitySupport instead.
+ * Adds support for atomicity in drivers, exposing a mutex that can be used in
+ * critical sections of the driver itself and also a function that allows to
+ * chain several non-thread safe commands safely.
+ *
+ * If the driver supports multiple interfaces or devices that can be addressed
+ * within the driver or in multiple parallel tasks then use AddressableAtomicitySupport
+ * instead.
+ *
  * Base class provides a mutex that should be used in critical functions and
  * also the atomic function which allows chaining of operations.
  */
@@ -34,8 +50,8 @@ public:
 	};
 
 	/**
-	 * Chain a set of operations. The set of operations is thread-safe as a whole.
-	 * @param lambda_func The function/lambda that holds the sequence of operations.
+	 * Chain a set of operations. The set of operations is thread-safe as a group.
+	 * @param lambda_func Function/lambda that holds the sequence of operations.
 	 * @return The return value of the function/lambda is returned.
 	 */
 	template<typename T> T atomic(std::function<T()> lambda_func) {
@@ -44,20 +60,20 @@ public:
 		return r;
 	}
 
-	///! Same as AtomicitySupport::atomic, but where no return is required.
+	//! Same as AtomicitySupport::atomic, but where no return is required.
 	void atomic(std::function<void()> lambda_func) {
 		MutexGuard<false> lock(this->mutex, true);
 		lambda_func();
 	}
 
 protected:
-	SemaphoreHandle_t mutex;	///< Mutex to also be used on the driver. MutexLock is recommended.
+	SemaphoreHandle_t mutex;	///< Mutex to also be used on the driver. Use of MutexLock is recommended.
 };
 
 /**
  * Same as AtomicitySupport while also supporting addressable devices.
  * Driver needs to implement select and deselect.
- * atomic operation now selects and deselects the target device automatically.
+ * atomic operation selects and deselects the target device automatically.
  */
 class AddressableAtomicitySupport : public AtomicitySupport {
 public:
@@ -67,14 +83,15 @@ public:
 	 */
 	virtual void select(uint32_t address) = 0;
 
-	///! De-select the addressed device.
+	//! De-select the addressed device.
 	virtual void deselect() = 0;
 
 	/**
 	 * Chain a set of operations while a device is kept select.
-	 * The chain of operations is thread-safe as a whole.
+	 * The chain of operations is thread-safe and similar accesses won't be allowed
+	 * until all operations in the chain are executed.
 	 * @param address Address of the target device.
-	 * @param lambda_func The function/lambda that holds the sequence of operations.
+	 * @param lambda_func Function/lambda that holds the sequence of operations.
 	 * @param dont_deselect Set to false if the device should be left selected afterwards.
 	 * @return The return value of the function/lambda is returned.
 	 */
@@ -86,7 +103,7 @@ public:
 		return r;
 	}
 
-	///! Same as AddressableAtomicitySupport::atomic, but where no return is required.
+	//! Same as AddressableAtomicitySupport::atomic, but where no return is required.
 	void atomic(uint32_t address, std::function<void()> lambda_func, bool dont_deselect = true) {
 		MutexGuard<false> lock(this->mutex, true);
 		this->select(address);
@@ -95,4 +112,4 @@ public:
 	}
 };
 
-#endif /* SRC_COMMON_UW_IPMC_DRIVERS_ATOMICITYSUPPORT_H_ */
+#endif /* SRC_COMMON_ZYNQIPMC_DRIVERS_ATOMICITY_SUPPORT_H_ */

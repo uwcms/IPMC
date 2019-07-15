@@ -26,7 +26,7 @@
 #include <FreeRTOS.h>
 #include <semphr.h>
 #include <drivers/generics/uart.h>
-#include <drivers/InterruptBasedDriver.h>
+#include <drivers/interrupt_based_driver.h>
 #include <libs/RingBuffer.h>
 
 /**

@@ -12,7 +12,7 @@
 #define PLI2C_DRIVER_INCLUDED
 
 #include <drivers/generics/I2C.h>
-#include <drivers/InterruptBasedDriver.h>
+#include <drivers/interrupt_based_driver.h>
 #include <functional>
 #include <xiic.h>
 #include "semphr.h"

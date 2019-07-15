@@ -17,7 +17,7 @@
 #include <queue.h>
 #include <deque>
 #include <vector>
-#include <drivers/InterruptBasedDriver.h>
+#include <drivers/interrupt_based_driver.h>
 #include <drivers/generics/adc.h>
 #include <libs/StatCounter.h>
 

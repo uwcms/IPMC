@@ -8,7 +8,7 @@
 #ifndef SRC_COMMON_UW_IPMC_DRIVERS_GENERICS_SPI_H_
 #define SRC_COMMON_UW_IPMC_DRIVERS_GENERICS_SPI_H_
 
-#include <drivers/AtomicitySupport.h>
+#include <drivers/atomicity_support.h>
 #include <FreeRTOS.h>
 #include <functional>
 #include <xil_types.h>

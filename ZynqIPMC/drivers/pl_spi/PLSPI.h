@@ -13,7 +13,7 @@
 
 #include <xspi.h>
 #include <drivers/generics/SPI.h>
-#include <drivers/InterruptBasedDriver.h>
+#include <drivers/interrupt_based_driver.h>
 #include <queue.h>
 
 // TODO: Consider supporting dual or quad SPI as well by default.
