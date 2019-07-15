@@ -18,6 +18,9 @@
 #include <drivers/pl_gpio/pl_gpio.h>
 #include <libs/except.h>
 
+// Only include driver if PL GPIO is detected in the BSP.
+#if XSDK_INDEXING || __has_include("xgpio.h")
+
 PLGPIO::PLGPIO(PLGPIO::BusChannel channel, uint16_t device_id)
 : GPIO(), InterruptBasedDriver(), kChannel(channel), callback(nullptr) {
 	// Initialize the Gpio driver so that it's ready to use.
@@ -108,3 +111,5 @@ void PLGPIO::_InterruptHandler() {
 		this->callback(0);
 	}
 }
+
+#endif

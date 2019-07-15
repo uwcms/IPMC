@@ -16,7 +16,7 @@
  */
 
 // Only include driver if the AD7689 is detected in the BSP.
-#if XSDK_INDEXING || __has_include(<ad7689_s.h>)
+#if XSDK_INDEXING || __has_include("ad7689_s.h")
 
 #include "ad7689.h"
 #include <services/console/ConsoleSvc.h>

@@ -8,7 +8,7 @@
 #ifndef SRC_COMMON_UW_IPMC_SERVICES_IPMCLINK_IPMCLINK_H_
 #define SRC_COMMON_UW_IPMC_SERVICES_IPMCLINK_IPMCLINK_H_
 
-#include <drivers/generics/UART.h>
+#include <drivers/generics/uart.h>
 
 // TODO: Proper linkage between channels
 // TODO: Proper timeouts

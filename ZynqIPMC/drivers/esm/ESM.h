@@ -9,11 +9,11 @@
 #define SRC_COMMON_UW_IPMC_DRIVERS_ESM_ESM_H_
 
 #include <drivers/generics/gpio.h>
+#include <drivers/generics/uart.h>
 #include <FreeRTOS.h>
 #include <semphr.h>
 #include <string>
 #include <libs/VFS.h>
-#include <drivers/generics/UART.h>
 #include <drivers/spi_flash/spi_flash.h>
 #include <services/console/CommandParser.h>
 #include <services/console/ConsoleSvc.h>

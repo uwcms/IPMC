@@ -1,11 +1,11 @@
 #ifndef UW_IPMC_DRIVERS_PS_UART_PSUART_H_
 #define UW_IPMC_DRIVERS_PS_UART_PSUART_H_
 
+#include <drivers/generics/uart.h>
 #include "xuartps.h"
 #include <FreeRTOS.h>
 #include <semphr.h>
 #include <libs/RingBuffer.h>
-#include <drivers/generics/UART.h>
 #include <drivers/InterruptBasedDriver.h>
 
 /**

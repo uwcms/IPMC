@@ -8,8 +8,8 @@
 #ifndef SRC_COMMON_UW_IPMC_SERVICES_CONSOLE_UARTCONSOLESVC_H_
 #define SRC_COMMON_UW_IPMC_SERVICES_CONSOLE_UARTCONSOLESVC_H_
 
+#include <drivers/generics/uart.h>
 #include "ConsoleSvc.h"
-#include <drivers/generics/UART.h>
 
 /**
  * A UART based console service.

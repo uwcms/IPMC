@@ -8,7 +8,7 @@
 #ifndef SRC_COMMON_UW_IPMC_SERVICES_IPMI_IPMI_LED_IPMILED_H_
 #define SRC_COMMON_UW_IPMC_SERVICES_IPMI_IPMI_LED_IPMILED_H_
 
-#include <drivers/generics/LED.h>
+#include <drivers/generics/led.h>
 #include <libs/ThreadingPrimitives.h>
 #include <services/timer/TimerService.h>
 

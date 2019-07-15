@@ -18,6 +18,9 @@
 #include <drivers/ps_xadc/ps_xadc.h>
 #include <libs/except.h>
 
+// Only include driver if PS XADC is detected in the BSP.
+#if XSDK_INDEXING || __has_include("xadcps.h")
+
 PSXADC::PSXADC(uint16_t device_id) :
 ADC(16, "ZynqXADC") {
 	XAdcPs_Config *xadcps_config = XAdcPs_LookupConfig(device_id);
@@ -43,3 +46,5 @@ const uint32_t PSXADC::voltsToRaw(float volts) const {
 const float PSXADC::rawToVolts(uint32_t raw) const {
 	return XAdcPs_RawToVoltage(raw);
 }
+
+#endif

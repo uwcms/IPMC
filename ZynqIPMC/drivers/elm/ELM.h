@@ -9,10 +9,10 @@
 #define SRC_COMMON_UW_IPMC_DRIVERS_ELM_ELM_H_
 
 #include <drivers/generics/gpio.h>
+#include <drivers/generics/uart.h>
 #include <FreeRTOS.h>
 #include <semphr.h>
 #include <string>
-#include <drivers/generics/UART.h>
 #include <services/console/CommandParser.h>
 #include <services/console/ConsoleSvc.h>
 

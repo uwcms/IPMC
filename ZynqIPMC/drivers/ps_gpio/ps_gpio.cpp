@@ -17,6 +17,9 @@
 
 #include <drivers/ps_gpio/ps_gpio.h>
 
+// Only include driver if PS GPIO is detected in the BSP.
+#if XSDK_INDEXING || __has_include("xgpiops.h")
+
 PSGPIO::PSGPIO(uint16_t device_id, std::vector<uint8_t> pins) : GPIO(), kPinCount(pins.size()), pins(NULL) {
 	if (this->kPinCount == 0) {
 		throw std::out_of_range("Cannot create an empty bus for PSGPIO(device_id=" + std::to_string(device_id) + ")");
@@ -165,3 +168,4 @@ void PSGPIO::clearPin(uint32_t pin) {
 	XGpioPs_Write(&(this->gpiops), this->pins[pin].bank, bus);
 }
 
+#endif
