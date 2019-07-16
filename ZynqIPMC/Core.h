@@ -9,10 +9,10 @@
 #define SRC_COMMON_ZYNQIPMC_CORE_H_
 
 #include <drivers/generics/flash.h>
-#include <drivers/watchdog/PSWDT.h>
 #include <drivers/ps_qspi/PSQSPI.h>
 #include <drivers/ps_uart/ps_uart.h>
 #include <drivers/spi_eeprom/SPIEEPROM.h>
+#include <drivers/watchdog/ps_wdt.h>
 
 #include <services/persistentstorage/PersistentStorage.h>
 #include <services/ipmi/ipmbsvc/IPMBSvc.h>
@@ -26,7 +26,7 @@
 
 extern LogTree LOG;
 
-extern PS_WDT  *swdt;		///< System Watchdog Timer
+extern PSWDT   *swdt;		///< System Watchdog Timer
 extern PSUART  *psuart0;	///< PS UART (interface 0)
 extern Flash   *qspiflash;	///< QSPI interface to on-board Flash
 

@@ -15,7 +15,7 @@
  * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <drivers/pl_gpio/pl_gpio.h>
+#include "pl_gpio.h"
 #include <libs/except.h>
 
 // Only include driver if PL GPIO is detected in the BSP.

@@ -15,10 +15,10 @@
  * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <drivers/ps_gpio/ps_gpio.h>
-
 // Only include driver if PS GPIO is detected in the BSP.
 #if XSDK_INDEXING || __has_include("xgpiops.h")
+
+#include "ps_gpio.h"
 
 PSGPIO::PSGPIO(uint16_t device_id, std::vector<uint8_t> pins) : GPIO(), kPinCount(pins.size()), pins(NULL) {
 	if (this->kPinCount == 0) {

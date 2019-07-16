@@ -15,11 +15,10 @@
  * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <drivers/pl_uart/pl_uart.h>
-
 // Only include driver if PL UART in the BSP.
 #if XSDK_INDEXING || __has_include("xuartlite.h")
 
+#include "pl_uart.h"
 #include "xuartlite_l.h"
 #include <stdio.h>
 #include <libs/except.h>

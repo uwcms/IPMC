@@ -15,7 +15,7 @@
  * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <drivers/spi_flash/spi_flash.h>
+#include "spi_flash.h"
 #include <memory>
 #include <libs/Utils.h>
 #include <libs/printf.h>

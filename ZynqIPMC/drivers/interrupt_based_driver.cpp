@@ -15,7 +15,7 @@
  * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <drivers/interrupt_based_driver.h>
+#include "interrupt_based_driver.h"
 #include <FreeRTOS.h>
 #include <xscugic.h>
 #include <libs/except.h>

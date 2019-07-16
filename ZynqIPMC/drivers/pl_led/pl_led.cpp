@@ -20,7 +20,7 @@
 // Only include driver if the AD7689 is detected in the BSP.
 #if XSDK_INDEXING || __has_include("led_controller.h")
 
-#include <drivers/pl_led/pl_led.h>
+#include "pl_led.h"
 #include <libs/except.h>
 #include <string>
 

@@ -28,8 +28,8 @@
  */
 LogTree LOG("ipmc");
 
-PS_WDT  *swdt    = nullptr;
-PSUART *psuart0 = nullptr;
+PSWDT   *swdt    = nullptr;
+PSUART  *psuart0 = nullptr;
 Flash   *qspiflash = nullptr;
 
 SPI_EEPROM *eeprom_mac;
@@ -70,7 +70,7 @@ void core_driver_init() {
 
 #ifdef ENABLE_WATCHDOGTIMER
 	// Initialize the watchdog.
-	swdt = new PS_WDT(XPAR_PS7_WDT_0_DEVICE_ID, 8, LOG["watchdog"], watchdog_ontrip);
+	swdt = new PSWDT(XPAR_PS7_WDT_0_DEVICE_ID, 8, LOG["watchdog"], watchdog_ontrip);
 #endif
 
 	// Initialize the UART console.

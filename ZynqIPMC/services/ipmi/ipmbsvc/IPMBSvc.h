@@ -21,7 +21,7 @@
 #include <libs/LogTree.h>
 #include <libs/SkyRoad.h>
 #include <drivers/generics/IPMB.h>
-#include <drivers/watchdog/PSWDT.h>
+#include <drivers/watchdog/ps_wdt.h>
 #include <services/ipmi/IPMI_MSG.h>
 #include <services/ipmi/ipmbsvc/IPMICommandParser.h>
 #include <services/console/CommandParser.h>
@@ -36,7 +36,7 @@ public:
 	const std::string name; ///< The name used for this IPMB in StatCounter or Task names, as well as log messages.
 	IPMICommandParser *command_parser; ///< The command parser used for incoming messages.
 
-	IPMBSvc(IPMB *ipmb, uint8_t ipmb_address, IPMICommandParser *command_parser, LogTree &logtree, const std::string name, PS_WDT *wdt, bool wait_for_service_init=true);
+	IPMBSvc(IPMB *ipmb, uint8_t ipmb_address, IPMICommandParser *command_parser, LogTree &logtree, const std::string name, PSWDT *wdt, bool wait_for_service_init=true);
 	virtual ~IPMBSvc();
 
 	static uint8_t lookup_ipmb_address(const int gpios[8]);
@@ -109,8 +109,8 @@ protected:
 	TaskHandle_t task; ///< A reference to the IPMBSvc task owned by this object.
 	QueueSetHandle_t qset; ///< A queueset for use in the thread task.
 
-	PS_WDT *wdt; ///< The watchdog
-	PS_WDT::slot_handle_t wdt_slot; ///< Our watchdog slot
+	PSWDT *wdt; ///< The watchdog
+	PSWDT::slot_handle_t wdt_slot; ///< Our watchdog slot
 
 	/**
 	 * A record of used sequence numbers for commands.

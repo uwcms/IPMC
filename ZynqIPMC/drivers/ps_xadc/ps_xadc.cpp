@@ -15,11 +15,11 @@
  * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <drivers/ps_xadc/ps_xadc.h>
-#include <libs/except.h>
-
 // Only include driver if PS XADC is detected in the BSP.
 #if XSDK_INDEXING || __has_include("xadcps.h")
+
+#include "ps_xadc.h"
+#include <libs/except.h>
 
 PSXADC::PSXADC(uint16_t device_id) :
 ADC(16, "ZynqXADC") {

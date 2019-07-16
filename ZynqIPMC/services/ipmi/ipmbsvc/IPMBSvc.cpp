@@ -27,7 +27,7 @@
  * \param name           Used for StatCounter, Messenger and thread name.
  * \param wdt            The watchdog instance to register & service.
  */
-IPMBSvc::IPMBSvc(IPMB *ipmb, uint8_t ipmb_address, IPMICommandParser *command_parser, LogTree &logtree, const std::string name, PS_WDT *wdt, bool wait_for_service_init) :
+IPMBSvc::IPMBSvc(IPMB *ipmb, uint8_t ipmb_address, IPMICommandParser *command_parser, LogTree &logtree, const std::string name, PSWDT *wdt, bool wait_for_service_init) :
 		ipmb_address(ipmb_address),
 		name(name),
 		command_parser(command_parser),

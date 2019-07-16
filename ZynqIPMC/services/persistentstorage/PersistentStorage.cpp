@@ -46,7 +46,7 @@ static inline uint16_t page_count(uint16_t size, uint16_t page_size) {
  * @param logtree Where to send log messages from this module
  * @param watchdog The watchdog to register with & service
  */
-PersistentStorage::PersistentStorage(EEPROM &eeprom, LogTree &logtree, PS_WDT *watchdog)
+PersistentStorage::PersistentStorage(EEPROM &eeprom, LogTree &logtree, PSWDT *watchdog)
 	: eeprom(eeprom), logtree(logtree), wdt(watchdog) {
 	if ((eeprom.size / eeprom.page_size) > UINT16_MAX) // Ensure that the EEPROM will not overflow our u16 fields.
 		throw std::domain_error("Only EEPROMs up to UINT16_MAX in length are supported.");
