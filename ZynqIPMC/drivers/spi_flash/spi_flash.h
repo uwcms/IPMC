@@ -20,7 +20,7 @@
 
 #include <stdint.h>
 #include <drivers/generics/flash.h>
-#include <drivers/generics/SPI.h>
+#include <drivers/generics/spi.h>
 #include <libs/LogTree.h>
 
 /**

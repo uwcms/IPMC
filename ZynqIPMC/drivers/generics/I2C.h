@@ -13,7 +13,7 @@
 #include <functional>
 #include <libs/ThreadingPrimitives.h>
 
-#ifdef INCLUDE_DRIVER_COMMAND_SUPPORT
+#ifdef ENABLE_DRIVER_COMMAND_SUPPORT
 #include <services/console/ConsoleSvc.h>
 #include <libs/printf.h>
 #include <libs/Utils.h>
@@ -69,7 +69,7 @@ public:
 		lambda_func();
 	}
 
-#ifdef INCLUDE_DRIVER_COMMAND_SUPPORT
+#ifdef ENABLE_DRIVER_COMMAND_SUPPORT
 	class ConsoleCommand_i2c_send : public CommandParser::Command {
 	public:
 		I2C &i2c;

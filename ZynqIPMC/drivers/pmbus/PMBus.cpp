@@ -7,6 +7,7 @@
 
 #include "PMBus.h"
 #include <cmath>
+#include <libs/printf.h>
 
 static uint8_t crc8(uint8_t x) {
 	for (size_t i = 0; i < 8; i++) {

@@ -9,7 +9,7 @@
 #define SRC_COMMON_ZYNQIPMC_CORE_H_
 
 #include <drivers/generics/flash.h>
-#include <drivers/ps_qspi/PSQSPI.h>
+#include <drivers/ps_qspi/ps_qspi.h>
 #include <drivers/ps_uart/ps_uart.h>
 #include <drivers/spi_eeprom/SPIEEPROM.h>
 #include <drivers/watchdog/ps_wdt.h>

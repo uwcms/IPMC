@@ -66,8 +66,11 @@ public:
 		lambda_func();
 	}
 
+	//! Useful to check if we are in atomic operation. Functions that require it can throw an error.
+	inline bool inAtomic() const { return !uxSemaphoreGetCount(this->mutex); };
+
 protected:
-	SemaphoreHandle_t mutex;	///< Mutex to also be used on the driver. Use of MutexLock is recommended.
+	SemaphoreHandle_t mutex;	///< Mutex to also be used on the driver. Use of MutexGuard is recommended.
 };
 
 /**
@@ -81,7 +84,7 @@ public:
 	 * Select the target device.
 	 * @param address Address of the target device.
 	 */
-	virtual void select(uint32_t address) = 0;
+	virtual void select(size_t address) = 0;
 
 	//! De-select the addressed device.
 	virtual void deselect() = 0;

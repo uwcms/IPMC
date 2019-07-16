@@ -83,9 +83,9 @@ void core_driver_init() {
 	LOG["console_log_command"].register_console_commands(console_command_parser);
 
 	// QSPI interface to Flash
-	PS_QSPI *psqspi = new PS_QSPI(XPAR_PS7_QSPI_0_DEVICE_ID, XPAR_PS7_QSPI_0_INTR);
-#ifdef INCLUDE_DRIVER_COMMAND_SUPPORT
-	psqspi->register_console_commands(console_command_parser, "psqspi.");
+	PSQSPI *psqspi = new PSQSPI(XPAR_PS7_QSPI_0_DEVICE_ID, XPAR_PS7_QSPI_0_INTR);
+#ifdef ENABLE_DRIVER_COMMAND_SUPPORT
+	psqspi->registerConsoleCommands(console_command_parser, "psqspi.");
 #endif
 
 	// Initialize QSPI flash

@@ -11,8 +11,8 @@
 #include <FreeRTOS.h>
 #include <semphr.h>
 #include <IPMC.h>
-#include <drivers/generics/SPI.h>
 #include <drivers/generics/EEPROM.h>
+#include <drivers/generics/spi.h>
 
 /**
  * A SPI EEPROM backed by the PS_SPI interface driver.

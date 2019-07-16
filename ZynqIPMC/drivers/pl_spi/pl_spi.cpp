@@ -1,20 +1,30 @@
 /*
- * PLSPI.cpp
+ * This file is part of the ZYNQ-IPMC Framework.
  *
- *  Created on: Aug 17, 2018
- *      Author: mpv
+ * The ZYNQ-IPMC Framework is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ZYNQ-IPMC Framework is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "PLSPI.h"
+// Only include driver if PL SPI is detected in the BSP.
+#if XSDK_INDEXING || __has_include("xspi.h")
 
-#if XSDK_INDEXING || __has_include(<xspi.h>)
-
+#include "pl_spi.h"
 #include <libs/printf.h>
 #include <libs/except.h>
 
-void XSpi_Abort(XSpi *InstancePtr)
+static void XSpi_Abort(XSpi *InstancePtr)
 {
-	u16 ControlReg;
+	uint16_t control_reg;
 
 	/*
 	 * Deselect the slave on the SPI bus to abort a transfer, this must be
@@ -28,20 +38,20 @@ void XSpi_Abort(XSpi *InstancePtr)
 	 * fault condition by reading the status register (done) then
 	 * writing the control register.
 	 */
-	ControlReg = XSpi_GetControlReg(InstancePtr);
+	control_reg = XSpi_GetControlReg(InstancePtr);
 
 	/*
 	 * Stop any transmit in progress and reset the FIFOs if they exist,
 	 * don't disable the device just inhibit any data from being sent.
 	 */
-	ControlReg |= XSP_CR_TRANS_INHIBIT_MASK;
+	control_reg |= XSP_CR_TRANS_INHIBIT_MASK;
 
 	if (InstancePtr->HasFifos) {
-		ControlReg |= (XSP_CR_TXFIFO_RESET_MASK |
+		control_reg |= (XSP_CR_TXFIFO_RESET_MASK |
 				XSP_CR_RXFIFO_RESET_MASK);
 	}
 
-	XSpi_SetControlReg(InstancePtr, ControlReg);
+	XSpi_SetControlReg(InstancePtr, control_reg);
 
 	InstancePtr->RemainingBytes = 0;
 	InstancePtr->RequestedBytes = 0;
@@ -49,12 +59,12 @@ void XSpi_Abort(XSpi *InstancePtr)
 }
 
 
-void PL_SPI::_InterruptHandler() {
-	u32 IntrStatus;
-	u32 Data = 0;
-	u32 ControlReg;
-	u32 StatusReg;
-	u8  DataWidth;
+void PLSPI::_InterruptHandler() {
+	uint32_t intr_status = 0;
+	uint32_t data = 0;
+	uint32_t control_reg = 0;
+	uint32_t status_reg = 0;
+	uint8_t  data_width = 0;
 
 	/*
 	 * Get the Interrupt Status. Immediately clear the interrupts in case
@@ -63,15 +73,15 @@ void PL_SPI::_InterruptHandler() {
 	 * occurs because we transmit from within the Isr, potentially causing
 	 * another TX_EMPTY interrupt.
 	 */
-	IntrStatus = XSpi_IntrGetStatus(&this->xspi);
-	XSpi_IntrClear(&this->xspi, IntrStatus);
+	intr_status = XSpi_IntrGetStatus(&this->xspi);
+	XSpi_IntrClear(&this->xspi, intr_status);
 
 	/*
 	 * Check for mode fault error. We want to check for this error first,
 	 * before checking for progress of a transfer, since this error needs
 	 * to abort any operation in progress.
 	 */
-	if (IntrStatus & XSP_INTR_MODE_FAULT_MASK) {
+	if (intr_status & XSP_INTR_MODE_FAULT_MASK) {
 		this->xspi.Stats.ModeFaults++;
 
 		/*
@@ -97,21 +107,21 @@ void PL_SPI::_InterruptHandler() {
 	 * Check for overrun error. Simply report the error and update the
 	 * statistics.
 	 */
-	if (IntrStatus & XSP_INTR_RX_OVERRUN_MASK) {
+	if (intr_status & XSP_INTR_RX_OVERRUN_MASK) {
 		this->xspi.Stats.RecvOverruns++;
 	}
 
-	DataWidth = this->xspi.DataWidth;
-	if ((IntrStatus & XSP_INTR_TX_EMPTY_MASK) ||
-		(IntrStatus & XSP_INTR_TX_HALF_EMPTY_MASK)) {
+	data_width = this->xspi.DataWidth;
+	if ((intr_status & XSP_INTR_TX_EMPTY_MASK) ||
+		(intr_status & XSP_INTR_TX_HALF_EMPTY_MASK)) {
 		/*
 		 * A transmit has just completed. Process received data and
 		 * check for more data to transmit. Always inhibit the
 		 * transmitter while the Isr re-fills the transmit
 		 * register/FIFO, or make sure it is stopped if we're done.
 		 */
-		ControlReg = XSpi_GetControlReg(&this->xspi);
-		XSpi_SetControlReg(&this->xspi, ControlReg |
+		control_reg = XSpi_GetControlReg(&this->xspi);
+		XSpi_SetControlReg(&this->xspi, control_reg |
 					XSP_CR_TRANS_INHIBIT_MASK);
 
 		/*
@@ -122,34 +132,34 @@ void PL_SPI::_InterruptHandler() {
 		 * receive buffer if it points to something (the upper layer
 		 * software may not care to receive data).
 		 */
-		StatusReg = XSpi_GetStatusReg(&this->xspi);
+		status_reg = XSpi_GetStatusReg(&this->xspi);
 
-		while ((StatusReg & XSP_SR_RX_EMPTY_MASK) == 0) {
-			Data = XSpi_ReadReg(this->xspi.BaseAddr, XSP_DRR_OFFSET);
+		while ((status_reg & XSP_SR_RX_EMPTY_MASK) == 0) {
+			data = XSpi_ReadReg(this->xspi.BaseAddr, XSP_DRR_OFFSET);
 
 			/*
 			 * Data Transfer Width is Byte (8 bit).
 			 */
-			if (DataWidth == XSP_DATAWIDTH_BYTE) {
+			if (data_width == XSP_DATAWIDTH_BYTE) {
 				if (this->xspi.RecvBufferPtr != NULL) {
-					*this->xspi.RecvBufferPtr++ = (u8) Data;
+					*this->xspi.RecvBufferPtr++ = (uint8_t) data;
 				}
-			} else if (DataWidth == XSP_DATAWIDTH_HALF_WORD) {
+			} else if (data_width == XSP_DATAWIDTH_HALF_WORD) {
 				if (this->xspi.RecvBufferPtr != NULL) {
-					*(u16 *) this->xspi.RecvBufferPtr =
-							(u16) Data;
+					*(uint16_t *) this->xspi.RecvBufferPtr =
+							(uint16_t) data;
 					this->xspi.RecvBufferPtr +=2;
 				}
-			} else if (DataWidth == XSP_DATAWIDTH_WORD) {
+			} else if (data_width == XSP_DATAWIDTH_WORD) {
 				if (this->xspi.RecvBufferPtr != NULL) {
-					*(u32 *) this->xspi.RecvBufferPtr =
-							Data;
+					*(uint32_t *) this->xspi.RecvBufferPtr =
+							data;
 					this->xspi.RecvBufferPtr +=4;
 				}
 			}
 
-			this->xspi.Stats.BytesTransferred += (DataWidth >> 3);
-			StatusReg = XSpi_GetStatusReg(&this->xspi);
+			this->xspi.Stats.BytesTransferred += (data_width >> 3);
+			status_reg = XSpi_GetStatusReg(&this->xspi);
 		}
 
 		/*
@@ -165,42 +175,42 @@ void PL_SPI::_InterruptHandler() {
 			 * The downside is that the status must be read each
 			 * loop iteration.
 			 */
-			StatusReg = XSpi_GetStatusReg(&this->xspi);
-			while (((StatusReg & XSP_SR_TX_FULL_MASK) == 0) &&
+			status_reg = XSpi_GetStatusReg(&this->xspi);
+			while (((status_reg & XSP_SR_TX_FULL_MASK) == 0) &&
 				(this->xspi.RemainingBytes > 0)) {
-				if (DataWidth == XSP_DATAWIDTH_BYTE) {
+				if (data_width == XSP_DATAWIDTH_BYTE) {
 					/*
 					 * Data Transfer Width is Byte (8 bit).
 					 */
-					Data = *this->xspi.SendBufferPtr;
+					data = *this->xspi.SendBufferPtr;
 
-				} else if (DataWidth ==
+				} else if (data_width ==
 						XSP_DATAWIDTH_HALF_WORD) {
 					/*
 					 * Data Transfer Width is Half Word
 					 * (16 bit).
 					 */
-					Data = *(u16 *) this->xspi.SendBufferPtr;
-				} else if (DataWidth ==
+					data = *(uint16_t *) this->xspi.SendBufferPtr;
+				} else if (data_width ==
 						XSP_DATAWIDTH_WORD) {
 					/*
 					 * Data Transfer Width is Word (32 bit).
 					 */
-					Data = *(u32 *) this->xspi.SendBufferPtr;
+					data = *(uint32_t *) this->xspi.SendBufferPtr;
 				}
 
 				XSpi_WriteReg(this->xspi.BaseAddr, XSP_DTR_OFFSET,
-						Data);
-				this->xspi.SendBufferPtr += (DataWidth >> 3);
-				this->xspi.RemainingBytes -= (DataWidth >> 3);
-				StatusReg = XSpi_GetStatusReg(&this->xspi);
+						data);
+				this->xspi.SendBufferPtr += (data_width >> 3);
+				this->xspi.RemainingBytes -= (data_width >> 3);
+				status_reg = XSpi_GetStatusReg(&this->xspi);
 			}
 
 			/*
 			 * Start the transfer by not inhibiting the transmitter
 			 * any longer.
 			 */
-			XSpi_SetControlReg(&this->xspi, ControlReg);
+			XSpi_SetControlReg(&this->xspi, control_reg);
 		} else {
 			/*
 			 * No more data to send.  Disable the interrupt and
@@ -220,53 +230,57 @@ void PL_SPI::_InterruptHandler() {
 	}
 }
 
-PL_SPI::PL_SPI(uint16_t DeviceId, uint32_t IntrId)
-: InterruptBasedDriver(IntrId, 0x3) {
+PLSPI::PLSPI(uint16_t device_id, uint16_t intr_id)
+: InterruptBasedDriver(intr_id, 0x3) {
 	this->sync = xQueueCreate(1, sizeof(unsigned int));
 	configASSERT(this->sync);
 
-	// Initialize the XSpi driver so that it's ready to use
-	if (XST_SUCCESS != XSpi_Initialize(&(this->xspi), DeviceId))
-		throw except::hardware_error(stdsprintf("Unable to initialize PL_SPI(%hu, %lu)", DeviceId, IntrId));
+	// Initialize the XSpi driver so that it's ready to use.
+	if (XST_SUCCESS != XSpi_Initialize(&(this->xspi), device_id)) {
+		throw except::hardware_error("Unable to initialize PLSPI(device_id=" + std::to_string(device_id) + ")");
+	}
 
-	// Perform a self-test to ensure that the hardware was built correctly
-	if (XST_SUCCESS != XSpi_SelfTest(&(this->xspi)))
-		throw except::hardware_error(stdsprintf("Self-test for PL_SPI(%hu, %lu) failed.", DeviceId, IntrId));
+	// Perform a self-test to ensure that the hardware was built correctly.
+	if (XST_SUCCESS != XSpi_SelfTest(&(this->xspi))) {
+		throw except::hardware_error("Self-test failed for PLSPI(device_id=" + std::to_string(device_id) + ")");
+	}
 
 	// Apply proper settings to the IP.
-	if (XST_SUCCESS != XSpi_SetOptions(&this->xspi, XSP_MASTER_OPTION | XSP_MANUAL_SSELECT_OPTION))
-		throw except::hardware_error(stdsprintf("Unable to XSpi_SetOptions on PL_SPI(%hu, %lu)", DeviceId, IntrId));
+	if (XST_SUCCESS != XSpi_SetOptions(&this->xspi, XSP_MASTER_OPTION | XSP_MANUAL_SSELECT_OPTION)) {
+		throw except::hardware_error("Unable to set options of PLSPI(device_id=" + std::to_string(device_id) + ")");
+	}
 
 	this->enableInterrupts();
 }
 
-PL_SPI::~PL_SPI() {
+PLSPI::~PLSPI() {
 }
 
-void PL_SPI::start() {
+void PLSPI::start() {
 	this->xspi.Stats.RecvOverruns = 0;
 	XSpi_Start(&this->xspi);
 }
 
-void PL_SPI::stop() {
+void PLSPI::stop() {
 	XSpi_Stop(&this->xspi);
 }
 
-bool PL_SPI::transfer(u8 cs, const u8 *sendbuf, u8 *recvbuf, size_t bytes, TickType_t timeout) {
+bool PLSPI::transfer(size_t chip, const uint8_t *sendbuf, uint8_t *recvbuf, size_t bytes, TickType_t timeout) {
 	MutexGuard<false> lock(this->mutex, true);
 
-	this->select(cs);
-	bool r = this->transfer_unsafe(sendbuf, recvbuf, bytes, timeout);
+	this->select(chip);
+	bool r = this->transfer(sendbuf, recvbuf, bytes, timeout);
 	this->deselect();
 
 	return r;
 }
 
-bool PL_SPI::transfer_unsafe(const u8 *sendbuf, u8 *recvbuf, size_t bytes, TickType_t timeout) {
-	int r = XSpi_Transfer(&this->xspi, (u8*)sendbuf, recvbuf, bytes);
+bool PLSPI::transfer(const uint8_t *sendbuf, uint8_t *recvbuf, size_t bytes, TickType_t timeout) {
+	if (!this->inAtomic()) throw std::runtime_error("Not atomic, unsafe operation");
+
+	int r = XSpi_Transfer(&this->xspi, (uint8_t*)sendbuf, recvbuf, bytes);
 	if (r != XST_SUCCESS) return false;
 
-	// TODO: This should have a proper timeout
 	unsigned int status = 0;
 	if (!xQueueReceive(this->sync, &status, timeout)) {
 		// Transfer failed
@@ -279,13 +293,13 @@ bool PL_SPI::transfer_unsafe(const u8 *sendbuf, u8 *recvbuf, size_t bytes, TickT
 	return true;
 }
 
-void PL_SPI::select(uint32_t cs) {
+void PLSPI::select(size_t cs) {
 	this->start();
 	XSpi_SetSlaveSelect(&this->xspi, (1 << cs));
 	XSpi_SetSlaveSelectReg(&this->xspi, this->xspi.SlaveSelectReg);
 }
 
-void PL_SPI::deselect() {
+void PLSPI::deselect() {
 	XSpi_SetSlaveSelectReg(&this->xspi, this->xspi.SlaveSelectMask);
 	this->stop();
 }

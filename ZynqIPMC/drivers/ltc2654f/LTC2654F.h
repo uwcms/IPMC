@@ -8,8 +8,8 @@
 #ifndef SRC_COMMON_UW_IPMC_DRIVERS_LTC2654F_LTC2654F_H_
 #define SRC_COMMON_UW_IPMC_DRIVERS_LTC2654F_LTC2654F_H_
 
+#include <drivers/generics/spi.h>
 #include <stdint.h>
-#include <drivers/generics/SPI.h>
 
 /**
  * High-level driver for the LTC2654F Quad 16/12bit rail-to-rail DAC.

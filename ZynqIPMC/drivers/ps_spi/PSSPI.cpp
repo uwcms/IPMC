@@ -58,16 +58,7 @@ PS_SPI::PS_SPI(u16 DeviceId, u32 IntrId) : InterruptBasedDriver(IntrId) {
 PS_SPI::~PS_SPI() {
 }
 
-/**
- * This function will perform a SPI transfer in a blocking manner.
- *
- * \param chip     The chip select to enable.
- * \param sendbuf  The data to send.
- * \param recvbuf  A buffer for received data.
- * \param bytes    The number of bytes to transfer
- * \return false on error, else true
- */
-bool PS_SPI::transfer(u8 chip, const u8 *sendbuf, u8 *recvbuf, size_t bytes, TickType_t timeout) {
+bool PS_SPI::transfer(size_t chip, const uint8_t *sendbuf, uint8_t *recvbuf, size_t bytes, TickType_t timeout) {
 	// TODO: Needs some work
 	MutexGuard<false> lock(this->mutex, true);
 
@@ -101,7 +92,9 @@ bool PS_SPI::transfer(u8 chip, const u8 *sendbuf, u8 *recvbuf, size_t bytes, Tic
 	return rc;
 }
 
-bool PS_SPI::transfer_unsafe(const u8 *sendbuf, u8 *recvbuf, size_t bytes, TickType_t timeout) {
+bool PS_SPI::transfer(const uint8_t *sendbuf, uint8_t *recvbuf, size_t bytes, TickType_t timeout) {
+	if (!this->inAtomic()) throw std::runtime_error("Not atomic, unsafe operation");
+
 	// Start SPI transfer
 	XSpiPs_Transfer(&this->SpiInst, (u8*)sendbuf, recvbuf, bytes);
 	this->transfer_running = true;
@@ -129,7 +122,7 @@ bool PS_SPI::transfer_unsafe(const u8 *sendbuf, u8 *recvbuf, size_t bytes, TickT
 	return rc;
 }
 
-void PS_SPI::select(uint32_t cs) {
+void PS_SPI::select(size_t cs) {
 	// TODO
 }
 

@@ -8,13 +8,13 @@
 #ifndef SRC_COMMON_UW_IPMC_DRIVERS_PS_SPI_PSSPI_H_
 #define SRC_COMMON_UW_IPMC_DRIVERS_PS_SPI_PSSPI_H_
 
+#include <drivers/generics/spi.h>
 #include "xspips.h"
 
 #include <FreeRTOS.h>
 #include <semphr.h>
 #include <queue.h>
 #include <IPMC.h>
-#include <drivers/generics/SPI.h>
 #include <drivers/interrupt_based_driver.h>
 
 /**
@@ -25,12 +25,12 @@ public:
 	PS_SPI(u16 DeviceId, u32 IntrId);
 	virtual ~PS_SPI();
 
-	bool transfer(u8 chip, const u8 *sendbuf, u8 *recvbuf, size_t bytes, TickType_t timeout);
-	bool transfer_unsafe(const u8 *sendbuf, u8 *recvbuf, size_t bytes, TickType_t timeout);
-	inline bool isQuadSupported() { return false; };
-
-	void select(uint32_t cs);
-	void deselect();
+	// From base class SPIMaster:
+	virtual bool transfer(size_t chip, const uint8_t *sendbuf, uint8_t *recvbuf, size_t bytes, TickType_t timeout = portMAX_DELAY);
+	virtual bool transfer(const uint8_t *sendbuf, uint8_t *recvbuf, size_t bytes, TickType_t timeout = portMAX_DELAY);
+	virtual bool isQuadSupported() const { return false; };
+	virtual void select(size_t cs);
+	virtual void deselect();
 
 	void _HandleInterrupt(u32 Event, u32 EventData); ///< \protected Internal.
 	PS_SPI(PS_SPI const &) = delete;               ///< Class is not assignable.

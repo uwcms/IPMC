@@ -66,11 +66,11 @@ bool SPIFlash::read(uint32_t address, uint8_t *buffer, size_t bytes) {
 		command[2] = address >> 8;
 		command[3] = address;
 
-		if (!this->spi.transfer_unsafe(command, NULL, sizeof(command))) {
+		if (!this->spi.transfer(command, nullptr, sizeof(command))) {
 			return false; // Failed
 		}
 
-		if (!this->spi.transfer_unsafe(buffer, buffer, bytes)) {
+		if (!this->spi.transfer(buffer, buffer, bytes)) {
 			return false; // Failed
 		}
 
@@ -189,14 +189,14 @@ bool SPIFlash::getJEDECInfo() {
 		// Form the command to execute a read
 		command[0] = 0x5A;
 
-		if (!this->spi.transfer_unsafe(command, NULL, sizeof(command))) {
+		if (!this->spi.transfer(command, nullptr, sizeof(command))) {
 			return false; // Failed
 		}
 
 		// Start by getting the JEDEC main header
 		struct SFDP_First_Header sfdpheader;
 
-		if (!this->spi.transfer_unsafe((uint8_t*)&sfdpheader, (uint8_t*)&sfdpheader, sizeof(SFDP_First_Header))) {
+		if (!this->spi.transfer((uint8_t*)&sfdpheader, (uint8_t*)&sfdpheader, sizeof(SFDP_First_Header))) {
 			return false; // Failed
 		}
 
@@ -205,7 +205,7 @@ bool SPIFlash::getJEDECInfo() {
 		}
 
 		struct SFDP_Table_Entry tableentry[sfdpheader.num_headers+1];
-		if (!this->spi.transfer_unsafe((uint8_t*)tableentry, (uint8_t*)tableentry, sizeof(SFDP_Table_Entry) * (sfdpheader.num_headers + 1))) {
+		if (!this->spi.transfer((uint8_t*)tableentry, (uint8_t*)tableentry, sizeof(SFDP_Table_Entry) * (sfdpheader.num_headers + 1))) {
 			return false; // Failed
 		}
 
@@ -221,11 +221,11 @@ bool SPIFlash::getJEDECInfo() {
 				std::unique_ptr<uint8_t> dummy(new uint8_t[offset]);
 				if (!dummy.get()) return false; // Not enough memory
 
-				if (!this->spi.transfer_unsafe(dummy.get(), NULL, offset)) {
+				if (!this->spi.transfer(dummy.get(), nullptr, offset)) {
 					return false; // Failed
 				}
 
-				if (!this->spi.transfer_unsafe((uint8_t*)&this->parameters, (uint8_t*)&this->parameters, sizeof(JEDECFlashParameters))) {
+				if (!this->spi.transfer((uint8_t*)&this->parameters, (uint8_t*)&this->parameters, sizeof(JEDECFlashParameters))) {
 					return false; // Failed
 				}
 
@@ -249,7 +249,7 @@ bool SPIFlash::disableWriteProtections() {
 			command[0] = 0x50;
 		}
 
-		if (!this->spi.transfer(this->kChipSelect, command, NULL, sizeof(command))) {
+		if (!this->spi.transfer(this->kChipSelect, command, nullptr, sizeof(command))) {
 			return false; // Failed
 		}
 
@@ -283,7 +283,7 @@ bool SPIFlash::enableQuadBit() {
 		}
 
 		uint8_t command[2] = {0x01, status._raw};
-		if (!this->spi.transfer(this->kChipSelect, command, NULL, sizeof(command))) {
+		if (!this->spi.transfer(this->kChipSelect, command, nullptr, sizeof(command))) {
 			return false; // Failed
 		}
 	}
@@ -295,7 +295,7 @@ bool SPIFlash::enableWriting() {
 	if (!this->isInitialized()) return false;
 
 	uint8_t command[1] = {0x06};
-	if (!this->spi.transfer(this->kChipSelect, command, NULL, sizeof(command))) {
+	if (!this->spi.transfer(this->kChipSelect, command, nullptr, sizeof(command))) {
 		return false; // Failed
 	}
 
@@ -306,7 +306,7 @@ bool SPIFlash::disableWriting() {
 	if (!this->isInitialized()) return false;
 
 	uint8_t command[1] = {0x04};
-	if (!this->spi.transfer(this->kChipSelect, command, NULL, sizeof(command))) {
+	if (!this->spi.transfer(this->kChipSelect, command, nullptr, sizeof(command))) {
 		return false; // Failed
 	}
 
@@ -349,7 +349,7 @@ bool SPIFlash::selectBank(uint8_t bank) {
 			return false;
 		}
 
-		if (!this->spi.transfer(this->kChipSelect, command, NULL, sizeof(command))) {
+		if (!this->spi.transfer(this->kChipSelect, command, nullptr, sizeof(command))) {
 			return false; // Failed
 		}
 
@@ -396,11 +396,11 @@ bool SPIFlash::writePage(uint32_t address, const uint8_t *buffer, size_t bytes) 
 		command[2] = address >> 8;
 		command[3] = address;
 
-		if (!this->spi.transfer_unsafe(command, NULL, sizeof(command))) {
+		if (!this->spi.transfer(command, nullptr, sizeof(command))) {
 			return false; // Failed
 		}
 
-		if (!this->spi.transfer_unsafe(buffer, NULL, 256)) {
+		if (!this->spi.transfer(buffer, nullptr, 256)) {
 			return false; // Failed
 		}
 
@@ -427,7 +427,7 @@ bool SPIFlash::eraseSector(uint32_t address) {
 	command[2] = address >> 8;
 	command[3] = address;
 
-	if (!this->spi.transfer(this->kChipSelect, command, NULL, sizeof(command))) {
+	if (!this->spi.transfer(this->kChipSelect, command, nullptr, sizeof(command))) {
 		return false; // Failed
 	}
 
@@ -450,7 +450,7 @@ bool SPIFlash::eraseSectors(uint32_t address, size_t bytes) {
 
 		// Erase the whole chip
 		uint8_t command[1] = {0x60};
-		if (!this->spi.transfer(this->kChipSelect, command, NULL, sizeof(command))) {
+		if (!this->spi.transfer(this->kChipSelect, command, nullptr, sizeof(command))) {
 			return false; // Failed
 		}
 
@@ -484,7 +484,7 @@ bool SPIFlash::eraseSectors(uint32_t address, size_t bytes) {
 			command[2] = sectorAddress >> 8;
 			command[3] = sectorAddress;
 
-			if (!this->spi.transfer(this->kChipSelect, command, NULL, sizeof(command))) {
+			if (!this->spi.transfer(this->kChipSelect, command, nullptr, sizeof(command))) {
 				return false; // Failed
 			}
 
