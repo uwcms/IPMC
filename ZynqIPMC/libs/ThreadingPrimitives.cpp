@@ -1,6 +1,6 @@
+#include <drivers/tracebuffer/tracebuffer.h>
 #include <FreeRTOS.h>
 #include <libs/ThreadingPrimitives.h>
-#include <drivers/tracebuffer/TraceBuffer.h>
 #include <task.h>
 #include <semphr.h>
 #include <timers.h>

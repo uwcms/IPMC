@@ -5,9 +5,9 @@
  *      Author: jtikalsky
  */
 
+#include <drivers/tracebuffer/tracebuffer.h>
 #include <services/console/TelnetConsoleSvc.h>
 #include <IPMC.h>
-#include <drivers/tracebuffer/TraceBuffer.h>
 
 /**
  * Instantiate a UART console service.

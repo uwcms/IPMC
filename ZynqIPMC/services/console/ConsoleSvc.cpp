@@ -5,10 +5,10 @@
  *      Author: jtikalsky
  */
 
+#include <drivers/tracebuffer/tracebuffer.h>
 #include <services/console/ConsoleSvc.h>
 #include <IPMC.h>
 #include "task.h"
-#include <drivers/tracebuffer/TraceBuffer.h>
 #include <libs/ThreadingPrimitives.h>
 #include <libs/printf.h>
 #include <libs/BackTrace.h>

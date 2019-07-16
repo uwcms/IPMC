@@ -1,5 +1,5 @@
+#include <drivers/tracebuffer/tracebuffer.h>
 #include <FreeRTOS.h>
-#include <drivers/tracebuffer/TraceBuffer.h>
 #include <libs/ThreadingPrimitives.h>
 
 #define TRACEBUFFER_SIZE (1*1024*1024)

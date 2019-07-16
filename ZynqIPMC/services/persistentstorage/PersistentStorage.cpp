@@ -25,7 +25,7 @@
 #include <event_groups.h>
 #include <IPMC.h>
 #include <drivers/spi_eeprom/spi_eeprom.h>
-#include <drivers/tracebuffer/TraceBuffer.h>
+#include <drivers/tracebuffer/tracebuffer.h>
 #include <libs/SkyRoad.h>
 #include <libs/printf.h>
 #include <libs/except.h>
