@@ -11,10 +11,10 @@
 // TODO: Change this?
 #include <BoardPayloadManager.h>
 
-#include <drivers/ps_spi/PSSPI.h>
 #include <drivers/ipmb/PSIPMB.h>
 #include <drivers/ipmb/IPMBPair.h>
 #include <drivers/ps_gpio/ps_gpio.h>
+#include <drivers/ps_spi/ps_spi.h>
 #include <drivers/spi_flash/spi_flash.h>
 #include <services/console/UARTConsoleSvc.h>
 #include <services/ipmi/commands/IPMICmd_Index.h>
