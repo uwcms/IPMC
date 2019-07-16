@@ -8,12 +8,12 @@
 #ifndef SRC_COMMON_UW_IPMC_SERVICES_PERSISTENTSTORAGE_PERSISTENTSTORAGE_H_
 #define SRC_COMMON_UW_IPMC_SERVICES_PERSISTENTSTORAGE_PERSISTENTSTORAGE_H_
 
+#include <drivers/generics/eeprom.h>
 #include <FreeRTOS.h>
 #include <semphr.h>
 #include <task.h>
 #include <event_groups.h>
 #include <IPMC.h>
-#include <drivers/generics/EEPROM.h>
 #include <drivers/watchdog/ps_wdt.h>
 #include <libs/SkyRoad.h>
 #include <libs/ThreadingPrimitives.h>

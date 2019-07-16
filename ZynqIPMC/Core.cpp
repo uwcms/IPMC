@@ -32,7 +32,7 @@ PSWDT   *swdt    = nullptr;
 PSUART  *psuart0 = nullptr;
 Flash   *qspiflash = nullptr;
 
-SPI_EEPROM *eeprom_mac;
+SPIEEPROM *eeprom_mac;
 PersistentStorage *persistent_storage;
 uint8_t mac_address[6];
 
@@ -94,8 +94,8 @@ void core_driver_init() {
 
 	// Configuration and MAC EEPROM
 	PS_SPI *ps_spi0 = new PS_SPI(XPAR_PS7_SPI_0_DEVICE_ID, XPAR_PS7_SPI_0_INTR);
-	SPI_EEPROM *eeprom_data = new SPI_EEPROM(*ps_spi0, 0, 0x8000, 64);
-	eeprom_mac = new SPI_EEPROM(*ps_spi0, 1, 0x100, 16);
+	SPIEEPROM *eeprom_data = new SPIEEPROM(*ps_spi0, 0, 0x8000, 64);
+	eeprom_mac = new SPIEEPROM(*ps_spi0, 1, 0x100, 16);
 	persistent_storage = new PersistentStorage(*eeprom_data, LOG["persistent_storage"], swdt);
 	persistent_storage->register_console_commands(console_command_parser, "eeprom.");
 	configASSERT(eeprom_mac->read(250, mac_address, 6));

@@ -24,7 +24,7 @@
 #include <task.h>
 #include <event_groups.h>
 #include <IPMC.h>
-#include <drivers/spi_eeprom/SPIEEPROM.h>
+#include <drivers/spi_eeprom/spi_eeprom.h>
 #include <drivers/tracebuffer/TraceBuffer.h>
 #include <libs/SkyRoad.h>
 #include <libs/printf.h>
@@ -48,11 +48,11 @@ static inline uint16_t page_count(uint16_t size, uint16_t page_size) {
  */
 PersistentStorage::PersistentStorage(EEPROM &eeprom, LogTree &logtree, PSWDT *watchdog)
 	: eeprom(eeprom), logtree(logtree), wdt(watchdog) {
-	if ((eeprom.size / eeprom.page_size) > UINT16_MAX) // Ensure that the EEPROM will not overflow our u16 fields.
+	if ((eeprom.getTotalSize() / eeprom.getPageSize()) > UINT16_MAX) // Ensure that the EEPROM will not overflow our u16 fields.
 		throw std::domain_error("Only EEPROMs up to UINT16_MAX in length are supported.");
-	this->cache = (u8*)malloc(this->eeprom.size*2 + 4);
-	NVREG32(this->cache, this->eeprom.size) = 0x1234dead; // Set Canary
-	this->data = this->cache + this->eeprom.size + 4;
+	this->cache = (u8*)malloc(this->eeprom.getTotalSize()*2 + 4);
+	NVREG32(this->cache, this->eeprom.getTotalSize()) = 0x1234dead; // Set Canary
+	this->data = this->cache + this->eeprom.getTotalSize() + 4;
 	this->logtree.log("Persistent storage task starting.", LogTree::LOG_INFO);
 	this->storage_loaded = xEventGroupCreate();
 	this->index_mutex = xSemaphoreCreateMutex();
@@ -67,7 +67,7 @@ PersistentStorage::PersistentStorage(EEPROM &eeprom, LogTree &logtree, PSWDT *wa
 
 PersistentStorage::~PersistentStorage() {
 	configASSERT(0); // Unsupported, no way to safely shutdown run_flush_thread at the moment.
-	NVREG32(this->cache, this->eeprom.size) = 0; // Clear the canary for good measure.
+	NVREG32(this->cache, this->eeprom.getTotalSize()) = 0; // Clear the canary for good measure.
 	vSemaphoreDelete(this->flushq_mutex);
 	vSemaphoreDelete(this->index_mutex);
 	vEventGroupDelete(this->storage_loaded);
@@ -152,7 +152,7 @@ void *PersistentStorage::get_section(u16 section_id, u16 section_version, u16 se
 	MutexGuard<false> lock(this->index_mutex, true);
 	struct PersistentStorageIndexRecord *index = reinterpret_cast<struct PersistentStorageIndexRecord *>(this->data + sizeof(struct PersistentStorageHeader));
 
-	u16 section_pgcount = page_count(section_size, this->eeprom.page_size);
+	u16 section_pgcount = page_count(section_size, this->eeprom.getPageSize());
 	int i;
 	for (i = 0; index[i].id != PersistentStorageAllocations::RESERVED_END_OF_INDEX; ++i) {
 		if (index[i].id == section_id) {
@@ -166,7 +166,7 @@ void *PersistentStorage::get_section(u16 section_id, u16 section_version, u16 se
 			}
 			lock.release();
 			this->logtree.log(stdsprintf("Persistent storage section[%04hx] (version = %04hx) retrieved.", section_id, section_version), LogTree::LOG_DIAGNOSTIC);
-			return this->data + (index[i].pgoff * this->eeprom.page_size);
+			return this->data + (index[i].pgoff * this->eeprom.getPageSize());
 		}
 	}
 
@@ -179,10 +179,10 @@ void *PersistentStorage::get_section(u16 section_id, u16 section_version, u16 se
 	 * One thing at a time.
 	 */
 	u16 minimum_address = sizeof(struct PersistentStorageHeader) + (i+2)*sizeof(struct PersistentStorageIndexRecord);
-	u16 minimum_page = page_count(minimum_address, this->eeprom.page_size);
+	u16 minimum_page = page_count(minimum_address, this->eeprom.getPageSize());
 
 	// We start allocations from the end of EEPROM.
-	u16 allocpg = (this->eeprom.size/this->eeprom.page_size)-section_pgcount;
+	u16 allocpg = (this->eeprom.getTotalSize()/this->eeprom.getPageSize())-section_pgcount;
 	bool potential_overlap = true;
 	while (allocpg >= minimum_page && potential_overlap) {
 		// Ok, find an overlap with this allocation.
@@ -216,7 +216,7 @@ void *PersistentStorage::get_section(u16 section_id, u16 section_version, u16 se
 		this->logtree.log(stdsprintf("Persistent storage section[0x%04hx] (version = %hu) allocated at 0x%04hx for %hu pages.", section_id, section_version, index[i].pgoff, index[i].pgcount), LogTree::LOG_DIAGNOSTIC);
 		lock.release();
 		this->flush_index();
-		return this->data + (index[i].pgoff * this->eeprom.page_size);
+		return this->data + (index[i].pgoff * this->eeprom.getPageSize());
 	}
 }
 
@@ -263,7 +263,7 @@ std::vector<struct PersistentStorage::PersistentStorageIndexRecord> PersistentSt
  */
 void PersistentStorage::flush(std::function<void(void)> completion_cb) {
 	this->logtree.log("Requesting full storage flush", LogTree::LOG_DIAGNOSTIC);
-	this->flush(this->data, this->eeprom.size, completion_cb);
+	this->flush(this->data, this->eeprom.getTotalSize(), completion_cb);
 }
 
 /**
@@ -274,7 +274,7 @@ void PersistentStorage::flush(std::function<void(void)> completion_cb) {
  * @param completion_cb A callback to call upon completion.  (Triggers priority inheritance if not NULL.)
  */
 void PersistentStorage::flush(void *start, size_t len, std::function<void(void)> completion_cb) {
-	if (!(start >= this->data && start <= this->data + this->eeprom.size - len))
+	if (!(start >= this->data && start <= this->data + this->eeprom.getTotalSize() - len))
 		throw std::domain_error("The requested flush range exceeds the storage memory space.");
 	u32 start_addr = reinterpret_cast<u8*>(start) - this->data;
 	u32 end_addr = start_addr + len;
@@ -379,9 +379,9 @@ bool PersistentStorage::FlushRequest::operator <(const FlushRequest &other) cons
 
 void PersistentStorage::run_flush_thread() {
 	this->logtree.log("Loading persistent storage.", LogTree::LOG_INFO);
-	this->eeprom.read(0, this->cache, this->eeprom.size);
+	this->eeprom.read(0, this->cache, this->eeprom.getTotalSize());
 	this->logtree.log("Loaded persistent storage.", LogTree::LOG_INFO);
-	memcpy(this->data, this->cache, this->eeprom.size);
+	memcpy(this->data, this->cache, this->eeprom.getTotalSize());
 
 	struct PersistentStorageHeader *hdr = reinterpret_cast<struct PersistentStorageHeader*>(this->data);
 	if (hdr->version == 0 || hdr->version == 0xffff) {
@@ -407,7 +407,7 @@ void PersistentStorage::run_flush_thread() {
 			// Nothing new.  Let's enqueue a full flush.
 			MutexGuard<false> flushlock(this->flushq_mutex, true);
 			// NULL callback means our current priority is irrelevant.
-			this->flushq.emplace(0, this->eeprom.size, std::function<void(void)>());
+			this->flushq.emplace(0, this->eeprom.getTotalSize(), std::function<void(void)>());
 			next_bg_flush.timeout64 = get_tick64() + this->flush_ticks;
 		}
 
@@ -417,7 +417,7 @@ void PersistentStorage::run_flush_thread() {
 			if (this->wdt)
 				this->wdt->service_slot(this->wdt_slot); // This will get hit by our regularly enqueued full flush, in any case.
 			// Step 1: Check the Canary.
-			if (0x1234dead != NVREG32(this->cache, this->eeprom.size)) {
+			if (0x1234dead != NVREG32(this->cache, this->eeprom.getTotalSize())) {
 				this->logtree.log("Canary INVALID.  There has been a buffer overrun in the vicinity of the persistent storage system. EEPROM flushes are PERMANENTLY DISABLED.", LogTree::LOG_CRITICAL);
 				configASSERT(0); // We're done.  We can't trust our cache or comparisons.
 			}
@@ -457,14 +457,14 @@ void PersistentStorage::run_flush_thread() {
  */
 bool PersistentStorage::do_flush_range(u32 start, u32 end) {
 	this->logtree.log(stdsprintf("Flushing range [%lu, %lu)", start, end), LogTree::LOG_DIAGNOSTIC);
-	start -= start % this->eeprom.page_size; // Round start down to page boundary.
-	if (end % this->eeprom.page_size)
-		end += this->eeprom.page_size - (end % this->eeprom.page_size);
+	start -= start % this->eeprom.getPageSize(); // Round start down to page boundary.
+	if (end % this->eeprom.getPageSize())
+		end += this->eeprom.getPageSize() - (end % this->eeprom.getPageSize());
 
 	bool changed = false;
-	for (u32 pgaddr = start; pgaddr < end; pgaddr += this->eeprom.page_size) {
+	for (u32 pgaddr = start; pgaddr < end; pgaddr += this->eeprom.getPageSize()) {
 		bool differ = false;
-		for (u32 i = pgaddr; i < pgaddr+this->eeprom.page_size; ++i) {
+		for (u32 i = pgaddr; i < pgaddr+this->eeprom.getPageSize(); ++i) {
 			if (this->data[i] != this->cache[i]) {
 				differ = true;
 				break;
@@ -473,14 +473,14 @@ bool PersistentStorage::do_flush_range(u32 start, u32 end) {
 		if (!differ)
 			continue; // Already clean.
 		this->logtree.log(stdsprintf("Difference found at 0x%lx", pgaddr), LogTree::LOG_TRACE);
-		TRACE.log(this->logtree.path.c_str(), this->logtree.path.size(), LogTree::LOG_TRACE, reinterpret_cast<char*>(this->cache+pgaddr), this->eeprom.page_size, true);
-		TRACE.log(this->logtree.path.c_str(), this->logtree.path.size(), LogTree::LOG_TRACE, reinterpret_cast<char*>(this->data+pgaddr), this->eeprom.page_size, true);
+		TRACE.log(this->logtree.path.c_str(), this->logtree.path.size(), LogTree::LOG_TRACE, reinterpret_cast<char*>(this->cache+pgaddr), this->eeprom.getPageSize(), true);
+		TRACE.log(this->logtree.path.c_str(), this->logtree.path.size(), LogTree::LOG_TRACE, reinterpret_cast<char*>(this->data+pgaddr), this->eeprom.getPageSize(), true);
 
-		if (this->eeprom.write(pgaddr, this->data+pgaddr, this->eeprom.page_size) != this->eeprom.page_size) {
+		if (this->eeprom.write(pgaddr, this->data+pgaddr, this->eeprom.getPageSize()) != this->eeprom.getPageSize()) {
 			this->logtree.log(stdsprintf("EEPROM write failed during flush in Persistent Storage service at 0x%04lx", pgaddr), LogTree::LOG_ERROR);
 		}
 		else {
-			memcpy(this->cache + pgaddr, this->data + pgaddr, this->eeprom.page_size); // Update cache mirror to match EEPROM
+			memcpy(this->cache + pgaddr, this->data + pgaddr, this->eeprom.getPageSize()); // Update cache mirror to match EEPROM
 			changed = true;
 		}
 	}
@@ -541,7 +541,7 @@ bool VariablePersistentAllocation::set_data(const std::vector<uint8_t> &data, st
 			if (pdata) {
 				// An allocation exists that is at least large enough, do we need to shrink it?
 				uint16_t *data_size = reinterpret_cast<uint16_t*>(pdata);
-				if (page_count(*data_size, this->storage.eeprom.page_size) != page_count(data.size(), this->storage.eeprom.page_size))
+				if (page_count(*data_size, this->storage.eeprom.getPageSize()) != page_count(data.size(), this->storage.eeprom.getPageSize()))
 					pdata = NULL; // Yep, different pagecount from desired.  Reallocate.
 			}
 		}
@@ -635,13 +635,13 @@ public:
 		std::vector<struct PersistentStorage::PersistentStorageIndexRecord> sections = this->storage.list_sections();
 		for (auto it = sections.begin(), eit = sections.end(); it != eit; ++it) {
 			if (it->id == sect_id) {
-				u8 *buf = (u8*)this->storage.get_section(it->id, it->version, it->pgcount*this->storage.eeprom.page_size);
+				u8 *buf = (u8*)this->storage.get_section(it->id, it->version, it->pgcount*this->storage.eeprom.getPageSize());
 				if (!buf) {
 					print("Failed to fetch section!\n");
 					return;
 				}
 				std::string out;
-				for (u32 i = start; i < start+length && i < (it->pgcount*this->storage.eeprom.page_size); ++i)
+				for (u32 i = start; i < start+length && i < (it->pgcount*this->storage.eeprom.getPageSize()); ++i)
 					out += stdsprintf(" %02hhx", buf[i]);
 				console->write(stdsprintf("0x%04hx[0x%04lx:0x%04lx]:", sect_id, start, start+length) + out + "\n");
 				return;
@@ -708,13 +708,13 @@ public:
 		std::vector<struct PersistentStorage::PersistentStorageIndexRecord> sections = this->storage.list_sections();
 		for (auto it = sections.begin(), eit = sections.end(); it != eit; ++it) {
 			if (it->id == sect_id) {
-				u8 *buf = (u8*)this->storage.get_section(it->id, it->version, it->pgcount*storage.eeprom.page_size);
+				u8 *buf = (u8*)this->storage.get_section(it->id, it->version, it->pgcount*storage.eeprom.getPageSize());
 				if (!buf) {
 					print("Failed to fetch section!\n");
 					return;
 				}
 				std::string out;
-				if (start + writebytecount > (it->pgcount*this->storage.eeprom.page_size)) {
+				if (start + writebytecount > (it->pgcount*this->storage.eeprom.getPageSize())) {
 					print("This write would overflow the region.  Cancelled.\n");
 					return;
 				}

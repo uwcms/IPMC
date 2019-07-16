@@ -8,7 +8,7 @@
 #ifndef SRC_COMMON_UW_IPMC_CORE_CONSOLE_COMMANDS_BOOTTARGET_H_
 #define SRC_COMMON_UW_IPMC_CORE_CONSOLE_COMMANDS_BOOTTARGET_H_
 
-#include <drivers/generics/EEPROM.h>
+#include <drivers/generics/eeprom.h>
 
 namespace {
 
