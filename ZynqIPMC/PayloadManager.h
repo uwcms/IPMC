@@ -13,7 +13,7 @@
 #include <services/ipmi/MStateMachine.h>
 #include <services/console/ConsoleSvc.h>
 #include <drivers/mgmt_zone/MGMTZone.h>
-#include <drivers/sensorprocessor/SensorProcessor.h>
+#include <drivers/sensorprocessor/sensorprocessor.h>
 #include <services/ipmi/sensor/ThresholdSensor.h>
 #include <services/ipmi/sensor/SeveritySensor.h>
 #include <services/timer/TimerService.h>

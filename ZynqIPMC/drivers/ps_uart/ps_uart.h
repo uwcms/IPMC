@@ -18,7 +18,7 @@
 #ifndef SRC_COMMON_ZYNQIPMC_DRIVERS_PS_UART_PL_UART_H_
 #define SRC_COMMON_ZYNQIPMC_DRIVERS_PS_UART_PL_UART_H_
 
-// Only include driver if PS UART in the BSP.
+// Only include driver if PS UART is in the BSP.
 #if XSDK_INDEXING || __has_include("xuartps.h")
 
 #include "xuartps.h"

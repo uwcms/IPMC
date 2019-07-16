@@ -130,6 +130,7 @@ void PayloadManager::FinishConfig() {
 	for (auto &adcsensor : PayloadManager::adc_sensors)
 		if (adcsensor.second.sensor_processor_id >= 0)
 			sensor_processor_channels[adcsensor.second.sensor_processor_id] = &adcsensor.second.adc;
+	// TODO: Maybe this can't be common, check later.
 	this->sensor_processor = new SensorProcessor(XPAR_IPMI_SENSOR_PROC_0_DEVICE_ID, XPAR_FABRIC_IPMI_SENSOR_PROC_0_IRQ_O_INTR, sensor_processor_channels);
 
 	// The sensor processor is configured and enabled by the sensor linkage
@@ -191,7 +192,7 @@ void PayloadManager::run_sensor_thread() {
 		bool event_received;
 		do {
 			SensorProcessor::Event event;
-			event_received = this->sensor_processor->get_isr_event(event, timeout);
+			event_received = this->sensor_processor->getISREvent(event, timeout);
 			if (event_received) {
 				MutexGuard<true> lock(this->mutex, true);
 				for (auto &adcsensor : this->adc_sensors) {
@@ -378,7 +379,7 @@ void PayloadManager::update_sensor_processor_contexts() {
 			else {
 				//this->log.log(stdsprintf("MZ%d is in context for sensor %s", adcsensor.second.mz_context, sensor->sensor_identifier().c_str()), LogTree::LOG_DIAGNOSTIC);
 			}
-			this->sensor_processor->set_event_enable(adcsensor.second.sensor_processor_id, desired_assertions, desired_deassertions);
+			this->sensor_processor->setEventEnable(adcsensor.second.sensor_processor_id, desired_assertions, desired_deassertions);
 		}
 	}
 	if (next_update.timeout64 > start_of_run && next_update.timeout64 != UINT64_MAX) {
@@ -416,12 +417,12 @@ void PayloadManager::refresh_sensor_linkage() {
 
 				// Disable all event enables not common to the active and new sets during reconfiguration.
 				uint16_t assert, deassert;
-				this->sensor_processor->get_event_enable(adcsensor.second.sensor_processor_id, assert, deassert);
-				this->sensor_processor->set_event_enable(adcsensor.second.sensor_processor_id, assert & desired_assertions, deassert & desired_deassertions);
+				this->sensor_processor->getEventEnable(adcsensor.second.sensor_processor_id, assert, deassert);
+				this->sensor_processor->setEventEnable(adcsensor.second.sensor_processor_id, assert & desired_assertions, deassert & desired_deassertions);
 
 				// This is only going to work on increasing linear sensors, but that's all we can support at the moment.
 				uint16_t hystunit = adcsensor.second.adc.floatToRaw(sdr->to_float(1)) - adcsensor.second.adc.floatToRaw(sdr->to_float(0));
-				this->sensor_processor->set_hysteresis(adcsensor.second.sensor_processor_id, sdr->hysteresis_high() * hystunit, sdr->hysteresis_low() * hystunit);
+				this->sensor_processor->setHysteresis(adcsensor.second.sensor_processor_id, sdr->hysteresis_high() * hystunit, sdr->hysteresis_low() * hystunit);
 
 				Thr_Cfg thresholds;
 				thresholds.LNR = (sensor->thresholds.lnr == 0) ? 0 : adcsensor.second.adc.floatToRaw(sdr->to_float(sensor->thresholds.lnr));
@@ -430,13 +431,13 @@ void PayloadManager::refresh_sensor_linkage() {
 				thresholds.UNC = (sensor->thresholds.unc == 0xFF) ? 0xFFFF : adcsensor.second.adc.floatToRaw(sdr->to_float(sensor->thresholds.unc));
 				thresholds.UCR = (sensor->thresholds.ucr == 0xFF) ? 0xFFFF : adcsensor.second.adc.floatToRaw(sdr->to_float(sensor->thresholds.ucr));
 				thresholds.UNR = (sensor->thresholds.unr == 0xFF) ? 0xFFFF : adcsensor.second.adc.floatToRaw(sdr->to_float(sensor->thresholds.unr));
-				this->sensor_processor->set_thresholds(adcsensor.second.sensor_processor_id, thresholds);
+				this->sensor_processor->setThresholds(adcsensor.second.sensor_processor_id, thresholds);
 
-				this->sensor_processor->set_event_enable(adcsensor.second.sensor_processor_id, desired_assertions, desired_deassertions);
+				this->sensor_processor->setEventEnable(adcsensor.second.sensor_processor_id, desired_assertions, desired_deassertions);
 
-				Hyst_Cfg hysteresis = this->sensor_processor->get_hysteresis(adcsensor.second.sensor_processor_id);
-				thresholds = this->sensor_processor->get_thresholds(adcsensor.second.sensor_processor_id);
-				this->sensor_processor->get_event_enable(adcsensor.second.sensor_processor_id, assert, deassert);
+				Hyst_Cfg hysteresis = this->sensor_processor->getHysteresis(adcsensor.second.sensor_processor_id);
+				thresholds = this->sensor_processor->getThresholds(adcsensor.second.sensor_processor_id);
+				this->sensor_processor->getEventEnable(adcsensor.second.sensor_processor_id, assert, deassert);
 				this->log.log(stdsprintf("Sensor %s [%d] Thr: 0x%04hx 0x%04hx 0x%04hx 0x%04hx 0x%04hx 0x%04hx Hyst: +0x%04hx -0x%04hx Ena: +0x%04hx -0x%04hx",
 						sensor->sensor_identifier().c_str(), adcsensor.second.sensor_processor_id,
 						thresholds.LNC, thresholds.LCR, thresholds.LNR,
