@@ -1,8 +1,18 @@
 /*
- * ESM.cpp
+ * This file is part of the ZYNQ-IPMC Framework.
  *
- *  Created on: Aug 16, 2018
- *      Author: mpv
+ * The ZYNQ-IPMC Framework is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ZYNQ-IPMC Framework is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 /** In case this becomes necessary, this is the best way to disable ESM but leave the flash active:
@@ -19,8 +29,7 @@
  *  this->flash_reset->release();
  **/
 
-#include "ESM.h"
-#include <libs/Utils.h>
+#include "esm.h"
 
 const std::string ESM::commandStatusToString(const CommandStatus& s) {
 	switch (s) {
@@ -31,10 +40,8 @@ const std::string ESM::commandStatusToString(const CommandStatus& s) {
 	}
 }
 
-ESM::ESM(UART *uart, ResetPin *esm_reset, Flash *flash, ResetPin *flash_reset)
-: uart(uart), esm_reset(esm_reset), flash(flash), flash_reset(flash_reset) {
-	configASSERT(this->uart);
-
+ESM::ESM(UART &uart, ResetPin *esm_reset, Flash *flash, ResetPin *flash_reset) :
+uart(uart), esm_reset(esm_reset), flash(flash), flash_reset(flash_reset) {
 	this->mutex = xSemaphoreCreateMutex();
 	configASSERT(this->mutex);
 }
@@ -81,20 +88,20 @@ ESM::CommandStatus ESM::command(const std::string& command, std::string& respons
 	MutexGuard<false> lock(this->mutex, true);
 
 	// Clear the receiver buffer
-	this->uart->clear();
+	this->uart.clear();
 
 	// Send the command
-	this->uart->write((const u8*)formated_cmd.c_str(), formated_cmd.length(), pdMS_TO_TICKS(1000));
+	this->uart.write((const uint8_t*)formated_cmd.c_str(), formated_cmd.length(), pdMS_TO_TICKS(1000));
 
 	// Read the incoming response
 	// A single read such as:
-	// size_t count = uart->read((u8*)buf, 2048, pdMS_TO_TICKS(1000));
+	// size_t count = uart.read((uint8_t*)buf, 2048, pdMS_TO_TICKS(1000));
 	// .. works but reading one character at a time allows us to detect
 	// the end of the response which is '\r\n>'.
 	char inbuf[2048] = "";
 	size_t pos = 0, count = 0;
 	while (pos < 2043) {
-		count = this->uart->read((u8*)inbuf+pos, 1, pdMS_TO_TICKS(1000));
+		count = this->uart.read((uint8_t*)inbuf+pos, 1, pdMS_TO_TICKS(1000));
 		if (count == 0) break; // No character received
 		if ((pos > 3) && (memcmp(inbuf+pos-2, "\r\n>", 3) == 0)) break; // End of command
 		pos++;
@@ -152,13 +159,10 @@ void ESM::restart() {
 	vTaskDelay(pdMS_TO_TICKS(1000));
 }
 
-/// A "esm.command" console command.
-class esm_command : public CommandParser::Command {
+//! A "esm.command" console command.
+class ESM::Command : public CommandParser::Command {
 public:
-	ESM &esm; ///< ESM object.
-
-	///! Construct the command.
-	esm_command(ESM &esm) : esm(esm) { };
+	Command(ESM &esm) : esm(esm) { };
 
 	virtual std::string get_helptext(const std::string &command) const {
 		return command + "\n\n"
@@ -186,15 +190,15 @@ public:
 			console->write(response);
 		}
 	}
+
+private:
+	ESM &esm; ///< ESM object.
 };
 
-/// A "esm.restart" console command.
-class esm_restart : public CommandParser::Command {
+//! A "esm.restart" console command.
+class ESM::Restart : public CommandParser::Command {
 public:
-	ESM &esm; ///< ESM object.
-
-	///! Construct the command.
-	esm_restart(ESM &esm) : esm(esm) { };
+	Restart(ESM &esm) : esm(esm) { };
 
 	virtual std::string get_helptext(const std::string &command) const {
 		return command + "\n\n"
@@ -204,15 +208,15 @@ public:
 	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
 		esm.restart();
 	}
+
+private:
+	ESM &esm; ///< ESM object.
 };
 
 /// A "esm.flash.info" console command.
-class esm_flash_info : public CommandParser::Command {
+class ESM::FlashInfo : public CommandParser::Command {
 public:
-	ESM &esm; ///< ESM object.
-
-	///! Construct the command.
-	esm_flash_info(ESM &esm) : esm(esm) { };
+	FlashInfo(ESM &esm) : esm(esm) { };
 
 	virtual std::string get_helptext(const std::string &command) const {
 		return command + "\n\n"
@@ -228,26 +232,19 @@ public:
 
 		console->write("Total flash size: " + bytesToString(esm.flash->getTotalSize()) + "\n");
 	}
+
+private:
+	ESM &esm; ///< ESM object.
 };
 
-/**
- * Register console commands related to this storage.
- * @param parser The command parser to register to.
- * @param prefix A prefix for the registered commands.
- */
-void ESM::register_console_commands(CommandParser &parser, const std::string &prefix) {
-	parser.register_command(prefix + "command", std::make_shared<esm_command>(*this));
-	parser.register_command(prefix + "restart", std::make_shared<esm_restart>(*this));
+void ESM::registerConsoleCommands(CommandParser &parser, const std::string &prefix) {
+	parser.register_command(prefix + "command", std::make_shared<ESM::Command>(*this));
+	parser.register_command(prefix + "restart", std::make_shared<ESM::Restart>(*this));
 	if (this->isFlashPresent())
-		parser.register_command(prefix + "flash.info", std::make_shared<esm_flash_info>(*this));
+		parser.register_command(prefix + "flash.info", std::make_shared<ESM::FlashInfo>(*this));
 }
 
-/**
- * Unregister console commands related to this storage.
- * @param parser The command parser to unregister from.
- * @param prefix A prefix for the registered commands.
- */
-void ESM::deregister_console_commands(CommandParser &parser, const std::string &prefix) {
+void ESM::deregisterConsoleCommands(CommandParser &parser, const std::string &prefix) {
 	parser.register_command(prefix + "command", NULL);
 	parser.register_command(prefix + "restart", NULL);
 	if (this->isFlashPresent())
