@@ -1,23 +1,32 @@
 /*
- * ELM.cpp
+ * This file is part of the ZYNQ-IPMC Framework.
  *
- *  Created on: Feb 21, 2019
- *      Author: mpv
+ * The ZYNQ-IPMC Framework is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ZYNQ-IPMC Framework is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <IPMC.h>
+// TODO: Remove printf
+
+#include "elm.h"
+#include <IPMC.h> // TODO: Consider removing this when things are shuffled around.
 #include <libs/ThreadingPrimitives.h>
-#include "ELM.h"
 
-ELM::ELM(UART *uart, GPIO *targetsel)
-: uart(uart), targetsel(targetsel) {
-	// TODO: Should be able to partially take
-	configASSERT(this->uart);
-
+ELM::ELM(UART &uart, GPIO *targetsel) :
+uart(uart), targetsel(targetsel) {
 	this->mutex = xSemaphoreCreateMutex();
 	configASSERT(this->mutex);
 
-	memset(this->channelMapping, 0, sizeof(this->channelMapping));
+	memset(this->channels, 0, sizeof(this->channels));
 
 	// Start the digest thread
 	UWTaskCreate("elmlink", TASK_PRIORITY_BACKGROUND, [this]() {
@@ -42,14 +51,14 @@ ELM::ELM(UART *uart, GPIO *targetsel)
 //					}
 
 					MutexGuard<false> lock(this->mutex);
-					if (this->channelMapping[p.meta.channel]) {
+					if (this->channels[p.meta.channel]) {
 						// Channel exists
 //						if (p.meta.ack) {
 //							// Ack packet
 //							// TODO: Deassert wait on channel
-//							xSemaphoreGive(this->channelMapping[p.meta.channel]->sync);
+//							xSemaphoreGive(this->channels[p.meta.channel]->sync);
 //						} else {
-							this->channelMapping[p.meta.channel]->recv(p.content, p.size);
+							this->channels[p.meta.channel]->recv(p.content, p.size);
 //						}
 					} else {
 						printf("Packet to unmapped channel (%d)", p.meta.channel);
@@ -64,13 +73,9 @@ ELM::~ELM() {
 	vSemaphoreDelete(this->mutex);
 }
 
-/// A "elm.bootsource" console command.
-class elm_bootsource : public CommandParser::Command {
+class ELM::BootSource : public CommandParser::Command {
 public:
-	ELM &elm; ///< ELM object.
-
-	///! Construct the command.
-	elm_bootsource(ELM &elm) : elm(elm) { };
+	BootSource(ELM &elm) : elm(elm) { };
 
 	virtual std::string get_helptext(const std::string &command) const {
 		return command + " [release|sdcard|flash]\n\n"
@@ -103,15 +108,14 @@ public:
 			}
 		}
 	}
+
+private:
+	ELM &elm;
 };
 
-/// A "elm.quiesce" console command.
-class elm_quiesce : public CommandParser::Command {
+class ELM::Quiesce : public CommandParser::Command {
 public:
-	ELM &elm; ///< ELM object.
-
-	///! Construct the command.
-	elm_quiesce(ELM &elm) : elm(elm) { };
+	Quiesce(ELM &elm) : elm(elm) { };
 
 	virtual std::string get_helptext(const std::string &command) const {
 		return command + "\n\n"
@@ -121,37 +125,24 @@ public:
 	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
 		elm.sendPacket(0, (uint8_t*)"q", 1);
 	}
+
+private:
+	ELM &elm;
 };
 
-/**
- * Register console commands related to this storage.
- * @param parser The command parser to register to.
- * @param prefix A prefix for the registered commands.
- */
-void ELM::register_console_commands(CommandParser &parser, const std::string &prefix) {
+void ELM::registerConsoleCommands(CommandParser &parser, const std::string &prefix) {
 	if (this->targetsel)
-		parser.register_command(prefix + "bootsource", std::make_shared<elm_bootsource>(*this));
-	parser.register_command(prefix + "quiesce", std::make_shared<elm_quiesce>(*this));
+		parser.register_command(prefix + "bootsource", std::make_shared<ELM::BootSource>(*this));
+	parser.register_command(prefix + "quiesce", std::make_shared<ELM::Quiesce>(*this));
 }
 
-/**
- * Unregister console commands related to this storage.
- * @param parser The command parser to unregister from.
- * @param prefix A prefix for the registered commands.
- */
-void ELM::deregister_console_commands(CommandParser &parser, const std::string &prefix) {
+void ELM::deregisterConsoleCommands(CommandParser &parser, const std::string &prefix) {
 	if (this->targetsel)
 		parser.register_command(prefix + "bootsource", NULL);
 }
 
 // TODO: Proper linkage between channels
 // TODO: Proper timeouts
-
-/** TODO for tomorrow:
- * - _ptr needs to be adjusted after diff size
- * - Add auto alloc, dealloc to Packet?
- * Need timeout if not all bytes are received
- */
 
 uint16_t ELM::calculateChecksum(const Packet &p) {
 	uint16_t chksum = p.meta.value + p.size;
@@ -167,12 +158,12 @@ bool ELM::sendPacket(const Packet &p) {
 
 	// Send message down the link
 	MutexGuard<false> lock(this->mutex);
-	this->uart->write(header, sizeof(header));
+	this->uart.write(header, sizeof(header));
 //	if (p.meta.ack == 0) {
-		this->uart->write((uint8_t*)&p.size, sizeof(p.size));
-		this->uart->write(p.content, p.size);
+		this->uart.write((uint8_t*)&p.size, sizeof(p.size));
+		this->uart.write(p.content, p.size);
 //	}
-	this->uart->write((uint8_t*)&chksum, sizeof(chksum));
+	this->uart.write((uint8_t*)&chksum, sizeof(chksum));
 
 	return true;
 }
@@ -204,7 +195,7 @@ int ELM::digestInput(Packet &p, TickType_t timeout) {
 		switch (p.state) {
 			case Packet::WAITING_HEADER: {
 				uint8_t header = 0;
-				rcv = this->uart->read(&header, sizeof(header));
+				rcv = this->uart.read(&header, sizeof(header));
 				if (rcv != sizeof(header))
 					return -1;
 
@@ -214,7 +205,7 @@ int ELM::digestInput(Packet &p, TickType_t timeout) {
 			} break;
 
 			case Packet::WAITING_METADATA: {
-				rcv = this->uart->read(&(p.meta.value), sizeof(Metadata), timeout);
+				rcv = this->uart.read(&(p.meta.value), sizeof(Metadata), timeout);
 				if (rcv != sizeof(Metadata))
 					return -1;
 
@@ -227,7 +218,7 @@ int ELM::digestInput(Packet &p, TickType_t timeout) {
 			} break;
 
 			case Packet::WAITING_SIZE: {
-				rcv = this->uart->read((uint8_t*)&(p.size), sizeof(p.size), timeout);
+				rcv = this->uart.read((uint8_t*)&(p.size), sizeof(p.size), timeout);
 				if (rcv != sizeof(p.size))
 					return -1;
 
@@ -245,7 +236,7 @@ int ELM::digestInput(Packet &p, TickType_t timeout) {
 			} break;
 
 			case Packet::WAITING_CONTENT: {
-				rcv = this->uart->read(p.content, p.size, timeout);
+				rcv = this->uart.read(p.content, p.size, timeout);
 				if (rcv != p.size)
 					return -1;
 
@@ -253,7 +244,7 @@ int ELM::digestInput(Packet &p, TickType_t timeout) {
 			} break;
 
 			case Packet::WAITING_CHKSUM: {
-				rcv = this->uart->read((uint8_t*)&(p.chksum), sizeof(p.chksum), timeout);
+				rcv = this->uart.read((uint8_t*)&(p.chksum), sizeof(p.chksum), timeout);
 				if (rcv != sizeof(p.chksum))
 					return -1;
 
@@ -273,25 +264,25 @@ int ELM::digestInput(Packet &p, TickType_t timeout) {
 void ELM::linkChannel(ELM::Channel *c) {
 	MutexGuard<false> lock(this->mutex);
 
-	if (c->channel > 31) return; // Invalid
-	this->channelMapping[c->channel] = c;
+	if (c->kChannel > 31) return; // Invalid
+	this->channels[c->kChannel] = c;
 }
 
 void ELM::unlinkChannel(ELM::Channel *c) {
 	MutexGuard<false> lock(this->mutex);
 
-	if (c->channel > 31) return; // Invalid
-	if (this->channelMapping[c->channel] == c) {
-		this->channelMapping[c->channel] = nullptr;
+	if (c->kChannel > 31) return; // Invalid
+	if (this->channels[c->kChannel] == c) {
+		this->channels[c->kChannel] = nullptr;
 	}
 }
 
-bool ELM::Channel::send(uint8_t *content, size_t size) {
+bool ELM::Channel::send(const uint8_t *content, size_t size) {
 	Packet p = {0};
 //	p.meta.ack = this->flowctrl;
-	p.meta.channel = this->channel;
+	p.meta.channel = this->kChannel;
 	p.size = size;
-	p.content = content;
+	p.content = (uint8_t*)content;
 	p.chksum = calculateChecksum(p);
 
 //	BaseType_t syncRet = pdFALSE;
