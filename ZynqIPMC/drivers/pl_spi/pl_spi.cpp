@@ -276,6 +276,7 @@ bool PLSPI::transfer(size_t chip, const uint8_t *sendbuf, uint8_t *recvbuf, size
 }
 
 bool PLSPI::transfer(const uint8_t *sendbuf, uint8_t *recvbuf, size_t bytes, TickType_t timeout) {
+	// TODO: Consider using the mutex recursively for this instead??
 	if (!this->inAtomic()) throw std::runtime_error("Not atomic, unsafe operation");
 
 	int r = XSpi_Transfer(&this->xspi, (uint8_t*)sendbuf, recvbuf, bytes);

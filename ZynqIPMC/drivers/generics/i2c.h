@@ -1,38 +1,32 @@
 /*
- * I2C.h
+ * This file is part of the ZYNQ-IPMC Framework.
  *
- *  Created on: Jan 8, 2018
- *      Author: jtikalsky
+ * The ZYNQ-IPMC Framework is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ZYNQ-IPMC Framework is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef SRC_COMMON_UW_IPMC_DRIVERS_GENERICS_I2C_H_
-#define SRC_COMMON_UW_IPMC_DRIVERS_GENERICS_I2C_H_
+#ifndef SRC_COMMON_ZYNQIPMC_DRIVERS_GENERICS_I2C_H_
+#define SRC_COMMON_ZYNQIPMC_DRIVERS_GENERICS_I2C_H_
 
-#include <FreeRTOS.h>
-#include <semphr.h>
-#include <functional>
-#include <libs/ThreadingPrimitives.h>
-
-#ifdef ENABLE_DRIVER_COMMAND_SUPPORT
+#include <drivers/atomicity_support.h>
 #include <services/console/ConsoleSvc.h>
-#include <libs/printf.h>
 #include <libs/Utils.h>
-#endif
 
 /**
- * A generic I2C driver interface.
+ * An abstract I2C driver interface.
  */
-class I2C {
+class I2C : public AtomicitySupport, public ConsoleCommandSupport {
 public:
-	I2C() {
-		this->mutex = xSemaphoreCreateMutex();
-		configASSERT(this->mutex);
-	};
-
-	virtual ~I2C() {
-		vSemaphoreDelete(this->mutex);
-	};
-
 	/**
 	 * Read buffer from the I2C interface
 	 *
@@ -57,24 +51,10 @@ public:
 	 */
 	virtual size_t write(uint8_t addr, const uint8_t *buf, size_t len, TickType_t timeout = portMAX_DELAY, bool repeatedStart = false) = 0;
 
-	/**
-	 * If I2C interface is used by several devices then several read/write
-	 * operations can be chained by wrapping around a lambda function inside
-	 * chain function which will grant exclusive access to the interface
-	 *
-	 * @param lambda_func The lambda function to run
-	 **/
-	inline virtual void chain(std::function<void(void)> lambda_func) {
-		MutexGuard<false> lock(this->mutex, true);
-		lambda_func();
-	}
-
 #ifdef ENABLE_DRIVER_COMMAND_SUPPORT
-	class ConsoleCommand_i2c_send : public CommandParser::Command {
+	class Send : public CommandParser::Command {
 	public:
-		I2C &i2c;
-
-		ConsoleCommand_i2c_send(I2C &i2c) : i2c(i2c) {};
+		Send(I2C &i2c) : i2c(i2c) {};
 
 		virtual std::string get_helptext(const std::string &command) const {
 			return command + " $slave_addr [$byte1 $byte2 ..]\n\n"
@@ -118,19 +98,20 @@ public:
 					return;
 				}
 			} else {
-				if (!this->i2c.write(slaveaddr, NULL, 0, pdMS_TO_TICKS(2000))){
+				if (!this->i2c.write(slaveaddr, nullptr, 0, pdMS_TO_TICKS(2000))){
 					console->write("i2c.write failed\n");
 					return;
 				}
 			}
 		}
+
+	private:
+		I2C &i2c;
 	};
 
-	class ConsoleCommand_i2c_recv : public CommandParser::Command {
+	class Recv : public CommandParser::Command {
 	public:
-		I2C &i2c;
-
-		ConsoleCommand_i2c_recv(I2C &i2c) : i2c(i2c) {};
+		Recv(I2C &i2c) : i2c(i2c) {};
 
 		virtual std::string get_helptext(const std::string &command) const {
 			return command + " $slave_addr $byte_count\n\n"
@@ -164,28 +145,35 @@ public:
 
 				console->write("Received:\n" + formatedHexString(&*array, length));
 			} else {
-				if (!this->i2c.read(slaveaddr, NULL, 0, pdMS_TO_TICKS(2000))){
+				if (!this->i2c.read(slaveaddr, nullptr, 0, pdMS_TO_TICKS(2000))){
 					console->write("i2c.read failed\n");
 					return;
 				}
 
 			}
 		}
+
+	private:
+		I2C &i2c;
 	};
-
-	void register_console_commands(CommandParser &parser, const std::string &prefix="") {
-		parser.register_command(prefix + "send", std::make_shared<ConsoleCommand_i2c_send>(*this));
-		parser.register_command(prefix + "recv", std::make_shared<ConsoleCommand_i2c_recv>(*this));
-	}
-
-	void deregister_console_commands(CommandParser &parser, const std::string &prefix="") {
-		parser.register_command(prefix + "send", NULL);
-		parser.register_command(prefix + "recv", NULL);
-	}
 #endif
+
+	virtual void registerConsoleCommands(CommandParser &parser, const std::string &prefix="") {
+#ifdef ENABLE_DRIVER_COMMAND_SUPPORT
+		parser.register_command(prefix + "send", std::make_shared<I2C::Send>(*this));
+		parser.register_command(prefix + "recv", std::make_shared<I2C::Recv>(*this));
+#endif
+	}
+
+	virtual void deregisterConsoleCommands(CommandParser &parser, const std::string &prefix="") {
+#ifdef ENABLE_DRIVER_COMMAND_SUPPORT
+		parser.register_command(prefix + "send", nullptr);
+		parser.register_command(prefix + "recv", nullptr);
+#endif
+	}
 
 protected:
 	SemaphoreHandle_t mutex;
 };
 
-#endif /* SRC_COMMON_UW_IPMC_DRIVERS_GENERICS_I2C_H_ */
+#endif /* SRC_COMMON_ZYNQIPMC_DRIVERS_GENERICS_I2C_H_ */

@@ -206,7 +206,18 @@ public:
 
 class ConsoleCommandSupport {
 public:
+	/**
+	 * Register console commands related to this storage.
+	 * @param parser The command parser to register to.
+	 * @param prefix A prefix for the registered commands.
+	 */
 	virtual void registerConsoleCommands(CommandParser &parser, const std::string &prefix="") = 0;
+
+	/**
+	 * Unregister console commands related to this storage.
+	 * @param parser The command parser to unregister from.
+	 * @param prefix A prefix for the registered commands.
+	 */
 	virtual void deregisterConsoleCommands(CommandParser &parser, const std::string &prefix="") = 0;
 };
 

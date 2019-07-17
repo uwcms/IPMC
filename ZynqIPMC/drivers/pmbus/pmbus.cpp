@@ -1,14 +1,25 @@
 /*
- * PMBUS.cpp
+ * This file is part of the ZYNQ-IPMC Framework.
  *
- *  Created on: Apr 19, 2019
- *      Author: mpv
+ * The ZYNQ-IPMC Framework is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ZYNQ-IPMC Framework is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "PMBus.h"
+#include <drivers/pmbus/pmbus.h>
 #include <cmath>
 #include <libs/printf.h>
 
+//! CRC8 necessary for PEC calculation as part of the PMBus spec.
 static uint8_t crc8(uint8_t x) {
 	for (size_t i = 0; i < 8; i++) {
 		char toxor = (x & 0x80) ? 0x07 : 0;
@@ -20,6 +31,7 @@ static uint8_t crc8(uint8_t x) {
 	return x;
 }
 
+//! PEC for PMBus error detection which uses CRC8
 static uint8_t pec(uint8_t crc, const uint8_t *p, size_t count) {
 	for (size_t i = 0; i < count; i++)
 		crc = crc8(crc ^ p[i]);
@@ -27,6 +39,7 @@ static uint8_t pec(uint8_t crc, const uint8_t *p, size_t count) {
 	return crc;
 }
 
+//! Some PMBus returns are in linear units, this converts them to direct or double precision.
 static double linear2direct(uint16_t l) {
 	int32_t mantissa = l & 0x7ff;
 	if (mantissa & 0x400) mantissa |= 0xfffff800; // Adjust for 2-complement
@@ -48,7 +61,8 @@ const std::map<PMBus::Command, PMBus::CommandDetails> PMBus::CommandInfo = {
 	{READ_FREQUENCY, {2, "READ_FREQUENCY", Format::LINEAR, Unit::NONE}},
 };
 
-PMBus::PMBus(I2C &i2c, uint8_t addr) : i2c(i2c), addr(addr) {
+PMBus::PMBus(I2C &i2c, uint8_t addr) :
+i2c(i2c), kAddr(addr) {
 
 }
 
@@ -68,22 +82,20 @@ const std::string PMBus::unitToString(Unit unit) {
 	return "";
 }
 
-double PMBus::readCommand(Command cmd, std::vector<uint8_t> *opt) {
+double PMBus::sendCommand(Command cmd, std::vector<uint8_t> *opt) {
 	PMBus::CommandDetails details = PMBus::CommandInfo.at(cmd);
 
 	uint8_t buffer[details.length+1] = {0};
 
-	this->i2c.chain([this, cmd, &buffer, &details] (void) {
+	this->i2c.atomic([this, cmd, &buffer, &details] (void) {
 		// Do repeated start
-		this->i2c.write(this->addr, (uint8_t*)&cmd, 1, pdMS_TO_TICKS(2000), true);
-		this->i2c.read(this->addr, buffer, details.length+1, pdMS_TO_TICKS(2000));
+		this->i2c.write(this->kAddr, (uint8_t*)&cmd, 1, pdMS_TO_TICKS(2000), true);
+		this->i2c.read(this->kAddr, buffer, details.length+1, pdMS_TO_TICKS(2000));
 	});
 
-	uint8_t crcbytes[] = {(this->addr<<1) & 0xfe, cmd, (this->addr<<1) | 0x01};
+	uint8_t crcbytes[] = { (uint8_t)((this->kAddr<<1) & 0xfe), cmd, (uint8_t)((this->kAddr<<1) | 0x01) };
 	uint8_t crc = pec(0, crcbytes, sizeof(crcbytes));
 	crc = pec(crc, buffer, details.length);
-
-	//printf("Received: %s", formatedHexString(buffer, details.length+1).c_str());
 
 	if (crc != (buffer)[details.length]) {
 		throw std::runtime_error(stdsprintf("PMBus PEC mismatch (read 0x%02x, expected 0x%02x)", buffer[details.length], crc));
@@ -93,7 +105,6 @@ double PMBus::readCommand(Command cmd, std::vector<uint8_t> *opt) {
 	if (details.format == Format::LINEAR) {
 		uint16_t v = buffer[0] | (buffer[1] << 8);
 		double c = linear2direct(v);
-		//printf("Read %0.4f %s", c, PMBus::unitToString(details.unit).c_str());
 		return c;
 	} else if (details.format == Format::CUSTOM) {
 		// Custom format
@@ -101,17 +112,19 @@ double PMBus::readCommand(Command cmd, std::vector<uint8_t> *opt) {
 		case Command::VOUT_MODE: {
 			if (!opt) break;
 
-			this->readCommand(Command::VOUT_MODE);
+			this->sendCommand(Command::VOUT_MODE);
 		} break;
 		case Command::READ_VOUT: {
 			std::vector<uint8_t> vout_mode;
 
-			this->readCommand(Command::VOUT_MODE, &vout_mode);
+			this->sendCommand(Command::VOUT_MODE, &vout_mode);
 
 			uint8_t mode = (vout_mode[0] >> 5) & 0x7;
 			uint8_t parameter = vout_mode[0] & 0x1F;
 
-			if (mode != 0) throw std::runtime_error("Only linear mode is supported for VOUT_MODE");
+			if (mode != 0) {
+				throw std::runtime_error("Only linear mode is supported for VOUT_MODE");
+			}
 
 			double mantissa = (buffer[0] | (buffer[1] << 8));
 			double c = mantissa * pow(2, parameter);
