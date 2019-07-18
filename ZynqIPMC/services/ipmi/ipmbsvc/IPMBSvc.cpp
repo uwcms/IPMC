@@ -62,7 +62,7 @@ IPMBSvc::IPMBSvc(IPMB *ipmb, uint8_t ipmb_address, IPMICommandParser *command_pa
 	configASSERT(pdPASS == xQueueAddToSet(this->sendq_notify_sem, this->qset));
 	configASSERT(pdPASS == xQueueAddToSet(this->recvq, this->qset));
 
-	ipmb->set_incoming_message_queue(this->recvq);
+	ipmb->setIncomingMessageQueue(this->recvq);
 
 	if (this->wdt) {
 		this->wdt_slot = this->wdt->register_slot(configTICK_RATE_HZ*10);
@@ -78,7 +78,7 @@ IPMBSvc::IPMBSvc(IPMB *ipmb, uint8_t ipmb_address, IPMICommandParser *command_pa
 
 IPMBSvc::~IPMBSvc() {
 	configASSERT(!this->task); // Clean up the task first.  We can't just TaskDelete as it might be holding a lock at the particular instant.
-	this->ipmb->set_incoming_message_queue(NULL);
+	this->ipmb->setIncomingMessageQueue(NULL);
 	configASSERT(0); // Destruction is not supported, as QueueSets don't have a good delete functionality.
 	vSemaphoreDelete(this->sendq_mutex);
 	vSemaphoreDelete(this->sendq_notify_sem);
@@ -294,7 +294,7 @@ void IPMBSvc::run_thread() {
 				}
 				else {
 					// This is a normal outgoing message, deliver it.
-					success = this->ipmb->send_message(*wireout_msg, it->retry_count);
+					success = this->ipmb->sendMessage(*wireout_msg, it->retry_count);
 				}
 				lock.acquire();
 

@@ -1,15 +1,24 @@
 /*
- * PSIPMBAB.cpp
+ * This file is part of the ZYNQ-IPMC Framework.
  *
- *  Created on: Oct 24, 2017
- *      Author: jtikalsky
+ * The ZYNQ-IPMC Framework is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ZYNQ-IPMC Framework is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "PSIPMB.h"
+// Only include driver if the PS IIC is detected in the BSP.
+#if XSDK_INDEXING || __has_include("xiicps.h")
 
-#if XSDK_INDEXING || __has_include(<xiicps.h>)
-
-#include "PSIPMB.h"
+#include "ps_ipmb.h"
 #include "IPMC.h"
 #include "xscugic.h"
 #include "xiicps.h"
@@ -22,44 +31,34 @@
 #include <libs/except.h>
 
 
-/**
- * Instantiate a PS_IPMB driver.
- *
- * \note This performs hardware setup (mainly interrupt configuration).
- *
- * \param DeviceId             The DeviceId, used for XIicPs_LookupConfig(), etc
- * \param IntrId               The interrupt ID, for configuring the GIC.
- * \param IPMBAddr             The IPMB slave address to listen on.
- */
-PS_IPMB::PS_IPMB(u16 DeviceId, u32 IntrId, u8 IPMBAddr) : InterruptBasedDriver(IntrId),
-		IPMBAddr(IPMBAddr), messages_received(stdsprintf("ipmb0.ps_ipmb.%hu.messages_received", DeviceId)),
-		invalid_messages_received(stdsprintf("ipmb0.ps_ipmb.%hu.invalid_messages_received", DeviceId)),
-		incoming_messages_missed(stdsprintf("ipmb0.ps_ipmb.%hu.incoming_messages_missed", DeviceId)),
-		unexpected_send_result_interrupts(stdsprintf("ipmb0.ps_ipmb.%hu.unexpected_send_result_interrupts", DeviceId)),
-		lost_transmit_interrutpts(stdsprintf("ipmb0.ps_ipmb.%hu.lost_transmit_interrupts", DeviceId)) {
+PSIPMB::PSIPMB(uint16_t device_id, uint16_t intr_id, uint8_t addr) : InterruptBasedDriver(intr_id),
+		kIPMBAddr(addr),
+		messages_received(stdsprintf("ipmb0.ps_ipmb.%hu.messages_received", device_id)),
+		invalid_messages_received(stdsprintf("ipmb0.ps_ipmb.%hu.invalid_messages_received", device_id)),
+		incoming_messages_missed(stdsprintf("ipmb0.ps_ipmb.%hu.incoming_messages_missed", device_id)),
+		unexpected_send_result_interrupts(stdsprintf("ipmb0.ps_ipmb.%hu.unexpected_send_result_interrupts", device_id)),
+		lost_transmit_interrutpts(stdsprintf("ipmb0.ps_ipmb.%hu.lost_transmit_interrupts", device_id)) {
 	this->mutex = xSemaphoreCreateMutex();
 	configASSERT(this->mutex);
 
-	this->sendresult_q = xQueueCreate(1, sizeof(u32));
+	this->sendresult_q = xQueueCreate(1, sizeof(uint32_t));
 	configASSERT(this->sendresult_q);
 
-	XIicPs_Config *Config = XIicPs_LookupConfig(DeviceId);
-	if (XST_SUCCESS != XIicPs_CfgInitialize(&this->IicInst, Config, Config->BaseAddress))
-		throw except::hardware_error(stdsprintf("Unable to initialize PS I2C for PS_IPMB(%hu, %u, %hhu)", DeviceId, IntrId, IPMBAddr));
+	XIicPs_Config *config = XIicPs_LookupConfig(device_id);
+	if (XST_SUCCESS != XIicPs_CfgInitialize(&this->iic, config, config->BaseAddress)) {
+		throw except::hardware_error("Unable to initialize PSIPMB(device_id=" + std::to_string(device_id) + ")");
+	}
 
-	this->setup_slave();
+	this->setupSlave();
 }
 
-PS_IPMB::~PS_IPMB() {
+PSIPMB::~PSIPMB() {
 	vQueueDelete(this->sendresult_q);
 	vSemaphoreDelete(this->mutex);
 }
 
-/**
- * Configure the device in slave mode and initiate receiving.
- */
-void PS_IPMB::setup_slave() {
-	while (XIicPs_BusIsBusy(&this->IicInst)) {
+void PSIPMB::setupSlave() {
+	while (XIicPs_BusIsBusy(&this->iic)) {
 		vTaskDelay(pdMS_TO_TICKS(1));
 	}
 
@@ -67,24 +66,21 @@ void PS_IPMB::setup_slave() {
 	this->disableInterrupts();
 
 	// Reset and configure the device.
-	XIicPs_Reset(&this->IicInst);
-	XIicPs_SetSClk(&this->IicInst, 400000);
-	XIicPs_SetStatusHandler(&this->IicInst, reinterpret_cast<void*>(this), reinterpret_cast<XIicPs_IntrHandler>(PS_IPMB::_InterruptPassthrough));
+	XIicPs_Reset(&this->iic);
+	XIicPs_SetSClk(&this->iic, 400000);
+	XIicPs_SetStatusHandler(&this->iic, reinterpret_cast<void*>(this), reinterpret_cast<XIicPs_IntrHandler>(PSIPMB::_InterruptPassthrough));
 
 	// Start in Slave configuration
 	this->master = false;
 	this->enableInterrupts();
-	XIicPs_SetupSlave(&this->IicInst, this->IPMBAddr >> 1);
+	XIicPs_SetupSlave(&this->iic, this->kIPMBAddr >> 1);
 
 	// Start Receiving
-	XIicPs_SlaveRecv(&this->IicInst, this->i2c_inbuf, this->i2c_bufsize);
+	XIicPs_SlaveRecv(&this->iic, this->i2c_inbuf, this->i2c_bufsize);
 }
 
-/**
- * Configure the device in master mode.
- */
-void PS_IPMB::setup_master() {
-	while (XIicPs_BusIsBusy(&this->IicInst)) {
+void PSIPMB::setupMaster() {
+	while (XIicPs_BusIsBusy(&this->iic)) {
 		vTaskDelay(pdMS_TO_TICKS(1));
 	}
 
@@ -92,32 +88,25 @@ void PS_IPMB::setup_master() {
 	this->disableInterrupts();
 
 	// Reset and configure the device.
-	XIicPs_Reset(&this->IicInst);
-	XIicPs_SetSClk(&this->IicInst, 400000);
-	XIicPs_SetStatusHandler(&this->IicInst, reinterpret_cast<void*>(this), reinterpret_cast<XIicPs_IntrHandler>(PS_IPMB::_InterruptPassthrough));
+	XIicPs_Reset(&this->iic);
+	XIicPs_SetSClk(&this->iic, 400000);
+	XIicPs_SetStatusHandler(&this->iic, reinterpret_cast<void*>(this), reinterpret_cast<XIicPs_IntrHandler>(PSIPMB::_InterruptPassthrough));
 
 	// Start in Master configuration
 	this->master = true;
 	this->enableInterrupts();
 }
 
-/**
- * This function will send a message out on the IPMB in a blocking manner.
- *
- * \param msg   The IPMI_MSG to deliver.
- * \param retry The retry counter for this message.
- * \return      true if message was delivered else false
- */
-bool PS_IPMB::send_message(IPMI_MSG &msg, uint32_t retry) {
+bool PSIPMB::sendMessage(IPMI_MSG &msg, uint32_t retry) {
 	uint8_t msgbuf[this->i2c_bufsize];
 	int msglen = msg.unparse_message(msgbuf, this->i2c_bufsize);
 
 	MutexGuard<false> lock(this->mutex, true);
-	this->setup_master();
+	this->setupMaster();
 
-	u32 isr_result;
+	uint32_t isr_result;
 	xQueueReceive(this->sendresult_q, &isr_result, 0); // Clear any late/delayed result.
-	XIicPs_MasterSend(&this->IicInst, msgbuf, msglen, msg.rsSA>>1);
+	XIicPs_MasterSend(&this->iic, msgbuf, msglen, msg.rsSA>>1);
 
 	if (pdFAIL == xQueueReceive(this->sendresult_q, &isr_result, pdMS_TO_TICKS(10))) {
 		// We didn't get a response. Move on with our lives.
@@ -126,24 +115,21 @@ bool PS_IPMB::send_message(IPMI_MSG &msg, uint32_t retry) {
 		this->lost_transmit_interrutpts.increment();
 	}
 
-	this->setup_slave(); // Return to slave mode.
+	this->setupSlave(); // Return to slave mode.
 
 	return isr_result == XIICPS_EVENT_COMPLETE_SEND; // Return wire-level success/failure.
 }
 
-
 /**
  * Helper used by the #XIicPs_VariableLengthSlaveInterruptHandler()
- *
- * \note This function is duplicated because it is static in xiicps_slave.c
- *
  * @param InstancePtr The IicPs instance pointer.
  * @return Remaining expected bytes.
+ * @note This function is duplicated because it is static in xiicps_slave.c.
  */
 static s32 SlaveRecvData(XIicPs *InstancePtr)
 {
-	u32 StatusReg;
-	u32 BaseAddr;
+	uint32_t StatusReg;
+	uint32_t BaseAddr;
 
 	BaseAddr = InstancePtr->Config.BaseAddress;
 
@@ -158,13 +144,13 @@ static s32 SlaveRecvData(XIicPs *InstancePtr)
 	return InstancePtr->RecvByteCount;
 }
 
-void PS_IPMB::_InterruptPassthrough(PS_IPMB *ps_ipmb, u32 StatusEvent) {
+void PSIPMB::_InterruptPassthrough(PSIPMB *ps_ipmb, uint32_t StatusEvent) {
 	ps_ipmb->_HandleStatus(StatusEvent);
 }
 
-void PS_IPMB::_InterruptHandler() {
+void PSIPMB::_InterruptHandler() {
 	if (this->master) {
-		XIicPs_MasterInterruptHandler(&(this->IicInst));
+		XIicPs_MasterInterruptHandler(&(this->iic));
 	} else {
 		this->_VariableLengthSlaveInterruptHandler();
 	}
@@ -186,22 +172,22 @@ void PS_IPMB::_InterruptHandler() {
  * from the original function as the top 6 bits of the status value, which were
  * otherwise unused.
  *
- * \param InstancePtr The IicPs instance pointer.
+ * @param InstancePtr The IicPs instance pointer.
  */
-void PS_IPMB::_VariableLengthSlaveInterruptHandler()
+void PSIPMB::_VariableLengthSlaveInterruptHandler()
 {
-	u32 IntrStatusReg;
-	u32 IsSend = 0U;
-	u32 StatusEvent = 0U;
+	uint32_t IntrStatusReg;
+	uint32_t IsSend = 0U;
+	uint32_t StatusEvent = 0U;
 	s32 LeftOver;
-	u32 BaseAddr;
+	uint32_t BaseAddr;
 
 	/*
 	 * Assert validates the input arguments.
 	 */
-	Xil_AssertVoid(this->IicInst.IsReady == (u32)XIL_COMPONENT_IS_READY);
+	Xil_AssertVoid(this->iic.IsReady == (uint32_t)XIL_COMPONENT_IS_READY);
 
-	BaseAddr = this->IicInst.Config.BaseAddress;
+	BaseAddr = this->iic.Config.BaseAddress;
 
 	/*
 	 * Read the Interrupt status register.
@@ -223,7 +209,7 @@ void PS_IPMB::_VariableLengthSlaveInterruptHandler()
 	/*
 	 * Determine whether the device is sending.
 	 */
-	if (this->IicInst.RecvBufferPtr == NULL) {
+	if (this->iic.RecvBufferPtr == NULL) {
 		IsSend = 1U;
 	}
 
@@ -232,9 +218,9 @@ void PS_IPMB::_VariableLengthSlaveInterruptHandler()
 	 * This means master wants to do more data transfers.
 	 * Also check for completion of transfer, signal upper layer if done.
 	 */
-	if ((u32)0U != (IntrStatusReg & XIICPS_IXR_DATA_MASK)) {
+	if ((uint32_t)0U != (IntrStatusReg & XIICPS_IXR_DATA_MASK)) {
 		if (IsSend != 0x0U) {
-			LeftOver = TransmitFifoFill(&(this->IicInst));
+			LeftOver = TransmitFifoFill(&(this->iic));
 				/*
 				 * We may finish send here
 				 */
@@ -243,7 +229,7 @@ void PS_IPMB::_VariableLengthSlaveInterruptHandler()
 						XIICPS_EVENT_COMPLETE_SEND;
 				}
 		} else {
-			LeftOver = SlaveRecvData(&(this->IicInst));
+			LeftOver = SlaveRecvData(&(this->iic));
 
 			/* We may finish the receive here */
 			if (LeftOver == 0) {
@@ -261,13 +247,13 @@ void PS_IPMB::_VariableLengthSlaveInterruptHandler()
 	 */
 	if (0U != (IntrStatusReg & XIICPS_IXR_COMP_MASK)) {
 		if (IsSend != 0x0U) {
-			if (this->IicInst.SendByteCount > 0) {
+			if (this->iic.SendByteCount > 0) {
 				StatusEvent |= XIICPS_EVENT_ERROR;
 			}else {
 				StatusEvent |= XIICPS_EVENT_COMPLETE_SEND;
 			}
 		} else {
-			LeftOver = SlaveRecvData(&(this->IicInst));
+			LeftOver = SlaveRecvData(&(this->iic));
 			if (LeftOver > 0) {
 				//UW//StatusEvent |= XIICPS_EVENT_ERROR;
 				StatusEvent |= (LeftOver << 26) | XIICPS_EVENT_COMPLETE_RECV; //UW//
@@ -298,12 +284,12 @@ void PS_IPMB::_VariableLengthSlaveInterruptHandler()
 	/*
 	 * Signal application if there are any events.
 	 */
-	if ((u32)0U != StatusEvent) {
+	if ((uint32_t)0U != StatusEvent) {
 		this->_HandleStatus(StatusEvent);
 	}
 }
 
-void PS_IPMB::_HandleStatus(u32 StatusEvent) {
+void PSIPMB::_HandleStatus(uint32_t StatusEvent) {
 	//#define XIICPS_EVENT_COMPLETE_SEND	0x0001U  /**< Transmit Complete Event*/
 	//#define XIICPS_EVENT_COMPLETE_RECV	0x0002U  /**< Receive Complete Event*/
 	//#define XIICPS_EVENT_TIME_OUT		0x0004U  /**< Transfer timed out */
@@ -317,12 +303,12 @@ void PS_IPMB::_HandleStatus(u32 StatusEvent) {
 
 	BaseType_t isrwake = pdFALSE;
 
-	u32 LeftOverBytes = StatusEvent >> 26;
+	uint32_t LeftOverBytes = StatusEvent >> 26;
 	StatusEvent &= 0x03ffffff;
 
 	if (StatusEvent == XIICPS_EVENT_COMPLETE_RECV) {
 		IPMI_MSG msg;
-		if (msg.parse_message(this->i2c_inbuf, this->i2c_bufsize - LeftOverBytes, this->IPMBAddr)) {
+		if (msg.parse_message(this->i2c_inbuf, this->i2c_bufsize - LeftOverBytes, this->kIPMBAddr)) {
 			BaseType_t ret = pdFALSE;
 			if (this->incoming_message_queue)
 				ret = xQueueSendFromISR(this->incoming_message_queue, &msg, &isrwake);
@@ -334,7 +320,7 @@ void PS_IPMB::_HandleStatus(u32 StatusEvent) {
 		else {
 			this->invalid_messages_received.increment();
 		}
-		XIicPs_SlaveRecv(&this->IicInst, this->i2c_inbuf, this->i2c_bufsize); // Reset Receiver
+		XIicPs_SlaveRecv(&this->iic, this->i2c_inbuf, this->i2c_bufsize); // Reset Receiver
 	}
 
 	if (this->master) {

@@ -5,14 +5,14 @@
  *      Author: mpv
  */
 
+#include <drivers/ipmb/ipmb_pair.h>
 #include "config/ZynqIPMCConfig.h"
 #include "Core.h"
 
 // TODO: Change this?
 #include <BoardPayloadManager.h>
 
-#include <drivers/ipmb/PSIPMB.h>
-#include <drivers/ipmb/IPMBPair.h>
+#include <drivers/ipmb/ps_ipmb.h>
 #include <drivers/ps_gpio/ps_gpio.h>
 #include <drivers/ps_spi/ps_spi.h>
 #include <drivers/spi_flash/spi_flash.h>
@@ -131,9 +131,9 @@ void core_driver_init() {
 
 	LogTree &log_ipmb0 = LOG["ipmi"]["ipmb"]["ipmb0"];
 	log_ipmb0.log(stdsprintf("Our IPMB0 address is %02Xh", ipmbaddr), LogTree::LOG_NOTICE);
-	PS_IPMB *ps_ipmb[2];
-	ps_ipmb[0] = new PS_IPMB(XPAR_PS7_I2C_0_DEVICE_ID, XPAR_PS7_I2C_0_INTR, ipmbaddr);
-	ps_ipmb[1] = new PS_IPMB(XPAR_PS7_I2C_1_DEVICE_ID, XPAR_PS7_I2C_1_INTR, ipmbaddr);
+	PSIPMB *ps_ipmb[2];
+	ps_ipmb[0] = new PSIPMB(XPAR_PS7_I2C_0_DEVICE_ID, XPAR_PS7_I2C_0_INTR, ipmbaddr);
+	ps_ipmb[1] = new PSIPMB(XPAR_PS7_I2C_1_DEVICE_ID, XPAR_PS7_I2C_1_INTR, ipmbaddr);
 	IPMBPair *ipmb0pair = new IPMBPair(ps_ipmb[0], ps_ipmb[1], &(log_ipmb0["outgoing_messages"]));
 	ipmi_command_parser = new IPMICommandParser(ipmicmd_default, *ipmicmd_index);
 	ipmb0 = new IPMBSvc(ipmb0pair, ipmbaddr, ipmi_command_parser, log_ipmb0, "ipmb0", swdt);
