@@ -8,6 +8,7 @@
 #ifndef SRC_COMMON_UW_IPMC_SERVICES_IPMI_IPMBSVC_IPMBSVC_H_
 #define SRC_COMMON_UW_IPMC_SERVICES_IPMI_IPMBSVC_IPMBSVC_H_
 
+#include <drivers/generics/ipmb.h>
 #include <functional>
 #include <list>
 #include <FreeRTOS.h>
@@ -20,7 +21,6 @@
 #include <libs/StatCounter.h>
 #include <libs/LogTree.h>
 #include <libs/SkyRoad.h>
-#include <drivers/generics/IPMB.h>
 #include <drivers/watchdog/ps_wdt.h>
 #include <services/ipmi/IPMI_MSG.h>
 #include <services/ipmi/ipmbsvc/IPMICommandParser.h>

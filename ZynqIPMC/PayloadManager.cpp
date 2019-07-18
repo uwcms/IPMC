@@ -146,7 +146,7 @@ PayloadManager::~PayloadManager() {
 	 */
 	CriticalGuard critical(true);
 	for (int i = 0; i < XPAR_MGMT_ZONE_CTRL_0_MZ_CNT; ++i) {
-		this->mgmt_zones[i]->set_power_state(MGMT_Zone::KILL);
+		this->mgmt_zones[i]->setPowerState(ZoneController::Zone::KILL);
 		delete this->mgmt_zones[i];
 	}
 
@@ -228,13 +228,13 @@ void PayloadManager::run_sensor_thread() {
 			MutexGuard<true> lock(this->mutex, true);
 			for (unsigned i = 0; i < XPAR_MGMT_ZONE_CTRL_0_MZ_CNT; ++i) {
 				bool state = false, transition = false;
-				state = this->mgmt_zones[i]->get_power_state(&transition);
+				state = this->mgmt_zones[i]->getPowerState(&transition);
 				if (transition)
 					continue;
-				if (state != this->mgmt_zones[i]->get_desired_power_state()) {
-					this->log.log(stdsprintf("Management Zone %u has faulted!  The global power enable state is %lu at time of software processing.", i, this->mgmt_zones[i]->get_pen_status(false)), LogTree::LOG_ERROR);
+				if (state != this->mgmt_zones[i]->getDesiredPowerState()) {
+					this->log.log(stdsprintf("Management Zone %u has faulted!  The global power enable state is %lu at time of software processing.", i, this->mgmt_zones[i]->getPowerEnableStatus(false)), LogTree::LOG_ERROR);
 					// Acknowledge the fault by setting desired state to off.
-					this->mgmt_zones[i]->set_power_state(MGMT_Zone::OFF);
+					this->mgmt_zones[i]->setPowerState(ZoneController::Zone::OFF);
 					alarm_level = SeveritySensor::NR;
 					// Set the fault lock flag in the MStateMachine so we can't go M1->M2 without the handle going out first.
 					this->mstate_machine->fault_lock(true);
@@ -285,7 +285,7 @@ void PayloadManager::run_sensor_thread() {
 				for (int i = 0; i < XPAR_MGMT_ZONE_CTRL_0_MZ_CNT; ++i)
 					if (adcsensor.second.sensor_processor_id >= 0 &&
 							this->mz_hf_vectors[i] & (1 << adcsensor.second.sensor_processor_id))
-						this->mgmt_zones[i]->set_power_state(MGMT_Zone::KILL); // Issue software fault.
+						this->mgmt_zones[i]->setPowerState(ZoneController::Zone::KILL); // Issue software fault.
 					else
 						this->ProcessNonManagedADCSensor(adcsensor);
 			}
@@ -336,10 +336,10 @@ void PayloadManager::ProcessNonManagedADCSensor(std::pair<std::string, ADCSensor
 bool PayloadManager::is_MZ_in_context(int mz) const {
 	if (mz < 0)
 		return true; // -1 = no mz context concept for this sensor
-	MGMT_Zone *zone = this->mgmt_zones[mz];
-	if (zone->get_desired_power_state() == false)
+	ZoneController::Zone *zone = this->mgmt_zones[mz];
+	if (zone->getDesiredPowerState() == false)
 		return false;
-	if ((zone->last_transition_start_ts() + MZ_HOLDOFF_TICKS) > get_tick64())
+	if ((zone->getLastTransitionStart() + MZ_HOLDOFF_TICKS) > get_tick64())
 		return false;
 	return true;
 }
@@ -371,7 +371,7 @@ void PayloadManager::update_sensor_processor_contexts() {
 			if (!this->is_MZ_in_context(adcsensor.second.mz_context)) {
 				desired_assertions &= CONTEXT_EVENT_MASK;
 				desired_deassertions &= CONTEXT_EVENT_MASK;
-				uint64_t holdoff_end = this->mgmt_zones[adcsensor.second.mz_context]->last_transition_start_ts() + MZ_HOLDOFF_TICKS;
+				uint64_t holdoff_end = this->mgmt_zones[adcsensor.second.mz_context]->getLastTransitionStart() + MZ_HOLDOFF_TICKS;
 				//this->log.log(stdsprintf("MZ%d is out of context for sensor %s", adcsensor.second.mz_context, sensor->sensor_identifier().c_str()), LogTree::LOG_DIAGNOSTIC);
 				if (next_update.timeout64 > holdoff_end)
 					next_update.timeout64 = holdoff_end;
@@ -481,7 +481,7 @@ public:
 			if (this->payloadmgr.power_properties.current_power_level)
 				negotiated_power_watts = this->payloadmgr.power_properties.power_levels[this->payloadmgr.power_properties.current_power_level-1];
 			negotiated_power_watts *= this->payloadmgr.power_properties.power_multiplier;
-			uint32_t pen_state = this->payloadmgr.mgmt_zones[0]->get_pen_status(false);
+			uint32_t pen_state = this->payloadmgr.mgmt_zones[0]->getPowerEnableStatus(false);
 			console->write(stdsprintf(
 					"The current negotiated power budget is %hhu (%u watts)\n"
 					"The power enables are currently at 0x%08lx\n",
@@ -536,10 +536,10 @@ public:
 		if (parameters.nargs() == 1) {
 			// Show all MZ status
 			for (size_t i = 0; i < XPAR_MGMT_ZONE_CTRL_0_MZ_CNT; i++) {
-				bool active = this->payloadmgr.mgmt_zones[i]->get_power_state();
+				bool active = this->payloadmgr.mgmt_zones[i]->getPowerState();
 				console->write(stdsprintf("MZ %d is currently %s.", i, (active?"ON ":"OFF")));
-				if (this->payloadmgr.mgmt_zones[i]->get_name()[0] != '\0') {
-					console->write(" [" + this->payloadmgr.mgmt_zones[i]->get_name() + "]");
+				if (this->payloadmgr.mgmt_zones[i]->getName()[0] != '\0') {
+					console->write(" [" + this->payloadmgr.mgmt_zones[i]->getName() + "]");
 				}
 				console->write("\n");
 			}
@@ -558,25 +558,25 @@ public:
 
 			if (parameters.nargs() == 2) {
 				// Show MZ status
-				bool active = this->payloadmgr.mgmt_zones[mz_number]->get_power_state();
+				bool active = this->payloadmgr.mgmt_zones[mz_number]->getPowerState();
 				console->write(stdsprintf("MZ %d", mz_number));
-				if (this->payloadmgr.mgmt_zones[mz_number]->get_name()[0] != '\0') {
-					console->write(" [" + this->payloadmgr.mgmt_zones[mz_number]->get_name() + "]");
+				if (this->payloadmgr.mgmt_zones[mz_number]->getName()[0] != '\0') {
+					console->write(" [" + this->payloadmgr.mgmt_zones[mz_number]->getName() + "]");
 				}
 				console->write(stdsprintf(" is currently %s.\n", (active?"ON":"OFF")));
 			} else {
-				MGMT_Zone::PowerAction action = MGMT_Zone::OFF;
+				ZoneController::Zone::PowerAction action = ZoneController::Zone::OFF;
 
 				if (!parameters.parameters[2].compare("on")) {
-					action = MGMT_Zone::ON;
+					action = ZoneController::Zone::ON;
 				} else if (!parameters.parameters[2].compare("off")) {
-					action = MGMT_Zone::OFF;
+					action = ZoneController::Zone::OFF;
 				} else {
 					console->write("$on_off needs to be 'on' or 'off'.\n");
 					return;
 				}
 
-				this->payloadmgr.mgmt_zones[mz_number]->set_power_state(action);
+				this->payloadmgr.mgmt_zones[mz_number]->setPowerState(action);
 			}
 		}
 

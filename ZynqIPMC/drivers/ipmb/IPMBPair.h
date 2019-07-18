@@ -8,7 +8,7 @@
 #ifndef SRC_COMMON_UW_IPMC_DRIVERS_IPMB_IPMBPAIR_H_
 #define SRC_COMMON_UW_IPMC_DRIVERS_IPMB_IPMBPAIR_H_
 
-#include <drivers/generics/IPMB.h>
+#include <drivers/generics/ipmb.h>
 #include <libs/LogTree.h>
 
 /**

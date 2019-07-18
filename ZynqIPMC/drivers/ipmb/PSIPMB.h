@@ -20,7 +20,7 @@
 #include <libs/RingBuffer.h>
 #include <libs/ThreadingPrimitives.h>
 #include <libs/StatCounter.h>
-#include <drivers/generics/IPMB.h>
+#include <drivers/generics/ipmb.h>
 #include <drivers/interrupt_based_driver.h>
 #include <services/ipmi/IPMI_MSG.h>
 #include <services/ipmi/ipmbsvc/IPMBSvc.h>

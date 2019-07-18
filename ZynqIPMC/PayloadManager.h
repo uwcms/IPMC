@@ -10,9 +10,9 @@
 
 #include <drivers/ad7689/ad7689.h>
 #include <drivers/generics/adc.h>
+#include <drivers/management_zone/management_zone.h>
 #include <services/ipmi/MStateMachine.h>
 #include <services/console/ConsoleSvc.h>
-#include <drivers/mgmt_zone/MGMTZone.h>
 #include <drivers/sensorprocessor/sensorprocessor.h>
 #include <services/ipmi/sensor/ThresholdSensor.h>
 #include <services/ipmi/sensor/SeveritySensor.h>
@@ -156,7 +156,7 @@ protected:
 	SemaphoreHandle_t mutex; ///< A mutex protecting internal data.
 	MStateMachine *mstate_machine; ///< The MStateMachine to notify of changes.
 	uint64_t mz_hf_vectors[XPAR_MGMT_ZONE_CTRL_0_MZ_CNT];
-	MGMT_Zone *mgmt_zones[XPAR_MGMT_ZONE_CTRL_0_MZ_CNT];
+	ZoneController::Zone *mgmt_zones[XPAR_MGMT_ZONE_CTRL_0_MZ_CNT];
 	SensorProcessor *sensor_processor; ///< The sensor processor instance to configure and use.
 	PowerProperties power_properties; ///< The current power properties.
 	LogTree &log; ///< The LogTree for this object's messages.
