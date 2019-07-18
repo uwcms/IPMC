@@ -1,5 +1,22 @@
-#ifndef SRC_COMMON_UW_IPMC_LIBS_ANSICODE_H_
-#define SRC_COMMON_UW_IPMC_LIBS_ANSICODE_H_
+/*
+ * This file is part of the ZYNQ-IPMC Framework.
+ *
+ * The ZYNQ-IPMC Framework is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ZYNQ-IPMC Framework is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+#ifndef SRC_COMMON_ZYNQIPMC_LIBS_ANSICODE_H_
+#define SRC_COMMON_ZYNQIPMC_LIBS_ANSICODE_H_
 
 #include <string>
 #include <vector>
@@ -12,11 +29,16 @@ class ANSICode {
 public:
 	std::string buffer; ///< The buffer for parsing.
 
-	/// An enum representing the state of the current buffer.
+	//! An enum representing the state of the current buffer.
 	enum ParseState {
 		PARSE_EMPTY, PARSE_INCOMPLETE, PARSE_COMPLETE, PARSE_INVALID,
 	};
 
+	/**
+	 * Parse the current buffer as an ANSI control code.
+	 *
+	 * @return The status of the parsing.
+	 */
 	enum ParseState parse();
 	/// \overload
 	enum ParseState parse(std::string append) { this->buffer.append(append); return this->parse(); };
@@ -34,16 +56,17 @@ public:
 	 * @param key 'A'
 	 * @return '^A'
 	 */
-	static constexpr char render_ascii_controlkey(char key) {
+	static constexpr char renderASCIIControlkey(char key) {
 		// ref: http://jkorpela.fi/chars/c0.html
 		return ( key >= 'A' && key <= '_' ? key-('A'-1) : 0);
 	}
+
 	/**
 	 * Convert '^A' to 'A'.
 	 * @param key '^A'
 	 * @return 'A'
 	 */
-	static constexpr char parse_ascii_controlkey(char key) {
+	static constexpr char parseASCIIControlkey(char key) {
 		// ref: http://jkorpela.fi/chars/c0.html
 		return ( key >= 1 && key <= 31 ? key+('A'-1) : 0 );
 	}
@@ -103,7 +126,17 @@ public:
 		WHITE      = 67,
 		NOCOLOR    = 9,
 	};
+
+	/**
+	 * Render an ANSI color code.
+	 * @param fgcolor   The foreground color.
+	 * @param bgcolor   The background color.
+	 * @param bold      Bold font if true.
+	 * @param underline Underlined font if true.
+	 * @param inverse   Inverse display mode if true.
+	 * @return An ANSI color code.
+	 */
 	static std::string color(enum TermColor fgcolor=NOCOLOR, enum TermColor bgcolor=NOCOLOR, bool bold=false, bool underline=false, bool inverse=false);
 };
 
-#endif /* SRC_COMMON_UW_IPMC_LIBS_ANSICODE_H_ */
+#endif /* SRC_COMMON_ZYNQIPMC_LIBS_ANSICODE_H_ */

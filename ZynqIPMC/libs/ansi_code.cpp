@@ -1,20 +1,22 @@
 /*
- * ANSICode.cc
+ * This file is part of the ZYNQ-IPMC Framework.
  *
- *  Created on: Jan 19, 2018
- *      Author: jtikalsky
+ * The ZYNQ-IPMC Framework is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ZYNQ-IPMC Framework is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <libs/ANSICode.h>
-#include <libs/printf.h>
-#include <libs/ThreadingPrimitives.h>
-#include <IPMC.h>
+#include "ansi_code.h"
 
-/**
- * Parse the current buffer as an ANSI control code.
- *
- * @return The status of the parsing.
- */
 enum ANSICode::ParseState ANSICode::parse() {
 	this->code.clear();
 	this->name.clear();
@@ -23,11 +25,11 @@ enum ANSICode::ParseState ANSICode::parse() {
 	if (this->buffer.empty())
 		return PARSE_EMPTY;
 
-	if (this->buffer[0] != '\x1B')
+	if (this->buffer[0] != '\x1B') {
 		return PARSE_INVALID; // Not a control sequence.
-	else if (this->buffer.size() == 1)
+	} else if (this->buffer.size() == 1) {
 		return PARSE_INCOMPLETE; // We have an escape code, but nothing else yet.
-	else if (this->buffer.size() == 2) {
+	} else if (this->buffer.size() == 2) {
 		if (this->buffer[1] == 'O')
 			return PARSE_INCOMPLETE; // O is apparently an annoying special case, starting a two letter code.
 		else if (
@@ -45,8 +47,7 @@ enum ANSICode::ParseState ANSICode::parse() {
 		else {
 			return PARSE_INVALID;
 		}
-	}
-	else if (this->buffer.size() == 3 && this->buffer[1] == 'O') {
+	} else if (this->buffer.size() == 3 && this->buffer[1] == 'O') {
 		// Handle that annoying special case, of the two letter O_ code.
 		if (
 				('A' <= this->buffer[2] && this->buffer[2] <= 'Z') ||
@@ -66,16 +67,14 @@ enum ANSICode::ParseState ANSICode::parse() {
 	for (auto it = this->buffer.begin()+2, eit = this->buffer.end(); it != eit; ++it) {
 		if ('0' <= *it && *it <= '9') {
 			param_buf += *it;
-		}
-		else if (*it == ';') {
+		} else if (*it == ';') {
 			if (param_buf.empty())
 				this->parameters.push_back(0);
 			else {
 				this->parameters.push_back(atoi(param_buf.c_str()));
 				param_buf.clear();
 			}
-		}
-		else if ( ('A' <= *it && *it <= 'Z') || ('a' <= *it && *it <= 'z') || (*it == '~') ) {
+		} else if ( ('A' <= *it && *it <= 'Z') || ('a' <= *it && *it <= 'z') || (*it == '~') ) {
 			if (!param_buf.empty()) {
 				this->parameters.push_back(atoi(param_buf.c_str()));
 				param_buf.clear();
@@ -90,7 +89,7 @@ enum ANSICode::ParseState ANSICode::parse() {
 				 */
 				if (this->parameters.size() != 1)
 					return PARSE_INVALID;
-				this->code = stdsprintf("[%d~", this->parameters[0]);
+				this->code = "[" + std::to_string(this->parameters[0]) + "~";
 				this->parameters.pop_back();
 				this->name = this->code;
 				if (this->codenames.count(this->name))
@@ -108,10 +107,11 @@ enum ANSICode::ParseState ANSICode::parse() {
 					return PARSE_INVALID; // The code ended before the buffer did.
 				return PARSE_COMPLETE;
 			}
-		}
-		else
+		} else {
 			return PARSE_INVALID; // Duno what we got, but it's not something we want.
+		}
 	}
+
 	return PARSE_INCOMPLETE; // We got to the end without bailing as invalid, but we didn't complete either.
 }
 
@@ -183,15 +183,6 @@ const std::string ANSICode::ANSI_INSERT_LINE_INTFMT = "\x1b[%dL";
 const std::string ANSICode::ANSI_DELETE_LINE = "\x1b[M";
 const std::string ANSICode::ANSI_DELETE_LINE_INTFMT = "\x1b[%dM";
 
-/**
- * Render an ANSI color code.
- * @param fgcolor   The foreground color
- * @param bgcolor   The background color
- * @param bold      Bold font if true
- * @param underline Underlined font if true
- * @param inverse   Inverse display mode if true
- * @return An ANSI color code
- */
 std::string ANSICode::color(enum TermColor fgcolor, enum TermColor bgcolor, bool bold, bool underline, bool inverse) {
 	std::string out = "\x1b[0";
 	if (bold)
@@ -201,9 +192,9 @@ std::string ANSICode::color(enum TermColor fgcolor, enum TermColor bgcolor, bool
 	if (inverse)
 		out += ";7";
 	if (fgcolor != NOCOLOR)
-		out += stdsprintf(";%d", 30+static_cast<int>(fgcolor));
+		out += ";" + std::to_string(30+static_cast<int>(fgcolor));
 	if (bgcolor != NOCOLOR)
-		out += stdsprintf(";%d", 40+static_cast<int>(bgcolor));
+		out += ";" + std::to_string(40+static_cast<int>(bgcolor));
 	out += "m";
 	return out;
 }

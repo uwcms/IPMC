@@ -8,9 +8,9 @@
 #ifndef SRC_COMMON_UW_IPMC_SERVICES_CONSOLE_CONSOLESVC_H_
 #define SRC_COMMON_UW_IPMC_SERVICES_CONSOLE_CONSOLESVC_H_
 
+#include <libs/ansi_code.h>
 #include <services/console/CommandParser.h>
 #include <libs/LogTree.h>
-#include <libs/ANSICode.h>
 #include <libs/ThreadingPrimitives.h>
 #include "FreeRTOS.h"
 #include "semphr.h"

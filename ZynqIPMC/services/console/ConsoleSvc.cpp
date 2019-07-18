@@ -150,9 +150,9 @@ void ConsoleSvc::_run_thread() {
 		this->raw_write(ANSICode::ANSI_CURSOR_QUERY_POSITION.data(), ANSICode::ANSI_CURSOR_QUERY_POSITION.size(), portMAX_DELAY);
 
 	static const char reset_control_keys[] = {
-			ANSICode::render_ascii_controlkey('R'),
-			ANSICode::render_ascii_controlkey('C'),
-			ANSICode::render_ascii_controlkey('D'),
+			ANSICode::renderASCIIControlkey('R'),
+			ANSICode::renderASCIIControlkey('C'),
+			ANSICode::renderASCIIControlkey('D'),
 			'\0', // String Terminator
 	};
 	ANSICode ansi_code;
@@ -238,7 +238,7 @@ void ConsoleSvc::_run_thread() {
 				// Newlines aren't valid in ANSI sequences.
 				ansi_code.buffer.clear();
 			}
-			else if (*it == ANSICode::render_ascii_controlkey('L') || *it == ANSICode::render_ascii_controlkey('K')) {
+			else if (*it == ANSICode::renderASCIIControlkey('L') || *it == ANSICode::renderASCIIControlkey('K')) {
 				// Ctrl-L is customarily "screen redraw".  We will rerender the prompt.
 				echobuf.append(this->linebuf.refresh());
 			}
@@ -250,7 +250,7 @@ void ConsoleSvc::_run_thread() {
 
 				echobuf.append(this->linebuf.backspace());
 			}
-			else if (*it == ANSICode::render_ascii_controlkey('O')) {
+			else if (*it == ANSICode::renderASCIIControlkey('O')) {
 				echobuf.append(stdsprintf("\r\n%s mode.  Last detected console size: %ux%u.\r\n", (this->linebuf.overwrite_mode ? "Overwrite" : "Insert"), this->linebuf.cols, this->linebuf.rows));
 				echobuf.append(this->linebuf.refresh());
 			}
