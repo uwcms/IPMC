@@ -16,7 +16,7 @@ public:
 			console->write("Invalid parameters, see help.\n");
 			return;
 		}
-		Auth::ChangeCredentials(user, pass);
+		Auth::changeCredentials(user, pass);
 		console->write("Password updated.\n");
 	}
 

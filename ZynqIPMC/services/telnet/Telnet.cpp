@@ -13,15 +13,14 @@
 #include "Telnet.h"
 
 #include <drivers/network/ServerSocket.h>
+#include <libs/authentication.h>
 #include <services/console/TelnetConsoleSvc.h>
 #include <services/persistentstorage/PersistentStorage.h>
 #include <libs/ThreadingPrimitives.h>
 #include <libs/printf.h>
-
 #include <functional>
 
 // TODO
-#include "libs/Authentication.h"
 
 // TODO: If timeouts in sockets are required then use SO_RCVTIMEO and SO_SNDTIMEO
 
@@ -222,7 +221,7 @@ void TelnetClient::thread_telnetc() {
 		if (nextc == '\r' || nextc == '\n') {
 			// Password complete.
 
-			if (Auth::ValidateCredentials(pass)) {
+			if (Auth::validateCredentials(pass)) {
 				log.log(stdsprintf("Telnet login successful from %s:%hu", addr.getAddress().c_str(), addr.getPort()), LogTree::LOG_NOTICE);
 
 				std::string banner = generate_banner();
