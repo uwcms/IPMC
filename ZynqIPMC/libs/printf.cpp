@@ -1,15 +1,24 @@
-#include "printf.h"
-
-#include <stdarg.h>
-#include <cxxabi.h> // for cxa_demangle()
-#include <alloca.h>
-#include <FreeRTOS.h>
-#include <semphr.h>
-#include <libs/ThreadingPrimitives.h>
-
-/**
- * Mirror sprintf() but returning a std::string.
+/*
+ * This file is part of the ZYNQ-IPMC Framework.
+ *
+ * The ZYNQ-IPMC Framework is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ZYNQ-IPMC Framework is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
  */
+
+#include "printf.h"
+#include <stdarg.h>
+#include <alloca.h>
+
 std::string stdsprintf(const char *fmt, ...) {
     va_list va;
     va_list va2;
@@ -30,12 +39,6 @@ std::string stdsprintf(const char *fmt, ...) {
     return ret;
 }
 
-
-/**
- * Modify a std::string in place to contain \r\n where it currently contains \n.
- * @param input The string to modify.
- * @param nlchar The newline character to detect, if not '\n'.
- */
 void windows_newline(std::string &input, char nlchar) {
 	for (unsigned int i = 0; i < input.size(); ++i) {
 		if (input[i] == nlchar) {
@@ -45,28 +48,3 @@ void windows_newline(std::string &input, char nlchar) {
 	}
 }
 
-extern volatile SemaphoreHandle_t stdlib_mutex; // From libwrap.cc
-void init_stdlib_mutex(); // From libwrap.cc
-
-/**
- * This function calls the cross-vendor C++ Application Binary Interface to
- * demangle a C++ type name.
- *
- * @param name The name to be demangled, perhaps returned from typeid(T).name()
- * @return The demangled form of name, or name if an error occurred.
- */
-std::string cxa_demangle(const char *name) {
-	safe_init_static_mutex(stdlib_mutex, false);
-	size_t length = 0;
-	int status = 0;
-	std::string result(name);
-	xSemaphoreTake(stdlib_mutex, portMAX_DELAY);
-	// __cxa_demangle will malloc, but that's now intercepted, but it might still need this protection.
-	char *demangled = abi::__cxa_demangle(name, NULL, &length, &status);
-	xSemaphoreGive(stdlib_mutex);
-	if (status == 0 && demangled)
-		result = demangled;
-	if (demangled)
-		free(demangled);
-	return result;
-}

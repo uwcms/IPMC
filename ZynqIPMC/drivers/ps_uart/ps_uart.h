@@ -26,7 +26,7 @@
 #include <semphr.h>
 #include <drivers/generics/uart.h>
 #include <drivers/interrupt_based_driver.h>
-#include <libs/RingBuffer.h>
+#include <libs/ringbuffer.h>
 
 /**
  * An interrupt based driver wrapper for the Zynq7000 PS UART devices.

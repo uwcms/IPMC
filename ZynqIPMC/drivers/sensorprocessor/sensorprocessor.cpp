@@ -155,7 +155,7 @@ void SensorProcessor::_InterruptHandler() {
 		}
 	}
 	IPMI_Sensor_Proc_Ack_IRQ(&this->processor, IPMI_Sensor_Proc_Get_IRQ_Status(&this->processor));
-	this->isr_event_queue_highwater.high_water(uxQueueMessagesWaitingFromISR(this->isrq));
+	this->isr_event_queue_highwater.highWater(uxQueueMessagesWaitingFromISR(this->isrq));
 }
 
 bool SensorProcessor::getISREvent(struct Event &event, TickType_t block_time) {
@@ -165,7 +165,7 @@ bool SensorProcessor::getISREvent(struct Event &event, TickType_t block_time) {
 		ret = xQueueReceive(this->isrq, &evt, block_time);
 		if (ret)
 			this->events.push_back(evt);
-		this->userland_event_queue_highwater.high_water(this->events.size());
+		this->userland_event_queue_highwater.highWater(this->events.size());
 		block_time = 0; // Don't block for further extractions, but we want to clear the inelastic RTOS queue into our elastic deque.
 	} while (ret == pdTRUE);
 	if (this->events.empty())

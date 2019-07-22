@@ -5,6 +5,7 @@
 #include <services/persistentstorage/PersistentStorage.h>
 #include <libs/ThreadingPrimitives.h>
 #include "IPMICmd_Index.h"
+#include <libs/printf.h>
 
 #define RETURN_ERROR(ipmb, message, completion_code) \
 	do { \

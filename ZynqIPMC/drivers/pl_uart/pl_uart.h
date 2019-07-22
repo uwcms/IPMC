@@ -27,7 +27,7 @@
 #include <semphr.h>
 #include <drivers/generics/uart.h>
 #include <drivers/interrupt_based_driver.h>
-#include <libs/RingBuffer.h>
+#include <libs/ringbuffer.h>
 
 /**
  * A FreeRTOS interrupt based driver for Xilinx UartLite IP core.

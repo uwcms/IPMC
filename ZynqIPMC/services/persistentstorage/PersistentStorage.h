@@ -15,7 +15,6 @@
 #include <event_groups.h>
 #include <IPMC.h>
 #include <drivers/watchdog/ps_wdt.h>
-#include <libs/SkyRoad.h>
 #include <libs/ThreadingPrimitives.h>
 #include <functional>
 #include <queue>

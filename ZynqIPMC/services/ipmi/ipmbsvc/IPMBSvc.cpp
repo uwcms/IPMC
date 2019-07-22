@@ -134,7 +134,7 @@ void IPMBSvc::send(std::shared_ptr<IPMI_MSG> msg, response_cb_t response_cb) {
 		 */
 		MutexGuard<false> lock(this->sendq_mutex, true);
 		this->outgoing_messages.emplace_back(msg, response_cb);
-		this->stat_sendq_highwater.high_water(this->outgoing_messages.size());
+		this->stat_sendq_highwater.highWater(this->outgoing_messages.size());
 		lock.release();
 		xSemaphoreGive(this->sendq_notify_sem);
 		this->log_messages_out.log(std::string("Message enqueued for transmit on ") + this->name + ": " + msg->format(), LogTree::LOG_DIAGNOSTIC);
@@ -200,7 +200,7 @@ void IPMBSvc::run_thread() {
 			IPMI_MSG inmsg;
 			configASSERT(pdTRUE == xQueueReceive(this->recvq, &inmsg, 0)); // If it selected it better receive.
 			UBaseType_t recvq_watermark = uxQueueMessagesWaiting(this->recvq) + 1;
-			this->stat_recvq_highwater.high_water(recvq_watermark);
+			this->stat_recvq_highwater.highWater(recvq_watermark);
 			if (recvq_watermark >= this->recvq_size/2)
 				this->log_messages_in.log(stdsprintf("The recvq on %s is %lu%% full with %lu unprocessed messages!", this->name.c_str(), (recvq_watermark*100)/this->recvq_size, recvq_watermark), LogTree::LOG_WARNING);
 			this->stat_messages_received.increment();
@@ -258,7 +258,7 @@ void IPMBSvc::run_thread() {
 
 		// Figure out whether we have any timeouts to wait on next.
 		MutexGuard<false> lock(this->sendq_mutex, true);
-		this->stat_sendq_highwater.high_water(this->outgoing_messages.size());
+		this->stat_sendq_highwater.highWater(this->outgoing_messages.size());
 		next_wait.timeout64 = UINT64_MAX;
 		for (auto it = this->outgoing_messages.begin(); it != this->outgoing_messages.end(); ) {
 			if (it->next_retry.get_timeout() == 0) {

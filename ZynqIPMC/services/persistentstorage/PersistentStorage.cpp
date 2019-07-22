@@ -26,7 +26,6 @@
 #include <IPMC.h>
 #include <drivers/spi_eeprom/spi_eeprom.h>
 #include <drivers/tracebuffer/tracebuffer.h>
-#include <libs/SkyRoad.h>
 #include <libs/printf.h>
 #include <libs/except.h>
 #include <services/console/CommandParser.h>

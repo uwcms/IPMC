@@ -27,9 +27,9 @@
 #include <semphr.h>
 #include <queue.h>
 #include <IPMC.h>
-#include <libs/RingBuffer.h>
+#include <libs/ringbuffer.h>
 #include <libs/ThreadingPrimitives.h>
-#include <libs/StatCounter.h>
+#include <libs/statcounter.h>
 #include <drivers/generics/ipmb.h>
 #include <drivers/interrupt_based_driver.h>
 #include <services/ipmi/IPMI_MSG.h>

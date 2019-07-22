@@ -29,7 +29,7 @@
 #include <vector>
 #include <drivers/interrupt_based_driver.h>
 #include <drivers/generics/adc.h>
-#include <libs/StatCounter.h>
+#include <libs/statcounter.h>
 
 /**
  * Driver for the custom ZYNQ-IPMC SensorProc firmware IP.

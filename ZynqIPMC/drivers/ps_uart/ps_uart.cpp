@@ -40,7 +40,7 @@ void PSUART::recv()
 	size_t items = 0;
 
 	// Request DMA pointer from ring buffer
-	this->inbuf.setup_dma_input(&dmaptr, &items);
+	this->inbuf.setupDMAInput(&dmaptr, &items);
 
 	// Read the Channel Status Register to determine if there is any data in
 	// the RX FIFO
@@ -55,7 +55,7 @@ void PSUART::recv()
 	}
 
 	// Report to DMA how many words were filled
-	this->inbuf.notify_dma_input_occurred(recv_count);
+	this->inbuf.notifyDMAInputOccurred(recv_count);
 	this->readwait.wake(); // Wake read function if bytes were received successfully
 }
 
@@ -66,7 +66,7 @@ void PSUART::send()
 	size_t items = 0;
 
 	// Request DMA pointer from ring buffer
-	this->outbuf.setup_dma_output(&dmaptr, &items);
+	this->outbuf.setupDMAOutput(&dmaptr, &items);
 
 	// If the TX FIFO is full, send nothing.
 	// Otherwise put bytes into the TX FIFO until it is full, or all of the
@@ -78,7 +78,7 @@ void PSUART::send()
 	}
 
 	// Report back how many bytes were actually written to DMA
-	this->outbuf.notify_dma_output_occurred(send_count);
+	this->outbuf.notifyDMAOutputOccurred(send_count);
 
 	// If interrupts are enabled as indicated by the receive interrupt, then
 	// enable the TX FIFO empty interrupt, so further action can be taken

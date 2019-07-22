@@ -44,7 +44,7 @@ void PLUART::recv() {
 		size_t byte_count = 0;
 
 		// Request DMA pointer from ring buffer
-		this->inbuf.setup_dma_input(&ptr, &max_bytes);
+		this->inbuf.setupDMAInput(&ptr, &max_bytes);
 
 		do {
 			uint8_t data = XUartLite_ReadReg(this->uartlite.RegBaseAddress, XUL_RX_FIFO_OFFSET);
@@ -52,9 +52,9 @@ void PLUART::recv() {
 			if ((max_bytes != 0) && (max_bytes == byte_count)) {
 				// DMA completely filled but we still have data to read, attempt to get a new DMA pointer
 				// If there is no space in ring buffer maxBytes will be zero and it will still flush the RX FIFO
-				this->inbuf.notify_dma_input_occurred(byte_count);
+				this->inbuf.notifyDMAInputOccurred(byte_count);
 
-				this->inbuf.setup_dma_input(&ptr, &max_bytes);
+				this->inbuf.setupDMAInput(&ptr, &max_bytes);
 				byte_count = 0;
 			}
 
@@ -66,7 +66,7 @@ void PLUART::recv() {
 		} while ((status_reg & (XUL_SR_RX_FIFO_FULL | XUL_SR_RX_FIFO_VALID_DATA)) != 0);
 
 		// Report to DMA how many words were filled
-		this->inbuf.notify_dma_input_occurred(byte_count);
+		this->inbuf.notifyDMAInputOccurred(byte_count);
 
 		this->readwait.wake(); // Wake read function if bytes were received successfully
 	}
@@ -82,17 +82,17 @@ void PLUART::send() {
 		size_t byte_count = 0;
 
 		// Request DMA pointer from ring buffer
-		this->outbuf.setup_dma_output(&ptr, &max_bytes);
+		this->outbuf.setupDMAOutput(&ptr, &max_bytes);
 
 		do {
 			if (byte_count == max_bytes) {
 				// Possible DMA buffer roll
-				this->outbuf.notify_dma_output_occurred(byte_count);
+				this->outbuf.notifyDMAOutputOccurred(byte_count);
 				byte_count = 0;
 
 				if (this->outbuf.empty()) break;
 
-				this->outbuf.setup_dma_output(&ptr, &max_bytes);
+				this->outbuf.setupDMAOutput(&ptr, &max_bytes);
 			}
 
 			XUartLite_WriteReg(this->uartlite.RegBaseAddress, XUL_TX_FIFO_OFFSET, ptr[byte_count++]);
@@ -102,7 +102,7 @@ void PLUART::send() {
 
 		// Report back how many bytes were actually written to DMA
 		if (byte_count)
-			this->outbuf.notify_dma_output_occurred(byte_count);
+			this->outbuf.notifyDMAOutputOccurred(byte_count);
 
 		this->writewait.wake();  // Wake write function if bytes were sent successfully
 	}
