@@ -3,15 +3,11 @@ proc init_gui { IPINST } {
   ipgui::add_param $IPINST -name "Component_Name"
   #Adding Page
   set Page_0 [ipgui::add_page $IPINST -name "Page 0"]
-  set C_S_AXI_DATA_WIDTH [ipgui::add_param $IPINST -name "C_S_AXI_DATA_WIDTH" -parent ${Page_0} -widget comboBox]
-  set_property tooltip {Width of S_AXI data bus} ${C_S_AXI_DATA_WIDTH}
-  ipgui::add_param $IPINST -name "C_S_AXI_BASEADDR" -parent ${Page_0}
-  ipgui::add_param $IPINST -name "C_S_AXI_HIGHADDR" -parent ${Page_0}
+  ipgui::add_param $IPINST -name "C_MZ_CNT" -parent ${Page_0}
+  ipgui::add_param $IPINST -name "C_HF_CNT" -parent ${Page_0}
+  ipgui::add_param $IPINST -name "C_PWREN_CNT" -parent ${Page_0}
+  ipgui::add_param $IPINST -name "C_VIO_INCLUDE" -parent ${Page_0}
 
-  ipgui::add_param $IPINST -name "C_MZ_CNT"
-  ipgui::add_param $IPINST -name "C_HF_CNT"
-  ipgui::add_param $IPINST -name "C_PWREN_CNT"
-  ipgui::add_param $IPINST -name "C_VIO_INCLUDE"
 
 }
 

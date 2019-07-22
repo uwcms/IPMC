@@ -305,6 +305,70 @@ void Mgmt_Zone_Ctrl_Ack_IRQ(Mgmt_Zone_Ctrl *InstancePtr, u32 irq_acks);
 *****************************************************************************/
 u32 Mgmt_Zone_Ctrl_Get_IRQ_Status(Mgmt_Zone_Ctrl *InstancePtr);
 
+/****************************************************************************/
+/**
+* Enable or disable override of the enable lines, useful for bring up or testing
+*
+* @param	InstancePtr is a pointer to an Mgmt_Zone_Ctrl instance. The memory the
+*		pointer references must be pre-allocated by the caller. Further
+*		calls to manipulate the instance/driver through the Mgmt_Zone_Ctrl API
+*		must be made with this pointer.
+*
+* @param Enable selection, LSB matches enable 0
+*
+* @note		None.
+*
+*****************************************************************************/
+void Mgmt_Zone_Ctrl_Set_Enable_Override(Mgmt_Zone_Ctrl *InstancePtr, u32 enables);
+u32 Mgmt_Zone_Ctrl_Get_Enable_Override(Mgmt_Zone_Ctrl *InstancePtr);
+
+/****************************************************************************/
+/**
+* Set the override drive (en/tri) of the enable lines, useful for bring up or testing
+*
+* @param	InstancePtr is a pointer to an Mgmt_Zone_Ctrl instance. The memory the
+*		pointer references must be pre-allocated by the caller. Further
+*		calls to manipulate the instance/driver through the Mgmt_Zone_Ctrl API
+*		must be made with this pointer.
+*
+* @param Drive state selection, LSB matches enable 0
+*
+* @note		None.
+*
+*****************************************************************************/
+void Mgmt_Zone_Ctrl_Set_Override_Drive(Mgmt_Zone_Ctrl *InstancePtr, u32 drive);
+u32 Mgmt_Zone_Ctrl_Get_Override_Drive(Mgmt_Zone_Ctrl *InstancePtr);
+
+/****************************************************************************/
+/**
+* Set the override drive level of the enable lines, useful for bring up or testing
+*
+* @param	InstancePtr is a pointer to an Mgmt_Zone_Ctrl instance. The memory the
+*		pointer references must be pre-allocated by the caller. Further
+*		calls to manipulate the instance/driver through the Mgmt_Zone_Ctrl API
+*		must be made with this pointer.
+*
+* @param Drive level selection, LSB matches enable 0
+*
+* @note		None.
+*
+*****************************************************************************/
+void Mgmt_Zone_Ctrl_Set_Override_Level(Mgmt_Zone_Ctrl *InstancePtr, u32 level);
+u32 Mgmt_Zone_Ctrl_Get_Override_Level(Mgmt_Zone_Ctrl *InstancePtr);
+
+/****************************************************************************/
+/**
+* Get the override input on the pins if the driver is off.
+*
+* @param	InstancePtr is a pointer to an Mgmt_Zone_Ctrl instance. The memory the
+*		pointer references must be pre-allocated by the caller. Further
+*		calls to manipulate the instance/driver through the Mgmt_Zone_Ctrl API
+*		must be made with this pointer.
+*
+* @note		None.
+*
+*****************************************************************************/
+u32 Mgmt_Zone_Ctrl_Get_Override_Input(Mgmt_Zone_Ctrl *InstancePtr);
 
 #ifdef __cplusplus
 }

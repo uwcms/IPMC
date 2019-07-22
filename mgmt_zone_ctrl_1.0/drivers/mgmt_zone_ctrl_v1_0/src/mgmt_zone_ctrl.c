@@ -29,6 +29,11 @@
 #define PWR_EN_0_CFG_1_REG (36)
 #define PWR_EN_0_INDIV_STATUS_REG (40)
 
+#define PWR_EN_OVRD_REG (512)
+#define PWR_EN_OVRD_DRIVE_REG (516)
+#define PWR_EN_OVRD_LVL_REG (520)
+#define PWR_EN_OVRD_READ_REG (524)
+
 
 /* Individual MZ registers*/
 #define MZ_0_ADDR_OFFSET    (1024)
@@ -340,4 +345,32 @@ void Mgmt_Zone_Ctrl_Ack_IRQ(Mgmt_Zone_Ctrl *InstancePtr, u32 irq_acks)
 u32 Mgmt_Zone_Ctrl_Get_IRQ_Status(Mgmt_Zone_Ctrl *InstancePtr)
 {
 	return 	 Mgmt_Zone_Ctrl_ReadReg(InstancePtr->BaseAddress, IRQ_STATUS_REG);
+}
+
+void Mgmt_Zone_Ctrl_Set_Enable_Override(Mgmt_Zone_Ctrl *InstancePtr, u32 enables) {
+    Mgmt_Zone_Ctrl_WriteReg(InstancePtr->BaseAddress, PWR_EN_OVRD_REG, enables);
+}
+
+u32 Mgmt_Zone_Ctrl_Get_Enable_Override(Mgmt_Zone_Ctrl *InstancePtr) {
+    return Mgmt_Zone_Ctrl_ReadReg(InstancePtr->BaseAddress, PWR_EN_OVRD_REG);
+}
+
+void Mgmt_Zone_Ctrl_Set_Override_Drive(Mgmt_Zone_Ctrl *InstancePtr, u32 drive) {
+    Mgmt_Zone_Ctrl_WriteReg(InstancePtr->BaseAddress, PWR_EN_OVRD_DRIVE_REG, drive);
+}
+
+u32 Mgmt_Zone_Ctrl_Get_Override_Drive(Mgmt_Zone_Ctrl *InstancePtr) {
+    return Mgmt_Zone_Ctrl_ReadReg(InstancePtr->BaseAddress, PWR_EN_OVRD_DRIVE_REG);
+}
+
+void Mgmt_Zone_Ctrl_Set_Override_Level(Mgmt_Zone_Ctrl *InstancePtr, u32 level) {
+    Mgmt_Zone_Ctrl_WriteReg(InstancePtr->BaseAddress, PWR_EN_OVRD_LVL_REG, level);
+}
+
+u32 Mgmt_Zone_Ctrl_Get_Override_Level(Mgmt_Zone_Ctrl *InstancePtr) {
+    return Mgmt_Zone_Ctrl_ReadReg(InstancePtr->BaseAddress, PWR_EN_OVRD_LVL_REG);
+}
+
+u32 Mgmt_Zone_Ctrl_Get_Override_Input(Mgmt_Zone_Ctrl *InstancePtr) {
+    return Mgmt_Zone_Ctrl_ReadReg(InstancePtr->BaseAddress, PWR_EN_OVRD_READ_REG);
 }

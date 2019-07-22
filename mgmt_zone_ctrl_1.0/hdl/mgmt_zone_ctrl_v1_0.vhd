@@ -7,9 +7,9 @@ use work.mgmt_zone_ctrl_pkg.all;
 
 entity mgmt_zone_ctrl_v1_0 is
 	generic (  
-        C_MZ_CNT     : integer := 2;
-        C_HF_CNT     : integer := 64;
-        C_PWREN_CNT  : integer := 7;
+        C_MZ_CNT     : integer range 1 to 32 := 2;
+        C_HF_CNT     : integer range 1 to 64 := 64;
+        C_PWREN_CNT  : integer range 1 to 32 := 7;
         C_VIO_INCLUDE : boolean := true;
 
 		-- Parameters of Axi Slave Bus Interface S_AXI
@@ -19,7 +19,9 @@ entity mgmt_zone_ctrl_v1_0 is
 	port (
 
         hard_fault : in std_logic_vector(C_HF_CNT - 1 downto 0);
-        pwr_en : inout std_logic_vector(C_PWREN_CNT - 1 downto 0);
+        pwr_en_i : in std_logic_vector(C_PWREN_CNT - 1 downto 0);
+        pwr_en_o : out std_logic_vector(C_PWREN_CNT - 1 downto 0);
+        pwr_en_t : out std_logic_vector(C_PWREN_CNT - 1 downto 0);
         pwr_en_debug : out std_logic_vector(C_PWREN_CNT - 1 downto 0);
         mz_enabled : out std_logic_vector(C_MZ_CNT - 1 downto 0);
 		irq	: out std_logic;
@@ -65,7 +67,7 @@ architecture arch_imp of mgmt_zone_ctrl_v1_0 is
 
     signal s_pwr_en :  std_logic_vector(C_PWREN_CNT - 1 downto 0);
     signal s_pwr_lvl :  std_logic_vector(C_PWREN_CNT - 1 downto 0);
-    signal s_pwr_out :  std_logic_vector(C_PWREN_CNT - 1 downto 0);
+    --signal s_pwr_out :  std_logic_vector(C_PWREN_CNT - 1 downto 0);
 
     signal s_MZ_hard_fault         :  STD_LOGIC_VECTOR(C_MZ_CNT-1 downto 0);
     signal s_MZ_soft_fault         :  STD_LOGIC_VECTOR(C_MZ_CNT-1 downto 0);
@@ -79,6 +81,8 @@ architecture arch_imp of mgmt_zone_ctrl_v1_0 is
     signal s_pwr_en_state        :  t_slv_arr_2(C_PWREN_CNT-1 downto 0);
     signal s_pwr_en_active_lvl   :  STD_LOGIC_VECTOR(C_PWREN_CNT-1 downto 0);
     signal s_pwr_en_drive        :  STD_LOGIC_VECTOR(C_PWREN_CNT-1 downto 0);
+    signal s_pwr_en_drive_mux    :  STD_LOGIC_VECTOR(C_PWREN_CNT-1 downto 0);
+    signal r_pwr_en_drive_mux    :  STD_LOGIC_VECTOR(C_PWREN_CNT-1 downto 0) := (others => '1');
 
     signal s_hard_fault          :  STD_LOGIC_VECTOR(63 downto 0) := (others => '0');
     signal s_hard_fault_mask_en  :  t_slv_arr_64(C_MZ_CNT-1 downto 0);
@@ -92,6 +96,11 @@ architecture arch_imp of mgmt_zone_ctrl_v1_0 is
     signal s_MZ_pwr_off_seq_init_vio   :  STD_LOGIC_VECTOR(15 downto 0):= (others => '0');
     signal s_MZ_pwr_on_seq_init_vio    :  STD_LOGIC_VECTOR(15 downto 0):= (others => '0');
     signal s_MZ_hard_fault_vio : std_logic_vector(15 downto 0) := (others => '0');
+        
+    signal s_pwr_en_ovrd           : std_logic_vector(C_PWREN_CNT-1 downto 0);
+    signal s_pwr_en_ovrd_drive     : std_logic_vector(C_PWREN_CNT-1 downto 0);
+    signal s_pwr_en_ovrd_lvl       : std_logic_vector(C_PWREN_CNT-1 downto 0);
+    signal s_pwr_en_ovrd_in        : std_logic_vector(C_PWREN_CNT-1 downto 0);
         
     attribute KEEP : string;
     attribute DONT_TOUCH : string;
@@ -144,6 +153,11 @@ mgmt_zone_ctrl_v1_0_S_AXI_inst : entity work.mgmt_zone_ctrl_v1_0_S_AXI
         pwr_en_i                    	=> s_pwr_en,
 
         hard_fault_i                	=> hard_fault,
+        
+        pwr_en_ovrd_o                   => s_pwr_en_ovrd,
+        pwr_en_ovrd_drive_o             => s_pwr_en_ovrd_drive,
+        pwr_en_ovrd_lvl_o               => s_pwr_en_ovrd_lvl,
+        pwr_en_ovrd_lvl_i               => s_pwr_en_ovrd_in,
 	
 		S_AXI_ACLK    	=> s_axi_aclk,
 		S_AXI_ARESETN	=> s_axi_aresetn,
@@ -208,8 +222,10 @@ mgmt_zone_ctrl_v1_0_S_AXI_inst : entity work.mgmt_zone_ctrl_v1_0_S_AXI
                    pwr_en_o                  => s_pwr_en(idx)
              );
                    
-             s_pwr_lvl(idx) <= s_pwr_en(idx) xnor s_pwr_en_active_lvl(idx);
-             s_pwr_out(idx) <= s_pwr_lvl(idx) when s_pwr_en_drive(idx) = '1' else 'Z';
+             s_pwr_lvl(idx) <= s_pwr_en(idx) xnor s_pwr_en_active_lvl(idx) when s_pwr_en_ovrd(idx) = '0' else s_pwr_en_ovrd_lvl(idx);
+             s_pwr_en_drive_mux(idx) <= s_pwr_en_drive(idx) when s_pwr_en_ovrd(idx) = '0' else s_pwr_en_ovrd_drive(idx);
+             r_pwr_en_drive_mux(idx) <= not s_pwr_en_drive_mux(idx) when s_axi_aclk'event and s_axi_aclk = '1';
+             --s_pwr_out(idx) <= s_pwr_lvl(idx) when r_pwr_en_drive_mux(idx) = '1' else 'Z';
              
              s_pwr_en_output_lvl_vio(idx) <= s_pwr_lvl(idx);
              s_pwr_en_output_drive_vio(idx) <= s_pwr_en_drive(idx);
@@ -238,7 +254,9 @@ mgmt_zone_ctrl_v1_0_S_AXI_inst : entity work.mgmt_zone_ctrl_v1_0_S_AXI
           );    
     end generate;
     
-    pwr_en <= s_pwr_out;
+    pwr_en_o <= s_pwr_lvl;
+    pwr_en_t <= r_pwr_en_drive_mux;
+    s_pwr_en_ovrd_in <= pwr_en_i;
     irq <= '0'; --TODO
 
 end arch_imp;
