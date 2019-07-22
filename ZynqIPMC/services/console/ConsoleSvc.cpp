@@ -6,12 +6,12 @@
  */
 
 #include <drivers/tracebuffer/tracebuffer.h>
+#include <libs/backtrace.h>
 #include <services/console/ConsoleSvc.h>
 #include <IPMC.h>
 #include "task.h"
 #include <libs/ThreadingPrimitives.h>
 #include <libs/printf.h>
-#include <libs/BackTrace.h>
 
 template <typename T> static inline T div_ceil(T val, T divisor) {
 	return (val / divisor) + (val % divisor ? 1 : 0);
@@ -136,7 +136,7 @@ bool ConsoleSvc::write(const std::string data, TickType_t timeout) {
 
 void ConsoleSvc::_run_thread() {
 	this->logtree.log("Starting Console Service \"" + this->name + "\"", LogTree::LOG_INFO);
-	const std::string ctrlc_erased_facility = this->logtree.path + ".ctrlc_erased";
+	const std::string ctrlc_erased_facility = this->logtree.getPath() + ".ctrlc_erased";
 #ifdef ANSICODE_TIMEOUT
 	const std::string timed_out_ansi_facility = this->logtree.path + ".timed_out_ansi";
 #endif
@@ -790,5 +790,5 @@ std::string ConsoleSvc_log_format(const std::string &message, enum LogTree::LogL
 	if (level < colormap.size())
 		color = colormap.at(level);
 
-	return color + stdsprintf("[%4.4s] ", LogTree::LogLevel_strings[level]) + message + ANSICode::color() + "\n";
+	return color + stdsprintf("[%4.4s] ", LogTree::getLogLevelString(level)) + message + ANSICode::color() + "\n";
 }

@@ -19,6 +19,7 @@
 #define SRC_COMMON_ZYNQIPMC_DRIVERS_GENERICS_I2C_H_
 
 #include <drivers/atomicity_support.h>
+#include <services/console/CommandParser.h>
 #include <services/console/ConsoleSvc.h>
 #include <libs/Utils.h>
 

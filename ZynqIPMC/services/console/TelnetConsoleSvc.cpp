@@ -64,7 +64,7 @@ void Telnet::TelnetConsoleSvc::shutdown_complete() {
 
 ssize_t Telnet::TelnetConsoleSvc::raw_read(char *buf, size_t len, TickType_t timeout, TickType_t read_data_timeout) {
 	AbsoluteTimeout abstimeout( (read_data_timeout<timeout ? read_data_timeout : timeout) );
-	std::string inattempt(this->log_input["in"]["att"].path);
+	std::string inattempt(this->log_input["in"]["att"].getPath());
 	TRACE.log(inattempt.data(), inattempt.size(), LogTree::LOG_TRACE, "A", 1, false);
 	do {
 		int rv = this->socket->recv(buf, len);
@@ -77,9 +77,9 @@ ssize_t Telnet::TelnetConsoleSvc::raw_read(char *buf, size_t len, TickType_t tim
 		// Ok, we have input.  It might contain telnet control codes though.
 		//TRACE.log(this->log_input.path.data(), this->log_input.path.size(), LogTree::LOG_TRACE, buf, rv, true); // Raw input.
 		size_t protolen = rv;
-		std::string inraw(this->log_input["in"]["raw"].path);
-		std::string inproto(this->log_input["in"]["proto"].path);
-		std::string inprpl(this->log_input["in"]["prpl"].path);
+		std::string inraw(this->log_input["in"]["raw"].getPath());
+		std::string inproto(this->log_input["in"]["proto"].getPath());
+		std::string inprpl(this->log_input["in"]["prpl"].getPath());
 		TRACE.log(inraw.data(), inraw.size(), LogTree::LOG_TRACE, buf, protolen, true);
 		std::string proto_reply = this->proto->parse_input(buf, &protolen);
 		TRACE.log(inproto.data(), inproto.size(), LogTree::LOG_TRACE, buf, protolen, true);
@@ -96,7 +96,7 @@ ssize_t Telnet::TelnetConsoleSvc::raw_read(char *buf, size_t len, TickType_t tim
 }
 
 ssize_t Telnet::TelnetConsoleSvc::raw_write(const char *buf, size_t len, TickType_t timeout) {
-	std::string inattempt(this->log_input["out"]["att"].path);
+	std::string inattempt(this->log_input["out"]["att"].getPath());
 	TRACE.log(inattempt.data(), inattempt.size(), LogTree::LOG_TRACE, "A", 1, false);
 	ssize_t rv = this->socket->send((void*)buf, len);
 	if (rv < 0) {

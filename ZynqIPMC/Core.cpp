@@ -79,8 +79,8 @@ void core_driver_init() {
 	 */
 	psuart0 = new PSUART(XPAR_PS7_UART_0_DEVICE_ID, XPAR_PS7_UART_0_INTR, 4096, 1<<16);
 	console_log_filter = new LogTree::Filter(LOG, console_log_handler, LogTree::LOG_NOTICE);
-	console_log_filter->register_console_commands(console_command_parser);
-	LOG["console_log_command"].register_console_commands(console_command_parser);
+	console_log_filter->registerConsoleCommands(console_command_parser);
+	LOG["console_log_command"].registerConsoleCommands(console_command_parser);
 
 	// QSPI interface to Flash
 	PSQSPI *psqspi = new PSQSPI(XPAR_PS7_QSPI_0_DEVICE_ID, XPAR_PS7_QSPI_0_INTR);

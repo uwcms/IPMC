@@ -18,6 +18,7 @@
 // TODO: Do better error handling.
 
 #include "pim400.h"
+#include <services/console/ConsoleSvc.h>
 #include <libs/printf.h>
 #include <libs/except.h>
 

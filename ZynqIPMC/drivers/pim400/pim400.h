@@ -19,7 +19,7 @@
 #define SRC_COMMON_ZYNQIPMC_DRIVERS_PIM400_PIM400_H_
 
 #include <drivers/generics/i2c.h>
-#include <services/console/ConsoleSvc.h>
+#include <services/console/CommandParser.h>
 
 /**
  * PIM400 power module I2C interface driver.

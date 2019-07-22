@@ -22,7 +22,7 @@
 #if XSDK_INDEXING || __has_include("xwdtps.h")
 
 #include "xwdtps.h"
-#include <libs/LogTree.h>
+#include <libs/logtree.h>
 #include <stdint.h>
 #include <xil_types.h>
 #include <functional>

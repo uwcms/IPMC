@@ -20,7 +20,7 @@
 
 #include <map>
 #include <drivers/generics/ipmb.h>
-#include <libs/LogTree.h>
+#include <libs/logtree.h>
 
 /**
  * An IPMB Dispatch Router, dispatching outgoing messages on different IPMBs

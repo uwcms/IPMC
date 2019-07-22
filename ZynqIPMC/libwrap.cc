@@ -7,7 +7,6 @@
 
 #include <IPMC.h>
 #include <libs/StatCounter.h>
-#include <libs/LogTree.h>
 #include <libs/printf.h>
 #include <libs/ThreadingPrimitives.h>
 
@@ -20,6 +19,7 @@
 #include <algorithm>
 #include <ctype.h>
 #include <drivers/ps_uart/ps_uart.h>
+#include <libs/logtree.h>
 
 #include <time.h>
 #include <sys/time.h>

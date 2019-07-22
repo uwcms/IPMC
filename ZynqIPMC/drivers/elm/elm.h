@@ -23,7 +23,7 @@
 #include <FreeRTOS.h>
 #include <semphr.h>
 #include <string>
-#include <services/console/ConsoleSvc.h>
+#include <services/console/CommandParser.h>
 
 /**
  * ELM driver that implements the software layers for ELM link and other features.

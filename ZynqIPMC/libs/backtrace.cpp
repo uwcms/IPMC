@@ -1,16 +1,26 @@
 /*
- * BackTrace.cpp
+ * This file is part of the ZYNQ-IPMC Framework.
  *
- *  Created on: Nov 7, 2018
- *      Author: mpv
+ * The ZYNQ-IPMC Framework is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ZYNQ-IPMC Framework is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <FreeRTOS.h>
-#include <libs/BackTrace.h>
+#include <libs/backtrace.h>
 #include <semphr.h>
 #include <map>
-#include <unwind.h> // GCC's internal unwinder, part of newlib
-#include "unwind-cxx.h" // Extra utilities copied from GCC source code, normally hidden
+#include <unwind.h> // GCC's internal unwinder, part of newlib.
+#include "unwind-cxx.h" // Extra utilities copied from GCC source code, normally hidden.
 
 #include <libs/ThreadingPrimitives.h>
 
@@ -42,6 +52,7 @@ extern const struct unwind_idx __exidx_end[];
 
 /**
  * Converts a prel31 offset to absolute address.
+ *
  * prel31 represents the offset from the unwind index pointer to the
  * corresponding instruction with bit 31 cleared.
  * @param ptr Pointer from the unwind index prel31 offset.
@@ -97,7 +108,7 @@ static const struct unwind_idx *search_index(unsigned long addr,
  */
 static const char *get_function_name(unsigned long address)
 {
-	// If -mpoke-function-name is used during compilating then two items will be added
+	// If -mpoke-function-name is used during compilation then two items will be added
 	// right before the function start:
 	// 1. A marker (0xFFxxxxxx) indicating there is a name present, where xxxxxx is
 	//    the number of bytes in the name.
@@ -176,8 +187,8 @@ int backtrace (void **array, int size)
 	if (size <= 0)
 		return 0;
 	_Unwind_Backtrace(backtrace_helper, &arg);
-	/* _Unwind_Backtrace seems to put NULL address above _start.  Fix it up here.  */
-	if (arg.cnt > 1 && arg.array[arg.cnt - 1] == NULL)
+	/* _Unwind_Backtrace seems to put nullptr address above _start.  Fix it up here.  */
+	if (arg.cnt > 1 && arg.array[arg.cnt - 1] == nullptr)
 		--arg.cnt;
 	return arg.cnt != -1 ? arg.cnt : 0;
 }
@@ -195,7 +206,7 @@ void __wrap___cxa_throw(void *ex, void *info, void (*dest)(void *)) {
 	int status;
 	trace->name = abi::__cxa_demangle(reinterpret_cast<const std::type_info*>(info)->name(), 0, 0, &status);
 	if (status != 0) {
-		trace->name = NULL;
+		trace->name = nullptr;
 	}
 
 	safe_init_static_mutex(__eb_mutex, false, &__eb_mutex_buffer);

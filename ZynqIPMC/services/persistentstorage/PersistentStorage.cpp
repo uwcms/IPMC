@@ -473,8 +473,8 @@ bool PersistentStorage::do_flush_range(u32 start, u32 end) {
 		if (!differ)
 			continue; // Already clean.
 		this->logtree.log(stdsprintf("Difference found at 0x%lx", pgaddr), LogTree::LOG_TRACE);
-		TRACE.log(this->logtree.path.c_str(), this->logtree.path.size(), LogTree::LOG_TRACE, reinterpret_cast<char*>(this->cache+pgaddr), this->eeprom.getPageSize(), true);
-		TRACE.log(this->logtree.path.c_str(), this->logtree.path.size(), LogTree::LOG_TRACE, reinterpret_cast<char*>(this->data+pgaddr), this->eeprom.getPageSize(), true);
+		TRACE.log(this->logtree.getPath().c_str(), this->logtree.getPath().size(), LogTree::LOG_TRACE, reinterpret_cast<char*>(this->cache+pgaddr), this->eeprom.getPageSize(), true);
+		TRACE.log(this->logtree.getPath().c_str(), this->logtree.getPath().size(), LogTree::LOG_TRACE, reinterpret_cast<char*>(this->data+pgaddr), this->eeprom.getPageSize(), true);
 
 		if (this->eeprom.write(pgaddr, this->data+pgaddr, this->eeprom.getPageSize()) != this->eeprom.getPageSize()) {
 			this->logtree.log(stdsprintf("EEPROM write failed during flush in Persistent Storage service at 0x%04lx", pgaddr), LogTree::LOG_ERROR);

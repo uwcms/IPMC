@@ -241,11 +241,11 @@ void ThresholdSensor::update_value(const float value, uint16_t event_context, ui
 
 	std::shared_ptr<const SensorDataRecordReadableSensor> sdr = std::dynamic_pointer_cast<const SensorDataRecordReadableSensor>(device_sdr_repo.find(this->sdr_key));
 	if (!sdr) {
-		this->logunique.log_unique(stdsprintf("Unable to locate a readable (Type 01/02) sensor %s in the Device SDR Repository!  Thresholds not updated!", this->sensor_identifier().c_str()), LogTree::LOG_ERROR);
+		this->logunique.logUnique(stdsprintf("Unable to locate a readable (Type 01/02) sensor %s in the Device SDR Repository!  Thresholds not updated!", this->sensor_identifier().c_str()), LogTree::LOG_ERROR);
 		return;
 	}
 	if (sdr->event_type_reading_code() != SensorDataRecordSensor::EVENT_TYPE_THRESHOLD_SENSOR) {
-		this->logunique.log_unique(stdsprintf("Sensor %s is not a Threshold type sensor in the Device SDR Repository!  Thresholds not updated!", this->sensor_identifier().c_str()), LogTree::LOG_ERROR);
+		this->logunique.logUnique(stdsprintf("Sensor %s is not a Threshold type sensor in the Device SDR Repository!  Thresholds not updated!", this->sensor_identifier().c_str()), LogTree::LOG_ERROR);
 		return;
 	}
 
@@ -440,12 +440,12 @@ ThresholdSensor::Value ThresholdSensor::get_value() const {
 		return value;
 	std::shared_ptr<const SensorDataRecordSensor> sdr = std::dynamic_pointer_cast<const SensorDataRecordSensor>(device_sdr_repo.find(this->sdr_key));
 	if (!sdr) {
-		this->logunique.log_unique(stdsprintf("Unable to locate sensor %s in the Device SDR Repository!", this->sensor_identifier().c_str()), LogTree::LOG_ERROR);
+		this->logunique.logUnique(stdsprintf("Unable to locate sensor %s in the Device SDR Repository!", this->sensor_identifier().c_str()), LogTree::LOG_ERROR);
 		return value; // No exceptions available, so we'll send what we have, and byte_value can be something blatantly bad.
 	}
 	std::shared_ptr<const SensorDataRecordReadableSensor> sdr_readable = std::dynamic_pointer_cast<const SensorDataRecordReadableSensor>(sdr);
 	if (!sdr_readable) {
-		this->logunique.log_unique(stdsprintf("Sensor %s is not a readable (Type 01/02) sensor in the Device SDR Repository!", this->sensor_identifier().c_str()), LogTree::LOG_ERROR);
+		this->logunique.logUnique(stdsprintf("Sensor %s is not a readable (Type 01/02) sensor in the Device SDR Repository!", this->sensor_identifier().c_str()), LogTree::LOG_ERROR);
 		return value; // No exceptions available, so we'll send what we have, and byte_value can be something blatantly bad.
 	}
 	value.byte_value = sdr_readable->from_float(value.float_value);

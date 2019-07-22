@@ -18,10 +18,10 @@
 #ifndef SRC_COMMON_ZYNQIPMC_DRIVERS_TRACEBUFFER_TRACEBUFFER_H_
 #define SRC_COMMON_ZYNQIPMC_DRIVERS_TRACEBUFFER_TRACEBUFFER_H_
 
+#include <libs/logtree.h>
 #include <stdint.h>
 #include <stddef.h>
 #include <string>
-#include <libs/LogTree.h>
 
 /**
  * This provides a Trace Buffer facility to allow memory dumps of structured

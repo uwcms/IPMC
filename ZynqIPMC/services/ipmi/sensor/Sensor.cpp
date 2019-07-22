@@ -44,7 +44,7 @@ Sensor::~Sensor() {
 void Sensor::send_event(enum EventDirection direction, const std::vector<uint8_t> &event_data) {
 	std::shared_ptr<const SensorDataRecordSensor> sdr = std::dynamic_pointer_cast<const SensorDataRecordSensor>(device_sdr_repo.find(this->sdr_key));
 	if (!sdr) {
-		this->logunique.log_unique(stdsprintf("Unable to locate sensor %s in the Device SDR Repository!  Event not transmitted!", this->sensor_identifier().c_str()), LogTree::LOG_ERROR);
+		this->logunique.logUnique(stdsprintf("Unable to locate sensor %s in the Device SDR Repository!  Event not transmitted!", this->sensor_identifier().c_str()), LogTree::LOG_ERROR);
 		return;
 	}
 
@@ -54,7 +54,7 @@ void Sensor::send_event(enum EventDirection direction, const std::vector<uint8_t
 	critical.release();
 
 	if (!ipmi_event_receiver.ipmb || ipmi_event_receiver.addr == 0xFF /* Disabled */) {
-		this->logunique.log_unique(stdsprintf("There is not yet an IPMI Event Receiver.  Discarding events on sensor \"%s\".", sdr->id_string().c_str()), LogTree::LOG_DIAGNOSTIC);
+		this->logunique.logUnique(stdsprintf("There is not yet an IPMI Event Receiver.  Discarding events on sensor \"%s\".", sdr->id_string().c_str()), LogTree::LOG_DIAGNOSTIC);
 		return;
 	}
 	if (this->all_events_disabled()) {

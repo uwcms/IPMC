@@ -1,5 +1,6 @@
+#include <libs/logtree.h>
+
 #include <IPMC.h>
-#include <libs/LogTree.h>
 #include <libs/printf.h>
 #include <services/ipmi/IPMI.h>
 #include <services/ipmi/ipmbsvc/IPMBSvc.h>

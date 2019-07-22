@@ -233,7 +233,7 @@ void TelnetClient::thread_telnetc() {
 				this->socket->send(stdsprintf("\r\n\r\n%s\r\n", banner.c_str()));
 				CommandParser *telnet_command_parser = new CommandParser(&console_command_parser);
 				LogTree::Filter *log_filter = new LogTree::Filter(LOG, NULL, LogTree::LOG_NOTICE);
-				log_filter->register_console_commands(*telnet_command_parser);
+				log_filter->registerConsoleCommands(*telnet_command_parser);
 				std::shared_ptr<Telnet::TelnetConsoleSvc> console = Telnet::TelnetConsoleSvc::create(
 						this->socket,
 						proto,

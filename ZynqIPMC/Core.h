@@ -13,12 +13,12 @@
 #include <drivers/ps_uart/ps_uart.h>
 #include <drivers/spi_eeprom/spi_eeprom.h>
 #include <drivers/watchdog/ps_wdt.h>
+#include <libs/logtree.h>
 
 #include <services/persistentstorage/PersistentStorage.h>
 #include <services/ipmi/ipmbsvc/IPMBSvc.h>
 #include <services/ipmi/MStateMachine.h>
 
-#include <libs/LogTree.h>
 
 /**
  * Global variables common to all ZYNQ-IPMC applications

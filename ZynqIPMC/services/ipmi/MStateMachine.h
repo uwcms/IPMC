@@ -9,11 +9,11 @@
 #define SRC_COMMON_UW_IPMC_SERVICES_IPMI_MSTATEMACHINE_H_
 
 #include <FreeRTOS.h>
+#include <libs/logtree.h>
 #include <semphr.h>
 #include <stdint.h>
 #include <services/ipmi/sensor/HotswapSensor.h>
 #include <services/ipmi/ipmi_led/IPMILED.h>
-#include <libs/LogTree.h>
 #include <memory>
 #include <functional>
 
