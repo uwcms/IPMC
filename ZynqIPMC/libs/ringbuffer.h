@@ -50,7 +50,7 @@ public:
 	RingBuffer(size_t items) :
 			kBufLen(items), kMaxLen(items-1), next_read_idx(0), next_write_idx(0) {
 		configASSERT((items & kMaxLen) == 0); // Check if size is power of 2
-		this->buffer = new T(this->kBufLen);
+		this->buffer = new T[this->kBufLen];
 	}
 
 	//! Cleans and resets the ring buffer.
@@ -311,7 +311,7 @@ public:
 
 	//! Release the allocated buffer.
 	~RingBuffer() {
-		delete this->buffer;
+		delete [] this->buffer;
 	}
 };
 
