@@ -65,7 +65,7 @@ logtree(logtree) {
 	memcpy(this->mac, mac, sizeof(uint8_t) * 6);
 	memset(&(this->netif), 0, sizeof(struct netif));
 
-	UWTaskCreate("network_start", TCPIP_THREAD_PRIO, [this,net_ready_cb]() -> void {
+	runTask("network_start", TCPIP_THREAD_PRIO, [this,net_ready_cb]() -> void {
 		// It is imperative that lwIP gets initialized before the network start thread gets launched
 		// otherwise there will be problems with TCP requests
 		lwip_init();
@@ -119,11 +119,11 @@ void Network::thread_network_start() {
 	netif_set_up(&(this->netif));
 
 	// Start packet receive thread, required for lwIP operation
-	UWTaskCreate("xemacifd", TCPIP_THREAD_XEMACIFD_PRIO, [this]() -> void { xemacif_input_thread(&this->netif); });
+	runTask("xemacifd", TCPIP_THREAD_XEMACIFD_PRIO, [this]() -> void { xemacif_input_thread(&this->netif); });
 
 #if LWIP_DHCP==1
 	// If DHCP is enabled then start it
-	UWTaskCreate("_dhcpd", TCPIP_THREAD_PRIO, [this]() -> void {
+	runTask("_dhcpd", TCPIP_THREAD_PRIO, [this]() -> void {
 		unsigned int mscnt = 0;
 
 		dhcp_start(&this->netif);

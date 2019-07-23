@@ -9,9 +9,8 @@
 #include <FreeRTOS.h>
 #include <task.h>
 #include <algorithm>
-#include <libs/ThreadingPrimitives.h>
 #include <drivers/network/Network.h>
-
+#include <libs/threading.h>
 #include "lwip/sockets.h"
 #include "lwip/sys.h"
 

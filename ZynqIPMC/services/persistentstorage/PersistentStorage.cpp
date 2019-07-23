@@ -61,7 +61,7 @@ PersistentStorage::PersistentStorage(EEPROM &eeprom, LogTree &logtree, PSWDT *wa
 		this->wdt_slot = this->wdt->register_slot(this->flush_ticks * 10); // We're background, but we should get service EVENTUALLY.
 		this->wdt->activate_slot(this->wdt_slot);
 	}
-	this->flushtask = UWTaskCreate("PersistentFlush", TASK_PRIORITY_DRIVER, [this]() -> void { this->run_flush_thread(); });
+	this->flushtask = runTask("PersistentFlush", TASK_PRIORITY_DRIVER, [this]() -> void { this->run_flush_thread(); });
 }
 
 PersistentStorage::~PersistentStorage() {
@@ -402,12 +402,12 @@ void PersistentStorage::run_flush_thread() {
 
 	AbsoluteTimeout next_bg_flush(get_tick64() + flush_ticks);
 	while (true) {
-		if (!ulTaskNotifyTake(pdTRUE, next_bg_flush.get_timeout())) {
+		if (!ulTaskNotifyTake(pdTRUE, next_bg_flush.getTimeout())) {
 			// Nothing new.  Let's enqueue a full flush.
 			MutexGuard<false> flushlock(this->flushq_mutex, true);
 			// NULL callback means our current priority is irrelevant.
 			this->flushq.emplace(0, this->eeprom.getTotalSize(), std::function<void(void)>());
-			next_bg_flush.timeout64 = get_tick64() + this->flush_ticks;
+			next_bg_flush.setAbsTimeout(get_tick64() + this->flush_ticks);
 		}
 
 		bool changed = false;

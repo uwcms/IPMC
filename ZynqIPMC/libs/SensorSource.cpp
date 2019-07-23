@@ -7,9 +7,10 @@
 
 // TODO: Decide what to do with this...
 
+#include <libs/threading.h>
+
 #include <IPMC.h>
 #include "SensorSource.h"
-#include <libs/ThreadingPrimitives.h>
 
 std::string SensorSource::sensorUnitToString(const SensorUnit& u) {
 	switch(u) {
@@ -25,7 +26,7 @@ void SensorSource::startRefreshTask(const std::string& taskname, const uint32_t 
 	this->changeRefreshInterval(ms_interval);
 	this->taskName = std::string("sd:") + taskname;
 
-	UWTaskCreate(this->taskName, TASK_PRIORITY_DRIVER, [this]() -> void {
+	runTask(this->taskName, TASK_PRIORITY_DRIVER, [this]() -> void {
 		this->_backgroundTask();
 	});
 }
@@ -46,8 +47,8 @@ void SensorSource::_backgroundTask() {
 		}*/
 
 		// Sleep for the amount of time remaining
-		TickType_t r = timeout.get_timeout();
-		if (timeout.get_timeout() == 0) {
+		TickType_t r = timeout.getTimeout();
+		if (timeout.getTimeout() == 0) {
 			// Sensor gathering took more time than expected
 			// TODO: Report possible issue
 			printf("%s: Timer overrun in SensorSource.", this->taskName.c_str());

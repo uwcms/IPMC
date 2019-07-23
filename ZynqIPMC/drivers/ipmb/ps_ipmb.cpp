@@ -26,7 +26,7 @@
 #include <semphr.h>
 #include <queue.h>
 #include <task.h>
-#include <libs/ThreadingPrimitives.h>
+#include <libs/threading.h>
 #include <libs/printf.h>
 #include <libs/except.h>
 

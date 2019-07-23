@@ -15,7 +15,7 @@
 #include <event_groups.h>
 #include <IPMC.h>
 #include <drivers/watchdog/ps_wdt.h>
-#include <libs/ThreadingPrimitives.h>
+#include <libs/threading.h>
 #include <functional>
 #include <queue>
 #include <deque>

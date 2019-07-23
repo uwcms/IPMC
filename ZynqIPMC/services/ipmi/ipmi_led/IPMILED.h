@@ -9,7 +9,7 @@
 #define SRC_COMMON_UW_IPMC_SERVICES_IPMI_IPMI_LED_IPMILED_H_
 
 #include <drivers/generics/led.h>
-#include <libs/ThreadingPrimitives.h>
+#include <libs/threading.h>
 #include <services/timer/TimerService.h>
 
 class IPMI_LED {

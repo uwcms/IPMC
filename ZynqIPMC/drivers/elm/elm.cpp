@@ -17,9 +17,9 @@
 
 // TODO: Remove printf
 
+#include <libs/threading.h>
 #include "elm.h"
 #include <IPMC.h> // TODO: Consider removing this when things are shuffled around.
-#include <libs/ThreadingPrimitives.h>
 
 ELM::ELM(UART &uart, GPIO *targetsel) :
 uart(uart), targetsel(targetsel) {
@@ -29,7 +29,7 @@ uart(uart), targetsel(targetsel) {
 	memset(this->channels, 0, sizeof(this->channels));
 
 	// Start the digest thread
-	UWTaskCreate("elmlink", TASK_PRIORITY_BACKGROUND, [this]() {
+	runTask("elmlink", TASK_PRIORITY_BACKGROUND, [this]() {
 		Packet p = {0};
 
 		while (true) {

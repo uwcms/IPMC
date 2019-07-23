@@ -7,10 +7,10 @@
 
 #include <services/ipmi/ipmbsvc/IPMICommandParser.h>
 #include <FreeRTOS.h>
+#include <libs/threading.h>
 #include <semphr.h>
 #include <IPMC.h>
 #include <services/ipmi/IPMI_MSG.h>
-#include <libs/ThreadingPrimitives.h>
 #include <functional>
 #include <map>
 

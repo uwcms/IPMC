@@ -5,8 +5,9 @@
  *      Author: mpv
  */
 
+#include <libs/threading.h>
+
 #include <IPMC.h>
-#include <libs/ThreadingPrimitives.h>
 #include <libs/Utils.h>
 
 #include "IpmcLink.h"
@@ -18,7 +19,7 @@ IPMCLink::IPMCLink(UART &uart) : uart(uart) {
 	memset(this->channelMapping, 0, sizeof(this->channelMapping));
 
 	// Start the digest thread
-	UWTaskCreate("ipmclink", TASK_PRIORITY_BACKGROUND, [this]() {
+	runTask("ipmclink", TASK_PRIORITY_BACKGROUND, [this]() {
 		Packet p = {0};
 
 		while (true) {

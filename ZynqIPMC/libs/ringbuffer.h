@@ -18,8 +18,8 @@
 #ifndef SRC_COMMON_ZYNQIPMC_LIBS_RINGBUFFER_H_
 #define SRC_COMMON_ZYNQIPMC_LIBS_RINGBUFFER_H_
 
+#include <libs/threading.h>
 #include <stddef.h>
-#include <libs/ThreadingPrimitives.h>
 
 /**
  * A simple DMA-aware ring buffer.

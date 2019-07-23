@@ -10,12 +10,12 @@
 #include <drivers/network/Socket.h>
 #include <drivers/network/ServerSocket.h>
 #include <FreeRTOS.h>
+#include <libs/threading.h>
 #include <task.h>
-#include <libs/ThreadingPrimitives.h>
 
 Lwiperf::Lwiperf(unsigned short port) :
 port(port) {
-	UWTaskCreate("lwiperfd", TCPIP_THREAD_HIGH_PRIO, [this]() -> void {
+	runTask("lwiperfd", TCPIP_THREAD_HIGH_PRIO, [this]() -> void {
 		ServerSocket server(this->port);
 
 		int err = server.listen();

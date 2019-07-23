@@ -6,9 +6,9 @@
  */
 
 #include <services/timer/TimerService.h>
-#include <libs/ThreadingPrimitives.h>
 #include <libs/printf.h>
 #include <FreeRTOS.h>
+#include <libs/threading.h>
 #include <task.h>
 #include <semphr.h>
 
@@ -74,14 +74,14 @@ void TimerService::submit(std::shared_ptr<Timer> &timer) {
  * @param stack_words The stack size, passed directly to UWThreadCreate
  */
 void TimerService::start(const std::string &thread_name, BaseType_t thread_priority, BaseType_t stack_words) {
-	UWTaskCreate(thread_name, thread_priority, [this]()->void{this->run_thread();}, stack_words);
+	runTask(thread_name, thread_priority, [this]()->void{this->run_thread();}, stack_words);
 }
 
 void TimerService::run_thread() {
 	AbsoluteTimeout next(portMAX_DELAY); // The next timeout
 	while (true) {
 		// Wait once, then add any new timers to the set.
-		TickType_t timeout = next.get_timeout();
+		TickType_t timeout = next.getTimeout();
 		while (true) {
 			std::shared_ptr<Timer> *tptr = NULL;
 			if (pdTRUE == xQueueReceive(this->input_queue, &tptr, timeout)) {
@@ -98,7 +98,7 @@ void TimerService::run_thread() {
 		// Iterate and call & rearm relevant timers.
 		MutexGuard<false> lock(this->mutex, true);
 		uint64_t now = get_tick64();
-		next.timeout64 = UINT64_MAX;
+		next.setAbsTimeout(UINT64_MAX);
 		for (auto it = this->timers.begin(), eit = this->timers.end(); it != eit; ) {
 			std::shared_ptr<Timer> &timer = *it;
 			if (timer->is_cancelled()) {
@@ -106,14 +106,14 @@ void TimerService::run_thread() {
 				it = this->timers.erase(it);
 				continue;
 			}
-			if (timer->next.timeout64 <= now) {
+			if (timer->next.getTimeout64() <= now) {
 				lock.release();
 				timer->run();
 				lock.acquire();
 				if (timer->rearm_every) {
 					// This timer auto-rearms.
 					// We adjust the existing absolute timeout to avoid drift.
-					timer->next.timeout64 += timer->rearm_every;
+					timer->next.setAbsTimeout(timer->next.getTimeout64() + timer->rearm_every);
 				}
 				else {
 					// This timer has fired and is finished.

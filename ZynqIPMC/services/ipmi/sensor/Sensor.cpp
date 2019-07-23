@@ -11,11 +11,11 @@
 #include <services/ipmi/sdr/SensorDataRecordReadableSensor.h>
 #include <services/ipmi/sdr/SensorDataRecord01.h>
 #include <services/ipmi/ipmbsvc/IPMBSvc.h>
-#include <libs/ThreadingPrimitives.h>
 #include <libs/printf.h>
 #include <libs/except.h>
 #include <IPMC.h>
 #include <Core.h>
+#include <libs/threading.h>
 #include <math.h>
 
 /**

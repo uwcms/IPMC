@@ -8,8 +8,8 @@
 #include <IPMC.h>
 #include <services/xvcserver/XVCServer.h>
 #include <drivers/network/ServerSocket.h>
-#include <libs/ThreadingPrimitives.h>
 #include <FreeRTOS.h>
+#include <libs/threading.h>
 #include <task.h>
 
 XVCServer::XVCServer(uint32_t baseAddr, uint16_t port) :
@@ -19,7 +19,7 @@ baseAddr(baseAddr), port(port), verbose(false) {
 	threadName += std::to_string(port);
 
 	// Start the XVC server thread
-	UWTaskCreate(threadName, TASK_PRIORITY_BACKGROUND, [this]() {
+	runTask(threadName, TASK_PRIORITY_BACKGROUND, [this]() {
 		// Just allow one connection at a time
 		ServerSocket server(this->port);
 

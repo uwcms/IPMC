@@ -21,7 +21,7 @@
 #include "management_zone.h"
 #include <libs/printf.h>
 #include <libs/except.h>
-#include <libs/ThreadingPrimitives.h>
+#include <libs/threading.h>
 
 ZoneController::ZoneController(uint16_t device_id) {
 	if (XST_SUCCESS != Mgmt_Zone_Ctrl_Initialize(&this->zone, device_id)) {

@@ -6,7 +6,6 @@
  */
 
 #include <PayloadManager.h>
-#include <libs/ThreadingPrimitives.h>
 #include <libs/printf.h>
 #include <services/console/ConsoleSvc.h>
 #include <services/ipmi/sensor/SensorSet.h>
@@ -16,6 +15,7 @@
 #include <exception>
 #include <IPMC.h>
 #include <Core.h>
+#include <libs/threading.h>
 
 #define MZ_HOLDOFF_TICKS 140
 #define CONTEXT_EVENT_MASK 0xfc0 // mask only lower events
@@ -136,7 +136,7 @@ void PayloadManager::FinishConfig() {
 	// The sensor processor is configured and enabled by the sensor linkage
 	// update, as this is where thresholds become available.
 
-	UWTaskCreate("pyld_adcsensors", TASK_PRIORITY_SERVICE, [this]()->void{this->run_sensor_thread();});
+	runTask("pyld_adcsensors", TASK_PRIORITY_SERVICE, [this]()->void{this->run_sensor_thread();});
 }
 
 PayloadManager::~PayloadManager() {
@@ -373,8 +373,8 @@ void PayloadManager::update_sensor_processor_contexts() {
 				desired_deassertions &= CONTEXT_EVENT_MASK;
 				uint64_t holdoff_end = this->mgmt_zones[adcsensor.second.mz_context]->getLastTransitionStart() + MZ_HOLDOFF_TICKS;
 				//this->log.log(stdsprintf("MZ%d is out of context for sensor %s", adcsensor.second.mz_context, sensor->sensor_identifier().c_str()), LogTree::LOG_DIAGNOSTIC);
-				if (next_update.timeout64 > holdoff_end)
-					next_update.timeout64 = holdoff_end;
+				if (next_update.getTimeout64() > holdoff_end)
+					next_update.setAbsTimeout(holdoff_end);
 			}
 			else {
 				//this->log.log(stdsprintf("MZ%d is in context for sensor %s", adcsensor.second.mz_context, sensor->sensor_identifier().c_str()), LogTree::LOG_DIAGNOSTIC);
@@ -382,7 +382,7 @@ void PayloadManager::update_sensor_processor_contexts() {
 			this->sensor_processor->setEventEnable(adcsensor.second.sensor_processor_id, desired_assertions, desired_deassertions);
 		}
 	}
-	if (next_update.timeout64 > start_of_run && next_update.timeout64 != UINT64_MAX) {
+	if (next_update.getTimeout64() > start_of_run && next_update.getTimeout64() != UINT64_MAX) {
 		// XSDK seems to crash if you put a lambda in a std::make_shared() directly.
 		// A lambda is required in order to allow capture and use of *this, however.
 		std::function<void(void)> self = [this]() -> void { this->update_sensor_processor_contexts(); };

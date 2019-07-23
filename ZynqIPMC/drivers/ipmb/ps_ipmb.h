@@ -28,7 +28,7 @@
 #include <queue.h>
 #include <IPMC.h>
 #include <libs/ringbuffer.h>
-#include <libs/ThreadingPrimitives.h>
+#include <libs/threading.h>
 #include <libs/statcounter.h>
 #include <drivers/generics/ipmb.h>
 #include <drivers/interrupt_based_driver.h>

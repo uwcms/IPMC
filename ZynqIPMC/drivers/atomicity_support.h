@@ -19,7 +19,7 @@
 #define SRC_COMMON_ZYNQIPMC_DRIVERS_ATOMICITY_SUPPORT_H_
 
 #include <FreeRTOS.h>
-#include <libs/ThreadingPrimitives.h>
+#include <libs/threading.h>
 #include <semphr.h>
 #include <functional>
 

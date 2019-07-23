@@ -221,7 +221,7 @@ size_t PSUART::read(uint8_t *buf, size_t len, TickType_t timeout, TickType_t dat
 			break;
 		if (bytesread && abs_data_timeout < abstimeout)
 			abstimeout = abs_data_timeout; // We have data, so if we have a data_timeout, we're now on it instead.
-		if (!sub.wait(abstimeout.get_timeout()))
+		if (!sub.wait(abstimeout.getTimeout()))
 			break; // Timed out.
 	}
 	return bytesread;
@@ -267,7 +267,7 @@ size_t PSUART::write(const uint8_t *buf, size_t len, TickType_t timeout) {
 			break; // Interrupts can't wait for more.
 		if (byteswritten == len)
 			break;
-		if (!sub.wait(abstimeout.get_timeout()))
+		if (!sub.wait(abstimeout.getTimeout()))
 			break; // Timed out.
 	}
 	return byteswritten;

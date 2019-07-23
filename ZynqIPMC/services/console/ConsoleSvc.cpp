@@ -10,8 +10,8 @@
 #include <services/console/ConsoleSvc.h>
 #include <IPMC.h>
 #include "task.h"
-#include <libs/ThreadingPrimitives.h>
 #include <libs/printf.h>
+#include <libs/threading.h>
 
 template <typename T> static inline T div_ceil(T val, T divisor) {
 	return (val / divisor) + (val % divisor ? 1 : 0);
@@ -29,7 +29,7 @@ template <typename T> static inline T div_ceil(T val, T divisor) {
 ConsoleSvc::ConsoleSvc(CommandParser &parser, const std::string &name, LogTree &logtree, bool echo, TickType_t read_data_timeout)
 	: parser(parser), name(name), logtree(logtree), log_input(logtree["input"]),
 	  echo(echo), read_data_timeout(read_data_timeout), linebuf("> ", 2048),
-	  shutdown(false), task(NULL) {
+	  shutdown(false), task(nullptr) {
 	this->linebuf_mutex = xSemaphoreCreateMutex();
 	configASSERT(this->linebuf_mutex);
 
@@ -68,7 +68,7 @@ ConsoleSvc::~ConsoleSvc() {
  */
 void ConsoleSvc::start() {
 	configASSERT(!this->task);
-	this->task = UWTaskCreate(name, TASK_PRIORITY_INTERACTIVE, [this]() -> void { this->_run_thread(); });
+	this->task = runTask(name, TASK_PRIORITY_INTERACTIVE, [this]() -> void { this->_run_thread(); });
 	configASSERT(this->task);
 }
 /**
@@ -86,7 +86,7 @@ bool ConsoleSvc::write(const std::string data, TickType_t timeout) {
 	AbsoluteTimeout abstimeout(timeout);
 	MutexGuard<false> lock(this->linebuf_mutex, false);
 	try {
-		lock.acquire(abstimeout.get_timeout());
+		lock.acquire(abstimeout.getTimeout());
 	}
 	catch (except::timeout_error &e) {
 		return false;
@@ -130,7 +130,7 @@ bool ConsoleSvc::write(const std::string data, TickType_t timeout) {
 	out += "\r\n";
 	out += this->linebuf.refresh();
 	out += this->linebuf.set_cursor(input_cursor);
-	this->raw_write(out.data(), out.size(), abstimeout.get_timeout());
+	this->raw_write(out.data(), out.size(), abstimeout.getTimeout());
 	return true;
 }
 
@@ -219,13 +219,13 @@ void ConsoleSvc::_run_thread() {
 					}
 					catch (std::exception &e) {
 						BackTrace* trace = BackTrace::traceException();
-						std::string diag = render_exception_report(trace, &e, std::string("in console command"));
+						std::string diag = renderExceptionReport(trace, &e, std::string("in console command"));
 						this->logtree.log(diag, LogTree::LOG_TRACE);
 						this->write(diag+"\n");
 					}
 					catch (...) {
 						BackTrace* trace = BackTrace::traceException();
-						std::string diag = render_exception_report(trace, NULL, std::string("in console command"));
+						std::string diag = renderExceptionReport(trace, nullptr, std::string("in console command"));
 						this->logtree.log(diag, LogTree::LOG_TRACE);
 						this->write(diag+"\n");
 					}
@@ -378,13 +378,13 @@ void ConsoleSvc::_run_thread() {
 					}
 					catch (std::exception &e) {
 						BackTrace* trace = BackTrace::traceException();
-						std::string diag = render_exception_report(trace, &e, std::string("in console command"));
+						std::string diag = renderExceptionReport(trace, &e, std::string("in console command"));
 						this->logtree.log(diag, LogTree::LOG_TRACE);
 						this->write(diag+"\n");
 					}
 					catch (...) {
 						BackTrace* trace = BackTrace::traceException();
-						std::string diag = render_exception_report(trace, NULL, std::string("in console command"));
+						std::string diag = renderExceptionReport(trace, nullptr, std::string("in console command"));
 						this->logtree.log(diag, LogTree::LOG_TRACE);
 						this->write(diag+"\n");
 					}

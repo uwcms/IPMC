@@ -10,8 +10,8 @@
 
 #include <libs/ansi_code.h>
 #include <libs/logtree.h>
+#include <libs/threading.h>
 #include <services/console/CommandParser.h>
-#include <libs/ThreadingPrimitives.h>
 #include "FreeRTOS.h"
 #include "semphr.h"
 #include "event_groups.h"

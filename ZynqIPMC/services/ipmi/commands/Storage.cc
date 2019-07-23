@@ -3,9 +3,9 @@
 #include <services/ipmi/ipmbsvc/IPMBSvc.h>
 #include <services/ipmi/sdr/SensorDataRepository.h>
 #include <services/persistentstorage/PersistentStorage.h>
-#include <libs/ThreadingPrimitives.h>
 #include "IPMICmd_Index.h"
 #include <libs/printf.h>
+#include <libs/threading.h>
 
 #define RETURN_ERROR(ipmb, message, completion_code) \
 	do { \

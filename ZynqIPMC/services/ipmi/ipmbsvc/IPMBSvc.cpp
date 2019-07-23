@@ -69,7 +69,7 @@ IPMBSvc::IPMBSvc(IPMB *ipmb, uint8_t ipmb_address, IPMICommandParser *command_pa
 		this->wdt->activate_slot(this->wdt_slot);
 	}
 
-	this->task = UWTaskCreate(name, TASK_PRIORITY_DRIVER, [this, wait_for_service_init]() -> void {
+	this->task = runTask(name, TASK_PRIORITY_DRIVER, [this, wait_for_service_init]() -> void {
 		if (wait_for_service_init)
 			xEventGroupWaitBits(init_complete, 0x3, pdFALSE, pdTRUE, portMAX_DELAY);
 		this->run_thread();
@@ -187,11 +187,11 @@ void IPMBSvc::run_thread() {
 		if (this->wdt) {
 			uint64_t now64 = get_tick64();
 			this->wdt->service_slot(this->wdt_slot);
-			if (next_wait.timeout64 > now64 + (configTICK_RATE_HZ/2))
-				next_wait.timeout64 = now64 + (configTICK_RATE_HZ/2); // Don't wait past our service frequency.
+			if (next_wait.getTimeout64() > (now64 + (configTICK_RATE_HZ/2)))
+				next_wait.setAbsTimeout(now64 + (configTICK_RATE_HZ/2)); // Don't wait past our service frequency.
 		}
 		// Check for any incoming messages and process them.
-		QueueHandle_t q = xQueueSelectFromSet(this->qset, next_wait.get_timeout());
+		QueueHandle_t q = xQueueSelectFromSet(this->qset, next_wait.getTimeout());
 		if (q == this->sendq_notify_sem) {
 			configASSERT(pdTRUE == xSemaphoreTake(this->sendq_notify_sem, 0));
 			// Notification received.  No specific action to take here.
@@ -251,7 +251,7 @@ void IPMBSvc::run_thread() {
 			 * likely to be significant.
 			 */
 			if (uxQueueMessagesWaiting(this->recvq) > 0) {
-				next_wait.timeout64 = 0; // Immediate.
+				next_wait.setAbsTimeout(0); // Immediate.
 				continue;
 			}
 		}
@@ -259,9 +259,9 @@ void IPMBSvc::run_thread() {
 		// Figure out whether we have any timeouts to wait on next.
 		MutexGuard<false> lock(this->sendq_mutex, true);
 		this->stat_sendq_highwater.highWater(this->outgoing_messages.size());
-		next_wait.timeout64 = UINT64_MAX;
+		next_wait.setAbsTimeout(UINT64_MAX);
 		for (auto it = this->outgoing_messages.begin(); it != this->outgoing_messages.end(); ) {
-			if (it->next_retry.get_timeout() == 0) {
+			if (it->next_retry.getTimeout() == 0) {
 				if (it->retry_count >= this->max_retries) {
 					// Delivery failed.  Our last retry timed out.
 					this->stat_send_failures.increment();
@@ -340,11 +340,11 @@ void IPMBSvc::run_thread() {
 				 * it in time.  We'll iterate the mainloop now regardless,
 				 * therefore.
 				 */
-				next_wait.timeout64 = 0;
+				next_wait.setAbsTimeout(0);
 				break;
 			}
 
-			if (it->next_retry.timeout64 < next_wait.timeout64)
+			if (it->next_retry.getTimeout64() < next_wait.getTimeout64())
 				next_wait = it->next_retry;
 			++it;
 		}
@@ -524,7 +524,7 @@ public:
 			return;
 		}
 		IPMBSvc *ipmb = &this->ipmb;
-		UWTaskCreate("enum_fru_stores", TASK_PRIORITY_INTERACTIVE,
+		runTask("enum_fru_stores", TASK_PRIORITY_INTERACTIVE,
 				[ipmb, console, ipmbtarget]() -> void {
 					std::vector<RemoteFRUStorage> fru_storages;
 					for (uint8_t frudev = 0; frudev < 0xff; ++frudev) {
@@ -590,7 +590,7 @@ public:
 			}
 		}
 		IPMBSvc *ipmb = &this->ipmb;
-		UWTaskCreate("dump_fru_store", TASK_PRIORITY_INTERACTIVE,
+		runTask("dump_fru_store", TASK_PRIORITY_INTERACTIVE,
 				[ipmb, console, ipmbtarget, frudev, all]() -> void {
 					std::shared_ptr<RemoteFRUStorage> storage = RemoteFRUStorage::Probe(ipmb, ipmbtarget, frudev);
 					if (!storage) {

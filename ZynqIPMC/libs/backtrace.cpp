@@ -17,12 +17,12 @@
 
 #include <FreeRTOS.h>
 #include <libs/backtrace.h>
+#include <libs/threading.h>
 #include <semphr.h>
 #include <map>
 #include <unwind.h> // GCC's internal unwinder, part of newlib.
 #include "unwind-cxx.h" // Extra utilities copied from GCC source code, normally hidden.
 
-#include <libs/ThreadingPrimitives.h>
 
 // Based on:
 // http://infocenter.arm.com/help/topic/com.arm.doc.ihi0038b/IHI0038B_ehabi.pdf

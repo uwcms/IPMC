@@ -7,8 +7,8 @@
 
 #include <services/ipmi/sensor/SensorSet.h>
 #include <FreeRTOS.h>
+#include <libs/threading.h>
 #include <semphr.h>
-#include <libs/ThreadingPrimitives.h>
 
 /**
  * Instantiate a SensorSet

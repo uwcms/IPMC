@@ -10,8 +10,8 @@
 
 #include <functional>
 #include <list>
-#include <libs/ThreadingPrimitives.h>
 #include <FreeRTOS.h>
+#include <libs/threading.h>
 
 class TimerService {
 public:

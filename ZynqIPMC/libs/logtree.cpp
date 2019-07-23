@@ -22,7 +22,7 @@
 #include <IPMC.h>
 #include <libs/printf.h>
 #include <libs/except.h>
-#include <libs/ThreadingPrimitives.h>
+#include <libs/threading.h>
 #include <services/console/CommandParser.h>
 #include <services/console/ConsoleSvc.h>
 #include <deque>

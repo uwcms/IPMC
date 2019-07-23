@@ -8,6 +8,7 @@
 // TODO: Consider implementing retries if failed to push metrics
 
 #include <Core.h>
+#include <libs/threading.h>
 #include "InfluxDB.h"
 #include <semphr.h>
 #include <task.h>
@@ -15,7 +16,6 @@
 #include <services/persistentstorage/PersistentStorage.h>
 #include <services/console/CommandParser.h>
 #include <services/console/ConsoleSvc.h>
-#include <libs/ThreadingPrimitives.h>
 
 using namespace std::chrono;
 
@@ -46,7 +46,7 @@ logtree(logtree) {
 		this->flushTicks = pdMS_TO_TICKS(this->config->flushInterval * 1000);
 	}
 
-	UWTaskCreate("influxdbd", TASK_PRIORITY_BACKGROUND, [this]() -> void {
+	runTask("influxdbd", TASK_PRIORITY_BACKGROUND, [this]() -> void {
 		this->_backgroundTask();
 	});
 }

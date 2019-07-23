@@ -22,7 +22,7 @@
 #include <IPMC.h>
 #include <FreeRTOS.h>
 #include <task.h>
-#include <libs/ThreadingPrimitives.h>
+#include <libs/threading.h>
 #include <libs/printf.h>
 #include <libs/except.h>
 #include <string>
@@ -54,7 +54,7 @@ log(log), on_trip(on_trip), kNumSlots(num_slots), free_slot(0) {
 		slot.last_serviced_by[0] = '\0'; // null string.
 	}
 
-	UWTaskCreate("watchdog", TASK_PRIORITY_WATCHDOG, [this]() -> void { this->backgroundTask(); });
+	runTask("watchdog", TASK_PRIORITY_WATCHDOG, [this]() -> void { this->backgroundTask(); });
 }
 
 PSWDT::~PSWDT() {

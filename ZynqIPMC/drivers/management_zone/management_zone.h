@@ -24,7 +24,7 @@
 #include "mgmt_zone_ctrl.h"
 #include <vector>
 #include <services/console/CommandParser.h>
-#include <libs/ThreadingPrimitives.h>
+#include <libs/threading.h>
 
 /**
  * A single management zone controller driver for the ZYNQ-IPMC custom IP.

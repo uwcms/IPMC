@@ -87,11 +87,11 @@ ssize_t Telnet::TelnetConsoleSvc::raw_read(char *buf, size_t len, TickType_t tim
 			this->close();
 			return -1;
 		}
-		this->raw_write(proto_reply.data(), proto_reply.size(), abstimeout.get_timeout());
+		this->raw_write(proto_reply.data(), proto_reply.size(), abstimeout.getTimeout());
 		TRACE.log(inprpl.data(), inprpl.size(), LogTree::LOG_TRACE, proto_reply.data(), proto_reply.size(), true);
 		if (protolen)
 			return protolen;
-	} while (abstimeout.get_timeout() > 0);
+	} while (abstimeout.getTimeout() > 0);
 	return 0; // Didn't return protolen above, but timed out.
 }
 

@@ -10,7 +10,7 @@
 #include <semphr.h>
 #include <libs/printf.h>
 #include <libs/except.h>
-#include <libs/ThreadingPrimitives.h>
+#include <libs/threading.h>
 
 SeveritySensor::SeveritySensor(const std::vector<uint8_t> &sdr_key, LogTree &log)
 	: Sensor(sdr_key, log), status(TRANS_OK) {

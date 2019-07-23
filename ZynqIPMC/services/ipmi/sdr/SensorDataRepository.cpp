@@ -5,8 +5,8 @@
  *      Author: jtikalsky
  */
 
+#include <libs/threading.h>
 #include <services/ipmi/sdr/SensorDataRepository.h>
-#include <libs/ThreadingPrimitives.h>
 #include <services/ipmi/IPMI_MSG.h> // for ipmi_checksum()
 
 SensorDataRepository::SensorDataRepository()

@@ -16,8 +16,8 @@
 #include <libs/authentication.h>
 #include <services/console/TelnetConsoleSvc.h>
 #include <services/persistentstorage/PersistentStorage.h>
-#include <libs/ThreadingPrimitives.h>
 #include <libs/printf.h>
+#include <libs/threading.h>
 #include <functional>
 
 // TODO

@@ -7,16 +7,15 @@
 
 #include <IPMC.h>
 #include <FreeRTOS.h>
+#include <libs/threading.h>
 #include <task.h>
 #include <algorithm>
-#include <libs/ThreadingPrimitives.h>
-
 #include "FTPServer.h"
 
 
 FTPServer::FTPServer(AuthCallbackFunc *authcallback, const uint16_t comport, const uint16_t dataport)
 : authcallback(authcallback), comport(comport), dataport(dataport) {
-	UWTaskCreate(std::string(FTPSERVER_THREAD_NAME ":") + std::to_string(comport), TASK_PRIORITY_SERVICE, [this]() -> void {
+	runTask(std::string(FTPSERVER_THREAD_NAME ":") + std::to_string(comport), TASK_PRIORITY_SERVICE, [this]() -> void {
 		this->thread_ftpserverd();
 	});
 }

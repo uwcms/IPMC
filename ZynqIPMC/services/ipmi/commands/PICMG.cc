@@ -231,7 +231,7 @@ static void ipmicmd_Get_FRU_LED_State(IPMBSvc &ipmb, const IPMI_MSG &message) {
 	}
 
 	// Fine, so we have a lamp test too.
-	uint32_t lamp_test_remaining_decisec = led.get_current_lamp_test_duration().get_timeout() / pdMS_TO_TICKS(100);
+	uint32_t lamp_test_remaining_decisec = led.get_current_lamp_test_duration().getTimeout() / pdMS_TO_TICKS(100);
 	reply->data[10] = lamp_test_remaining_decisec;
 	if (lamp_test_remaining_decisec > 127)
 		reply->data[10] = 127;
