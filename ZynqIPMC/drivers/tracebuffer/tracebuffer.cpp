@@ -15,8 +15,8 @@
  * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <libs/threading.h>
 #include "tracebuffer.h"
+#include <libs/threading.h>
 
 #define TRACEREC_PTR(off) (reinterpret_cast<struct TraceRecord*>((this->buf->buffer)+(off)))
 #define TRACEBUF_NULL_MARKER 0xffffffff

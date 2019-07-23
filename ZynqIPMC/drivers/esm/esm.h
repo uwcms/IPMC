@@ -24,7 +24,7 @@
 #include <drivers/generics/uart.h>
 #include <drivers/generics/gpio.h>
 #include <drivers/spi_flash/spi_flash.h>
-#include <libs/vfs.h>
+#include <libs/vfs/vfs.h>
 #include <services/console/CommandParser.h>
 /**
  * ESM driver that implements the software layers for ESM management, including programming and monitoring.

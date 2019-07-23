@@ -6,7 +6,7 @@
  */
 
 #include <drivers/tracebuffer/tracebuffer.h>
-#include <libs/backtrace.h>
+#include <libs/backtrace/backtrace.h>
 #include <services/console/ConsoleSvc.h>
 #include <IPMC.h>
 #include "task.h"

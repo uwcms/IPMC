@@ -8,7 +8,7 @@
 #ifndef SRC_COMMON_UW_IPMC_SERVICES_IPMI_SENSOR_SENSOR_H_
 #define SRC_COMMON_UW_IPMC_SERVICES_IPMI_SENSOR_SENSOR_H_
 
-#include <libs/logtree.h>
+#include <libs/logtree/logtree.h>
 #include <vector>
 #include <stdint.h>
 

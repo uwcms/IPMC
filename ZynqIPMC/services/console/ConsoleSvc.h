@@ -8,8 +8,8 @@
 #ifndef SRC_COMMON_UW_IPMC_SERVICES_CONSOLE_CONSOLESVC_H_
 #define SRC_COMMON_UW_IPMC_SERVICES_CONSOLE_CONSOLESVC_H_
 
-#include <libs/ansi_code.h>
-#include <libs/logtree.h>
+#include <libs/ansi_code/ansi_code.h>
+#include <libs/logtree/logtree.h>
 #include <libs/threading.h>
 #include <services/console/CommandParser.h>
 #include "FreeRTOS.h"

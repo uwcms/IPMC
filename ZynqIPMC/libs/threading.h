@@ -33,7 +33,7 @@
 #include <string>
 #include <exception>
 #include <libs/except.h>
-#include <libs/backtrace.h>
+#include <libs/backtrace/backtrace.h>
 
 // Declare a few custom task related exceptions:
 DEFINE_GENERIC_EXCEPTION(deadlock_error, std::logic_error)

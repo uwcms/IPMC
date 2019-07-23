@@ -18,7 +18,7 @@
 #ifndef SRC_COMMON_ZYNQIPMC_DRIVERS_GENERICS_FLASH_H_
 #define SRC_COMMON_ZYNQIPMC_DRIVERS_GENERICS_FLASH_H_
 
-#include <libs/vfs.h>
+#include <libs/vfs/vfs.h>
 #include <stdint.h>
 
 /**

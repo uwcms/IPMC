@@ -19,7 +19,7 @@
 #define SRC_COMMON_ZYNQIPMC_DRIVERS_IPMB_IPMB_PAIR_H_
 
 #include <drivers/generics/ipmb.h>
-#include <libs/logtree.h>
+#include <libs/logtree/logtree.h>
 
 /**
  * An IPMB pair, bonded and used as a single IPMB, such as IPMB-0 in ATCA.

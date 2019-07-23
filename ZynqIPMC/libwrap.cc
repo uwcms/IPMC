@@ -16,8 +16,8 @@
 #include <algorithm>
 #include <ctype.h>
 #include <drivers/ps_uart/ps_uart.h>
-#include <libs/logtree.h>
-#include <libs/statcounter.h>
+#include <libs/logtree/logtree.h>
+#include <libs/statcounter/statcounter.h>
 #include <libs/threading.h>
 #include <time.h>
 #include <sys/time.h>

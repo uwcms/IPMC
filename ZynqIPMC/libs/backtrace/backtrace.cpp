@@ -15,13 +15,13 @@
  * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "backtrace.h"
 #include <FreeRTOS.h>
-#include <libs/backtrace.h>
-#include <libs/threading.h>
 #include <semphr.h>
 #include <map>
 #include <unwind.h> // GCC's internal unwinder, part of newlib.
 #include "unwind-cxx.h" // Extra utilities copied from GCC source code, normally hidden.
+#include <libs/threading.h>
 
 
 // Based on:

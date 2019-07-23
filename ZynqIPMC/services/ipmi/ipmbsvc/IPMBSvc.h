@@ -17,9 +17,9 @@
 #include <task.h>
 #include <IPMC.h>
 #include <drivers/watchdog/ps_wdt.h>
-#include <libs/logtree.h>
+#include <libs/logtree/logtree.h>
 #include <libs/ringbuffer.h>
-#include <libs/statcounter.h>
+#include <libs/statcounter/statcounter.h>
 #include <libs/threading.h>
 #include <services/ipmi/IPMI_MSG.h>
 #include <services/ipmi/ipmbsvc/IPMICommandParser.h>

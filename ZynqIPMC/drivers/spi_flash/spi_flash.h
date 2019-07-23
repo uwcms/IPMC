@@ -21,7 +21,6 @@
 #include <stdint.h>
 #include <drivers/generics/flash.h>
 #include <drivers/generics/spi.h>
-#include <libs/logtree.h>
 
 /**
  * JEDEC flash implementation with SPI interface, check flash.h for more information.

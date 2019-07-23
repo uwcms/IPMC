@@ -15,19 +15,18 @@
  * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <drivers/tracebuffer/tracebuffer.h>
+#include "threading.h"
 #include <FreeRTOS.h>
 #include <task.h>
 #include <semphr.h>
 #include <timers.h>
 #include <event_groups.h>
-#include <libs/backtrace.h>
 #include <task.h>
-#include <IPMC.h>
-
+#include <drivers/tracebuffer/tracebuffer.h>
 #include <libs/printf.h>
 #include <libs/except.h>
 #include <libs/threading.h>
+#include <IPMC.h> //TODO: Disconnect this if possible
 
 TickType_t AbsoluteTimeout::getTimeout() {
 	if (this->timeout64 == UINT64_MAX)

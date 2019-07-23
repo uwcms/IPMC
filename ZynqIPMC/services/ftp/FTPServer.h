@@ -15,7 +15,7 @@
 #include <drivers/network/Socket.h>
 #include <drivers/network/ServerSocket.h>
 #include <drivers/network/ClientSocket.h>
-#include <libs/vfs.h>
+#include <libs/vfs/vfs.h>
 
 ///! Uncomment to enabled debugging of the FTP server.
 #define FTPSERVER_DEBUG

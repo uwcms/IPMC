@@ -29,7 +29,7 @@
 #include <IPMC.h>
 #include <libs/ringbuffer.h>
 #include <libs/threading.h>
-#include <libs/statcounter.h>
+#include <libs/statcounter/statcounter.h>
 #include <drivers/generics/ipmb.h>
 #include <drivers/interrupt_based_driver.h>
 #include <services/ipmi/IPMI_MSG.h>

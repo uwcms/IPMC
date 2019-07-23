@@ -13,7 +13,7 @@
 #include "Telnet.h"
 
 #include <drivers/network/ServerSocket.h>
-#include <libs/authentication.h>
+#include <libs/authentication/authentication.h>
 #include <services/console/TelnetConsoleSvc.h>
 #include <services/persistentstorage/PersistentStorage.h>
 #include <libs/printf.h>
