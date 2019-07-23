@@ -1,11 +1,21 @@
 /*
- * VFS.cpp
+ * This file is part of the ZYNQ-IPMC Framework.
  *
- *  Created on: Nov 5, 2018
- *      Author: mpv
+ * The ZYNQ-IPMC Framework is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ZYNQ-IPMC Framework is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "VFS.h"
+#include "vfs.h"
 
 VFS::File::DirectoryContents VFS::files = {};
 
@@ -46,7 +56,7 @@ bool VFS::removeFile(const std::string& filename) {
 
 	std::vector<std::string> vpath = stringSplit(filename, '/');
 	size_t nitems = vpath.size();
-	if (nitems == 0) return NULL;
+	if (nitems == 0) return false;
 
 	for (size_t i = 0; i < nitems; i++) {
 		try {
@@ -104,10 +114,10 @@ VFS::File::DirectoryContents* VFS::getContentsFromPath(const std::string &dirpat
 			VFS::File& f = dir->at(it);
 
 			if (f.isDirectory) dir = &(f.contents);
-			else return NULL; // Not a directory
+			else return nullptr; // Not a directory
 		} catch (std::out_of_range& e) {
 			// Doesn't exist
-			return NULL;
+			return nullptr;
 		}
 	}
 
@@ -119,7 +129,7 @@ VFS::File* VFS::getFileFromPath(const std::string &filepath) {
 
 	std::vector<std::string> vpath = stringSplit(filepath, '/');
 	size_t nitems = vpath.size();
-	if (nitems == 0) return NULL;
+	if (nitems == 0) return nullptr;
 
 	for (size_t i = 0; i < nitems; i++) {
 		try {
@@ -127,19 +137,19 @@ VFS::File* VFS::getFileFromPath(const std::string &filepath) {
 
 			if (i == (nitems - 1)) {
 				// If this is the last item on the list then it must be the file
-				if (f->isDirectory) return NULL;
+				if (f->isDirectory) return nullptr;
 				else return f;
 			} else {
 				if (f->isDirectory) dir = &(f->contents);
-				else return NULL;
+				else return nullptr;
 			}
 		} catch (std::out_of_range& e) {
 			// Doesn't exist
-			return NULL;
+			return nullptr;
 		}
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 

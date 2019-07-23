@@ -12,10 +12,10 @@
 #define SRC_COMMON_UW_IPMC_SERVICES_FTP_FTPSERVER_H_
 
 #include <string>
-#include <libs/VFS.h>
 #include <drivers/network/Socket.h>
 #include <drivers/network/ServerSocket.h>
 #include <drivers/network/ClientSocket.h>
+#include <libs/vfs.h>
 
 ///! Uncomment to enabled debugging of the FTP server.
 #define FTPSERVER_DEBUG
