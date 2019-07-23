@@ -17,8 +17,8 @@
 
 #include "spi_flash.h"
 #include <memory>
-#include <libs/Utils.h>
 #include <libs/printf.h>
+#include <libs/utils.h>
 
 //! Returns the flash bank number from an address.
 inline static uint32_t bankFromAddress(uint32_t address) {

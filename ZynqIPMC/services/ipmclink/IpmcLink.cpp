@@ -6,10 +6,9 @@
  */
 
 #include <libs/threading.h>
+#include <libs/utils.h>
 
 #include <IPMC.h>
-#include <libs/Utils.h>
-
 #include "IpmcLink.h"
 
 IPMCLink::IPMCLink(UART &uart) : uart(uart) {

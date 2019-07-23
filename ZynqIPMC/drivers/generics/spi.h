@@ -20,9 +20,9 @@
 
 #include <ZynqIPMCConfig.h>
 #include <drivers/atomicity_support.h>
+#include <libs/utils.h>
 #include <services/console/CommandParser.h>
 #include <services/console/ConsoleSvc.h>
-#include <libs/Utils.h>
 
 /**
  * An abstract SPI master driver.

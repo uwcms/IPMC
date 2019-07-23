@@ -1,11 +1,21 @@
 /*
- * Utils.cc
+ * This file is part of the ZYNQ-IPMC Framework.
  *
- *  Created on: Aug 3, 2018
- *      Author: mpv
+ * The ZYNQ-IPMC Framework is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ZYNQ-IPMC Framework is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <libs/Utils.h>
+#include "utils.h"
 
 std::string bytesToString(uint64_t bytes) {
 	const size_t STR_MAX_LEN = 16; // "0000.00 XiB" + 1 = 12
@@ -20,7 +30,7 @@ std::string bytesToString(uint64_t bytes) {
 	} else if ((bytes >> 10) != 0) {
 		std::snprintf(buf, STR_MAX_LEN, "%0.2f KiB", bytes / 1024.0);
 	} else {
-		std::snprintf(buf, STR_MAX_LEN, "%d B", bytes);
+		std::snprintf(buf, STR_MAX_LEN, "%lld B", bytes);
 	}
 
 	return buf;
@@ -60,9 +70,8 @@ std::string formatedHexString(const void *ptr, size_t bytes, size_t str_offset) 
 	for (size_t i = 0; i < total_lines; i++) {
 		size_t line_bytes = bytes - (i * BYTES_PER_LINE);
 		line_bytes = (line_bytes > BYTES_PER_LINE)? BYTES_PER_LINE : line_bytes;
-		size_t empty_bytes = BYTES_PER_LINE - line_bytes;
 
-		snprintf(addr, 9, "%08X", i * BYTES_PER_LINE + str_offset);
+		std::snprintf(addr, 9, "%08X", i * BYTES_PER_LINE + str_offset);
 		r += std::string(addr) + ": ";
 
 		for (size_t j = 0; j < line_bytes; j++) {
@@ -71,7 +80,7 @@ std::string formatedHexString(const void *ptr, size_t bytes, size_t str_offset) 
 			if (v >= ' ' && v <= '~') ascii[j] = v; // Known character
 			else ascii[j] = '.'; // Unknown character
 
-			snprintf(hex, 3, "%02X", v);
+			std::snprintf(hex, 3, "%02X", v);
 			r += hex;
 
 			if ((j % WORD_BYTES) == (WORD_BYTES - 1)) r += " ";
