@@ -1,78 +1,80 @@
 /*
- * XilinxImage.cpp
+ * This file is part of the ZYNQ-IPMC Framework.
  *
- *  Created on: Aug 7, 2018
- *      Author: mpv
+ * The ZYNQ-IPMC Framework is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- * Based on Xilinx FSBL code.
+ * The ZYNQ-IPMC Framework is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "XilinxImage.h"
+#include "xilinx_image.h"
 #include <stdio.h>
 #include <string>
 #include "md5.h"
 
-#ifdef XILINXIMAGE_DEBUG
-#define XILIMG_DBG_PRINTF(...) printf(__VA_ARGS__)
-#else
-#define XILIMG_DBG_PRINTF(...)
-#endif
-
 #define MD5_CHECKSUM_SIZE 16
 #define MAX_IMAGE_NAME_SIZE 256
 
-///! Boot ROM header
+//! Boot ROM header
 typedef struct {
 	union {
 		struct {
-			uint32_t interruptTable[8];			// 0x000
-			uint32_t widthDetection;			// 0x020
-			uint32_t imageIdentification;		// 0x024
-			uint32_t excryptionStatus;			// 0x028
-			uint32_t fsblOrUserDefined1;		// 0x02C
-			uint32_t sourceOffset;				// 0x030
-			uint32_t imageLength;				// 0x034
-			uint32_t fsblLoadAddress;			// 0x038
-			uint32_t startOfExecution;			// 0x03C
-			uint32_t totalImageLength;			// 0x040
-			uint32_t qspiConfigWord;			// 0x044
+			uint32_t interrupt_table[8];		// 0x000
+			uint32_t width_detection;			// 0x020
+			uint32_t image_identification;		// 0x024
+			uint32_t excryption_status;			// 0x028
+			uint32_t fsbl_or_user_defined1;		// 0x02C
+			uint32_t source_offset;				// 0x030
+			uint32_t image_length;				// 0x034
+			uint32_t fsbl_load_address;			// 0x038
+			uint32_t start_of_execution;		// 0x03C
+			uint32_t total_image_length;		// 0x040
+			uint32_t qspi_config_word;			// 0x044
 			uint32_t checksum;					// 0x048
-			uint32_t fsblOrUserDefined2[20];	// 0x04C
-			uint32_t partionTable;				// 0x09C, special?
-			uint32_t registerInit[512];			// 0x0A0
-			uint32_t imageHeader[8];			// 0x8A0
-			uint32_t partitionHeader[16];		// 0x8C0
+			uint32_t fsbl_or_user_defined2[20];	// 0x04C
+			uint32_t partion_table;				// 0x09C, special?
+			uint32_t register_init[512];		// 0x0A0
+			uint32_t image_header[8];			// 0x8A0
+			uint32_t partition_header[16];		// 0x8C0
 		};
 		uint32_t fields[576];
 	};
 } BootROMHeader;
 
-///! Partition Header
+//! Partition Header
 typedef struct {
 	union {
 		struct {
-			uint32_t imageWordLen;
-			uint32_t dataWordLen;
-			uint32_t partitionWordLen;
-			uint32_t loadAddr;
-			uint32_t execAddr;
-			uint32_t partitionStart;
+			uint32_t image_word_len;
+			uint32_t data_word_len;
+			uint32_t partition_word_len;
+			uint32_t load_addr;
+			uint32_t exec_addr;
+			uint32_t partition_start;
 			union {
-				uint32_t partitionAttr;
+				uint32_t partition_attr;
 				struct {
 					uint32_t : 4;
 					uint32_t device : 4; // 0-none, 1-PS, 2-PL, 3-INT
 					uint32_t : 4;
-					uint32_t checksumType : 3; // 0-noCRC, rest-RFU
+					uint32_t checksum_type : 3; // 0-noCRC, rest-RFU
 					uint32_t rsa : 1;
 					uint32_t owner : 2; // 0-FSBL, 1-UBOOT, 2,3-reserved
 					uint32_t : 14;
 				};
 			};
-			uint32_t sectionCount;
-			uint32_t partitionCheckSumOffset;
-			uint32_t imageHeaderOffset;
-			uint32_t acOffset;
+			uint32_t section_count;
+			uint32_t partition_check_sum_offset;
+			uint32_t image_header_offset;
+			uint32_t ac_offset;
 			uint32_t _padding2[4];
 			uint32_t checksum;
 		};
@@ -80,12 +82,12 @@ typedef struct {
 	};
 } PartHeader;
 
-///! Image Header
+//! Image Header
 typedef struct {
-	uint32_t nextImageOffset;
-	uint32_t firstPartitionOffset;
-	uint32_t partitionCount; // Always zero
-	uint32_t imageNameLength;
+	uint32_t next_image_offset;
+	uint32_t first_partition_offset;
+	uint32_t partition_count; // Always zero
+	uint32_t image_name_length;
 	// image name follows
 } ImageHeader;
 
@@ -106,7 +108,7 @@ const char* getBootFileValidationErrorString(BootFileValidationReturn r) {
 }
 
 std::string getImageNameFromHeader(ImageHeader *header) {
-	if (header->imageNameLength > MAX_IMAGE_NAME_SIZE) return "?";
+	if (header->image_name_length > MAX_IMAGE_NAME_SIZE) return "?";
 	char *imageName = (char*)header + sizeof(ImageHeader);
 
 	std::string name = "";
@@ -165,58 +167,58 @@ BootFileValidationReturn validateBootFile(uint8_t *binfile, size_t size) {
 	uint32_t bootROMChecksum = calculateChecksum(bootROMheader->fields+8, 10);
 
 	// Do some checks
-	if ((bootROMheader->widthDetection      != 0xaa995566) ||
-		(bootROMheader->imageIdentification != 0x584c4e58) ||
+	if ((bootROMheader->width_detection      != 0xaa995566) ||
+		(bootROMheader->image_identification != 0x584c4e58) ||
 		(bootROMheader->checksum            != bootROMChecksum))
 		return BFV_INVALID_BOOTROM;
 
 	// BootROM seems fine, goes to first partition
-	if (size < (bootROMheader->partionTable + sizeof(PartHeader)*MAX_NUM_PARTITIONS))
+	if (size < (bootROMheader->partion_table + sizeof(PartHeader)*MAX_NUM_PARTITIONS))
 		return BFV_INVALID_SIZE;
 
-	PartHeader *partitionTable = (PartHeader*)(binfile + bootROMheader->partionTable);
-	size_t partitionCount = countPartitionsFromTable(partitionTable);
+	PartHeader *partitionTable = (PartHeader*)(binfile + bootROMheader->partion_table);
+	size_t partition_count = countPartitionsFromTable(partitionTable);
 
-	if (partitionCount != 3)
+	if (partition_count != 3)
 		return BFV_NOT_ENOUGH_PARTITIONS; // Only accept bitfiles with 3 images
 
-	for (size_t i = 0; i < partitionCount; i++) {
-		PartHeader *partitionHeader = &(partitionTable[i]);
+	for (size_t i = 0; i < partition_count; i++) {
+		PartHeader *partition_header = &(partitionTable[i]);
 
-		uint32_t partChecksum = calculateChecksum(partitionHeader->fields, sizeof(PartHeader)/4 - 1);
+		uint32_t partChecksum = calculateChecksum(partition_header->fields, sizeof(PartHeader)/4 - 1);
 
-		if (partitionHeader->checksum != partChecksum)
+		if (partition_header->checksum != partChecksum)
 			return BFV_INVALID_PARTITION;
 
 #ifdef XILINXIMAGE_DEBUG
 		// Retrieve image name
-		std::string imageName = getImageNameFromHeader((ImageHeader*)(binfile + (partitionHeader->imageHeaderOffset << 2)));
-		XILIMG_DBG_PRINTF("Image %d: %s", i+1, imageName.c_str());
+		std::string imageName = getImageNameFromHeader((ImageHeader*)(binfile + (partition_header->image_header_offset << 2)));
+		printf("Image %d: %s", i+1, imageName.c_str());
 #endif
 
-		if (size < ((partitionHeader->partitionStart + partitionHeader->partitionWordLen) << 2))
+		if (size < ((partition_header->partition_start + partition_header->partition_word_len) << 2))
 			return BFV_INVALID_SIZE;
 
 		// Check the type of partition
-		if (partitionHeader->device != 1 && partitionHeader->device != 2)
+		if (partition_header->device != 1 && partition_header->device != 2)
 			return BFV_UNKNOWN_PARTITION_TYPE; // Invalid/unsupported type
 
 		// Check if the partitions are in the correct order
-		if (partitionHeader->device != expected_order[i])
+		if (partition_header->device != expected_order[i])
 			return BFV_UNEXPECTED_ORDER;
 
-		if (partitionHeader->checksumType > 0) {
+		if (partition_header->checksum_type > 0) {
 			// Validate md5 checksum
-			uint8_t *partitionStart = binfile + (partitionHeader->partitionStart << 2); // Words to bytes
-			size_t partitionSize = partitionHeader->partitionWordLen << 2; // Words to bytes
-			uint8_t *partitionChecksum = binfile + (partitionHeader->partitionCheckSumOffset << 2); // Words to bytes
+			uint8_t *partition_start = binfile + (partition_header->partition_start << 2); // Words to bytes
+			size_t partitionSize = partition_header->partition_word_len << 2; // Words to bytes
+			uint8_t *partitionChecksum = binfile + (partition_header->partition_check_sum_offset << 2); // Words to bytes
 
-			if (size < (partitionHeader->partitionCheckSumOffset << 2) + MD5_CHECKSUM_SIZE)
+			if (size < (partition_header->partition_check_sum_offset << 2) + MD5_CHECKSUM_SIZE)
 				return BFV_INVALID_SIZE;
 
 			// Calculate the md5 checksum
 			uint8_t md5checksum[MD5_CHECKSUM_SIZE];
-			md5(partitionStart, partitionSize, md5checksum, 0);
+			md5(partition_start, partitionSize, md5checksum, 0);
 
 			// Compare md5 checksums
 			for (size_t k = 0; k < MD5_CHECKSUM_SIZE; k++) {
@@ -231,7 +233,9 @@ BootFileValidationReturn validateBootFile(uint8_t *binfile, size_t size) {
 				return BFV_MD5_REQUIRED;
 			}
 #else
-			XILIMG_DBG_PRINTF("WARNING: Partition %d has no checksum!", i);
+#ifdef XILINXIMAGE_DEBUG
+			printf("WARNING: Partition %d has no checksum!", i);
+#endif
 #endif
 		}
 	}
