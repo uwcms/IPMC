@@ -191,8 +191,7 @@ public:
 	LogCommand(LogTree &logtree) : logtree(logtree) { };
 
 	virtual std::string get_helptext(const std::string &command) const {
-		return command +
-				"%s LOGLEVEL \"text\" [...]\n"
+		return command + " LOGLEVEL \"text\" [...]\n"
 				"\n"
 				"LOGLEVEL is any prefix of:\n"
 				"  CRITICAL\n"
