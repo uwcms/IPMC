@@ -15,8 +15,8 @@
  * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef SRC_COMMON_UW_IPMC_DRIVERS_LTC2654_LTC2654_H_
-#define SRC_COMMON_UW_IPMC_DRIVERS_LTC2654_LTC2654_H_
+#ifndef SRC_COMMON_ZYNQIPMC_DRIVERS_LTC2654_LTC2654_H_
+#define SRC_COMMON_ZYNQIPMC_DRIVERS_LTC2654_LTC2654_H_
 
 #include <stdint.h>
 #include <drivers/generics/spi.h>
@@ -89,4 +89,4 @@ private:
 	const bool kIs12Bits;		///< true if the DAC has 12bits instead of 16.
 };
 
-#endif /* SRC_COMMON_UW_IPMC_DRIVERS_LTC2654_LTC2654_H_ */
+#endif /* SRC_COMMON_ZYNQIPMC_DRIVERS_LTC2654_LTC2654_H_ */

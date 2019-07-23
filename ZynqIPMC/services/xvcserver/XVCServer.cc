@@ -5,9 +5,10 @@
  *      Author: mpv
  */
 
+#include <drivers/network/server_socket.h>
+
 #include <IPMC.h>
 #include <services/xvcserver/XVCServer.h>
-#include <drivers/network/ServerSocket.h>
 #include <FreeRTOS.h>
 #include <libs/threading.h>
 #include <task.h>

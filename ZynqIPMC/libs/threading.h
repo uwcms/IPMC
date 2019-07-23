@@ -37,7 +37,6 @@
 
 // Declare a few custom task related exceptions:
 DEFINE_GENERIC_EXCEPTION(deadlock_error, std::logic_error)
-DEFINE_GENERIC_EXCEPTION(timeout_error, std::runtime_error)
 DEFINE_GENERIC_EXCEPTION(thread_create_error, std::runtime_error)
 
 /**

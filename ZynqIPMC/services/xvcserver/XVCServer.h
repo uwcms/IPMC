@@ -8,7 +8,7 @@
 #ifndef SRC_COMMON_UW_IPMC_SERVICES_XVCSERVER_XVCSERVER_H_
 #define SRC_COMMON_UW_IPMC_SERVICES_XVCSERVER_XVCSERVER_H_
 
-#include <drivers/network/Socket.h>
+#include <drivers/network/socket.h>
 #include <memory>
 
 /**

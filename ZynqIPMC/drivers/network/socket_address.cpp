@@ -1,12 +1,21 @@
 /*
- * SocketAddress.cpp
+ * This file is part of the ZYNQ-IPMC Framework.
  *
- *  Created on: Jul 25, 2018
- *      Author: mpv
+ * The ZYNQ-IPMC Framework is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ZYNQ-IPMC Framework is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "SocketAddress.h"
-
+#include "socket_address.h"
 #include <string.h>
 #include <lwip/netdb.h>
 
@@ -25,7 +34,7 @@ SocketAddress::SocketAddress(const std::string& address, unsigned short port) {
 					host->h_addr,
 					host->h_length);
 		} else {
-			throw HostNotFound();
+			throw except::host_not_found("Unable to get host '" + address + "' by name");
 		}
 	}
 }

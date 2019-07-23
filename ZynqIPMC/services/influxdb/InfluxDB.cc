@@ -138,7 +138,7 @@ bool InfluxDB::push(const MetricSet& metrics) {
 	// No connection to server yet, attempt to connect
 	try {
 		socket = std::unique_ptr<ClientSocket>(new ClientSocket(this->config->host, this->config->port));
-	} catch (const SocketAddress::HostNotFound& e) {
+	} catch (const except::host_not_found& e) {
 		logtree.log("Failed to get DNS entry for host " + serverURL, LogTree::LOG_DIAGNOSTIC);
 		return false;
 	}

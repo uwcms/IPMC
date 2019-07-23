@@ -5,11 +5,12 @@
  *      Author: mpv
  */
 
+#include <drivers/network/network.h>
+
 #include <IPMC.h>
 #include <FreeRTOS.h>
 #include <task.h>
 #include <algorithm>
-#include <drivers/network/Network.h>
 #include <libs/threading.h>
 #include "lwip/sockets.h"
 #include "lwip/sys.h"
@@ -341,7 +342,7 @@ bool FTPClient::CommandPORT(FTPClient &client, char *cmd, char* args) {
 
 		try {
 			client.data = std::shared_ptr<ClientSocket>(new ClientSocket(address, port));
-		} catch (SocketAddress::HostNotFound e) {
+		} catch (const except::host_not_found& e) {
 			FTP_DBG_PRINTF("Host not found %s:%hu", address.c_str(), port);
 			client.socket->send(buildReply(501)); // Invalid parameters
 		}
@@ -369,8 +370,7 @@ bool FTPClient::CommandPASV(FTPClient &client, char *cmd, char* args) {
 	}
 
 	// Get local IP from Network
-	extern Network *pNetworkInstance;
-	if (!pNetworkInstance) {
+	if (!Network::getInstance()) {
 		// Something is terribly wrong, exit
 		FTP_DBG_PRINTF("FATAL: pNetworkInstance was NULL");
 		return false;
@@ -378,7 +378,7 @@ bool FTPClient::CommandPASV(FTPClient &client, char *cmd, char* args) {
 
 	// Build the reply
 	std::string reply = "Entering Passive Mode (";
-	uint32_t ip = pNetworkInstance->getIP();
+	uint32_t ip = Network::getInstance()->getIP();
 	reply += std::to_string(((uint8_t*)(&ip))[3]) + ",";
 	reply += std::to_string(((uint8_t*)(&ip))[2]) + ",";
 	reply += std::to_string(((uint8_t*)(&ip))[1]) + ",";

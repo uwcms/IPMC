@@ -8,8 +8,8 @@
 #ifndef SRC_COMMON_UW_IPMC_SERVICES_CONSOLE_TELNETCONSOLESVC_H_
 #define SRC_COMMON_UW_IPMC_SERVICES_CONSOLE_TELNETCONSOLESVC_H_
 
+#include <drivers/network/socket.h>
 #include "ConsoleSvc.h"
-#include <drivers/network/Socket.h>
 
 namespace Telnet {
 

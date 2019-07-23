@@ -1,12 +1,21 @@
 /*
- * Socket.cc
+ * This file is part of the ZYNQ-IPMC Framework.
  *
- *  Created on: Feb 7, 2018
- *      Author: mpv
+ * The ZYNQ-IPMC Framework is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ZYNQ-IPMC Framework is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <drivers/network/Socket.h>
-#include <string.h>
+#include "socket.h"
 #include <fcntl.h>
 
 #define DEFAULT_SOCKET_BUFFER 128
@@ -15,7 +24,7 @@ Socket::Socket(int socket, struct sockaddr_in sockaddr)
 : socketfd(socket), sockaddr(sockaddr), recvTimeout(0), sendTimeout(0) {
 	if (this->isValid()) {
 #ifdef SOCKET_DEFAULT_KEEPALIVE
-	this->enableKeepAlive();
+		this->enableKeepAlive();
 #endif
 	} else {
 		// TODO: Shouldn't this also throw in case the socket fails to create?
@@ -51,7 +60,7 @@ int Socket::recv(void* buf, int len, unsigned int timeout_ms) {
 
 	setRecvTimeout(old_timeout); // Recover to previous timeout
 	if (r < 0 && ((errno == EAGAIN) || (errno == EWOULDBLOCK))) {
-		throw Timeout();
+		throw except::timeout_error("Socket receive operation timed-out");
 	}
 
 	return r;
@@ -82,7 +91,7 @@ int Socket::send(const void* buf, size_t len, unsigned int timeout_ms) {
 
 	setSendTimeout(old_timeout); // Recover to previous timeout
 	if (r < 0 && ((errno == EAGAIN) || (errno == EWOULDBLOCK))) {
-		throw Timeout();
+		throw except::timeout_error("Socket send operation timed-out");
 	}
 
 	return r;
@@ -117,7 +126,6 @@ void Socket::setRecvTimeout(uint32_t ms) {
 
 	this->recvTimeout = ms;
 }
-
 
 void Socket::setSendTimeout(uint32_t ms) {
 	struct timeval tv;
@@ -167,37 +175,3 @@ bool Socket::isTCP() {
 	lwip_getsockopt(this->socketfd, SOL_SOCKET, SO_TYPE, &type, &length);
 	return (type == SOCK_STREAM);
 }
-
-/*int Socket::read(std::string& msg) {
-	int bytes_total = 0;
-	char buffer[DEFAULT_SOCKET_BUFFER];
-
-	int bytes_read = lwip_recv(socketfd, buffer, DEFAULT_SOCKET_BUFFER, 0);
-
-	if (bytes_read <= 0) {
-		return bytes_read;
-	}
-
-	msg.append(std::string(buffer, 0, bytes_read));
-	bytes_total += bytes_read;
-
-	// set non-blocking.
-	set_unblocking();
-
-	while (bytes_read > 0) {
-		memset(buffer, 0, DEFAULT_SOCKET_BUFFER);
-		bytes_read = lwip_recv(socketfd, buffer, DEFAULT_SOCKET_BUFFER, 0);
-
-		if (bytes_read < 0) {
-			break;
-		}
-
-		msg.append(std::string(buffer, 0, bytes_read));
-		bytes_total += bytes_read;
-	}
-
-	// set back to blocking
-	set_blocking();
-
-	return bytes_total;
-}*/

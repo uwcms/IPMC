@@ -8,7 +8,7 @@
 #ifndef SRC_COMMON_UW_IPMC_SERVICES_TELNET_TELNET_H_
 #define SRC_COMMON_UW_IPMC_SERVICES_TELNET_TELNET_H_
 
-#include <drivers/network/ServerSocket.h>
+#include <drivers/network/server_socket.h>
 #include <libs/logtree/logtree.h>
 
 class TelnetServer {

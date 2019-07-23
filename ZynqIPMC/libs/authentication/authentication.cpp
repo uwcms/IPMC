@@ -15,9 +15,9 @@
  * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <libs/threading.h>
 #include "authentication.h"
-#include "services/persistentstorage/PersistentStorage.h"
+#include <services/persistentstorage/PersistentStorage.h>
+#include <libs/threading.h>
 
 //! Persistent storage is required to fetch the keys from hardware.
 extern PersistentStorage *persistent_storage;

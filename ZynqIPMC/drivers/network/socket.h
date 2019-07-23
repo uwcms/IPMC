@@ -1,29 +1,39 @@
 /*
- * Socket.h
+ * This file is part of the ZYNQ-IPMC Framework.
  *
- *  Created on: Feb 7, 2018
- *      Author: mpv
+ * The ZYNQ-IPMC Framework is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ZYNQ-IPMC Framework is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef SRC_COMMON_UW_IPMC_DRIVERS_NETWORK_SOCKET_H_
-#define SRC_COMMON_UW_IPMC_DRIVERS_NETWORK_SOCKET_H_
+#ifndef SRC_COMMON_ZYNQIPMC_DRIVERS_NETWORK_SOCKET_H_
+#define SRC_COMMON_ZYNQIPMC_DRIVERS_NETWORK_SOCKET_H_
 
-#include <lwip/sockets.h>
+#include "socket_address.h"
 #include <string>
-
-#include "SocketAddress.h"
+#include <lwip/sockets.h>
+#include <libs/except.h>
 
 #define SOCKET_DEFAULT_KEEPALIVE ///< All new sockets start with keep alive enabeld by default
 
 /**
- * C++ socket wrapper and automatic cleanup
+ * C++ socket wrapper with automatic cleanup.
  *
- * TODO
+ * Simplifies the process of connecting to or hosting over-the-network services
+ * without the need to deal with low-level interfaces and memory management.
+ *
+ * @note Check ServerSocket and ClientSocket as well.
  */
 class Socket {
-public:
-	struct Timeout : public std::exception {};
-
 public:
 	/**
 	 * Creates a socket instance based upon an already existing
@@ -39,17 +49,16 @@ public:
 	 * @param address The target address.
 	 * @param port The port to use.
 	 * @param useTCP true if TCP/IP, false if UDP/IP.
-	 * @throws SocketAddress::HostNotFound if DNS fails for an address that is an URL.
+	 * @throws except::host_not_found if DNS fails for an address that is an URL.
 	 */
 	Socket(const std::string& address, unsigned short port, bool useTCP = true);
-
 	virtual ~Socket();
 
 	/**
 	 * Receives data if present.
 	 * @param ptr The data buffer.
 	 * @param len The length of the buffer in buffer.
-	 * @return The Total number of read bytes.
+	 * @return The total number of read bytes.
 	 */
 	int recv(void *ptr, size_t len);
 
@@ -61,7 +70,7 @@ public:
 	 * @param len The length of the buffer in buffer.
 	 * @param timeout_ms Timeout in milliseconds.
 	 * @return The total number of read bytes.
-	 * @throws Socket::Timeout if there was a timeout.
+	 * @throws except::timeout_error if there was a timeout.
 	 */
 	int recv(void* buf, int len, unsigned int timeout_ms);
 
@@ -87,7 +96,7 @@ public:
 	 * @param len The starting position.
 	 * @param timeout_ms Timeout in milliseconds.
 	 * @return The total number of read bytes.
-	 * @throws Socket::Timeout if there was a timeout.
+	 * @throws except::timeout_error if there was a timeout.
 	 */
 	int send(const void* buf, size_t len, unsigned int timeout_ms);
 
@@ -102,25 +111,29 @@ public:
 	 * will override the timeout (if set) by Socket::setSendTimout.
 	 * @param str The string to send.
 	 * @param timeout_ms Timeout in milliseconds.
-	 * @throws Socket::Timeout if there was a timeout.
+	 * @throws except::timeout_error if there was a timeout.
 	 */
 	int send(const std::string& str, unsigned int timeout_ms);
 
 	void setBlocking(); ///< Sets the socket in blocking mode.
 	void setNonblocking(); ///< Sets the socket in non-blocking mode.
 
-	///! Sets the receiving timeout in milliseconds.
+	//! Sets the receiving timeout in milliseconds.
 	void setRecvTimeout(uint32_t ms);
-	///! Disables receiving timeout.
+
+	//! Disables receiving timeout.
 	inline void disableRecvTimeout() { setRecvTimeout(0); };
-	///! Retrieve the current receive timeout configuration.
+
+	//! Retrieve the current receive timeout configuration.
 	inline uint32_t getRecvTimeout() { return this->recvTimeout; };
 
-	///! Sets the transmitting timeout in milliseconds.
+	//! Sets the transmitting timeout in milliseconds.
 	void setSendTimeout(uint32_t ms);
-	///! Disables transmitting timeout.
+
+	//! Disables transmitting timeout.
 	inline void disableSendTimeout() { setRecvTimeout(0); };
-	///! Retrieve the current transmit timeout configuration.
+
+	//! Retrieve the current transmit timeout configuration.
 	inline uint32_t getSendTimeout() { return this->sendTimeout; };
 
 	/**
@@ -137,38 +150,30 @@ public:
 	void enableKeepAlive();
 	void disableKeepAlive(); ///< Disable keep alive packets.
 
-	/**
-	 * Closes the socket connection
-	 */
+	//! Closes the socket connection
 	void close();
 
-	/**
-	 * Checks whether the socket is valid
-	 * @return true of the socket is valid, false otherwise
-	 */
+	//! Returns true if the socket is valid.
 	inline bool isValid() { return socketfd != -1; }
 
 	/**
 	 * Checks if the socket is configured for TCP/IP operation,
 	 * if false it means it is UDP
-	 * @return true if TCP/IP socket, UDP/IP otherwise
+	 * @return true if TCP/IP socket, UDP/IP otherwise.
 	 */
 	bool isTCP();
 
-	/**
-	 * Gets the socket file descriptor
-	 * @return the socket file descriptor
-	 */
+	//! Returns the socket file descriptor.
 	inline int getSocket() { return socketfd; }
 
 	/**
 	 * Gets the socketaddress instance of the socket, which contains
 	 * information about the socket's address and port
-	 * @return the socketaddress instance
+	 * @return The socketaddress instance.
 	 */
 	inline const SocketAddress& getSocketAddress() { return sockaddr; }
 
-	///! Operator overload for int assignment, returns socketfd
+	//! Operator overload for int assignment, returns socketfd
 	inline operator int() { return this->getSocket(); }
 
 protected:
@@ -178,4 +183,4 @@ protected:
 	unsigned int sendTimeout;	///< Transmit timeout in ms.
 };
 
-#endif /* SRC_COMMON_UW_IPMC_DRIVERS_NETWORK_SOCKET_H_ */
+#endif /* SRC_COMMON_ZYNQIPMC_DRIVERS_NETWORK_SOCKET_H_ */

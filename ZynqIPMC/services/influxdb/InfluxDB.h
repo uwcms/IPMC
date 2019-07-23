@@ -8,9 +8,10 @@
 #ifndef SRC_COMMON_UW_IPMC_SERVICES_INFLUXDB_INFLUXDB_H_
 #define SRC_COMMON_UW_IPMC_SERVICES_INFLUXDB_INFLUXDB_H_
 
+#include <drivers/network/client_socket.h>
+
 #include <IPMC.h>
 #include <FreeRTOS.h>
-#include <drivers/network/ClientSocket.h>
 #include <memory>
 
 // TODO: Add a field type that can accept int, float, string and bool. Right now only strings are accepted.

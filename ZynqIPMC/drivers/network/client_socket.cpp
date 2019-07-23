@@ -15,28 +15,12 @@
  * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef SRC_COMMON_ZYNQIPMC_LIBS_EXCEPT_H_
-#define SRC_COMMON_ZYNQIPMC_LIBS_EXCEPT_H_
+#include "client_socket.h"
 
-#include <exception>
-#include <stdexcept>
-#include <string>
+ClientSocket::ClientSocket(const std::string& address, unsigned short port)
+: Socket(address, port) {
+}
 
-/**
- * Implements custom exceptions specific for the ZYNQ-IPMC Framework.
- */
-
-#define DEFINE_LOCAL_GENERIC_EXCEPTION(name, base) \
-	class name : public base { \
-	public: \
-		explicit name(const std::string& what_arg) : base(what_arg) { }; \
-		explicit name(const char* what_arg) : base(what_arg) { }; \
-	};
-
-#define DEFINE_GENERIC_EXCEPTION(name, base) \
-	namespace except { DEFINE_LOCAL_GENERIC_EXCEPTION(name, base) }
-
-DEFINE_GENERIC_EXCEPTION(hardware_error, std::runtime_error)
-DEFINE_GENERIC_EXCEPTION(timeout_error, std::runtime_error)
-
-#endif /* SRC_COMMON_ZYNQIPMC_LIBS_EXCEPT_H_ */
+int ClientSocket::connect() {
+	return lwip_connect(this->socketfd, this->sockaddr, sizeof(struct sockaddr));
+}

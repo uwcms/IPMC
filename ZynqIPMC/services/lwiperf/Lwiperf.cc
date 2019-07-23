@@ -5,10 +5,10 @@
  *      Author: mpv
  */
 
+#include <drivers/network/server_socket.h>
+#include <drivers/network/socket.h>
 #include <services/lwiperf/Lwiperf.h>
 
-#include <drivers/network/Socket.h>
-#include <drivers/network/ServerSocket.h>
 #include <FreeRTOS.h>
 #include <libs/threading.h>
 #include <task.h>

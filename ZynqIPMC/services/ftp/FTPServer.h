@@ -1,9 +1,21 @@
 /*
- * FTPServer.h
+ * This file is part of the ZYNQ-IPMC Framework.
  *
- *  Created on: Jul 23, 2018
- *      Author: mpv
+ * The ZYNQ-IPMC Framework is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
+ * The ZYNQ-IPMC Framework is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+/**
  * Based on RFC 959: https://tools.ietf.org/html/rfc959
  * Implements all minimum features, passive mode and directories.
  */
@@ -11,13 +23,13 @@
 #ifndef SRC_COMMON_UW_IPMC_SERVICES_FTP_FTPSERVER_H_
 #define SRC_COMMON_UW_IPMC_SERVICES_FTP_FTPSERVER_H_
 
+#include <drivers/network/client_socket.h>
 #include <string>
-#include <drivers/network/Socket.h>
-#include <drivers/network/ServerSocket.h>
-#include <drivers/network/ClientSocket.h>
+#include <drivers/network/server_socket.h>
+#include <drivers/network/socket.h>
 #include <libs/vfs/vfs.h>
 
-///! Uncomment to enabled debugging of the FTP server.
+//! Uncomment to enabled debugging of the FTP server.
 #define FTPSERVER_DEBUG
 #define FTPSERVER_MAX_BACKLOG 1
 #define FTPSERVER_THREAD_NAME "ftpd"

@@ -7,12 +7,12 @@
 
 #include <IPMC.h>
 #include <Core.h>
+#include <drivers/network/server_socket.h>
 #include <FreeRTOS.h>
 #include <task.h>
 
 #include "Telnet.h"
 
-#include <drivers/network/ServerSocket.h>
 #include <libs/authentication/authentication.h>
 #include <services/console/TelnetConsoleSvc.h>
 #include <services/persistentstorage/PersistentStorage.h>
@@ -186,7 +186,7 @@ void TelnetClient::thread_telnetc() {
 		int rv = 0;
 		try {
 			rv = this->socket->recv(&nextc, 1, 60000); // Timeout of 60 seconds
-		} catch (const Socket::Timeout& e) {
+		} catch (const except::timeout_error& e) {
 			// We waited too long for input
 			log.log(stdsprintf("Telnet connection from %s:%hu timed out", addr.getAddress().c_str(), addr.getPort()), LogTree::LOG_INFO);
 			xSemaphoreGive(this->connection_pool_limiter);
