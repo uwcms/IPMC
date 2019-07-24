@@ -15,9 +15,9 @@
 #include <drivers/watchdog/ps_wdt.h>
 #include <libs/logtree/logtree.h>
 
-#include <services/persistentstorage/PersistentStorage.h>
 #include <services/ipmi/ipmbsvc/IPMBSvc.h>
 #include <services/ipmi/MStateMachine.h>
+#include <services/persistentstorage/persistent_storage.h>
 
 
 /**

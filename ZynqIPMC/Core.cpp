@@ -97,7 +97,7 @@ void core_driver_init() {
 	SPIEEPROM *eeprom_data = new SPIEEPROM(*ps_spi0, 0, 0x8000, 64);
 	eeprom_mac = new SPIEEPROM(*ps_spi0, 1, 0x100, 16);
 	persistent_storage = new PersistentStorage(*eeprom_data, LOG["persistent_storage"], swdt);
-	persistent_storage->register_console_commands(console_command_parser, "eeprom.");
+	persistent_storage->registerConsoleCommands(console_command_parser, "eeprom.");
 	configASSERT(eeprom_mac->read(250, mac_address, 6));
 	LOG["network"].log(stdsprintf("Our MAC address is %02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx",
 			mac_address[0], mac_address[1], mac_address[2], mac_address[3], mac_address[4], mac_address[5]), LogTree::LOG_NOTICE);

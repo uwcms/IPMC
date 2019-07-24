@@ -16,8 +16,8 @@
  */
 
 #include "authentication.h"
-#include <services/persistentstorage/PersistentStorage.h>
 #include <libs/threading.h>
+#include <services/persistentstorage/persistent_storage.h>
 
 //! Persistent storage is required to fetch the keys from hardware.
 extern PersistentStorage *persistent_storage;
@@ -26,8 +26,8 @@ using namespace Auth;
 
 bool Auth::validateCredentials(const std::string &user, const std::string &pass) {
 	// Get the current hash from persistent storage
-	uint16_t secver = persistent_storage->get_section_version(PersistentStorageAllocations::WISC_NETWORK_AUTH);
-	HashPair *nv_hashes = (HashPair*)persistent_storage->get_section(PersistentStorageAllocations::WISC_NETWORK_AUTH, 1, sizeof(HashPair));
+	uint16_t secver = persistent_storage->getSectionVersion(PersistentStorageAllocations::WISC_NETWORK_AUTH);
+	HashPair *nv_hashes = (HashPair*)persistent_storage->getSection(PersistentStorageAllocations::WISC_NETWORK_AUTH, 1, sizeof(HashPair));
 	if (secver == 0) {
 		// Default password and user
 		resetCredentials();
@@ -50,8 +50,8 @@ bool Auth::validateCredentials(const std::string &user, const std::string &pass)
 
 bool Auth::validateCredentials(const std::string &pass) {
 	// Get the current hash from persistent storage
-	uint16_t secver = persistent_storage->get_section_version(PersistentStorageAllocations::WISC_NETWORK_AUTH);
-	HashPair *nv_hashes = (HashPair*)persistent_storage->get_section(PersistentStorageAllocations::WISC_NETWORK_AUTH, 1, sizeof(HashPair));
+	uint16_t secver = persistent_storage->getSectionVersion(PersistentStorageAllocations::WISC_NETWORK_AUTH);
+	HashPair *nv_hashes = (HashPair*)persistent_storage->getSection(PersistentStorageAllocations::WISC_NETWORK_AUTH, 1, sizeof(HashPair));
 	if (secver == 0) {
 		// Default password and user
 		resetCredentials();
@@ -72,7 +72,7 @@ bool Auth::validateCredentials(const std::string &pass) {
 }
 
 void Auth::changeCredentials(const std::string &user, const std::string &pass) {
-	HashPair *nv_hashes = (HashPair*)persistent_storage->get_section(PersistentStorageAllocations::WISC_NETWORK_AUTH, 1, sizeof(HashPair));
+	HashPair *nv_hashes = (HashPair*)persistent_storage->getSection(PersistentStorageAllocations::WISC_NETWORK_AUTH, 1, sizeof(HashPair));
 
 	// Generate the hash for provided username and password
 	HashPair new_hashes;
@@ -85,7 +85,7 @@ void Auth::changeCredentials(const std::string &user, const std::string &pass) {
 }
 
 void Auth::resetCredentials() {
-	HashPair *nv_hashes = (HashPair*)persistent_storage->get_section(PersistentStorageAllocations::WISC_NETWORK_AUTH, 1, sizeof(HashPair));
+	HashPair *nv_hashes = (HashPair*)persistent_storage->getSection(PersistentStorageAllocations::WISC_NETWORK_AUTH, 1, sizeof(HashPair));
 
 	// Default password and user
 	const char* default_user = "\x0c\x7a\x0a\xbd\x06\x6e\xd5\x36\xc1\x05\xcf\xaf\x4e\x55\x14\xf5\x86\x65\x07\x9f\x5a\x2a\x52\x12\xea\x32\x01\x90\xd0\xbc\xb6\xd2";

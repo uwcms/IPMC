@@ -7,10 +7,10 @@
 #include <services/ipmi/sdr/SensorDataRecordSensor.h>
 #include <services/ipmi/sdr/SensorDataRecordReadableSensor.h>
 #include <services/ipmi/sdr/SensorDataRecord01.h>
-#include <services/persistentstorage/PersistentStorage.h>
 #include <IPMC.h>
 #include <Core.h>
 #include <PayloadManager.h>
+#include <services/persistentstorage/persistent_storage.h>
 #include "IPMICmd_Index.h"
 
 #define RETURN_ERROR(ipmb, message, completion_code) \
@@ -226,7 +226,7 @@ static void ipmicmd_Set_Sensor_Hysteresis(IPMBSvc &ipmb, const IPMI_MSG &message
 	device_sdr_repo.add(*mutable_sdr, 0);
 	// Write changes to EEPROM
 	VariablePersistentAllocation sdr_persist(*persistent_storage, PersistentStorageAllocations::WISC_SDR_REPOSITORY);
-	sdr_persist.set_data(device_sdr_repo.u8export());
+	sdr_persist.setData(device_sdr_repo.u8export());
 	// Update Sensor Processor config
 	payload_manager->refresh_sensor_linkage();
 	// Return success
@@ -293,7 +293,7 @@ static void ipmicmd_Set_Sensor_Threshold(IPMBSvc &ipmb, const IPMI_MSG &message)
 		device_sdr_repo.add(*mutable_sdr, 0);
 		// Write changes to EEPROM
 		VariablePersistentAllocation sdr_persist(*persistent_storage, PersistentStorageAllocations::WISC_SDR_REPOSITORY);
-		sdr_persist.set_data(device_sdr_repo.u8export());
+		sdr_persist.setData(device_sdr_repo.u8export());
 	}
 	// Update Sensor Processor config
 	payload_manager->refresh_sensor_linkage();

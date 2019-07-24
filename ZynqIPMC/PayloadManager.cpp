@@ -11,11 +11,11 @@
 #include <services/ipmi/sensor/SensorSet.h>
 #include <services/ipmi/sensor/ThresholdSensor.h>
 #include <services/ipmi/sdr/SensorDataRecordReadableSensor.h>
-#include <services/persistentstorage/PersistentStorage.h>
 #include <exception>
 #include <IPMC.h>
 #include <Core.h>
 #include <libs/threading.h>
+#include <services/persistentstorage/persistent_storage.h>
 
 #define MZ_HOLDOFF_TICKS 140
 #define CONTEXT_EVENT_MASK 0xfc0 // mask only lower events
@@ -772,7 +772,7 @@ public:
 			device_sdr_repo.add(*mutable_sdr, 0);
 			// Write changes to EEPROM
 			VariablePersistentAllocation sdr_persist(*persistent_storage, PersistentStorageAllocations::WISC_SDR_REPOSITORY);
-			sdr_persist.set_data(device_sdr_repo.u8export());
+			sdr_persist.setData(device_sdr_repo.u8export());
 
 			this->payloadmgr.refresh_sensor_linkage();
 		}

@@ -18,8 +18,12 @@
 #ifndef SRC_COMMON_ZYNQIPMC_LIBS_AUTHENTICATION_H_
 #define SRC_COMMON_ZYNQIPMC_LIBS_AUTHENTICATION_H_
 
+#if !__has_include("xilrsa.h")
+#error xilrsa must be included in the BSP
+#endif
+
 #include <stdint.h>
-#include <xilrsa.h> // MUST be included in the BSP.
+#include "xilrsa.h" // MUST be included in the BSP.
 #include <string>
 
 //! Authentication functions, avoids poluting namespace.

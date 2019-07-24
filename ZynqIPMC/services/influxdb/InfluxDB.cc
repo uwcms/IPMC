@@ -13,9 +13,9 @@
 #include <semphr.h>
 #include <task.h>
 #include <chrono>
-#include <services/persistentstorage/PersistentStorage.h>
 #include <services/console/CommandParser.h>
 #include <services/console/ConsoleSvc.h>
+#include <services/persistentstorage/persistent_storage.h>
 
 using namespace std::chrono;
 
@@ -27,15 +27,15 @@ logtree(logtree) {
 	configASSERT(this->collectorMutex && this->flushMutex && this->collector)
 
 	// Load configuration
-	uint16_t psver = persistent_storage->get_section_version(PersistentStorageAllocations::WISC_INFLUXDB_CONFIG);
+	uint16_t psver = persistent_storage->getSectionVersion(PersistentStorageAllocations::WISC_INFLUXDB_CONFIG);
 	if (psver > 0 && psver != InfluxDB::ConfigVersion) {
 		// Record exists but it is old, erase it.
 		logtree.log("Out-dated configuration record, replacing with defaults.", LogTree::LOG_WARNING);
-		persistent_storage->delete_section(PersistentStorageAllocations::WISC_INFLUXDB_CONFIG);
+		persistent_storage->deleteSection(PersistentStorageAllocations::WISC_INFLUXDB_CONFIG);
 		psver = 0;
 	}
 
-	this->config = (Config*)persistent_storage->get_section(PersistentStorageAllocations::WISC_INFLUXDB_CONFIG, InfluxDB::ConfigVersion, sizeof(Config));
+	this->config = (Config*)persistent_storage->getSection(PersistentStorageAllocations::WISC_INFLUXDB_CONFIG, InfluxDB::ConfigVersion, sizeof(Config));
 	configASSERT(this->config);
 
 	if (psver == 0) {
