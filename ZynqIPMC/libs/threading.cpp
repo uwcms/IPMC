@@ -77,7 +77,7 @@ static void deleteEventgroupVoidptr(void *eg) {
 }
 
 WaitList::WaitList()
-	: event(NULL) {
+	: event(nullptr) {
 	this->mutex = xSemaphoreCreateMutex();
 	this->event = std::shared_ptr<void>(xEventGroupCreate(), deleteEventgroupVoidptr);
 }
@@ -196,16 +196,17 @@ static void _runTask(void *stdfunc_cb) {
 		printException(&e);
 	}
 	catch (...) {
-		printException(NULL);
+		printException(nullptr);
 	}
 	delete stdfunc;
-	vTaskDelete(NULL);
+	vTaskDelete(nullptr);
 }
 
-TaskHandle_t runTask(const std::string name, BaseType_t priority, std::function<void(void)> thread_func, BaseType_t stack_words) {
+TaskHandle_t runTask(const std::string& name, BaseType_t priority, std::function<void(void)> thread_func, BaseType_t stack_words) {
 	if (name.size() >= configMAX_TASK_NAME_LEN) // < because we need the '\0' still.
 		throw std::domain_error(stdsprintf("The name \"%s\" (%u) is longer than the maximum thread name length (%u).", name.c_str(), name.size(), configMAX_TASK_NAME_LEN));
-	TaskHandle_t handle = NULL;
+
+	TaskHandle_t handle = nullptr;
 	if (pdFAIL == xTaskCreate(
 			_runTask,
 			name.c_str(),
@@ -214,5 +215,6 @@ TaskHandle_t runTask(const std::string name, BaseType_t priority, std::function<
 			priority,
 			&handle))
 		throw except::thread_create_error(std::string("Unable to create thread \"")+name+"\", xTaskCreate returned pdFAIL.");
+
 	return handle;
 }

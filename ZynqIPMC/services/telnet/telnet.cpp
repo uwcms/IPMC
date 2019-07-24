@@ -1,37 +1,42 @@
 /*
- * Telnet.cpp
+ * This file is part of the ZYNQ-IPMC Framework.
  *
- *  Created on: Feb 8, 2018
- *      Author: mpv
+ * The ZYNQ-IPMC Framework is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ZYNQ-IPMC Framework is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <IPMC.h>
+#include "telnet.h"
+#include <IPMC.h> // TODO: Remove later
+#include <functional>
+#include <string>
 #include <Core.h>
 #include <drivers/network/server_socket.h>
-#include <FreeRTOS.h>
-#include <task.h>
-
-#include "Telnet.h"
-
-#include <libs/authentication/authentication.h>
 #include <services/console/TelnetConsoleSvc.h>
+#include <services/console/CommandParser.h>
+#include <libs/authentication/authentication.h>
 #include <libs/printf.h>
 #include <libs/threading.h>
-#include <services/persistentstorage/persistent_storage.h>
-#include <functional>
-
-// TODO
 
 // TODO: If timeouts in sockets are required then use SO_RCVTIMEO and SO_SNDTIMEO
 
-void _thread_telnetd(void *p) {
-	reinterpret_cast<TelnetServer*>(p)->thread_telnetd();
-}
+uint32_t TelnetClient::next_session_serial = 0;
+volatile uint64_t TelnetClient::bad_password_pressure = 0;
 
-TelnetServer::TelnetServer(LogTree &logtree)
-	: logtree(logtree) {
+TelnetServer::TelnetServer(LogTree &logtree) :
+logtree(logtree) {
 	this->connection_pool_limiter = xSemaphoreCreateCounting(50,50);
-	xTaskCreate(_thread_telnetd, "telnetd", ZYNQIPMC_BASE_STACK_SIZE, this, TASK_PRIORITY_SERVICE, NULL);
+
+	runTask("telnetd", TASK_PRIORITY_SERVICE, [this]() -> void { this->threadTelnetd(); });
 }
 
 TelnetServer::~TelnetServer() {
@@ -39,20 +44,19 @@ TelnetServer::~TelnetServer() {
 	vSemaphoreDelete(this->connection_pool_limiter);
 }
 
-void TelnetServer::thread_telnetd() {
-	ServerSocket *server = new ServerSocket(23, 3);
+void TelnetServer::threadTelnetd() {
+	ServerSocket server(23, 3);
 
-	int err = server->listen();
-
+	int err = server.listen();
 	if (err != 0) {
-		printf(strerror(err));
-		vTaskDelete(NULL);
+		this->logtree.log("Unable to listen to port: " + std::string(strerror(err)), LogTree::LOG_ERROR);
+		return;
 	}
 
 	while (true) {
 		// Wait for a free slot.
 		xSemaphoreTake(this->connection_pool_limiter, portMAX_DELAY);
-		std::shared_ptr<Socket> client = server->accept();
+		std::shared_ptr<Socket> client = server.accept();
 
 		if (!client->isValid()) {
 			xSemaphoreGive(this->connection_pool_limiter); // Surrender the unused slot.
@@ -62,45 +66,36 @@ void TelnetServer::thread_telnetd() {
 		client->enableNoDelay();
 
 		// Launch a new telnet instance if client is valid
-
+		// TODO: Whe will this get deleted???
 		TelnetClient *c = new TelnetClient(client, this->logtree, this->connection_pool_limiter);
 		if (c == nullptr) {
 			throw std::runtime_error("Failed to create Telnet client instance");
 		}
 	}
-
-	vTaskDelete(NULL);
 }
 
-static void _thread_telnetc(void *p) {
-	reinterpret_cast<TelnetClient*>(p)->thread_telnetc();
-}
-
-TelnetClient::TelnetClient(std::shared_ptr<Socket> s, LogTree &logtree, SemaphoreHandle_t connection_pool_limiter)
-	: socket(s), logtree(logtree), connection_pool_limiter(connection_pool_limiter) {
-	if (!s)
+TelnetClient::TelnetClient(std::shared_ptr<Socket> sock, LogTree &logtree, SemaphoreHandle_t connection_pool_limiter) :
+socket(sock), logtree(logtree), connection_pool_limiter(connection_pool_limiter) {
+	if (!sock) {
 		throw std::runtime_error("A valid socket must be supplied.");
+	}
+
 	configASSERT(connection_pool_limiter);
 	CriticalGuard critical(true);
 	this->session_serial = this->next_session_serial++;
 	critical.release();
-	xTaskCreate(_thread_telnetc, stdsprintf("telnetd.%lx", this->session_serial).c_str(), ZYNQIPMC_BASE_STACK_SIZE, this, TASK_PRIORITY_INTERACTIVE, NULL);
+
+	runTask("telnetd." + std::to_string(this->session_serial), TASK_PRIORITY_INTERACTIVE, [this]() -> void { this->threadTelnetc(); });
 }
 
-namespace {
 /// A "logout" console command.
-class ConsoleCommand_logout : public CommandParser::Command {
+class TelnetClient::LogoutCommand : public CommandParser::Command {
 public:
-	std::shared_ptr<Telnet::TelnetConsoleSvc> console; ///< The associated telnet console for this command.
-
-	/// Instantiate
-	ConsoleCommand_logout(std::shared_ptr<Telnet::TelnetConsoleSvc> console) : console(console) { };
+	LogoutCommand(std::shared_ptr<Telnet::TelnetConsoleSvc> console) : console(console) { };
 
 	virtual std::string get_helptext(const std::string &command) const {
-		return stdsprintf(
-				"%s\n"
-				"\n"
-				"Disconnect from your telnet session.\n", command.c_str());
+		return command + "\n\n"\
+				"Disconnect from your telnet session.\n";
 	}
 
 	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
@@ -111,14 +106,11 @@ public:
 		this->console->close();
 	}
 
-	// Nothing to complete.
-	//virtual std::vector<std::string> complete(const CommandParser::CommandParameters &parameters) const { };
+private:
+	std::shared_ptr<Telnet::TelnetConsoleSvc> console;
 };
-} // anonymous namespace
 
-uint32_t TelnetClient::next_session_serial = 0;
-
-static void telnet_shutdown_cleanup(Telnet::TelnetConsoleSvc &svc, CommandParser *parser, LogTree::Filter *log_filter, SemaphoreHandle_t connection_pool_limiter, SocketAddress addr) {
+static void telnetShutdownCleanup(Telnet::TelnetConsoleSvc &svc, CommandParser *parser, LogTree::Filter *log_filter, SemaphoreHandle_t connection_pool_limiter, SocketAddress addr) {
 	svc.logtree.log(stdsprintf("Telnet connection from %s:%hu terminated", addr.getAddress().c_str(), addr.getPort()), LogTree::LOG_INFO);
 	delete log_filter;
 	delete &svc.logtree;
@@ -126,26 +118,20 @@ static void telnet_shutdown_cleanup(Telnet::TelnetConsoleSvc &svc, CommandParser
 	xSemaphoreGive(connection_pool_limiter);
 }
 
-/**
- * Get the current bad password timeout delay.
- */
-uint64_t TelnetClient::get_badpass_timeout() {
+uint64_t TelnetClient::getBadpasswordTimeout() {
 	CriticalGuard critical(true); // No atomic 64bit ops.
 	uint64_t pressure = TelnetClient::bad_password_pressure;
 	critical.release();
+
 	uint64_t critical_pressure = get_tick64() + 60*configTICK_RATE_HZ;
-	if (pressure > critical_pressure)
+	if (pressure > critical_pressure) {
 		return pressure - critical_pressure;
-	else
+	} else {
 		return 0;
+	}
 }
 
-volatile uint64_t TelnetClient::bad_password_pressure = 0;
-
-/**
- * Increment the current bad password timeout delay.
- */
-void TelnetClient::inc_badpass_timeout() {
+void TelnetClient::increaseBadpasswordTimeout() {
 	CriticalGuard critical(true); // No atomic 64bit ops.
 	const uint64_t now64 = get_tick64();
 	if (TelnetClient::bad_password_pressure < now64)
@@ -153,7 +139,7 @@ void TelnetClient::inc_badpass_timeout() {
 	TelnetClient::bad_password_pressure += 10*configTICK_RATE_HZ; // Push the pressure 10s into the future.
 }
 
-static void telnet_log_handler(std::shared_ptr<ConsoleSvc> console, LogTree &logtree, const std::string &message, enum LogTree::LogLevel level) {
+static void telnetLogHandler(std::shared_ptr<ConsoleSvc> console, LogTree &logtree, const std::string &message, enum LogTree::LogLevel level) {
 	std::string logmsg = ConsoleSvc_log_format(message, level);
 
 	// We have to use a short timeout here, rather than none, due to the mutex involved.
@@ -161,26 +147,25 @@ static void telnet_log_handler(std::shared_ptr<ConsoleSvc> console, LogTree &log
 	console->write(logmsg, 1);
 }
 
-void TelnetClient::thread_telnetc() {
-	//AbsoluteTimeout unauthenticated_timeout(60 * configTICK_RATE_HZ);
-
+void TelnetClient::threadTelnetc() {
 	const SocketAddress &addr = this->socket->getSocketAddress();
 	LogTree &log = this->logtree[stdsprintf("%s:%hu-%lx", addr.getAddress().c_str(), addr.getPort(), this->session_serial)];
 	log.log(stdsprintf("Telnet connection received from %s:%hu", addr.getAddress().c_str(), addr.getPort()), LogTree::LOG_INFO);
 
-	uint64_t bptimeout = TelnetClient::get_badpass_timeout();
+	uint64_t bptimeout = TelnetClient::getBadpasswordTimeout();
 	if (bptimeout) {
 		this->socket->send(stdsprintf("This service is currently unavailable for %llu seconds due to excessive password failures.\r\n", bptimeout/configTICK_RATE_HZ));
 		log.log(stdsprintf("Telnet connection from %s:%hu rejected", addr.getAddress().c_str(), addr.getPort()), LogTree::LOG_INFO);
 		delete &log;
 		delete this;
-		vTaskDelete(NULL);
+		return;
 	}
 
 	this->socket->send("Password: ");
 	std::string pass;
 	std::shared_ptr<Telnet::InputProtocolParser> proto = std::make_shared<Telnet::InputProtocolParser>();
 	this->socket->send(proto->build_initial_negotiation());
+
 	while (true) {
 		char nextc;
 		int rv = 0;
@@ -193,21 +178,24 @@ void TelnetClient::thread_telnetc() {
 			delete &log;
 			break;
 		}
+
 		if (rv < 0) {
 			log.log(stdsprintf("Telnet connection from %s:%hu broke", addr.getAddress().c_str(), addr.getPort()), LogTree::LOG_INFO);
 			xSemaphoreGive(this->connection_pool_limiter);
 			delete &log;
 			break;
 		}
+
 		if (rv == 0)
 			continue;
+
 		size_t ccount = 1;
 		std::string protoreply = proto->parse_input(&nextc, &ccount);
 		this->socket->send(protoreply);
 		if (ccount == 0)
 			continue;
 
-		bptimeout = TelnetClient::get_badpass_timeout();
+		bptimeout = TelnetClient::getBadpasswordTimeout();
 		if (bptimeout) {
 			this->socket->send(stdsprintf("This service is currently unavailable for %llu seconds due to excessive password failures.\r\n", bptimeout/configTICK_RATE_HZ));
 			log.log(stdsprintf("Telnet connection from %s:%hu rejected", addr.getAddress().c_str(), addr.getPort()), LogTree::LOG_INFO);
@@ -231,9 +219,11 @@ void TelnetClient::thread_telnetc() {
 				(void)stdsprintf("\r\n\r\n%s\r\n", banner.c_str());
 				vTaskDelay(1); // yield to get stack overflow checked.
 				this->socket->send(stdsprintf("\r\n\r\n%s\r\n", banner.c_str()));
+
 				CommandParser *telnet_command_parser = new CommandParser(&console_command_parser);
-				LogTree::Filter *log_filter = new LogTree::Filter(LOG, NULL, LogTree::LOG_NOTICE);
+				LogTree::Filter *log_filter = new LogTree::Filter(LOG, nullptr, LogTree::LOG_NOTICE);
 				log_filter->registerConsoleCommands(*telnet_command_parser);
+
 				std::shared_ptr<Telnet::TelnetConsoleSvc> console = Telnet::TelnetConsoleSvc::create(
 						this->socket,
 						proto,
@@ -242,26 +232,26 @@ void TelnetClient::thread_telnetc() {
 						log,
 						true,
 						4,
-						std::bind(telnet_shutdown_cleanup, std::placeholders::_1, telnet_command_parser, log_filter, this->connection_pool_limiter, this->socket->getSocketAddress())
+						std::bind(telnetShutdownCleanup, std::placeholders::_1, telnet_command_parser, log_filter, this->connection_pool_limiter, this->socket->getSocketAddress())
 				);
+
 				CriticalGuard critical(true);
-				log_filter->handler = std::bind(telnet_log_handler, console, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+				log_filter->handler = std::bind(telnetLogHandler, console, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
 				critical.release();
-				std::shared_ptr<ConsoleCommand_logout> logoutcmd = std::make_shared<ConsoleCommand_logout>(console);
+
+				std::shared_ptr<TelnetClient::LogoutCommand> logoutcmd = std::make_shared<TelnetClient::LogoutCommand>(console);
 				telnet_command_parser->register_command("logout", logoutcmd);
 				telnet_command_parser->register_command("exit", logoutcmd);
+
 				console->start();
 
 				/* Our work here is done.
-				 *
 				 * The TelnetConsoleSvc now owns and will clean up all created components.
-				 *
 				 * Terminate this pre-authentication thread.
 				 */
 				break;
-			}
-			else {
-				TelnetClient::inc_badpass_timeout();
+			} else {
+				TelnetClient::increaseBadpasswordTimeout();
 				this->socket->send(std::string("\r\nIncorrect password.  Goodbye.\r\n"));
 				log.log(stdsprintf("Incorrect password from %s:%hu", addr.getAddress().c_str(), addr.getPort()), LogTree::LOG_NOTICE);
 				delete &log;
@@ -270,17 +260,18 @@ void TelnetClient::thread_telnetc() {
 				break;
 			}
 		}
+
 		if (nextc == '\x7f') {
 			// DEL (backspace).  We won't support arrow keys but we will support that.
 			if (pass.size())
 				pass.pop_back();
 			continue;
 		}
+
 		pass += std::string(&nextc, 1);
 	}
 
-	// Terminate
 	delete this;
-	vTaskDelete(NULL);
+	return;
 }
 

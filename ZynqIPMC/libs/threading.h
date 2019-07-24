@@ -520,6 +520,6 @@ std::string renderExceptionReport(const BackTrace *trace, const std::exception *
  * @param thread_func The function to run, C function, lambda, bind, method, all are welcome.
  * @return The handler of the created task.
  */
-TaskHandle_t runTask(const std::string name, BaseType_t priority, std::function<void(void)> thread_func, BaseType_t stack_words=0);
+TaskHandle_t runTask(const std::string& name, BaseType_t priority, std::function<void(void)> thread_func, BaseType_t stack_words=0);
 
 #endif /* SRC_COMMON_ZYNQIPMC_LIBS_THREADING_H_ */
