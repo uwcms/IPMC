@@ -18,10 +18,10 @@
 #include "network.h"
 #include <FreeRTOS.h>
 #include <task.h>
-#include <services/console/ConsoleSvc.h>
 #include <libs/printf.h>
 #include <libs/threading.h>
 #include <libs/utils.h>
+#include <services/console/consolesvc.h>
 
 /* lwIP core includes */
 #include "netif/xemacpsif.h"

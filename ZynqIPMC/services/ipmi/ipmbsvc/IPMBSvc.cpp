@@ -6,7 +6,6 @@
  */
 
 #include <services/ipmi/ipmbsvc/IPMBSvc.h>
-#include <services/console/ConsoleSvc.h>
 #include <services/ipmi/RemoteFRUStorage.h>
 #include <IPMC.h>
 #include "xgpiops.h"
@@ -16,6 +15,7 @@
 #include <time.h>
 #include <libs/printf.h>
 #include <libs/except.h>
+#include <services/console/consolesvc.h>
 
 /**
  * Instantiate the IPMB service.

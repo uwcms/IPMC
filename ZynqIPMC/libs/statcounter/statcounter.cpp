@@ -16,9 +16,9 @@
  */
 
 #include "statcounter.h"
-#include <services/console/ConsoleSvc.h>
 #include <libs/printf.h>
 #include <libs/threading.h>
+#include <services/console/consolesvc.h>
 
 StatCounter::StatCounter(std::string name)
   : kName(stdsprintf("%s@%08x", name.c_str(), reinterpret_cast<unsigned int>(this))), count(0) {

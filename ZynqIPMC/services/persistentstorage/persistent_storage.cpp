@@ -36,7 +36,7 @@
 #include <task.h>
 #include <event_groups.h>
 #include <drivers/tracebuffer/tracebuffer.h>
-#include <services/console/ConsoleSvc.h>
+#include <services/console/consolesvc.h>
 #include <libs/printf.h>
 
 #define NVREG32(baseptr, offset) (*((uint32_t*)((baseptr)+(offset))))

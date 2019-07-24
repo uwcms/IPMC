@@ -111,9 +111,9 @@ private:
 };
 
 static void telnetShutdownCleanup(Telnet::TelnetConsoleSvc &svc, CommandParser *parser, LogTree::Filter *log_filter, SemaphoreHandle_t connection_pool_limiter, SocketAddress addr) {
-	svc.logtree.log(stdsprintf("Telnet connection from %s:%hu terminated", addr.getAddress().c_str(), addr.getPort()), LogTree::LOG_INFO);
+	svc.getLogTree().log(stdsprintf("Telnet connection from %s:%hu terminated", addr.getAddress().c_str(), addr.getPort()), LogTree::LOG_INFO);
 	delete log_filter;
-	delete &svc.logtree;
+	//delete &svc.logtree;
 	delete parser;
 	xSemaphoreGive(connection_pool_limiter);
 }
@@ -140,7 +140,7 @@ void TelnetClient::increaseBadpasswordTimeout() {
 }
 
 static void telnetLogHandler(std::shared_ptr<ConsoleSvc> console, LogTree &logtree, const std::string &message, enum LogTree::LogLevel level) {
-	std::string logmsg = ConsoleSvc_log_format(message, level);
+	std::string logmsg = ConsoleSvcLogFormat(message, level);
 
 	// We have to use a short timeout here, rather than none, due to the mutex involved.
 	// TODO: Maybe there's a better way?

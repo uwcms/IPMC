@@ -6,7 +6,6 @@
  */
 
 #include "CommandParser.h"
-#include "ConsoleSvc.h"
 #include "FreeRTOS.h"
 #include "task.h"
 #include <IPMC.h>
@@ -15,6 +14,7 @@
 #include <algorithm>
 #include <libs/printf.h>
 #include <libs/threading.h>
+#include <services/console/consolesvc.h>
 
 namespace {
 /// The default 'help' console command.

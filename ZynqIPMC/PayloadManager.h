@@ -12,8 +12,8 @@
 #include <drivers/generics/adc.h>
 #include <drivers/management_zone/management_zone.h>
 #include <services/ipmi/MStateMachine.h>
-#include <services/console/ConsoleSvc.h>
 #include <drivers/sensorprocessor/sensorprocessor.h>
+#include <services/console/consolesvc.h>
 #include <services/ipmi/sensor/ThresholdSensor.h>
 #include <services/ipmi/sensor/SeveritySensor.h>
 #include <services/timer/timer.h>

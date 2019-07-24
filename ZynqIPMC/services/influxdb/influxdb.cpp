@@ -21,8 +21,8 @@
 #include <chrono>
 #include <Core.h>
 #include <services/persistentstorage/persistent_storage.h>
-#include <services/console/ConsoleSvc.h>
 #include <libs/threading.h>
+#include <services/console/consolesvc.h>
 
 using namespace std::chrono;
 

@@ -9,7 +9,7 @@
 #define SRC_COMMON_UW_IPMC_SERVICES_CONSOLE_UARTCONSOLESVC_H_
 
 #include <drivers/generics/uart.h>
-#include "ConsoleSvc.h"
+#include <services/console/consolesvc.h>
 
 /**
  * A UART based console service.

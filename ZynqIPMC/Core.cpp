@@ -201,7 +201,7 @@ __attribute__((weak)) void watchdog_ontrip() {
 }
 
 static void console_log_handler(LogTree &logtree, const std::string &message, enum LogTree::LogLevel level) {
-	std::string logmsg = ConsoleSvc_log_format(message, level);
+	std::string logmsg = ConsoleSvcLogFormat(message, level);
 
 	/* We write with 0 timeout, because we'd rather lose lines than hang on UART
 	* output.  That's what the tracebuffer is for anyway.

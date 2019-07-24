@@ -7,7 +7,6 @@
 
 #include <PayloadManager.h>
 #include <libs/printf.h>
-#include <services/console/ConsoleSvc.h>
 #include <services/ipmi/sensor/SensorSet.h>
 #include <services/ipmi/sensor/ThresholdSensor.h>
 #include <services/ipmi/sdr/SensorDataRecordReadableSensor.h>
@@ -15,6 +14,7 @@
 #include <IPMC.h>
 #include <Core.h>
 #include <libs/threading.h>
+#include <services/console/consolesvc.h>
 #include <services/persistentstorage/persistent_storage.h>
 
 #define MZ_HOLDOFF_TICKS 140

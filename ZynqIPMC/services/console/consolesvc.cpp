@@ -1,35 +1,56 @@
 /*
- * ConsoleSvc.cpp
+ * This file is part of the ZYNQ-IPMC Framework.
  *
- *  Created on: Jan 17, 2018
- *      Author: jtikalsky
+ * The ZYNQ-IPMC Framework is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ZYNQ-IPMC Framework is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "consolesvc.h"
+#include <IPMC.h> // TODO: Remove later on
 #include <drivers/tracebuffer/tracebuffer.h>
-#include <libs/backtrace/backtrace.h>
-#include <services/console/ConsoleSvc.h>
-#include <IPMC.h>
-#include "task.h"
 #include <libs/printf.h>
-#include <libs/threading.h>
 
-template <typename T> static inline T div_ceil(T val, T divisor) {
+template <typename T> static inline T divCeil(T val, T divisor) {
 	return (val / divisor) + (val % divisor ? 1 : 0);
 }
 
 /**
- * Instantiate a Console Service.
- *
- * @param parser The command parser to use.
- * @param name The name of the service for the process and such things.
- * @param logtree The log tree root for this service.
- * @param echo If true, enable echo and interactive management.
- * @param read_data_timeout The timeout for reads when data is available.
+ * 	CommandParser &parser;			///< The command parser for this console.
+	const std::string name;			///< The name for this ConsoleSvc's thread, logging, etc.
+	LogTree &logtree;				///< A log sink for this service.
+	LogTree &log_input;				///< A log sink for input.
+	bool echo;						///< Enable or disable echo.
+	TickType_t read_data_timeout;	///< The read data timeout for the UART, which influences responsiveness.
+	TaskHandle_t task;				///< A random handle to our task, mainly just for double-start checks.
+
+	std::string::size_type safe_write_line_cursor; ///< The safe_write output cursor.
+
+    SemaphoreHandle_t linebuf_mutex;	///< A mutex protecting the linebuf and direct output.
+	InputBuffer linebuf;				///< The current line buffer.
+
+	//! If true, the service will shut down.  read() and write() must return immediately, for this to succeed.
+	volatile bool shutdown;
+ * @param parser
+ * @param name
+ * @param logtree
+ * @param echo
+ * @param read_data_timeout
  */
+
 ConsoleSvc::ConsoleSvc(CommandParser &parser, const std::string &name, LogTree &logtree, bool echo, TickType_t read_data_timeout)
 	: parser(parser), name(name), logtree(logtree), log_input(logtree["input"]),
-	  echo(echo), read_data_timeout(read_data_timeout), linebuf("> ", 2048),
-	  shutdown(false), task(nullptr) {
+	  echo(echo), read_data_timeout(read_data_timeout), task(nullptr), safe_write_line_cursor(0),
+	  linebuf("> ", 2048), shutdown(false) {
 	this->linebuf_mutex = xSemaphoreCreateMutex();
 	configASSERT(this->linebuf_mutex);
 
@@ -60,29 +81,22 @@ ConsoleSvc::ConsoleSvc(CommandParser &parser, const std::string &name, LogTree &
 }
 
 ConsoleSvc::~ConsoleSvc() {
+	// TODO: Honestly I think this is bad if different services use the same logtree
+	// I would change to a shared pointer or simply not delete it a all.. which is what I am opting to do right now.
+	//delete &this->logtree;
 	vSemaphoreDelete(this->linebuf_mutex);
 }
 
-/**
- * Start the console service.  Call exactly once.
- */
 void ConsoleSvc::start() {
 	configASSERT(!this->task);
-	this->task = runTask(name, TASK_PRIORITY_INTERACTIVE, [this]() -> void { this->_run_thread(); });
+	this->task = runTask(name, TASK_PRIORITY_INTERACTIVE, [this]() -> void { this->runThread(); });
 	configASSERT(this->task);
 }
-/**
- * Write to the console without disrupting the prompt.
- *
- * \note A timeout of 0 will be a little unlikely to succeed.  Try 1.
- *
- * @param data The data to write out.
- * @param timeout How long to wait.
- * @return
- */
+
 bool ConsoleSvc::write(const std::string data, TickType_t timeout) {
 	if (this->shutdown)
 		return true; // Discard.
+
 	AbsoluteTimeout abstimeout(timeout);
 	MutexGuard<false> lock(this->linebuf_mutex, false);
 	try {
@@ -134,7 +148,7 @@ bool ConsoleSvc::write(const std::string data, TickType_t timeout) {
 	return true;
 }
 
-void ConsoleSvc::_run_thread() {
+void ConsoleSvc::runThread() {
 	this->logtree.log("Starting Console Service \"" + this->name + "\"", LogTree::LOG_INFO);
 	const std::string ctrlc_erased_facility = this->logtree.getPath() + ".ctrlc_erased";
 #ifdef ANSICODE_TIMEOUT
@@ -146,6 +160,7 @@ void ConsoleSvc::_run_thread() {
 
 	if (this->echo)
 		this->raw_write(this->linebuf.prompt.data(), this->linebuf.prompt.size(), portMAX_DELAY);
+
 	if (this->echo)
 		this->raw_write(ANSICode::ANSI_CURSOR_QUERY_POSITION.data(), ANSICode::ANSI_CURSOR_QUERY_POSITION.size(), portMAX_DELAY);
 
@@ -155,23 +170,29 @@ void ConsoleSvc::_run_thread() {
 			ANSICode::renderASCIIControlkey('D'),
 			'\0', // String Terminator
 	};
+
 	ANSICode ansi_code;
 	CommandHistory history(50);
 	char prevchar = '\0';
 	bool history_browse = false;
+
 	while (true) {
 		char readbuf[128];
 		if (this->shutdown)
 			break;
+
 		lock.release();
 		ssize_t bytes_read = this->raw_read(readbuf, 128, portMAX_DELAY, this->read_data_timeout);
 		lock.acquire();
+
 		if (this->shutdown)
 			break;
+
 		if (bytes_read < 0) {
 			this->logtree.log(stdsprintf("raw_read() returned negative value %d", bytes_read), LogTree::LOG_DIAGNOSTIC);
 			continue;
 		}
+
 		std::string rawbuffer(readbuf, bytes_read);
 		std::string echobuf;
 
@@ -180,9 +201,9 @@ void ConsoleSvc::_run_thread() {
 			// Clear all buffer found before any Ctrl-C (or D, or R), and replace it with an empty line to retrigger the prompt.
 			std::string tracebuf = this->linebuf.buffer + rawbuffer.substr(0, rst_before+1);
 			TRACE.log(ctrlc_erased_facility.c_str(), ctrlc_erased_facility.size(), LogTree::LOG_TRACE, tracebuf.data(), tracebuf.size(), true);
-			history.go_latest("",0);
+			history.goLatest("",0);
 			echobuf.append(this->linebuf.reset(80, 24));
-			echobuf.append(this->linebuf.query_size());
+			echobuf.append(this->linebuf.querySize());
 			rawbuffer.erase(0, rst_before+1);
 			this->linebuf.overwrite_mode = false; // Force disable this, to return to normal state.
 		}
@@ -206,24 +227,22 @@ void ConsoleSvc::_run_thread() {
 				// Ready next commandline.
 				std::string cmdbuf = this->linebuf.buffer;
 				echobuf.append(this->linebuf.clear());
-				echobuf.append(this->linebuf.query_size());
+				echobuf.append(this->linebuf.querySize());
 
 				// Parse & run the command line.
 				if (!cmdbuf.empty()) {
 					log_input.log(cmdbuf, LogTree::LOG_INFO);
-					history.record_entry(cmdbuf);
+					history.recordEntry(cmdbuf);
 					lock.release();
 					try {
 						if (!this->parser.parse(this->weakself.lock(), cmdbuf))
 							this->write("Unknown command!\n", portMAX_DELAY);
-					}
-					catch (std::exception &e) {
+					} catch (std::exception &e) {
 						BackTrace* trace = BackTrace::traceException();
 						std::string diag = renderExceptionReport(trace, &e, std::string("in console command"));
 						this->logtree.log(diag, LogTree::LOG_TRACE);
 						this->write(diag+"\n");
-					}
-					catch (...) {
+					} catch (...) {
 						BackTrace* trace = BackTrace::traceException();
 						std::string diag = renderExceptionReport(trace, nullptr, std::string("in console command"));
 						this->logtree.log(diag, LogTree::LOG_TRACE);
@@ -231,39 +250,33 @@ void ConsoleSvc::_run_thread() {
 					}
 					lock.acquire();
 				}
-			}
-			else if (*it == '\n') {
+			} else if (*it == '\n') {
 				// Ignore it.  We don't understand that so, if you sent us \r\n, we'll just trigger on the \r.
 
 				// Newlines aren't valid in ANSI sequences.
 				ansi_code.buffer.clear();
-			}
-			else if (*it == ANSICode::renderASCIIControlkey('L') || *it == ANSICode::renderASCIIControlkey('K')) {
+			} else if (*it == ANSICode::renderASCIIControlkey('L') || *it == ANSICode::renderASCIIControlkey('K')) {
 				// Ctrl-L is customarily "screen redraw".  We will rerender the prompt.
 				echobuf.append(this->linebuf.refresh());
-			}
-			else if (*it == '\x7f') {
+			} else if (*it == '\x7f') {
 				// DEL (sent by backspace key)
 
 				// DEL isn't valid in ANSI sequences.
 				ansi_code.buffer.clear();
 
 				echobuf.append(this->linebuf.backspace());
-			}
-			else if (*it == ANSICode::renderASCIIControlkey('O')) {
+			} else if (*it == ANSICode::renderASCIIControlkey('O')) {
 				echobuf.append(stdsprintf("\r\n%s mode.  Last detected console size: %ux%u.\r\n", (this->linebuf.overwrite_mode ? "Overwrite" : "Insert"), this->linebuf.cols, this->linebuf.rows));
 				echobuf.append(this->linebuf.refresh());
-			}
-			else if (*it == '\t') {
+			} else if (*it == '\t') {
 				// Tab isn't valid in ANSI sequences.
 				ansi_code.buffer.clear();
 
 				CommandParser::CompletionResult completed = this->parser.complete(this->linebuf.buffer, this->linebuf.cursor);
 				std::string compl_append = completed.common_prefix.substr(completed.cursor);
 				if (!compl_append.empty()) {
-					echobuf += this->linebuf.set_buffer(this->linebuf.buffer.substr(0, this->linebuf.cursor) + compl_append + this->linebuf.buffer.substr(this->linebuf.cursor), this->linebuf.cursor + compl_append.size());
-				}
-				else if (completed.completions.size() > 1 && prevchar == '\t') {
+					echobuf += this->linebuf.setBuffer(this->linebuf.buffer.substr(0, this->linebuf.cursor) + compl_append + this->linebuf.buffer.substr(this->linebuf.cursor), this->linebuf.cursor + compl_append.size());
+				} else if (completed.completions.size() > 1 && prevchar == '\t') {
 					// No extension possible, but we got at least two tabs in a row and there are completions available.
 					auto old_cursor = this->linebuf.cursor;
 					// Print possible completions.
@@ -275,10 +288,9 @@ void ConsoleSvc::_run_thread() {
 							echobuf.append("  ");
 					}
 					echobuf.append("\r\n");
-					echobuf.append(this->linebuf.set_buffer(this->linebuf.buffer, old_cursor));
+					echobuf.append(this->linebuf.setBuffer(this->linebuf.buffer, old_cursor));
 				}
-			}
-			else {
+			} else {
 #ifdef ANSICODE_TIMEOUT
 				if (!ansi_code.buffer.empty() && last_ansi_tick + ANSICODE_TIMEOUT < get_tick64()) {
 					// This control code took too long to come through.  Invalidating it.
@@ -288,6 +300,7 @@ void ConsoleSvc::_run_thread() {
 #endif
 				if (*it == '\x1b')
 					ansi_code.buffer.clear(); // Whatever code we were building got interrupted.  Toss it.
+
 				enum ANSICode::ParseState ansi_state = ansi_code.parse(*it);
 				switch (ansi_state) {
 				case ANSICode::PARSE_EMPTY:
@@ -316,54 +329,46 @@ void ConsoleSvc::_run_thread() {
 				if (ansi_code.name == "ARROW_LEFT") {
 					echobuf.append(this->linebuf.left());
 					history_browse = false;
-				}
-				else if (ansi_code.name == "ARROW_RIGHT") {
+				} else if (ansi_code.name == "ARROW_RIGHT") {
 					echobuf.append(this->linebuf.right());
 					history_browse = false;
-				}
-				else if (ansi_code.name == "HOME") {
+				} else if (ansi_code.name == "HOME") {
 					echobuf.append(this->linebuf.home());
 					history_browse = false;
-				}
-				else if (ansi_code.name == "END") {
+				} else if (ansi_code.name == "END") {
 					echobuf.append(this->linebuf.end());
 					history_browse = false;
-				}
-				else if (ansi_code.name == "ARROW_UP") {
+				} else if (ansi_code.name == "ARROW_UP") {
 					bool moved = false;
-					if (history.is_current())
+					if (history.isCurrent())
 						history_browse = this->linebuf.buffer.empty(); // Browse if starting point is null, else search.
-					std::string histline = history.go_back(this->linebuf.buffer, (history_browse ? 0 : this->linebuf.cursor), &moved);
-					if (moved)
-						echobuf.append(this->linebuf.set_buffer(histline, (history_browse ? histline.size() : this->linebuf.cursor)));
-					else
+					std::string histline = history.goBack(this->linebuf.buffer, (history_browse ? 0 : this->linebuf.cursor), &moved);
+					if (moved) {
+						echobuf.append(this->linebuf.setBuffer(histline, (history_browse ? histline.size() : this->linebuf.cursor)));
+					} else {
 						echobuf.append(ANSICode::ASCII_BELL);
-				}
-				else if (ansi_code.name == "ARROW_DOWN") {
+					}
+				} else if (ansi_code.name == "ARROW_DOWN") {
 					bool moved = false;
-					std::string histline = history.go_forward(this->linebuf.buffer, (history_browse ? 0 : this->linebuf.cursor), &moved);
+					std::string histline = history.goForward(this->linebuf.buffer, (history_browse ? 0 : this->linebuf.cursor), &moved);
 					if (moved)
-						echobuf.append(this->linebuf.set_buffer(histline, (history_browse ? histline.size() : this->linebuf.cursor)));
+						echobuf.append(this->linebuf.setBuffer(histline, (history_browse ? histline.size() : this->linebuf.cursor)));
 					else
 						echobuf.append(ANSICode::ASCII_BELL);
-				}
-				else if (ansi_code.name == "INSERT") {
+				} else if (ansi_code.name == "INSERT") {
 					/* Toggle overwrite mode.
 					 *
 					 * I don't know how to change the prompt blink type to
 					 * display this, but if I did, I'd have to .refresh().
 					 */
 					this->linebuf.overwrite_mode = !this->linebuf.overwrite_mode;
-				}
-				else if (ansi_code.name == "DELETE") {
+				} else if (ansi_code.name == "DELETE") {
 					echobuf.append(this->linebuf.delkey());
 					history_browse = false;
-				}
-				else if (ansi_code.name == "CURSOR_POSITION_REPORT") {
+				} else if (ansi_code.name == "CURSOR_POSITION_REPORT") {
 					if (ansi_code.parameters.size() == 2)
 						echobuf.append(this->linebuf.resize(ansi_code.parameters[1], ansi_code.parameters[0]));
-				}
-				else {
+				} else {
 					// For now we don't support it, so we'll just pass it as a command.
 					// We won't pass parameters for this type of code.  It'll be things like F1, F2.
 
@@ -375,14 +380,12 @@ void ConsoleSvc::_run_thread() {
 					lock.release();
 					try {
 						this->parser.parse(this->weakself.lock(), std::string("ANSI_") + ansi_code.name);
-					}
-					catch (std::exception &e) {
+					} catch (std::exception &e) {
 						BackTrace* trace = BackTrace::traceException();
 						std::string diag = renderExceptionReport(trace, &e, std::string("in console command"));
 						this->logtree.log(diag, LogTree::LOG_TRACE);
 						this->write(diag+"\n");
-					}
-					catch (...) {
+					} catch (...) {
 						BackTrace* trace = BackTrace::traceException();
 						std::string diag = renderExceptionReport(trace, nullptr, std::string("in console command"));
 						this->logtree.log(diag, LogTree::LOG_TRACE);
@@ -398,20 +401,14 @@ void ConsoleSvc::_run_thread() {
 		// Flush echo buffer.
 		if (this->echo)
 			this->raw_write(echobuf.data(), echobuf.size(), portMAX_DELAY);
+
 		echobuf.clear();
 	}
+
 	this->shutdown_complete();
 }
 
-/**
- * Step back in time.
- *
- * @param line_to_cache The current input line.
- * @param cursor The cursor position, used for prefix-search.
- * @param moved [out] true if the history position changed, else false.
- * @return The new input line.
- */
-std::string ConsoleSvc::CommandHistory::go_back(std::string line_to_cache, std::string::size_type cursor, bool *moved) {
+std::string ConsoleSvc::CommandHistory::goBack(std::string line_to_cache, std::string::size_type cursor, bool *moved) {
 	if (moved)
 		*moved = true;
 
@@ -422,8 +419,7 @@ std::string ConsoleSvc::CommandHistory::go_back(std::string line_to_cache, std::
 		if (moved)
 			*moved = false;
 		return line_to_cache; // We can't go backward more.
-	}
-	else {
+	} else {
 		auto it = this->history_position;
 		while (--it != this->history.begin())
 			if (it->substr(0, cursor) == line_to_cache.substr(0, cursor))
@@ -433,8 +429,7 @@ std::string ConsoleSvc::CommandHistory::go_back(std::string line_to_cache, std::
 			// Oh good, we found something.
 			this->history_position = it;
 			return *this->history_position;
-		}
-		else {
+		} else {
 			// No match found.
 			// Ok, well.  Don't move.
 			if (moved)
@@ -444,23 +439,16 @@ std::string ConsoleSvc::CommandHistory::go_back(std::string line_to_cache, std::
 	}
 }
 
-/**
- * Step forward in time.
- *
- * @param line_to_cache The current input line.
- * @param cursor The cursor position, used for prefix-search.
- * @param moved [out] true if the history position changed, else false.
- * @return The new input line.
- */
-std::string ConsoleSvc::CommandHistory::go_forward(std::string line_to_cache, std::string::size_type cursor, bool *moved) {
+std::string ConsoleSvc::CommandHistory::goForward(std::string line_to_cache, std::string::size_type cursor, bool *moved) {
 	if (moved)
 		*moved = true;
+
 	if (this->history_position == this->history.end()) {
 		if (moved)
 			*moved = false;
+
 		return line_to_cache; // We can't go forward more.
-	}
-	else {
+	} else {
 		auto it = this->history_position;
 		while (++it != this->history.end())
 			if (it->substr(0, cursor) == line_to_cache.substr(0, cursor))
@@ -472,15 +460,13 @@ std::string ConsoleSvc::CommandHistory::go_forward(std::string line_to_cache, st
 				// Nevermind, the cached line matches!
 				this->history_position = this->history.end();
 				return this->cached_line;
-			}
-			else {
+			} else {
 				// Ok, well.  Don't move.
 				if (moved)
 					*moved = false;
 				return line_to_cache;
 			}
-		}
-		else {
+		} else {
 			// Oh good, we found something.
 			this->history_position = it;
 			return *this->history_position;
@@ -488,42 +474,26 @@ std::string ConsoleSvc::CommandHistory::go_forward(std::string line_to_cache, st
 	}
 }
 
-/**
- * Step to the present.
- *
- * @param line_to_cache The current input line.
- * @param cursor The cursor position, used for prefix-search.
- * @param moved [out] true if the history position changed, else false.
- * @return The new input line.
- */
-std::string ConsoleSvc::CommandHistory::go_latest(std::string line_to_cache, std::string::size_type cursor, bool *moved) {
+std::string ConsoleSvc::CommandHistory::goLatest(std::string line_to_cache, std::string::size_type cursor, bool *moved) {
 	if (moved)
 		*moved = true;
+
 	if (this->history_position == this->history.end()) {
 		if (moved)
 			*moved = false;
+
 		return line_to_cache; // We can't go forward more.
-	}
-	else {
+	} else {
 		this->history_position = this->history.end();
 		return this->cached_line; // Out of history.
 	}
 }
 
-/**
- * Identify whether the current history position is the present.
- * @return true if the history position is the present, else false
- */
-bool ConsoleSvc::CommandHistory::is_current() {
+bool ConsoleSvc::CommandHistory::isCurrent() {
 	return this->history_position == this->history.end();
 }
 
-/**
- * Save an entered input line.
- *
- * @param line The input line to record
- */
-void ConsoleSvc::CommandHistory::record_entry(std::string line) {
+void ConsoleSvc::CommandHistory::recordEntry(const std::string& line) {
 	this->cached_line.clear();
 	this->history.push_back(line);
 	this->history_position = this->history.end();
@@ -531,20 +501,12 @@ void ConsoleSvc::CommandHistory::record_entry(std::string line) {
 		this->history.pop_front();
 }
 
-/**
- * Clear the input buffer.
- * @return echo data
- */
 std::string ConsoleSvc::InputBuffer::clear() {
 	this->buffer.clear();
 	this->cursor = 0;
 	return this->refresh();
 }
 
-/**
- * Reset the input buffer.
- * @return echo data
- */
 std::string ConsoleSvc::InputBuffer::reset(size_type cols, size_type rows) {
 	this->clear();
 	this->cols = cols;
@@ -552,14 +514,10 @@ std::string ConsoleSvc::InputBuffer::reset(size_type cols, size_type rows) {
 	return this->refresh();
 }
 
-/**
- * Insert characters into the buffer.
- * @param input The data to insert.
- * @return echo data
- */
 std::string ConsoleSvc::InputBuffer::update(std::string input) {
 	if (this->buffer.size() + input.size() > this->maxlen)
 		input.erase(this->maxlen - this->buffer.size()); // Ignore keystrokes, buffer full.
+
 	if (input.empty())
 		return ""; // Nothing to do.
 
@@ -589,17 +547,11 @@ std::string ConsoleSvc::InputBuffer::update(std::string input) {
 	return out;
 }
 
-/**
- * Update the buffer and refresh the screen
- * @param buffer New buffer
- * @param cursor New cursor
- * @return echo data
- */
-std::string ConsoleSvc::InputBuffer::set_buffer(std::string buffer, size_type cursor) {
+std::string ConsoleSvc::InputBuffer::setBuffer(std::string buffer, size_type cursor) {
 	// This is really just refresh, with a buffer update in the middle.
 
 	std::string out;
-	size_type cursor_row = this->get_cursor_row();
+	size_type cursor_row = this->getCursorRow();
 	if (cursor_row > 1)
 		out += stdsprintf(ANSICode::ANSI_CURSOR_UP_INTFMT.c_str(), cursor_row-1);
 	out += "\r";
@@ -613,7 +565,7 @@ std::string ConsoleSvc::InputBuffer::set_buffer(std::string buffer, size_type cu
 	if (this->buffer != buffer)
 		out += ANSICode::ANSI_ERASE_DOWN;
 
-	// The only actual set_buffer portion.
+	// The only actual setBuffer portion.
 	this->buffer = buffer;
 	this->cursor = (cursor == std::string::npos ? this->cursor : cursor);
 
@@ -625,39 +577,22 @@ std::string ConsoleSvc::InputBuffer::set_buffer(std::string buffer, size_type cu
 
 	for (size_type i = this->buffer.size(); i > this->cursor; --i)
 		out += ANSICode::ASCII_BACKSPACE;
+
 	return out;
 }
 
-/**
- * Return echo data to erase and reprint the line.
- * @return echo data
- */
 std::string ConsoleSvc::InputBuffer::refresh() {
-	return this->set_buffer(this->buffer, this->cursor);
+	return this->setBuffer(this->buffer, this->cursor);
 }
 
-/**
- * Return the current row position of the cursor, relative to the start, one-indexed.
- * @return The row the cursor is presently on.
- */
-ConsoleSvc::InputBuffer::size_type ConsoleSvc::InputBuffer::get_cursor_row() {
-	return div_ceil<size_type>((this->prompt.size() + this->cursor), this->cols);
+ConsoleSvc::InputBuffer::size_type ConsoleSvc::InputBuffer::getCursorRow() {
+	return divCeil<size_type>((this->prompt.size() + this->cursor), this->cols);
 }
 
-/**
- * Return the number of rows occupied by this input buffer.
- * @return The number of rows
- */
-ConsoleSvc::InputBuffer::size_type ConsoleSvc::InputBuffer::get_rowcount() {
-	return div_ceil<size_type>((this->prompt.size() + this->buffer.size()), this->cols);
+ConsoleSvc::InputBuffer::size_type ConsoleSvc::InputBuffer::getRowCount() {
+	return divCeil<size_type>((this->prompt.size() + this->buffer.size()), this->cols);
 }
 
-/**
- * Resize the buffer's perception of the console size.
- * @param cols columns
- * @param rows rows
- * @return echo data
- */
 std::string ConsoleSvc::InputBuffer::resize(size_type cols, size_type rows) {
 	if (this->cols == cols && this->rows == rows)
 		return ""; // NOOP
@@ -670,11 +605,7 @@ std::string ConsoleSvc::InputBuffer::resize(size_type cols, size_type rows) {
 	return this->refresh();
 }
 
-/**
- * Query the terminal size.
- * @return echo data
- */
-std::string ConsoleSvc::InputBuffer::query_size() {
+std::string ConsoleSvc::InputBuffer::querySize() {
 	return ANSICode::ANSI_CURSOR_SAVE
 			+ stdsprintf(ANSICode::ANSI_CURSOR_HOME_2INTFMT.c_str(), 999, 999)
 			+ ANSICode::ANSI_CURSOR_QUERY_POSITION
@@ -683,11 +614,13 @@ std::string ConsoleSvc::InputBuffer::query_size() {
 
 std::string ConsoleSvc::InputBuffer::home() {
 	std::string out;
+
 	// Reposition ourselves correctly, physically & logically.
 	while (this->cursor) {
 		out += ANSICode::ASCII_BACKSPACE;
 		--this->cursor;
 	}
+
 	// Refresh for good measure.
 	out += this->refresh();
 	return out;
@@ -757,6 +690,7 @@ std::string ConsoleSvc::InputBuffer::set_cursor(size_type cursor) {
 		out += ANSICode::ASCII_BACKSPACE;
 		--this->cursor;
 	}
+
 	if (cursor > this->cursor) {
 		// Move cursor forward to position.
 
@@ -765,17 +699,11 @@ std::string ConsoleSvc::InputBuffer::set_cursor(size_type cursor) {
 		// Logically advance the cursor.
 		this->cursor = cursor;
 	}
+
 	return out;
 }
 
-/**
- * Format a log message for console output.
- *
- * @param message The log message
- * @param level The loglevel of the message
- * @return The message formatted for console output
- */
-std::string ConsoleSvc_log_format(const std::string &message, enum LogTree::LogLevel level) {
+std::string ConsoleSvcLogFormat(const std::string &message, enum LogTree::LogLevel level) {
 	static const std::vector<std::string> colormap = {
 			ANSICode::color(),                                          // LOG_SILENT:     "null" (reset) (placeholder)
 			ANSICode::color(ANSICode::WHITE, ANSICode::RED, true),      // LOG_CRITICAL:   bold white on red
@@ -786,6 +714,7 @@ std::string ConsoleSvc_log_format(const std::string &message, enum LogTree::LogL
 			ANSICode::color(ANSICode::LIGHTGREY),                       // LOG_DIAGNOSTIC: lightgrey
 			ANSICode::color(ANSICode::DARKGREY),                        // LOG_TRACE:      darkgrey
 	};
+
 	std::string color = ANSICode::color(ANSICode::BLUE);
 	if (level < colormap.size())
 		color = colormap.at(level);

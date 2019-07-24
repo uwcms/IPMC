@@ -18,9 +18,9 @@
 // TODO: Do better error handling.
 
 #include "pim400.h"
-#include <services/console/ConsoleSvc.h>
 #include <libs/printf.h>
 #include <libs/except.h>
+#include <services/console/consolesvc.h>
 
 PIM400::PIM400(I2C &i2c, uint8_t addr) :
 i2c(i2c), kAddr(addr>>1) {

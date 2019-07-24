@@ -20,8 +20,8 @@
 
 #include <ZynqIPMCConfig.h>
 #include <services/console/CommandParser.h>
-#include <services/console/ConsoleSvc.h>
 #include <libs/printf.h>
+#include <services/console/consolesvc.h>
 
 /**
  * Abstract class for GPIOs with base functions for bus or individual pin operation declared.

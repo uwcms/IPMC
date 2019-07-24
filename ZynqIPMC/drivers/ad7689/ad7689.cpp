@@ -19,7 +19,7 @@
 #if XSDK_INDEXING || __has_include("ad7689_s.h")
 
 #include "ad7689.h"
-#include <services/console/ConsoleSvc.h>
+#include <services/console/consolesvc.h>
 #include <libs/except.h>
 
 AD7689::AD7689(uint16_t device_id, const std::string &identifier, uint32_t slave_interface) :

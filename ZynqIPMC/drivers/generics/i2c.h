@@ -20,8 +20,8 @@
 
 #include <drivers/atomicity_support.h>
 #include <libs/utils.h>
+#include <services/console/consolesvc.h>
 #include <services/console/CommandParser.h>
-#include <services/console/ConsoleSvc.h>
 
 /**
  * An abstract I2C driver interface.
