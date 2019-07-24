@@ -1,32 +1,36 @@
 /*
- * xvcserver.cc
+ * This file is part of the ZYNQ-IPMC Framework.
  *
- *  Created on: Jun 26, 2018
- *      Author: mpv
+ * The ZYNQ-IPMC Framework is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ZYNQ-IPMC Framework is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+
+#include "xvcserver.h"
 #include <drivers/network/server_socket.h>
-
-#include <IPMC.h>
-#include <services/xvcserver/XVCServer.h>
-#include <FreeRTOS.h>
 #include <libs/threading.h>
-#include <task.h>
+#include <IPMC.h> // TODO: Remove this at some point
 
-XVCServer::XVCServer(uint32_t baseAddr, uint16_t port) :
-baseAddr(baseAddr), port(port), verbose(false) {
-	// Generate a unique thread name based on the port
-	std::string threadName = "xvcserver:";
-	threadName += std::to_string(port);
-
+XVCServer::XVCServer(void* baseAddr, LogTree& log, uint16_t port) :
+kBaseAddr(baseAddr), log(log), kPort(port) {
 	// Start the XVC server thread
-	runTask(threadName, TASK_PRIORITY_BACKGROUND, [this]() {
+	runTask("xvcserver:" + std::to_string(port), TASK_PRIORITY_BACKGROUND, [this]() {
 		// Just allow one connection at a time
-		ServerSocket server(this->port);
+		ServerSocket server(this->kPort);
 
 		int err = server.listen();
 		if (err != 0) {
-			printf(strerror(err));
+			this->log.log("Unable to listen to port: " + std::string(strerror(err)), LogTree::LOG_ERROR);
 			return;
 		}
 
@@ -37,18 +41,22 @@ baseAddr(baseAddr), port(port), verbose(false) {
 				continue;
 			}
 
+			this->log.log("XVC connection established from " + client->getSocketAddress().getAddress(), LogTree::LOG_NOTICE);
+
 			// Set TCP_NODELAY to socket
 			client->enableNoDelay();
 
-			this->HandleClient(client);
+			this->handleClient(client);
+
+			this->log.log("XVC connection closed", LogTree::LOG_NOTICE);
 		}
 	});
 }
 
 
-bool XVCServer::HandleClient(std::shared_ptr<Socket> s) {
+bool XVCServer::handleClient(std::shared_ptr<Socket> s) {
 	const char xvcInfo[] = "xvcServer_v1.0:2048\n";
-	volatile jtag_t *jtag = (volatile jtag_t*)baseAddr;
+	volatile jtag_t *jtag = (volatile jtag_t*)kBaseAddr;
 
 	do {
 		char cmd[16];
@@ -62,56 +70,42 @@ bool XVCServer::HandleClient(std::shared_ptr<Socket> s) {
 			if (s->recvn(cmd, 6) != 6)
 				return 1;
 			memcpy(result, xvcInfo, strlen(xvcInfo));
-			if (s->send((char*)result, strlen(xvcInfo)) != strlen(xvcInfo)) {
-				perror("write");
+			if (s->send((char*)result, strlen(xvcInfo)) != (int)strlen(xvcInfo)) {
+				this->log.log("Unable to write to socket", LogTree::LOG_ERROR);
 				return 1;
 			}
-			if (verbose) {
-				printf("Received command: 'getinfo'\n");
-				printf("\t Replied with %s\n", xvcInfo);
-			}
+
 		} else if (memcmp(cmd, "se", 2) == 0) {
 			if (s->recvn(cmd, 9) != 9)
 				return 1;
 			memcpy(result, cmd + 5, 4);
 			if (s->send((char*)result, 4) != 4) {
-				perror("write");
+				this->log.log("Unable to write to socket", LogTree::LOG_ERROR);
 				return 1;
 			}
-			if (verbose) {
-				printf("Received command: 'settck'\n");
-				printf("\t Replied with '%.*s'\n\n", 4, cmd + 5);
-			}
+
 		} else if (memcmp(cmd, "sh", 2) == 0) {
 			if (s->recvn(cmd, 4) != 4)
 				return 1;
-			if (verbose) {
-				printf("Received command: 'shift'\n");
-			}
 
 			int len;
 			if (s->recvn((char*)&len, 4) != 4) {
-				fprintf(stderr, "reading length failed\n");
+				this->log.log("Reading length failed", LogTree::LOG_ERROR);
 				return 1;
 			}
 
-			int nr_bytes = (len + 7) / 8;
+			size_t nr_bytes = (len + 7) / 8;
 			if (nr_bytes * 2 > sizeof(buffer)) {
-				fprintf(stderr, "buffer size exceeded\n");
+				this->log.log("Buffer size exceeded", LogTree::LOG_ERROR);
 				return 1;
 			}
 
-			if (s->recvn((char*)buffer, nr_bytes * 2) != nr_bytes * 2) {
-				fprintf(stderr, "reading data failed\n");
+			if (s->recvn((char*)buffer, nr_bytes * 2) != (int)(nr_bytes * 2)) {
+				this->log.log("Reading data failed", LogTree::LOG_ERROR);
 				return 1;
 			}
+
 			memset(result, 0, nr_bytes);
-
-			if (verbose) {
-				printf("\tNumber of Bits  : %d\n", len);
-				printf("\tNumber of Bytes : %d \n", nr_bytes);
-				printf("\n");
-			}
 
 			int bytesLeft = nr_bytes;
 			int bitsLeft = len;
@@ -141,13 +135,6 @@ bool XVCServer::HandleClient(std::shared_ptr<Socket> s) {
 					bitsLeft -= 32;
 					byteIndex += 4;
 
-					if (verbose) {
-						printf("LEN : 0x%08x\n", 32);
-						printf("TMS : 0x%08x\n", tms);
-						printf("TDI : 0x%08x\n", tdi);
-						printf("TDO : 0x%08x\n", tdo);
-					}
-
 				} else {
 					memcpy(&tms, &buffer[byteIndex], bytesLeft);
 					memcpy(&tdi, &buffer[byteIndex + nr_bytes], bytesLeft);
@@ -163,22 +150,15 @@ bool XVCServer::HandleClient(std::shared_ptr<Socket> s) {
 					tdo = jtag->tdo_offset;
 					memcpy(&result[byteIndex], &tdo, bytesLeft);
 
-					if (verbose) {
-						printf("LEN : 0x%08x\n", bitsLeft);
-						printf("TMS : 0x%08x\n", tms);
-						printf("TDI : 0x%08x\n", tdi);
-						printf("TDO : 0x%08x\n", tdo);
-					}
-					break;
 				}
 			}
 
-			if (s->send((char*)result, nr_bytes) != nr_bytes) {
-				perror("write");
+			if (s->send((char*)result, nr_bytes) != (int)nr_bytes) {
+				this->log.log("Unable to write to socket", LogTree::LOG_ERROR);
 				return 1;
 			}
 		} else {
-			fprintf(stderr, "invalid cmd '%s'\n", cmd);
+			this->log.log("Invalid command received: " + std::string(cmd), LogTree::LOG_ERROR);
 			return 1;
 		}
 	} while (1);
