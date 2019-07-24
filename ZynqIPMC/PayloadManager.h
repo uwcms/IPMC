@@ -16,7 +16,7 @@
 #include <drivers/sensorprocessor/sensorprocessor.h>
 #include <services/ipmi/sensor/ThresholdSensor.h>
 #include <services/ipmi/sensor/SeveritySensor.h>
-#include <services/timer/TimerService.h>
+#include <services/timer/timer.h>
 #include <vector>
 #include <map>
 #include <memory>

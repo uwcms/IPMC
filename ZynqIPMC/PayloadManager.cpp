@@ -387,7 +387,7 @@ void PayloadManager::update_sensor_processor_contexts() {
 		// A lambda is required in order to allow capture and use of *this, however.
 		std::function<void(void)> self = [this]() -> void { this->update_sensor_processor_contexts(); };
 		this->sp_context_update_timer = std::make_shared<TimerService::Timer>(self, next_update);
-		TimerService::global_timer().submit(this->sp_context_update_timer);
+		TimerService::globalTimer().submit(this->sp_context_update_timer);
 	}
 }
 

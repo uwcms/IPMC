@@ -102,7 +102,7 @@ void IPMI_LED::update_current_action() {
 	}
 	if (this->local_min_duration.getTimeout()) {
 		this->timer = std::make_shared<TimerService::Timer>([this]()->void{ this->update_current_action(); }, this->local_min_duration);
-		TimerService::global_timer(TASK_PRIORITY_SERVICE).submit(this->timer);
+		TimerService::globalTimer(TASK_PRIORITY_SERVICE).submit(this->timer);
 	}
 }
 

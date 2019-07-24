@@ -10,7 +10,7 @@
 
 #include <drivers/generics/led.h>
 #include <libs/threading.h>
-#include <services/timer/TimerService.h>
+#include <services/timer/timer.h>
 
 class IPMI_LED {
 public:
