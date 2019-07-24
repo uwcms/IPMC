@@ -1,30 +1,37 @@
 /*
- * InfluxDB.cpp
+ * This file is part of the ZYNQ-IPMC Framework.
  *
- *  Created on: Sep 12, 2018
- *      Author: mpv
+ * The ZYNQ-IPMC Framework is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ZYNQ-IPMC Framework is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 // TODO: Consider implementing retries if failed to push metrics
 
-#include <Core.h>
-#include <libs/threading.h>
-#include "InfluxDB.h"
-#include <semphr.h>
-#include <task.h>
+#include "influxdb.h"
 #include <chrono>
-#include <services/console/CommandParser.h>
-#include <services/console/ConsoleSvc.h>
+#include <Core.h>
 #include <services/persistentstorage/persistent_storage.h>
+#include <services/console/ConsoleSvc.h>
+#include <libs/threading.h>
 
 using namespace std::chrono;
 
-InfluxDB::InfluxDB(LogTree &logtree) :
-logtree(logtree) {
-	this->collectorMutex = xSemaphoreCreateMutex();
-	this->flushMutex = xSemaphoreCreateMutex();
+InfluxDB::InfluxDB(LogTree &logtree, const Config& config, const std::string& thread_name) :
+logtree(logtree), flush_ticks(0), pushed_metrics(0), dropped_metrics(0) {
+	this->collector_mutex = xSemaphoreCreateMutex();
+	this->flush_mutex = xSemaphoreCreateMutex();
 	this->collector = std::unique_ptr<MetricSet>(new MetricSet());
-	configASSERT(this->collectorMutex && this->flushMutex && this->collector)
+	configASSERT(this->collector_mutex && this->flush_mutex && this->collector)
 
 	// Load configuration
 	uint16_t psver = persistent_storage->getSectionVersion(PersistentStorageAllocations::WISC_INFLUXDB_CONFIG);
@@ -40,30 +47,30 @@ logtree(logtree) {
 
 	if (psver == 0) {
 		// No previous configuration, apply defaults
-		this->setConfig(InfluxDB::defaultConfig);
+		this->setConfig(config);
 		persistent_storage->flush(this->config, sizeof(Config));
 	} else {
-		this->flushTicks = pdMS_TO_TICKS(this->config->flushInterval * 1000);
+		this->flush_ticks = pdMS_TO_TICKS(this->config->flushInterval * 1000);
 	}
 
-	runTask("influxdbd", TASK_PRIORITY_BACKGROUND, [this]() -> void {
-		this->_backgroundTask();
+	runTask(thread_name, TASK_PRIORITY_BACKGROUND, [this]() -> void {
+		this->backgroundTask();
 	});
 }
 
 InfluxDB::~InfluxDB() {
-	vSemaphoreDelete(this->collectorMutex);
-	vSemaphoreDelete(this->flushMutex);
+	vSemaphoreDelete(this->collector_mutex);
+	vSemaphoreDelete(this->flush_mutex);
 }
 
 void InfluxDB::setConfig(const Config &config) {
-	MutexGuard<false> lock(this->flushMutex, true);
+	MutexGuard<false> lock(this->flush_mutex, true);
 
 	CriticalGuard critical(true);
 	memcpy(this->config, &config, sizeof(Config));
 	critical.release();
 
-	this->flushTicks = pdMS_TO_TICKS(this->config->flushInterval * 1000);
+	this->flush_ticks = pdMS_TO_TICKS(this->config->flushInterval * 1000);
 }
 
 InfluxDB::Timestamp InfluxDB::getCurrentTimestamp() {
@@ -74,14 +81,14 @@ InfluxDB::Timestamp InfluxDB::getCurrentTimestamp() {
 	else return ns;
 }
 
-bool InfluxDB::write(const std::string& measurement, const TagSet& tags, const FieldSet& fields, long long timestamp) {
+bool InfluxDB::write(const std::string& measurement, const TagSet& tags, const FieldSet& fields, Timestamp timestamp) {
 	// Check inputs
 	if (measurement.length() == 0 || fields.size() == 0) return false;
 
 	// Can potentially be improved to save memory
 	const Metric metric = {measurement, tags, fields, timestamp};
 	{ // Mutexed area
-		MutexGuard<false> lock(this->collectorMutex, true);
+		MutexGuard<false> lock(this->collector_mutex, true);
 		this->collector->push_back(metric);
 	}
 
@@ -89,14 +96,14 @@ bool InfluxDB::write(const std::string& measurement, const TagSet& tags, const F
 	return true;
 }
 
-void InfluxDB::_backgroundTask() {
+void InfluxDB::backgroundTask() {
 	while (1) {
-		vTaskDelay(this->flushTicks);
+		vTaskDelay(this->flush_ticks);
 
 		std::unique_ptr<MetricSet> metrics = nullptr;
 
 		{ // Mutexed scope, swap the metrics block
-			MutexGuard<false> lock(this->collectorMutex, true);
+			MutexGuard<false> lock(this->collector_mutex, true);
 
 			if (this->collector->size() > 0) {
 				metrics = std::move(this->collector);
@@ -114,22 +121,24 @@ void InfluxDB::_backgroundTask() {
 		if (!this->push(*metrics)) {
 			// If there is a problem this message will get spammed, we don't want that
 			//this->logtree.log("Failed to push metrics to database", LogTree::LOG_ERROR);
-#ifdef INFLUXDB_STATS
-			this->droppedMeasurements += metrics->size();
-#endif
+			this->dropped_metrics += metrics->size();
 		} else {
-#ifdef INFLUXDB_STATS
-			this->pushedMeasurements += metrics->size();
-#endif
+			this->pushed_metrics += metrics->size();
 		}
 	}
 }
 
 bool InfluxDB::push(const MetricSet& metrics) {
-	MutexGuard<false> lock(this->flushMutex, true);
+	MutexGuard<false> lock(this->flush_mutex, true);
 
-	// Check inputs
+	// Check set validity
 	if (metrics.size() == 0) return false;
+
+	// Check if there is a target database set
+	if (this->config->host[0] == '\0') {
+		logtree.log("Attempting to push metrics with no target configuration", LogTree::LOG_WARNING);
+		return false;
+	}
 
 	std::unique_ptr<ClientSocket> socket;
 
@@ -148,6 +157,8 @@ bool InfluxDB::push(const MetricSet& metrics) {
 		logtree.log("Failed to connect to host " + serverURL, LogTree::LOG_DIAGNOSTIC);
 		return false;
 	}
+
+	// TODO: Consider changing to std::stringstream which is faster?
 
 	// Generate the post message content
 	std::string contents = "";
@@ -209,14 +220,10 @@ bool InfluxDB::push(const MetricSet& metrics) {
 	return true;
 }
 
-#ifdef INFLUXDB_STATS
-/// A "influxdb.status" console command.
-class influxdb_status : public CommandParser::Command {
+//! A "influxdb.status" console command.
+class InfluxDB::StatusCommand : public CommandParser::Command {
 public:
-	InfluxDB &influxdb; ///< InfluxDB object.
-
-	/// Instantiate
-	influxdb_status(InfluxDB &influxdb) : influxdb(influxdb) { };
+	StatusCommand(InfluxDB &influxdb) : influxdb(influxdb) { };
 
 	virtual std::string get_helptext(const std::string &command) const {
 		return command + "\n\n"
@@ -224,18 +231,17 @@ public:
 	}
 
 	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
-		console->write("Measurements: " + std::to_string(influxdb.pushedMeasurements) + " pushed / " + std::to_string(influxdb.droppedMeasurements) + " dropped\n");
+		console->write("Measurements: " + std::to_string(influxdb.pushed_metrics) + " pushed / " + std::to_string(influxdb.dropped_metrics) + " dropped\n");
 	}
+
+private:
+	InfluxDB &influxdb;
 };
-#endif
 
-/// A "influxdb.config" console command.
-class influxdb_config : public CommandParser::Command {
+//! A "influxdb.config" console command.
+class InfluxDB::ConfigCommand : public CommandParser::Command {
 public:
-	InfluxDB &influxdb; ///< InfluxDB object.
-
-	/// Instantiate
-	influxdb_config(InfluxDB &influxdb) : influxdb(influxdb) { };
+	ConfigCommand(InfluxDB &influxdb) : influxdb(influxdb) { };
 
 	virtual std::string get_helptext(const std::string &command) const {
 		return command + "\n\n"
@@ -271,35 +277,23 @@ public:
 				return;
 			}
 
-			strcpy(config.host, host.c_str());
-			strcpy(config.database, database.c_str());
-
+			config.host = host;
+			config.database = database;
 			influxdb.setConfig(config);
 		}
 	}
+
+private:
+	InfluxDB &influxdb;
 };
 
-/**
- * Register console commands related to this storage.
- * @param parser The command parser to register to.
- * @param prefix A prefix for the registered commands.
- */
-void InfluxDB::register_console_commands(CommandParser &parser, const std::string &prefix) {
-#ifdef INFLUXDB_STATS
-	parser.register_command(prefix + "status", std::make_shared<influxdb_status>(*this));
-#endif
-	parser.register_command(prefix + "config", std::make_shared<influxdb_config>(*this));
+void InfluxDB::registerConsoleCommands(CommandParser &parser, const std::string &prefix) {
+	parser.register_command(prefix + "status", std::make_shared<InfluxDB::StatusCommand>(*this));
+	parser.register_command(prefix + "config", std::make_shared<InfluxDB::ConfigCommand>(*this));
 }
 
-/**
- * Unregister console commands related to this storage.
- * @param parser The command parser to unregister from.
- * @param prefix A prefix for the registered commands.
- */
-void InfluxDB::deregister_console_commands(CommandParser &parser, const std::string &prefix) {
-#ifdef INFLUXDB_STATS
-	parser.register_command(prefix + "status", NULL);
-#endif
-	parser.register_command(prefix + "config", NULL);
+void InfluxDB::deregisterConsoleCommands(CommandParser &parser, const std::string &prefix) {
+	parser.register_command(prefix + "status", nullptr);
+	parser.register_command(prefix + "config", nullptr);
 }
 
