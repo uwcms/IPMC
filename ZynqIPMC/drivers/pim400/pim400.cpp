@@ -109,10 +109,10 @@ u8 PIM400::readRegister(const PIM400::PIM400Register reg) {
 }
 
 void PIM400::registerConsoleCommands(CommandParser &parser, const std::string &prefix) {
-	parser.register_command(prefix + "status", std::make_shared<PIM400::Status>(*this));
+	parser.registerCommand(prefix + "status", std::make_shared<PIM400::Status>(*this));
 }
 
 void PIM400::deregisterConsoleCommands(CommandParser &parser, const std::string &prefix) {
-	parser.register_command(prefix + "status", NULL);
+	parser.registerCommand(prefix + "status", NULL);
 }
 

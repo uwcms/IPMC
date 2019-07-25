@@ -19,8 +19,8 @@
 #define SRC_COMMON_ZYNQIPMC_DRIVERS_GENERICS_GPIO_H_
 
 #include <ZynqIPMCConfig.h>
-#include <services/console/CommandParser.h>
 #include <libs/printf.h>
+#include <services/console/command_parser.h>
 #include <services/console/consolesvc.h>
 
 /**
@@ -94,7 +94,7 @@ public:
 		virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
 			if (parameters.nargs() == 2) {
 				uint32_t value = 0;
-				if (!parameters.parse_parameters(1, true, &value)) {
+				if (!parameters.parseParameters(1, true, &value)) {
 					console->write("Invalid arguments, see help.\n");
 					return;
 				}
@@ -141,7 +141,7 @@ public:
 
 		virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
 			uint32_t value = 0;
-			if (!parameters.parse_parameters(1, true, &value)) {
+			if (!parameters.parseParameters(1, true, &value)) {
 				console->write("Invalid arguments, see help.\n");
 				return;
 			}
@@ -154,15 +154,15 @@ public:
 	};
 
 	virtual void registerConsoleCommands(CommandParser &parser, const std::string &prefix="") {
-		parser.register_command(prefix + "direction", std::make_shared<GPIO::Direction>(*this));
-		parser.register_command(prefix + "read", std::make_shared<GPIO::Read>(*this));
-		parser.register_command(prefix + "write", std::make_shared<GPIO::Write>(*this));
+		parser.registerCommand(prefix + "direction", std::make_shared<GPIO::Direction>(*this));
+		parser.registerCommand(prefix + "read", std::make_shared<GPIO::Read>(*this));
+		parser.registerCommand(prefix + "write", std::make_shared<GPIO::Write>(*this));
 	}
 
 	virtual void deregisterConsoleCommands(CommandParser &parser, const std::string &prefix="") {
-		parser.register_command(prefix + "direction", NULL);
-		parser.register_command(prefix + "read", NULL);
-		parser.register_command(prefix + "write", NULL);
+		parser.registerCommand(prefix + "direction", NULL);
+		parser.registerCommand(prefix + "read", NULL);
+		parser.registerCommand(prefix + "write", NULL);
 	}
 #endif
 };

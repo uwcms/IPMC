@@ -20,9 +20,9 @@
 
 #include <FreeRTOS.h>
 #include <semphr.h>
+#include <services/console/command_parser.h>
 #include <string>
 #include <map>
-#include <services/console/CommandParser.h>
 
 /**
  * A class representing a statistic/event counter.

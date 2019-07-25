@@ -174,7 +174,7 @@ public:
 		int argn = parameters.nargs();
 		std::string command = "", response, p;
 		for (int i = 1; i < argn; i++) {
-			parameters.parse_parameters(i, true, &p);
+			parameters.parseParameters(i, true, &p);
 			if (i == (argn-1)) {
 				command += p;
 			} else {
@@ -238,15 +238,15 @@ private:
 };
 
 void ESM::registerConsoleCommands(CommandParser &parser, const std::string &prefix) {
-	parser.register_command(prefix + "command", std::make_shared<ESM::Command>(*this));
-	parser.register_command(prefix + "restart", std::make_shared<ESM::Restart>(*this));
+	parser.registerCommand(prefix + "command", std::make_shared<ESM::Command>(*this));
+	parser.registerCommand(prefix + "restart", std::make_shared<ESM::Restart>(*this));
 	if (this->isFlashPresent())
-		parser.register_command(prefix + "flash.info", std::make_shared<ESM::FlashInfo>(*this));
+		parser.registerCommand(prefix + "flash.info", std::make_shared<ESM::FlashInfo>(*this));
 }
 
 void ESM::deregisterConsoleCommands(CommandParser &parser, const std::string &prefix) {
-	parser.register_command(prefix + "command", NULL);
-	parser.register_command(prefix + "restart", NULL);
+	parser.registerCommand(prefix + "command", NULL);
+	parser.registerCommand(prefix + "restart", NULL);
 	if (this->isFlashPresent())
-		parser.register_command(prefix + "flash.info", NULL);
+		parser.registerCommand(prefix + "flash.info", NULL);
 }

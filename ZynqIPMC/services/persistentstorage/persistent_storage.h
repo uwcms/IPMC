@@ -22,8 +22,8 @@
 #include <queue>
 #include <drivers/generics/eeprom.h>
 #include <drivers/watchdog/ps_wdt.h>
-#include <services/console/CommandParser.h>
 #include <libs/threading.h>
+#include <services/console/command_parser.h>
 
 /**
  * A persistent storage module backed by an EEPROM.

@@ -21,8 +21,8 @@
 #include <ZynqIPMCConfig.h>
 #include <drivers/atomicity_support.h>
 #include <libs/utils.h>
+#include <services/console/command_parser.h>
 #include <services/console/consolesvc.h>
-#include <services/console/CommandParser.h>
 
 /**
  * An abstract SPI master driver.
@@ -72,7 +72,7 @@ public:
 			size_t length;
 			uint8_t cmd;
 
-			if (!parameters.parse_parameters(1, false, &length, &cmd)) {
+			if (!parameters.parseParameters(1, false, &length, &cmd)) {
 				console->write("Invalid arguments\n");
 				return;
 			}
@@ -86,7 +86,7 @@ public:
 			writeBuf[0] = cmd;
 
 			for (size_t i = 0; i < parameters.nargs() - 2; i++) {
-				if (!parameters.parse_parameters(3+i, false, writeBuf + i + 1)) {
+				if (!parameters.parseParameters(3+i, false, writeBuf + i + 1)) {
 					break;
 				}
 			}
@@ -108,13 +108,13 @@ public:
 
 	void registerConsoleCommands(CommandParser &parser, const std::string &prefix="") {
 #ifdef ENABLE_DRIVER_COMMAND_SUPPORT
-		parser.register_command(prefix + "transfer", std::make_shared<SPIMaster::Transfer>(*this));
+		parser.registerCommand(prefix + "transfer", std::make_shared<SPIMaster::Transfer>(*this));
 #endif
 	}
 
 	void deregisterConsoleCommands(CommandParser &parser, const std::string &prefix="") {
 #ifdef ENABLE_DRIVER_COMMAND_SUPPORT
-		parser.register_command(prefix + "transfer", NULL);
+		parser.registerCommand(prefix + "transfer", NULL);
 #endif
 	}
 };

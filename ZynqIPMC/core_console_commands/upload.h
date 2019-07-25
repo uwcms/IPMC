@@ -17,7 +17,7 @@ public:
 		size_t size;
 		std::string hash;
 
-		if (!parameters.parse_parameters(1, false, &filename, &size, &hash)) {
+		if (!parameters.parseParameters(1, false, &filename, &size, &hash)) {
 			console->write("Invalid argument, see help.\n");
 			return;
 		}

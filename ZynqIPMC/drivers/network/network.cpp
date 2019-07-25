@@ -205,9 +205,9 @@ private:
 };
 
 void Network::registerConsoleCommands(CommandParser &parser, const std::string &prefix) {
-	parser.register_command(prefix + "status", std::make_shared<Network::Status>(*this));
+	parser.registerCommand(prefix + "status", std::make_shared<Network::Status>(*this));
 }
 
 void Network::deregisterConsoleCommands(CommandParser &parser, const std::string &prefix) {
-	parser.register_command(prefix + "status", nullptr);
+	parser.registerCommand(prefix + "status", nullptr);
 }

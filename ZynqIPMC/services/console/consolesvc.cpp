@@ -24,29 +24,6 @@ template <typename T> static inline T divCeil(T val, T divisor) {
 	return (val / divisor) + (val % divisor ? 1 : 0);
 }
 
-/**
- * 	CommandParser &parser;			///< The command parser for this console.
-	const std::string name;			///< The name for this ConsoleSvc's thread, logging, etc.
-	LogTree &logtree;				///< A log sink for this service.
-	LogTree &log_input;				///< A log sink for input.
-	bool echo;						///< Enable or disable echo.
-	TickType_t read_data_timeout;	///< The read data timeout for the UART, which influences responsiveness.
-	TaskHandle_t task;				///< A random handle to our task, mainly just for double-start checks.
-
-	std::string::size_type safe_write_line_cursor; ///< The safe_write output cursor.
-
-    SemaphoreHandle_t linebuf_mutex;	///< A mutex protecting the linebuf and direct output.
-	InputBuffer linebuf;				///< The current line buffer.
-
-	//! If true, the service will shut down.  read() and write() must return immediately, for this to succeed.
-	volatile bool shutdown;
- * @param parser
- * @param name
- * @param logtree
- * @param echo
- * @param read_data_timeout
- */
-
 ConsoleSvc::ConsoleSvc(CommandParser &parser, const std::string &name, LogTree &logtree, bool echo, TickType_t read_data_timeout)
 	: parser(parser), name(name), logtree(logtree), log_input(logtree["input"]),
 	  echo(echo), read_data_timeout(read_data_timeout), task(nullptr), safe_write_line_cursor(0),
@@ -144,7 +121,7 @@ bool ConsoleSvc::write(const std::string data, TickType_t timeout) {
 	out += "\r\n";
 	out += this->linebuf.refresh();
 	out += this->linebuf.set_cursor(input_cursor);
-	this->raw_write(out.data(), out.size(), abstimeout.getTimeout());
+	this->rawWrite(out.data(), out.size(), abstimeout.getTimeout());
 	return true;
 }
 
@@ -159,10 +136,10 @@ void ConsoleSvc::runThread() {
 	MutexGuard<false> lock(this->linebuf_mutex, true);
 
 	if (this->echo)
-		this->raw_write(this->linebuf.prompt.data(), this->linebuf.prompt.size(), portMAX_DELAY);
+		this->rawWrite(this->linebuf.prompt.data(), this->linebuf.prompt.size(), portMAX_DELAY);
 
 	if (this->echo)
-		this->raw_write(ANSICode::ANSI_CURSOR_QUERY_POSITION.data(), ANSICode::ANSI_CURSOR_QUERY_POSITION.size(), portMAX_DELAY);
+		this->rawWrite(ANSICode::ANSI_CURSOR_QUERY_POSITION.data(), ANSICode::ANSI_CURSOR_QUERY_POSITION.size(), portMAX_DELAY);
 
 	static const char reset_control_keys[] = {
 			ANSICode::renderASCIIControlkey('R'),
@@ -182,14 +159,14 @@ void ConsoleSvc::runThread() {
 			break;
 
 		lock.release();
-		ssize_t bytes_read = this->raw_read(readbuf, 128, portMAX_DELAY, this->read_data_timeout);
+		ssize_t bytes_read = this->rawRead(readbuf, 128, portMAX_DELAY, this->read_data_timeout);
 		lock.acquire();
 
 		if (this->shutdown)
 			break;
 
 		if (bytes_read < 0) {
-			this->logtree.log(stdsprintf("raw_read() returned negative value %d", bytes_read), LogTree::LOG_DIAGNOSTIC);
+			this->logtree.log(stdsprintf("rawRead() returned negative value %d", bytes_read), LogTree::LOG_DIAGNOSTIC);
 			continue;
 		}
 
@@ -221,7 +198,7 @@ void ConsoleSvc::runThread() {
 
 				// Flush echo buffer.
 				if (this->echo)
-					this->raw_write(echobuf.data(), echobuf.size(), portMAX_DELAY);
+					this->rawWrite(echobuf.data(), echobuf.size(), portMAX_DELAY);
 				echobuf.clear();
 
 				// Ready next commandline.
@@ -374,7 +351,7 @@ void ConsoleSvc::runThread() {
 
 					// Flush echo buffer.
 					if (this->echo)
-						this->raw_write(echobuf.data(), echobuf.size(), portMAX_DELAY);
+						this->rawWrite(echobuf.data(), echobuf.size(), portMAX_DELAY);
 					echobuf.clear();
 
 					lock.release();
@@ -400,12 +377,12 @@ void ConsoleSvc::runThread() {
 
 		// Flush echo buffer.
 		if (this->echo)
-			this->raw_write(echobuf.data(), echobuf.size(), portMAX_DELAY);
+			this->rawWrite(echobuf.data(), echobuf.size(), portMAX_DELAY);
 
 		echobuf.clear();
 	}
 
-	this->shutdown_complete();
+	this->shutdownComplete();
 }
 
 std::string ConsoleSvc::CommandHistory::goBack(std::string line_to_cache, std::string::size_type cursor, bool *moved) {
@@ -703,7 +680,7 @@ std::string ConsoleSvc::InputBuffer::set_cursor(size_type cursor) {
 	return out;
 }
 
-std::string ConsoleSvcLogFormat(const std::string &message, enum LogTree::LogLevel level) {
+std::string consoleSvcLogFormat(const std::string &message, enum LogTree::LogLevel level) {
 	static const std::vector<std::string> colormap = {
 			ANSICode::color(),                                          // LOG_SILENT:     "null" (reset) (placeholder)
 			ANSICode::color(ANSICode::WHITE, ANSICode::RED, true),      // LOG_CRITICAL:   bold white on red

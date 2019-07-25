@@ -25,7 +25,7 @@
 #include <drivers/generics/gpio.h>
 #include <drivers/spi_flash/spi_flash.h>
 #include <libs/vfs/vfs.h>
-#include <services/console/CommandParser.h>
+#include <services/console/command_parser.h>
 /**
  * ESM driver that implements the software layers for ESM management, including programming and monitoring.
  *

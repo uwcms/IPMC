@@ -16,10 +16,10 @@
 #include <drivers/ps_gpio/ps_gpio.h>
 #include <drivers/ps_spi/ps_spi.h>
 #include <drivers/spi_flash/spi_flash.h>
-#include <services/console/UARTConsoleSvc.h>
 #include <services/ipmi/commands/IPMICmd_Index.h>
 
 #include <libs/printf.h>
+#include <services/console/uartconsolesvc.h>
 
 #define REBOOT_STATUS_REG (XPS_SYS_CTRL_BASEADDR + 0x258)
 
@@ -201,7 +201,7 @@ __attribute__((weak)) void watchdog_ontrip() {
 }
 
 static void console_log_handler(LogTree &logtree, const std::string &message, enum LogTree::LogLevel level) {
-	std::string logmsg = ConsoleSvcLogFormat(message, level);
+	std::string logmsg = consoleSvcLogFormat(message, level);
 
 	/* We write with 0 timeout, because we'd rather lose lines than hang on UART
 	* output.  That's what the tracebuffer is for anyway.

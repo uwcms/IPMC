@@ -1,31 +1,27 @@
 /*
- * TelnetConsole.cpp
+ * This file is part of the ZYNQ-IPMC Framework.
  *
- *  Created on: Feb 9, 2018
- *      Author: jtikalsky
+ * The ZYNQ-IPMC Framework is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ZYNQ-IPMC Framework is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "telnetconsolesvc.h"
 #include <drivers/tracebuffer/tracebuffer.h>
-#include <services/console/TelnetConsoleSvc.h>
-#include <IPMC.h>
 
-/**
- * Instantiate a UART console service.
- *
- * \note This will take ownership of the socket, and of itself, and delete
- *       both upon termination.
- *
- * @param socket The socket
- * @param proto The protocol parser associated with this socket.
- * @param parser The command parser to use.
- * @param name The name of the service for the process and such things.
- * @param logtree The log tree root for this service.
- * @param echo If true, enable echo and interactive management.
- * @param read_data_timeout The timeout for reads when data is available.
- * @param shutdown_complete_cb A function to call to notify external resources about a completed shutdown.
- */
-Telnet::TelnetConsoleSvc::TelnetConsoleSvc(std::shared_ptr<Socket> socket, std::shared_ptr<InputProtocolParser> proto, CommandParser &parser, const std::string &name, LogTree &logtree, bool echo, TickType_t read_data_timeout, std::function<void(TelnetConsoleSvc&)> shutdown_complete_cb)
-		: ConsoleSvc(parser, name, logtree, echo, read_data_timeout), socket(socket), proto(proto), shutdown_complete_cb(shutdown_complete_cb) {
+#include <IPMC.h> // TODO: Remove later
+
+Telnet::TelnetConsoleSvc::TelnetConsoleSvc(std::shared_ptr<Socket> socket, std::shared_ptr<InputProtocolParser> proto, CommandParser &parser, const std::string &name, LogTree &logtree, bool echo, TickType_t read_data_timeout, std::function<void(TelnetConsoleSvc&)> shutdownComplete_cb)
+		: ConsoleSvc(parser, name, logtree, echo, read_data_timeout), socket(socket), proto(proto), shutdownComplete_cb(shutdownComplete_cb) {
 	//configASSERT(this->socket->valid());
 	this->sock_mutex = xSemaphoreCreateMutex();
 	configASSERT(this->sock_mutex);
@@ -43,29 +39,23 @@ Telnet::TelnetConsoleSvc::~TelnetConsoleSvc() {
 	vTaskDelay(configTICK_RATE_HZ / 10);
 }
 
-/**
- * Close and delete the underlying socket.
- *
- * \warning This will trigger a "delete this".
- *
- * @param wait If true, block until shutdown is complete
- */
 void Telnet::TelnetConsoleSvc::close() {
 	this->shutdown = 3;
 	// This might be causing crashes, and our read_data_timeout is small anyway.  We'll just not worry about this.
 	//this->socket->close();
 }
 
-void Telnet::TelnetConsoleSvc::shutdown_complete() {
+void Telnet::TelnetConsoleSvc::shutdownComplete() {
 	this->socket = nullptr;
-	if (!!this->shutdown_complete_cb)
-		this->shutdown_complete_cb(*this);
+	if (!!this->shutdownComplete_cb)
+		this->shutdownComplete_cb(*this);
 }
 
-ssize_t Telnet::TelnetConsoleSvc::raw_read(char *buf, size_t len, TickType_t timeout, TickType_t read_data_timeout) {
+ssize_t Telnet::TelnetConsoleSvc::rawRead(char *buf, size_t len, TickType_t timeout, TickType_t read_data_timeout) {
 	AbsoluteTimeout abstimeout( (read_data_timeout<timeout ? read_data_timeout : timeout) );
 	std::string inattempt(this->log_input["in"]["att"].getPath());
 	TRACE.log(inattempt.data(), inattempt.size(), LogTree::LOG_TRACE, "A", 1, false);
+
 	do {
 		int rv = this->socket->recv(buf, len);
 		if (rv < 0) {
@@ -81,27 +71,33 @@ ssize_t Telnet::TelnetConsoleSvc::raw_read(char *buf, size_t len, TickType_t tim
 		std::string inproto(this->log_input["in"]["proto"].getPath());
 		std::string inprpl(this->log_input["in"]["prpl"].getPath());
 		TRACE.log(inraw.data(), inraw.size(), LogTree::LOG_TRACE, buf, protolen, true);
-		std::string proto_reply = this->proto->parse_input(buf, &protolen);
+		std::string proto_reply = this->proto->parseInput(buf, &protolen);
 		TRACE.log(inproto.data(), inproto.size(), LogTree::LOG_TRACE, buf, protolen, true);
+
 		if (this->proto->incompatible_client) {
 			this->close();
 			return -1;
 		}
-		this->raw_write(proto_reply.data(), proto_reply.size(), abstimeout.getTimeout());
+
+		this->rawWrite(proto_reply.data(), proto_reply.size(), abstimeout.getTimeout());
 		TRACE.log(inprpl.data(), inprpl.size(), LogTree::LOG_TRACE, proto_reply.data(), proto_reply.size(), true);
+
 		if (protolen)
 			return protolen;
+
 	} while (abstimeout.getTimeout() > 0);
+
 	return 0; // Didn't return protolen above, but timed out.
 }
 
-ssize_t Telnet::TelnetConsoleSvc::raw_write(const char *buf, size_t len, TickType_t timeout) {
+ssize_t Telnet::TelnetConsoleSvc::rawWrite(const char *buf, size_t len, TickType_t timeout) {
 	std::string inattempt(this->log_input["out"]["att"].getPath());
 	TRACE.log(inattempt.data(), inattempt.size(), LogTree::LOG_TRACE, "A", 1, false);
 	ssize_t rv = this->socket->send((void*)buf, len);
 	if (rv < 0) {
 		if (errno != EAGAIN)
 			this->close(); // Not a timeout.  Terminate.
+
 		TRACE.log(inattempt.data(), inattempt.size(), LogTree::LOG_TRACE, "XXX", 3, false);
 		return -1;
 	}
@@ -113,13 +109,7 @@ Telnet::InputProtocolParser::InputProtocolParser()
 	: incompatible_client(false), last_keepalive(0) {
 };
 
-/**
- * Parse telnet protocol input, prepare responses, and strip the supplied input buffer.
- * @param buf The input buffer to process and strip codes from.
- * @param[in,out] len A pointer to the length of the input buffer.  Updated as codes are stripped.
- * @return Protocol response data to return to the client verbatim.
- */
-std::string Telnet::InputProtocolParser::parse_input(char *buf, size_t *len) {
+std::string Telnet::InputProtocolParser::parseInput(char *buf, size_t *len) {
 	// We're just going to throw this into our code buffer, then parse & shift any codes.
 	this->code_buffer.append(buf, *len);
 	size_t bufi = 0; // Current position in the now-output buffer.
@@ -128,22 +118,22 @@ std::string Telnet::InputProtocolParser::parse_input(char *buf, size_t *len) {
 	if (this->last_keepalive < get_tick64() - 5*configTICK_RATE_HZ) {
 		// Regardless of anything else, we'll reply with a NOP of our own, just as a "hey we're still alive" sort of thing.
 		this->last_keepalive = get_tick64();
-		replybuf += Telnet::CODE_IAC;
-		replybuf += Telnet::CODE_NOP;
+		replybuf += InputProtocolParser::CODE_IAC;
+		replybuf += InputProtocolParser::CODE_NOP;
 	}
 
 	while (this->code_buffer.size()) {
 		// Pass through non Interpret As Command sequences.
-		if (this->code_buffer[0] != Telnet::CODE_IAC) {
+		if (this->code_buffer[0] != InputProtocolParser::CODE_IAC) {
 			if (this->sb_buffer.size()) {
 				this->sb_buffer += this->code_buffer[0];
-			}
-			else {
+			} else {
 				if (this->code_buffer[0] == '\0')
 					buf[bufi++] = '\n'; // My telnet client is sending \r\0 rather than \r\n.
 				else
 					buf[bufi++] = this->code_buffer[0];
 			}
+
 			this->code_buffer.erase(0,1);
 			continue;
 		}
@@ -152,8 +142,9 @@ std::string Telnet::InputProtocolParser::parse_input(char *buf, size_t *len) {
 			*len = bufi;
 			return replybuf;
 		}
+
 		// IAC was escaping another IAC.
-		if (this->code_buffer[1] == Telnet::CODE_IAC) {
+		if (this->code_buffer[1] == InputProtocolParser::CODE_IAC) {
 			if (this->sb_buffer.size())
 				this->sb_buffer += this->code_buffer[1];
 			else
@@ -161,20 +152,21 @@ std::string Telnet::InputProtocolParser::parse_input(char *buf, size_t *len) {
 			this->code_buffer.erase(0,2);
 			continue;
 		}
+
 		// If in subnegotiation, we support only CODE_SE.
 		if (this->sb_buffer.size()) {
-			if (this->code_buffer[1] == Telnet::CODE_SE) {
-				replybuf += this->negotiate(Telnet::CODE_SB, this->sb_buffer[2], this->sb_buffer.substr(3));
+			if (this->code_buffer[1] == InputProtocolParser::CODE_SE) {
+				replybuf += this->negotiate(InputProtocolParser::CODE_SB, this->sb_buffer[2], this->sb_buffer.substr(3));
 				this->sb_buffer.clear();
 				this->code_buffer.erase(0,2);
 				continue;
-			}
-			else {
+			} else {
 				// Well, bail on the subnegotiation and parse it as whatever the heck it is, I guess.
 				this->sb_buffer.clear();
 			}
 		}
-		if (this->code_buffer[1] == Telnet::CODE_SB) {
+
+		if (this->code_buffer[1] == InputProtocolParser::CODE_SB) {
 			if (this->code_buffer.size() < 3) {
 				// Incomplete.  We don't even have a feature yet.
 				*len = bufi;
@@ -186,7 +178,7 @@ std::string Telnet::InputProtocolParser::parse_input(char *buf, size_t *len) {
 			continue;
 		}
 		// Perform any basic negotiation required.
-		if (this->code_buffer[1] >= Telnet::CODE_WILL && this->code_buffer[1] <= Telnet::CODE_DONT) {
+		if (this->code_buffer[1] >= InputProtocolParser::CODE_WILL && this->code_buffer[1] <= InputProtocolParser::CODE_DONT) {
 			if (this->code_buffer.size() < 3) {
 				// Incomplete.  We don't have a feature yet.
 				*len = bufi;
@@ -206,14 +198,14 @@ std::string Telnet::InputProtocolParser::parse_input(char *buf, size_t *len) {
 	return replybuf;
 }
 
-std::string IAC_STR(1, Telnet::CODE_IAC);
+std::string IAC_STR(1, Telnet::InputProtocolParser::CODE_IAC);
 #define COMPOSE_WWDD(request, feature) ( IAC_STR + static_cast<char>(request) + static_cast<char>(feature) )
 
 std::string Telnet::InputProtocolParser::negotiate(uint8_t req, uint8_t feature, std::string subnegotiation) {
 	switch (feature) {
-	case FEATURE_Echo:
+	case FEATURE_ECHO:
 		switch (req) {
-		case CODE_WILL:
+		case InputProtocolParser::CODE_WILL:
 			// No, please do not.  This will go VERY poorly.  You are incompatible.  Stop that..
 			this->incompatible_client = true;
 			return COMPOSE_WWDD(CODE_DONT, feature);
@@ -221,18 +213,20 @@ std::string Telnet::InputProtocolParser::negotiate(uint8_t req, uint8_t feature,
 		case CODE_DONT: return COMPOSE_WWDD(CODE_WILL, feature); // We refuse.  We're going to echo back to you.  Sorry.
 		}
 		break;
-	case FEATURE_Suppress_Go_Ahead:
+
+	case FEATURE_SUPPRESS_GO_AHEAD:
 		switch (req) {
 		case CODE_DO:   return COMPOSE_WWDD(CODE_WILL, feature); // Yeah, we'll do that.
 		case CODE_DONT: return COMPOSE_WWDD(CODE_WONT, feature); // Uhh... Whatever you say.  Sending it was never mandatory anyway.
 		}
 		break;
-	case FEATURE_Terminal_Type:
+
+	case FEATURE_TERMINAL_TYPE:
 		// Kudos to http://mud-dev.wikidot.com/telnet:negotiation
 		switch (req) {
 		case CODE_WILL:
 			if (this->remote_terminal_type.empty())
-				return IAC_STR + CODE_SB + '\x01' /* SEND */ + CODE_IAC+CODE_SE; // Request next terminal type.
+				return IAC_STR + (char)CODE_SB + '\x01' /* SEND */ + (char)CODE_IAC + (char)CODE_SE; // Request next terminal type.
 			else
 				return ""; // Thanks, but we've already done it, and I'm not sure if you've reset your iterator to 0.  Not messing with this.
 		case CODE_DO:   return COMPOSE_WWDD(CODE_WONT, feature); // We don't have a "terminal type" exactly... Let us negotiate yours.
@@ -255,27 +249,23 @@ std::string Telnet::InputProtocolParser::negotiate(uint8_t req, uint8_t feature,
 						// We've reached our terminal preference.
 					}
 					else {
-						return IAC_STR + CODE_SB + '\x01' /* SEND */ + CODE_IAC+CODE_SE; // Request next terminal type.
+						return IAC_STR + (char)CODE_SB + '\x01' /* SEND */ + (char)CODE_IAC + (char)CODE_SE; // Request next terminal type.
 					}
 				}
 			}
 		}
 		break;
 	}
+
 	return ""; // Unsupported or no response required.
 }
 
-/**
- * Build an initial negotiation string for ourselevs.
- *
- * @return The initial negotiation string.
- */
-std::string Telnet::InputProtocolParser::build_initial_negotiation() {
+std::string Telnet::InputProtocolParser::buildInitialNegotiation() {
 	std::string negotiation;
-	negotiation += COMPOSE_WWDD(CODE_WILL, FEATURE_Echo); // We wish to echo back to you.
-	negotiation += COMPOSE_WWDD(CODE_DONT, FEATURE_Echo); // We DON'T want YOU to echo back to us.  It would be... bad.
-	negotiation += COMPOSE_WWDD(CODE_WILL, FEATURE_Suppress_Go_Ahead); // We don't send these either way.
-	negotiation += COMPOSE_WWDD(CODE_DO,   FEATURE_Suppress_Go_Ahead); // We don't need these.
-	negotiation += COMPOSE_WWDD(CODE_DO,   FEATURE_Terminal_Type); // Please change to ANSI or VT10[02] officially, if possible.  We're sending those codes anyway.
+	negotiation += COMPOSE_WWDD(CODE_WILL, FEATURE_ECHO); // We wish to echo back to you.
+	negotiation += COMPOSE_WWDD(CODE_DONT, FEATURE_ECHO); // We DON'T want YOU to echo back to us.  It would be... bad.
+	negotiation += COMPOSE_WWDD(CODE_WILL, FEATURE_SUPPRESS_GO_AHEAD); // We don't send these either way.
+	negotiation += COMPOSE_WWDD(CODE_DO,   FEATURE_SUPPRESS_GO_AHEAD); // We don't need these.
+	negotiation += COMPOSE_WWDD(CODE_DO,   FEATURE_TERMINAL_TYPE); // Please change to ANSI or VT10[02] officially, if possible.  We're sending those codes anyway.
 	return negotiation;
 }

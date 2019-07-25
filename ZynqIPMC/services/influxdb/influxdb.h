@@ -22,8 +22,8 @@
 #include <FreeRTOS.h>
 #include <semphr.h>
 #include <drivers/network/client_socket.h>
-#include <services/console/CommandParser.h>
 #include <libs/logtree/logtree.h>
+#include <services/console/command_parser.h>
 
 // TODO: Add a field type that can accept int, float, string and bool. Right now only strings are accepted.
 

@@ -23,8 +23,8 @@
 #include <libs/printf.h>
 #include <libs/except.h>
 #include <libs/threading.h>
+#include <services/console/command_parser.h>
 #include <services/console/consolesvc.h>
-#include <services/console/CommandParser.h>
 #include <deque>
 #include <algorithm>
 
@@ -206,7 +206,7 @@ public:
 	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
 		std::string out;
 		std::string levelstr;
-		if (!parameters.parse_parameters(1, false, &levelstr)) {
+		if (!parameters.parseParameters(1, false, &levelstr)) {
 			console->write("Invalid parameters. See help.\n");
 			return;
 		}
@@ -234,7 +234,7 @@ public:
 
 		for (CommandParser::CommandParameters::size_type i = 2; i < parameters.nargs(); ++i) {
 			std::string arg;
-			parameters.parse_parameters(i, false, &arg);
+			parameters.parseParameters(i, false, &arg);
 			if (out.size()) out += " ";
 			out += arg;
 		}
@@ -246,11 +246,11 @@ private:
 };
 
 void LogTree::registerConsoleCommands(CommandParser &parser, const std::string &prefix) {
-	parser.register_command(prefix + "log", std::make_shared<LogTree::LogCommand>(*this));
+	parser.registerCommand(prefix + "log", std::make_shared<LogTree::LogCommand>(*this));
 }
 
 void LogTree::deregisterConsoleCommands(CommandParser &parser, const std::string &prefix) {
-	parser.register_command(prefix + "log", nullptr);
+	parser.registerCommand(prefix + "log", nullptr);
 }
 
 void LogTree::Filter::reconfigure(LogTree &logtree, enum LogLevel level) {
@@ -321,12 +321,12 @@ public:
 		std::string facilitystr;
 		std::string levelstr;
 
-		if (!parameters.parse_parameters(1, true, &facilitystr)) {
+		if (!parameters.parseParameters(1, true, &facilitystr)) {
 			console->write("Invalid parameters. See help.\n");
 			return;
 		}
 
-		parameters.parse_parameters(2, true, &levelstr); // Optionally parse levelstr
+		parameters.parseParameters(2, true, &levelstr); // Optionally parse levelstr
 
 		LogTree *facility = &this->root;
 		if (facilitystr == "*") {
@@ -480,11 +480,11 @@ private:
 };
 
 void LogTree::Filter::registerConsoleCommands(CommandParser &parser, const std::string &prefix) {
-	parser.register_command(prefix + "loglevel", std::make_shared<LogTree::Filter::LogLevelCommand>(*this, *this->logtree));
+	parser.registerCommand(prefix + "loglevel", std::make_shared<LogTree::Filter::LogLevelCommand>(*this, *this->logtree));
 }
 
 void LogTree::Filter::deregisterConsoleCommands(CommandParser &parser, const std::string &prefix) {
-	parser.register_command(prefix + "loglevel", nullptr);
+	parser.registerCommand(prefix + "loglevel", nullptr);
 }
 
 const char *LogTree::kLogLevelStrings[10] = {

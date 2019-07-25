@@ -21,9 +21,9 @@
 #include <libs/ringbuffer.h>
 #include <libs/statcounter/statcounter.h>
 #include <libs/threading.h>
+#include <services/console/command_parser.h>
 #include <services/ipmi/IPMI_MSG.h>
 #include <services/ipmi/ipmbsvc/IPMICommandParser.h>
-#include <services/console/CommandParser.h>
 #include <services/ipmi/IPMI.h>
 
 /**

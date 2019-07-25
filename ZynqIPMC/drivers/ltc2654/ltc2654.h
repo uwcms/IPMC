@@ -20,7 +20,7 @@
 
 #include <stdint.h>
 #include <drivers/generics/spi.h>
-#include <services/console/CommandParser.h>
+#include <services/console/command_parser.h>
 
 /**
  * High-level driver for the LTC2654 Quad 16/12bit rail-to-rail DAC.

@@ -23,7 +23,7 @@
 
 #include "ad7689_s.h"
 #include <drivers/generics/adc.h>
-#include <services/console/CommandParser.h>
+#include <services/console/command_parser.h>
 
 /**
  * Driver for the AD7689 PL firmware IP.

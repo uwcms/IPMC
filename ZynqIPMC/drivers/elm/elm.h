@@ -22,8 +22,8 @@
 #include <drivers/generics/uart.h>
 #include <FreeRTOS.h>
 #include <semphr.h>
+#include <services/console/command_parser.h>
 #include <string>
-#include <services/console/CommandParser.h>
 
 /**
  * ELM driver that implements the software layers for ELM link and other features.

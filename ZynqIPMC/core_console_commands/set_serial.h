@@ -13,7 +13,7 @@ public:
 
 	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
 		uint16_t serial;
-		if (!parameters.parse_parameters(1, true, &serial)) {
+		if (!parameters.parseParameters(1, true, &serial)) {
 			console->write("Please provide a serial number.\n");
 			return;
 		}

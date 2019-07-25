@@ -262,7 +262,7 @@ public:
 			InfluxDB::Config config = {0};
 			std::string host, database;
 
-			if (!parameters.parse_parameters(1, true, &host, &(config.port), &database, &(config.flushInterval))) {
+			if (!parameters.parseParameters(1, true, &host, &(config.port), &database, &(config.flushInterval))) {
 				console->write("Invalid parameters. See help.\n");
 				return;
 			}
@@ -288,12 +288,12 @@ private:
 };
 
 void InfluxDB::registerConsoleCommands(CommandParser &parser, const std::string &prefix) {
-	parser.register_command(prefix + "status", std::make_shared<InfluxDB::StatusCommand>(*this));
-	parser.register_command(prefix + "config", std::make_shared<InfluxDB::ConfigCommand>(*this));
+	parser.registerCommand(prefix + "status", std::make_shared<InfluxDB::StatusCommand>(*this));
+	parser.registerCommand(prefix + "config", std::make_shared<InfluxDB::ConfigCommand>(*this));
 }
 
 void InfluxDB::deregisterConsoleCommands(CommandParser &parser, const std::string &prefix) {
-	parser.register_command(prefix + "status", nullptr);
-	parser.register_command(prefix + "config", nullptr);
+	parser.registerCommand(prefix + "status", nullptr);
+	parser.registerCommand(prefix + "config", nullptr);
 }
 

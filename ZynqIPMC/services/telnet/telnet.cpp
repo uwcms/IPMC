@@ -21,11 +21,11 @@
 #include <string>
 #include <Core.h>
 #include <drivers/network/server_socket.h>
-#include <services/console/TelnetConsoleSvc.h>
-#include <services/console/CommandParser.h>
 #include <libs/authentication/authentication.h>
 #include <libs/printf.h>
 #include <libs/threading.h>
+#include <services/console/command_parser.h>
+#include <services/console/telnetconsolesvc.h>
 
 // TODO: If timeouts in sockets are required then use SO_RCVTIMEO and SO_SNDTIMEO
 
@@ -140,7 +140,7 @@ void TelnetClient::increaseBadpasswordTimeout() {
 }
 
 static void telnetLogHandler(std::shared_ptr<ConsoleSvc> console, LogTree &logtree, const std::string &message, enum LogTree::LogLevel level) {
-	std::string logmsg = ConsoleSvcLogFormat(message, level);
+	std::string logmsg = consoleSvcLogFormat(message, level);
 
 	// We have to use a short timeout here, rather than none, due to the mutex involved.
 	// TODO: Maybe there's a better way?
@@ -164,7 +164,7 @@ void TelnetClient::threadTelnetc() {
 	this->socket->send("Password: ");
 	std::string pass;
 	std::shared_ptr<Telnet::InputProtocolParser> proto = std::make_shared<Telnet::InputProtocolParser>();
-	this->socket->send(proto->build_initial_negotiation());
+	this->socket->send(proto->buildInitialNegotiation());
 
 	while (true) {
 		char nextc;
@@ -190,7 +190,7 @@ void TelnetClient::threadTelnetc() {
 			continue;
 
 		size_t ccount = 1;
-		std::string protoreply = proto->parse_input(&nextc, &ccount);
+		std::string protoreply = proto->parseInput(&nextc, &ccount);
 		this->socket->send(protoreply);
 		if (ccount == 0)
 			continue;
@@ -240,8 +240,8 @@ void TelnetClient::threadTelnetc() {
 				critical.release();
 
 				std::shared_ptr<TelnetClient::LogoutCommand> logoutcmd = std::make_shared<TelnetClient::LogoutCommand>(console);
-				telnet_command_parser->register_command("logout", logoutcmd);
-				telnet_command_parser->register_command("exit", logoutcmd);
+				telnet_command_parser->registerCommand("logout", logoutcmd);
+				telnet_command_parser->registerCommand("exit", logoutcmd);
 
 				console->start();
 

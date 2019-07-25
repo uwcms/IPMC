@@ -23,7 +23,7 @@
 
 #include "mgmt_zone_ctrl.h"
 #include <vector>
-#include <services/console/CommandParser.h>
+#include <services/console/command_parser.h>
 #include <libs/threading.h>
 
 /**

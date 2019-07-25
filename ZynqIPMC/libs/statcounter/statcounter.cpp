@@ -124,7 +124,7 @@ public:
 		std::string out;
 		std::string pattern;
 
-		if (!parameters.parse_parameters(1, true, &pattern))
+		if (!parameters.parseParameters(1, true, &pattern))
 			pattern = "*";
 
 		bool exact = true;
@@ -152,7 +152,7 @@ public:
 		std::vector<std::string> out;
 		std::string pattern;
 
-		parameters.parse_parameters(1, true, &pattern);
+		parameters.parseParameters(1, true, &pattern);
 
 		MutexGuard<true> lock(StatCounter::getRegistryMutex(), true);
 		std::map<std::string, StatCounter*> registry = StatCounter::getRegistry();
@@ -166,9 +166,9 @@ public:
 };
 
 void StatCounter::registerConsoleCommands(CommandParser &parser, const std::string &prefix) {
-	parser.register_command(prefix + "stats", std::make_shared<StatCounter::Stats>());
+	parser.registerCommand(prefix + "stats", std::make_shared<StatCounter::Stats>());
 }
 
 void StatCounter::deregisterConsoleCommands(CommandParser &parser, const std::string &prefix) {
-	parser.register_command(prefix + "stats", nullptr);
+	parser.registerCommand(prefix + "stats", nullptr);
 }

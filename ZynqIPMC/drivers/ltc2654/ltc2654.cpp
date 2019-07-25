@@ -62,7 +62,7 @@ public:
 		}
 
 		std::string arg = "";
-		if (!parameters.parse_parameters(1, true, &arg) && arg.length() != 1) {
+		if (!parameters.parseParameters(1, true, &arg) && arg.length() != 1) {
 			console->write("Invalid DAC channel, see help.\n");
 			return;
 		}
@@ -78,7 +78,7 @@ public:
 			return;
 		}
 
-		if (!parameters.parse_parameters(2, true, &arg) && arg.length() != 1) {
+		if (!parameters.parseParameters(2, true, &arg) && arg.length() != 1) {
 			console->write("Invalid command, see help.\n");
 			return;
 		}
@@ -102,7 +102,7 @@ public:
 			}
 
 			// Not a double
-			if (!parameters.parse_parameters(3, true, &arg)) {
+			if (!parameters.parseParameters(3, true, &arg)) {
 				console->write("Invalid value parameter, see help.\n");
 				return;
 			}
@@ -126,9 +126,9 @@ private:
 };
 
 void LTC2654::registerConsoleCommands(CommandParser &parser, const std::string &prefix) {
-	parser.register_command(prefix + "command", std::make_shared<LTC2654::Send>(*this));
+	parser.registerCommand(prefix + "command", std::make_shared<LTC2654::Send>(*this));
 }
 
 void LTC2654::deregisterConsoleCommands(CommandParser &parser, const std::string &prefix) {
-	parser.register_command(prefix + "command", NULL);
+	parser.registerCommand(prefix + "command", NULL);
 }

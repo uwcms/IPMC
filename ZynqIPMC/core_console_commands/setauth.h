@@ -12,7 +12,7 @@ public:
 
 	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
 		std::string user, pass;
-		if (!parameters.parse_parameters(1, true, &user, &pass)) {
+		if (!parameters.parseParameters(1, true, &user, &pass)) {
 			console->write("Invalid parameters, see help.\n");
 			return;
 		}

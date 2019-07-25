@@ -20,8 +20,8 @@
 
 #include <string>
 #include <lwip/netif.h>
-#include <services/console/CommandParser.h>
 #include <libs/logtree/logtree.h>
+#include <services/console/command_parser.h>
 
 /**
  * lwIP driver wrapper.

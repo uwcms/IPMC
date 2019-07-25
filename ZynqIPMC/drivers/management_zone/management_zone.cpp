@@ -235,11 +235,11 @@ private:
 };
 
 void ZoneController::registerConsoleCommands(CommandParser &parser, const std::string &prefix) {
-	parser.register_command(prefix + "override", std::make_shared<ZoneController::Override>(*this));
+	parser.registerCommand(prefix + "override", std::make_shared<ZoneController::Override>(*this));
 }
 
 void ZoneController::deregisterConsoleCommands(CommandParser &parser, const std::string &prefix) {
-	parser.register_command(prefix + "override", NULL);
+	parser.registerCommand(prefix + "override", NULL);
 }
 
 #endif

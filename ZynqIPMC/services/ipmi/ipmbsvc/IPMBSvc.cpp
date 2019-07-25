@@ -440,7 +440,7 @@ public:
 		CommandParser::CommandParameters::xint8_t netfn;
 		CommandParser::CommandParameters::xint8_t cmd;
 		std::vector<std::string>::size_type data_offset = 4;
-		if (parameters.nargs() < 3 || !parameters.parse_parameters(1, false, &addr)) {
+		if (parameters.nargs() < 3 || !parameters.parseParameters(1, false, &addr)) {
 			print("Invalid parameters.  See help.\n");
 			return;
 		}
@@ -451,7 +451,7 @@ public:
 			netfn = ipmicmd >> 8;
 			cmd = ipmicmd & 0xff;
 		}
-		else if (parameters.parse_parameters(2, false, &netfn, &cmd)) {
+		else if (parameters.parseParameters(2, false, &netfn, &cmd)) {
 			// Good.
 		}
 		else {
@@ -469,7 +469,7 @@ public:
 		msg->data_len = 0;
 		for (auto i = data_offset; i < parameters.nargs(); ++i) {
 			CommandParser::CommandParameters::xint8_t databyte;
-			if (!parameters.parse_parameters(i, false, &databyte)) {
+			if (!parameters.parseParameters(i, false, &databyte)) {
 				console->write("Invalid IPMI command data.  See help.\n");
 				return;
 			}
@@ -519,7 +519,7 @@ public:
 
 	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
 		uint8_t ipmbtarget;
-		if (!parameters.parse_parameters(1, true, &ipmbtarget)) {
+		if (!parameters.parseParameters(1, true, &ipmbtarget)) {
 			console->write("Incorrect parameters.  Try help.\n");
 			return;
 		}
@@ -583,8 +583,8 @@ public:
 		uint8_t ipmbtarget;
 		uint8_t frudev;
 		bool all = false;
-		if (!parameters.parse_parameters(1, true, &ipmbtarget, &frudev, &all)) {
-			if (!parameters.parse_parameters(1, true, &ipmbtarget, &frudev)) {
+		if (!parameters.parseParameters(1, true, &ipmbtarget, &frudev, &all)) {
+			if (!parameters.parseParameters(1, true, &ipmbtarget, &frudev)) {
 				console->write("Incorrect parameters.  Try help.\n");
 				return;
 			}
@@ -776,10 +776,10 @@ public:
  * @param prefix A prefix for the registered commands.
  */
 void IPMBSvc::register_console_commands(CommandParser &parser, const std::string &prefix) {
-	parser.register_command(prefix + "sendmsg", std::make_shared<ConsoleCommand_sendmsg>(*this));
-	parser.register_command(prefix + "enumerate_fru_storages", std::make_shared<ConsoleCommand_enumerate_fru_storages>(*this));
-	parser.register_command(prefix + "dump_fru_storage", std::make_shared<ConsoleCommand_dump_fru_storage>(*this));
-	parser.register_command(prefix + "status", std::make_shared<ConsoleCommand_status>(*this));
+	parser.registerCommand(prefix + "sendmsg", std::make_shared<ConsoleCommand_sendmsg>(*this));
+	parser.registerCommand(prefix + "enumerate_fru_storages", std::make_shared<ConsoleCommand_enumerate_fru_storages>(*this));
+	parser.registerCommand(prefix + "dump_fru_storage", std::make_shared<ConsoleCommand_dump_fru_storage>(*this));
+	parser.registerCommand(prefix + "status", std::make_shared<ConsoleCommand_status>(*this));
 }
 
 /**
@@ -788,8 +788,8 @@ void IPMBSvc::register_console_commands(CommandParser &parser, const std::string
  * @param prefix A prefix for the registered commands.
  */
 void IPMBSvc::deregister_console_commands(CommandParser &parser, const std::string &prefix) {
-	parser.register_command(prefix + "sendmsg", NULL);
-	parser.register_command(prefix + "enumerate_fru_storages", NULL);
-	parser.register_command(prefix + "dump_fru_storage", NULL);
-	parser.register_command(prefix + "status", NULL);
+	parser.registerCommand(prefix + "sendmsg", NULL);
+	parser.registerCommand(prefix + "enumerate_fru_storages", NULL);
+	parser.registerCommand(prefix + "dump_fru_storage", NULL);
+	parser.registerCommand(prefix + "status", NULL);
 }

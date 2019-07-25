@@ -1,11 +1,20 @@
 /*
- * CommandParser.cpp
+ * This file is part of the ZYNQ-IPMC Framework.
  *
- *  Created on: Jan 12, 2018
- *      Author: jtikalsky
+ * The ZYNQ-IPMC Framework is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ZYNQ-IPMC Framework is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "CommandParser.h"
 #include "FreeRTOS.h"
 #include "task.h"
 #include <IPMC.h>
@@ -14,81 +23,69 @@
 #include <algorithm>
 #include <libs/printf.h>
 #include <libs/threading.h>
+#include <services/console/command_parser.h>
 #include <services/console/consolesvc.h>
 
-namespace {
 /// The default 'help' console command.
-class ConsoleCommand_help : public CommandParser::Command {
+class CommandParser::HelpCommand : public CommandParser::Command {
 public:
-	const CommandParser &parser; ///< The parser we're associated with
-	/// Construct
-	ConsoleCommand_help(CommandParser &parser) : parser(parser) { };
+	HelpCommand(CommandParser &parser) : parser(parser) { };
 
-	/// Execute
 	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
 		std::string out;
 		std::string command;
 
-		if (parameters.parse_parameters(1, true, &command)) {
-			out = parser.get_helptext(command);
-			if (out.empty())
+		if (parameters.parseParameters(1, true, &command)) {
+			out = parser.getHelpText(command);
+			if (out.empty()) {
 				out = "Unknown command.  Try help.\n";
-			else if (out.back() != '\n')
+			} else if (out.back() != '\n') {
 				out += "\n";
-		}
-		else {
-			std::vector<std::string> commands = parser.list_commands();
+			}
+		} else {
+			std::vector<std::string> commands = parser.listCommands();
 			std::sort(commands.begin(), commands.end());
-			for (auto it = commands.begin(), eit = commands.end(); it != eit; ++it)
+			for (auto it = commands.begin(), eit = commands.end(); it != eit; ++it) {
 				if (it->substr(0,5) != "ANSI_") {
 					out += *it + "\n";
 				}
+			}
 		}
 		console->write(out);
 	}
 
-	virtual std::string get_helptext(const std::string &command) const {
+	virtual std::string getHelpText(const std::string &command) const {
 		return stdsprintf("%s [command]\n\nGet help on a given command, or get a list of implemented commands.\n", command.c_str());
 	}
 
 	virtual std::vector<std::string> complete(const CommandParser::CommandParameters &parameters) const {
 		std::string command;
-		if (!parameters.parse_parameters(1, true, &command) || parameters.cursor_parameter != 1)
+		if (!parameters.parseParameters(1, true, &command) || parameters.cursor_parameter != 1)
 			return std::vector<std::string>(); // We're not completing a command.
-		return this->parser.list_commands(); // We'll just pass this along.  The outer handler will do the sorting.
+		return this->parser.listCommands(); // We'll just pass this along.  The outer handler will do the sorting.
 	};
+
+private:
+	const CommandParser &parser;
 };
 
-} // anonymous namespace
-
-/**
- * Initialize a CommandParser
- *
- * @param chain The next chained command parser, if applicable.
- */
 CommandParser::CommandParser(CommandParser *chain)
 	: chain(chain) {
 	this->mutex = xSemaphoreCreateMutex();
 	configASSERT(this->mutex);
 	// Register a help command by default.
-	this->register_command("help", std::make_shared<ConsoleCommand_help>(*this));
+	this->registerCommand("help", std::make_shared<CommandParser::HelpCommand>(*this));
 }
 
 CommandParser::~CommandParser() {
 	vSemaphoreDelete(this->mutex);
 }
 
-/**
- * Tokenize a command line possibly containing quoted strings.
- * @param commandline The string to tokenize
- * @param[out] cursor_parameter The parameter the cursor is at, or 0 if none.
- * @param[in,out] cursor_char IN: The character the cursor is at.  OUT: The parameter-relative character the cursor is at, or std::string::npos if it is not within a parameter.
- * @return A vector of tokens.
- */
 std::vector<std::string> CommandParser::tokenize(const std::string &commandline, std::vector<std::string>::size_type *cursor_parameter, std::string::size_type *cursor_char) {
 	const std::string::size_type input_cursor = (cursor_char ? *cursor_char : 0);
 	if (cursor_parameter)
 		*cursor_parameter = 0;
+
 	if (cursor_char)
 		*cursor_char = std::string::npos;
 
@@ -102,18 +99,21 @@ std::vector<std::string> CommandParser::tokenize(const std::string &commandline,
 			if (input_cursor == i) {
 				if (cursor_parameter)
 					*cursor_parameter = tokens.size();
+
 				if (cursor_char)
 					*cursor_char = token.size();
 			}
 			token += commandline[i];
 			continue;
 		}
+
 		if (inquote && inquote == commandline[i]) {
 			// Ending quoted token.
 			prev_endquote = inquote;
 			inquote = 0;
 			continue;
 		}
+
 		if (commandline[i] == '"' || commandline[i] == '\'') {
 			// Starting new quote.
 			if (prev_endquote == commandline[i]) {
@@ -129,14 +129,14 @@ std::vector<std::string> CommandParser::tokenize(const std::string &commandline,
 			inquote = commandline[i];
 			continue;
 		}
+
 		// Else, This is not quoted, nor a quote change.
 		prev_endquote = 0;
 		if (commandline[i] == ' ') {
 			if (!token.empty())
 				tokens.push_back(token);
 			token = "";
-		}
-		else {
+		} else {
 			if (input_cursor == i) {
 				if (cursor_parameter)
 					*cursor_parameter = tokens.size();
@@ -146,28 +146,20 @@ std::vector<std::string> CommandParser::tokenize(const std::string &commandline,
 			token += commandline[i];
 		}
 	}
+
 	if (!token.empty())
 		tokens.push_back(token);
 
 	if (input_cursor >= commandline.size()) {
 		if (cursor_parameter)
 			*cursor_parameter = (tokens.empty() ? 0 : tokens.size()-1);
+
 		if (cursor_char)
 			*cursor_char = (tokens.empty() ? 0 : tokens.back().size());
 	}
 	return tokens;
 }
 
-/**
- * Parse a given command line and execute the associated command.
- *
- * \note Whitespace-only lines are automatically ignored as successful parses.
- *
- * @param console The calling console.  Use its safe_write() for stdout.
- * @param commandline The command line to be parsed.
- * @param cursor The current input cursor position.
- * @return false if unknown command, else true.
- */
 bool CommandParser::parse(std::shared_ptr<ConsoleSvc> console, const std::string &commandline, std::string::size_type cursor) {
 	std::vector<std::string>::size_type cursor_param = 0;
 	std::string::size_type cursor_char = cursor;
@@ -175,88 +167,68 @@ bool CommandParser::parse(std::shared_ptr<ConsoleSvc> console, const std::string
 	if (command.size() < 1)
 		return true; // We didn't fail, there was just nothing to do.
 
-	std::shared_ptr<Command> handler = this->get_command(command[0]);
+	std::shared_ptr<Command> handler = this->getCommand(command[0]);
 	if (!handler)
 		return false; // Unknown command.
+
 	handler->execute(console, CommandParameters(command, cursor_param, cursor_char));
 	return true;
 }
 
-/**
- * Retrieve a command specified by the given string.
- * @param command The command to return.
- * @return The matching command object or a 'null' pointer.
- */
-std::shared_ptr<CommandParser::Command> CommandParser::get_command(const std::string &command) const {
-	std::shared_ptr<Command> handler = NULL;
+std::shared_ptr<CommandParser::Command> CommandParser::getCommand(const std::string &command) const {
+	std::shared_ptr<Command> handler = nullptr;
 	MutexGuard<false> lock(this->mutex, true);
 	if (this->commandset.count(command))
 		handler = this->commandset.at(command);
+
 	if (!handler && this->chain)
-		handler = this->chain->get_command(command);
+		handler = this->chain->getCommand(command);
+
 	return handler;
 }
 
-/**
- * Register a command with this helper (or unregister if handler==NULL).
- *
- * @param token The command to register.
- * @param handler The handler for the command.
- */
-void CommandParser::register_command(const std::string &token, std::shared_ptr<Command> handler) {
+void CommandParser::registerCommand(const std::string &token, std::shared_ptr<Command> handler) {
 	MutexGuard<false> lock(this->mutex, true);
-	if (!handler)
+	if (!handler) {
 		this->commandset.erase(token);
-	else
+	} else {
 		this->commandset[token] = handler;
+	}
 }
 
-
-/**
- * List installed commands.
- *
- * @return All installed commands.
- */
-std::vector<std::string> CommandParser::list_commands(bool native_only) const {
+std::vector<std::string> CommandParser::listCommands(bool native_only) const {
 	MutexGuard<false> lock(this->mutex, true);
 	std::vector<std::string> commands;
+
 	commands.reserve(this->commandset.size());
 	for (auto it = this->commandset.begin(), eit = this->commandset.end(); it != eit; ++it)
 		commands.push_back(it->first);
+
 	if (!native_only && this->chain) {
-		std::vector<std::string> chained_commands = this->chain->list_commands(false);
+		std::vector<std::string> chained_commands = this->chain->listCommands(false);
 		commands.insert(commands.end(),chained_commands.begin(),chained_commands.end());
 	}
+
 	return std::move(commands);
 }
 
-/**
- * Retrieve the help text for a specific command
- *
- * @param command The command to return help text for.
- * @return The help text or an empty string if empty or none present.
- */
-std::string CommandParser::get_helptext(const std::string &command) const {
-	std::shared_ptr<Command> handler = this->get_command(command);
-	if (handler)
-		return handler->get_helptext(command);
-	else
+std::string CommandParser::getHelpText(const std::string &command) const {
+	std::shared_ptr<Command> handler = this->getCommand(command);
+	if (handler) {
+		return handler->getHelpText(command);
+	} else {
 		return "";
+	}
 }
 
 static inline std::string::size_type first_character_difference(const std::string &a, const std::string &b) {
 	std::string::size_type i = 0;
 	while (i < a.size() && i < b.size() && a[i] == b[i])
 		++i;
+
 	return i;
 }
 
-/**
- * Instantiate a CompletionResult and handle all option processing.
- *
- * @param prefix The provided prefix to complete
- * @param completions The completion options.
- */
 CommandParser::CompletionResult::CompletionResult(std::string prefix, std::vector<std::string> completions)
 	: cursor(prefix.size()), completions(completions) {
 	std::sort(this->completions.begin(), this->completions.end());
@@ -273,8 +245,7 @@ CommandParser::CompletionResult::CompletionResult(std::string prefix, std::vecto
 			// First matching value.
 			maxmatchlen = it->size();
 			this->common_prefix = *it;
-		}
-		else if (diffchar < maxmatchlen) {
+		} else if (diffchar < maxmatchlen) {
 			maxmatchlen = diffchar;
 			this->common_prefix = it->substr(0, diffchar);
 		}
@@ -282,45 +253,36 @@ CommandParser::CompletionResult::CompletionResult(std::string prefix, std::vecto
 	}
 }
 
-/**
- * Complete a provided command line, from the given cursor position.
- *
- * @param commandline The command line to complete
- * @param cursor The cursor position to complete from
- * @return A CompletionResults object.
- */
 CommandParser::CompletionResult CommandParser::complete(const std::string &commandline, std::string::size_type cursor) const {
 	std::vector<std::string>::size_type cursor_param = 0;
 	std::string::size_type cursor_char = cursor;
 	std::vector<std::string> command = CommandParser::tokenize(commandline, &cursor_param, &cursor_char);
 	if (command.size() < 1)
-		return CompletionResult("", this->list_commands());
+		return CompletionResult("", this->listCommands());
 
 	if (cursor_char == std::string::npos)
 		return CompletionResult(); // Not on a completable location.
 
-	std::shared_ptr<Command> handler = this->get_command(command[0]);
+	std::shared_ptr<Command> handler = this->getCommand(command[0]);
 	if (cursor_param == 0) {
-		return CompletionResult(command[cursor_param].substr(0, cursor_char), this->list_commands());
-	}
-	else if (handler) {
+		return CompletionResult(command[cursor_param].substr(0, cursor_char), this->listCommands());
+	} else if (handler) {
 		// Complete the command.
 		std::vector<std::string> options = handler->complete(CommandParameters(command, cursor_param, cursor_char));
 		return CompletionResult(command[cursor_param].substr(0, cursor_char), options);
-	}
-	else {
+	} else {
 		return CompletionResult(); // Completing a parameter for an unknown command.
 	}
 }
 
 bool CommandParser::CommandParameters::parse_one(const std::string &arg, xint32_t *x32val) {
-	char *endptr = NULL;
+	char *endptr = nullptr;
 	safe_init_static_mutex(stdlib_mutex, false);
 	MutexGuard<false> lock(stdlib_mutex, true);
 	errno = 0;
     *x32val = strtoul(arg.c_str(), &endptr, 16);
 	if (errno)
-		endptr = NULL;
+		endptr = nullptr;
     return (endptr && *endptr == '\0');
 }
 
@@ -341,13 +303,13 @@ bool CommandParser::CommandParameters::parse_one(const std::string &arg, xint8_t
 }
 
 bool CommandParser::CommandParameters::parse_one(const std::string &arg, uint32_t *u32val) {
-	char *endptr = NULL;
+	char *endptr = nullptr;
 	safe_init_static_mutex(stdlib_mutex, false);
 	MutexGuard<false> lock(stdlib_mutex, true);
 	errno = 0;
     *u32val = strtoul(arg.c_str(), &endptr, 0);
 	if (errno)
-		endptr = NULL;
+		endptr = nullptr;
     return (endptr && *endptr == '\0');
 }
 
@@ -368,13 +330,13 @@ bool CommandParser::CommandParameters::parse_one(const std::string &arg, uint8_t
 }
 
 bool CommandParser::CommandParameters::parse_one(const std::string &arg, long int *lintval) {
-	char *endptr = NULL;
+	char *endptr = nullptr;
 	safe_init_static_mutex(stdlib_mutex, false);
 	MutexGuard<false> lock(stdlib_mutex, true);
 	errno = 0;
 	*lintval = strtol(arg.c_str(), &endptr, 0);
 	if (errno)
-		endptr = NULL;
+		endptr = nullptr;
 	return (endptr && *endptr == '\0');
 }
 
@@ -399,31 +361,36 @@ bool CommandParser::CommandParameters::parse_one(const std::string &arg, unsigne
 bool CommandParser::CommandParameters::parse_one(const std::string &arg, bool *boolval) {
 	static const std::vector<std::string> truevals = {"1","true","True","TRUE","yes","Yes","YES"};
 	static const std::vector<std::string> falsevals = {"0","false","False","FALSE","no","No","NO"};
+
 	if (arg.empty())
 		return false;
+
 	for (auto it = truevals.begin(), eit = truevals.end(); it != eit; ++it) {
 		if (arg == it->substr(0, arg.size())) {
 			*boolval = true;
 			return true;
 		}
 	}
+
 	for (auto it = falsevals.begin(), eit = falsevals.end(); it != eit; ++it) {
 		if (arg == it->substr(0, arg.size())) {
 			*boolval = false;
 			return true;
 		}
 	}
+
 	return false;
 }
 
 bool CommandParser::CommandParameters::parse_one(const std::string &arg, double *dblval) {
-	char *endptr = NULL;
+	char *endptr = nullptr;
 	safe_init_static_mutex(stdlib_mutex, false);
 	MutexGuard<false> lock(stdlib_mutex, true);
 	errno = 0;
 	*dblval = strtod(arg.c_str(), &endptr);
 	if (errno)
-		endptr = NULL;
+		endptr = nullptr;
+
 	return (endptr && *endptr == '\0');
 }
 

@@ -132,13 +132,13 @@ private:
 
 void ELM::registerConsoleCommands(CommandParser &parser, const std::string &prefix) {
 	if (this->targetsel)
-		parser.register_command(prefix + "bootsource", std::make_shared<ELM::BootSource>(*this));
-	parser.register_command(prefix + "quiesce", std::make_shared<ELM::Quiesce>(*this));
+		parser.registerCommand(prefix + "bootsource", std::make_shared<ELM::BootSource>(*this));
+	parser.registerCommand(prefix + "quiesce", std::make_shared<ELM::Quiesce>(*this));
 }
 
 void ELM::deregisterConsoleCommands(CommandParser &parser, const std::string &prefix) {
 	if (this->targetsel)
-		parser.register_command(prefix + "bootsource", NULL);
+		parser.registerCommand(prefix + "bootsource", NULL);
 }
 
 // TODO: Proper linkage between channels

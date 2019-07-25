@@ -20,8 +20,8 @@
 
 #include <drivers/atomicity_support.h>
 #include <libs/utils.h>
+#include <services/console/command_parser.h>
 #include <services/console/consolesvc.h>
-#include <services/console/CommandParser.h>
 
 /**
  * An abstract I2C driver interface.
@@ -66,7 +66,7 @@ public:
 			const size_t length = parameters.nargs() - 2;
 			uint8_t slaveaddr;
 
-			if (!parameters.parse_parameters(1, false, &slaveaddr)) {
+			if (!parameters.parseParameters(1, false, &slaveaddr)) {
 				console->write("Invalid arguments, see help.\n");
 				return;
 			}
@@ -84,7 +84,7 @@ public:
 
 				for (size_t i = 0; i < length; i++) {
 					uint8_t value;
-					if (!parameters.parse_parameters(i+2, false, &value)) {
+					if (!parameters.parseParameters(i+2, false, &value)) {
 						console->write("Cannot parse argument " + std::to_string(i+1) + ", see help.\n");
 						return;
 					}
@@ -123,7 +123,7 @@ public:
 			size_t length;
 			uint8_t slaveaddr;
 
-			if (!parameters.parse_parameters(1, true, &slaveaddr, &length)) {
+			if (!parameters.parseParameters(1, true, &slaveaddr, &length)) {
 				console->write("Invalid arguments, see help.\n");
 				return;
 			}
@@ -161,15 +161,15 @@ public:
 
 	virtual void registerConsoleCommands(CommandParser &parser, const std::string &prefix="") {
 #ifdef ENABLE_DRIVER_COMMAND_SUPPORT
-		parser.register_command(prefix + "send", std::make_shared<I2C::Send>(*this));
-		parser.register_command(prefix + "recv", std::make_shared<I2C::Recv>(*this));
+		parser.registerCommand(prefix + "send", std::make_shared<I2C::Send>(*this));
+		parser.registerCommand(prefix + "recv", std::make_shared<I2C::Recv>(*this));
 #endif
 	}
 
 	virtual void deregisterConsoleCommands(CommandParser &parser, const std::string &prefix="") {
 #ifdef ENABLE_DRIVER_COMMAND_SUPPORT
-		parser.register_command(prefix + "send", nullptr);
-		parser.register_command(prefix + "recv", nullptr);
+		parser.registerCommand(prefix + "send", nullptr);
+		parser.registerCommand(prefix + "recv", nullptr);
 #endif
 	}
 

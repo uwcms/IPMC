@@ -1,12 +1,22 @@
 /*
- * CommandParser.h
+ * This file is part of the ZYNQ-IPMC Framework.
  *
- *  Created on: Jan 12, 2018
- *      Author: jtikalsky
+ * The ZYNQ-IPMC Framework is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ZYNQ-IPMC Framework is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef SRC_COMMON_UW_IPMC_LIBS_COMMANDPARSER_H_
-#define SRC_COMMON_UW_IPMC_LIBS_COMMANDPARSER_H_
+#ifndef SRC_COMMON_ZYNQIPMC_LIBS_COMMANDPARSER_H_
+#define SRC_COMMON_ZYNQIPMC_LIBS_COMMANDPARSER_H_
 
 #include "FreeRTOS.h"
 #include "semphr.h"
@@ -21,12 +31,17 @@
 class ConsoleSvc;
 
 /**
- * A commandline parser class, which handles registration of commands and
+ * A command line parser class, which handles registration of commands and
  * parsing and dispatch of command lines supplied as strings.
  */
-class CommandParser {
+class CommandParser final {
 public:
-	CommandParser(CommandParser *chain=NULL);
+	/**
+	 * Initialize a CommandParser
+	 *
+	 * @param chain The next chained command parser, if applicable.
+	 */
+	CommandParser(CommandParser *chain = nullptr);
 	virtual ~CommandParser();
 
 	/**
@@ -63,7 +78,7 @@ public:
 		 * @param subseq       A variable length list of pointers to store subsequent parsed parameters in.
 		 * @return true if success, else false
 		 */
-		template <typename T, typename... Args> bool parse_parameters(int start, bool total_parse, T arg1, Args... subseq) const {
+		template <typename T, typename... Args> bool parseParameters(int start, bool total_parse, T arg1, Args... subseq) const {
 			if (start + 1 + sizeof...(subseq) > this->parameters.size())
 				return false; // We want more than we have.
 			if (total_parse && this->parameters.size() < start + 1 + sizeof...(subseq))
@@ -71,7 +86,7 @@ public:
 			if (arg1 && !CommandParameters::parse_one(this->parameters[start], arg1))
 				return false; // The current arg failed to parse.
 			if (sizeof...(subseq) > 0)
-				return this->parse_parameters(start+1, total_parse, subseq...);
+				return this->parseParameters(start+1, total_parse, subseq...);
 			else
 				return true;
 		}
@@ -128,7 +143,7 @@ public:
 
 	protected:
 		/// \overload
-		bool parse_parameters(int start, bool total_parse) const { configASSERT(0); return false; /* We should never get here, but typing requires it. */ };
+		bool parseParameters(int start, bool total_parse) const { configASSERT(0); return false; /* We should never get here, but typing requires it. */ };
 	};
 
 	/**
@@ -147,7 +162,7 @@ public:
 		 * @param command The registered command name.
 		 * @return Help text for the command.
 		 */
-		virtual std::string get_helptext(const std::string &command) const { configASSERT(0); return ""; };
+		virtual std::string getHelpText(const std::string &command) const { configASSERT(0); return ""; };
 
 		/**
 		 * Execute the command.
@@ -175,10 +190,36 @@ public:
 		virtual std::vector<std::string> complete(const CommandParameters &parameters) const { return std::vector<std::string>(); };
 	};
 
+	/**
+	 * Parse a given command line and execute the associated command.
+	 *
+	 * \note Whitespace-only lines are automatically ignored as successful parses.
+	 *
+	 * @param console The calling console.  Use its safe_write() for stdout.
+	 * @param commandline The command line to be parsed.
+	 * @param cursor The current input cursor position.
+	 * @return false if unknown command, else true.
+	 */
 	virtual bool parse(std::shared_ptr<ConsoleSvc> console, const std::string &commandline, std::string::size_type cursor=0);
-	virtual void register_command(const std::string &token, std::shared_ptr<Command> handler);
-	virtual std::vector<std::string> list_commands(bool native_only=false) const;
-	virtual std::string get_helptext(const std::string &command) const;
+
+	/**
+	 * Register a command with this helper (or unregister if handler==nullptr).
+	 *
+	 * @param token The command to register.
+	 * @param handler The handler for the command.
+	 */
+	virtual void registerCommand(const std::string &token, std::shared_ptr<Command> handler);
+
+	//! List installed commands.
+	virtual std::vector<std::string> listCommands(bool native_only=false) const;
+
+	/**
+	 * Retrieve the help text for a specific command
+	 *
+	 * @param command The command to return help text for.
+	 * @return The help text or an empty string if empty or none present.
+	 */
+	virtual std::string getHelpText(const std::string &command) const;
 
 	/// The results of a completion.
 	class CompletionResult {
@@ -187,23 +228,56 @@ public:
 		std::string common_prefix; ///< The common prefix of all valid completions.
 		std::vector<std::string> completions; ///< All valid completion options.
 		CompletionResult() : cursor(0) { /* initialized blank */ };
+
+		/**
+		 * Instantiate a CompletionResult and handle all option processing.
+		 *
+		 * @param prefix The provided prefix to complete
+		 * @param completions The completion options.
+		 */
 		CompletionResult(std::string prefix, std::vector<std::string> completions);
 	};
+
+	/**
+	 * Complete a provided command line, from the given cursor position.
+	 *
+	 * @param commandline The command line to complete
+	 * @param cursor The cursor position to complete from
+	 * @return A CompletionResults object.
+	 */
 	CompletionResult complete(const std::string &commandline, std::string::size_type cursor) const;
 
-	static std::vector<std::string> tokenize(const std::string &commandline, std::vector<std::string>::size_type *cursor_parameter=NULL, std::string::size_type *cursor_char=NULL);
+	/**
+	 * Tokenize a command line possibly containing quoted strings.
+	 * @param commandline The string to tokenize
+	 * @param[out] cursor_parameter The parameter the cursor is at, or 0 if none.
+	 * @param[in,out] cursor_char IN: The character the cursor is at.  OUT: The parameter-relative character the cursor is at, or std::string::npos if it is not within a parameter.
+	 * @return A vector of tokens.
+	 */
+	static std::vector<std::string> tokenize(const std::string &commandline, std::vector<std::string>::size_type *cursor_parameter=nullptr, std::string::size_type *cursor_char=nullptr);
 
-protected:
+private:
+	// Default commands:
+	class HelpCommand;
+
 	SemaphoreHandle_t mutex; ///< A mutex protecting the commandset info.
 	std::map< std::string, std::shared_ptr<Command> > commandset; ///< The registered commands.
-	std::shared_ptr<Command> get_command(const std::string &command) const;
+
+	/**
+	 * Retrieve a command specified by the given string.
+	 * @param command The command to return.
+	 * @return The matching command object or a 'null' pointer.
+	 */
+	std::shared_ptr<Command> getCommand(const std::string &command) const;
 	CommandParser(CommandParser const &) = delete;   ///< Class is not assignable.
 	void operator=(CommandParser const &x) = delete; ///< Class is not copyable.
 
-public:
-	CommandParser *chain; ///< A chained command parser used for unknown commands if not NULL.
+	CommandParser *chain; ///< A chained command parser used for unknown commands if not nullptr.
 };
 
+/**
+ * Interface abstract class that other classes that support commands should implement.
+ */
 class ConsoleCommandSupport {
 public:
 	/**
@@ -221,4 +295,4 @@ public:
 	virtual void deregisterConsoleCommands(CommandParser &parser, const std::string &prefix="") = 0;
 };
 
-#endif /* SRC_COMMON_UW_IPMC_LIBS_COMMANDPARSER_H_ */
+#endif /* SRC_COMMON_ZYNQIPMC_LIBS_COMMANDPARSER_H_ */

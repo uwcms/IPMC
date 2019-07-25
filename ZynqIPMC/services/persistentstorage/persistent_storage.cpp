@@ -542,9 +542,9 @@ public:
 		uint32_t start;
 		uint32_t length;
 
-		if (!parameters.parse_parameters(1, true, &sect_id, &start, &length)) {
+		if (!parameters.parseParameters(1, true, &sect_id, &start, &length)) {
 			// Fine, parse $section as a string.
-			if (!parameters.parse_parameters(1, true, &sect_name, &start, &length)) {
+			if (!parameters.parseParameters(1, true, &sect_name, &start, &length)) {
 				console->write("Invalid parameters.  See help.\n");
 				return;
 			}
@@ -607,9 +607,9 @@ public:
 		std::string sect_name;
 		uint32_t start;
 
-		if (!parameters.parse_parameters(1, false, &sect_id, &start)) {
+		if (!parameters.parseParameters(1, false, &sect_id, &start)) {
 			// Fine, parse $section as a string.
-			if (!parameters.parse_parameters(1, false, &sect_name, &start)) {
+			if (!parameters.parseParameters(1, false, &sect_name, &start)) {
 				console->write("Invalid parameters.  See help.\n");
 				return;
 			}
@@ -626,7 +626,7 @@ public:
 		const CommandParser::CommandParameters::size_type writebytecount = parameters.nargs()-3;
 		uint8_t writebytes[writebytecount];
 		for (CommandParser::CommandParameters::size_type i = 0; i < parameters.nargs()-3; ++i) {
-			if (!parameters.parse_parameters(i+3, false, &writebytes[i])) {
+			if (!parameters.parseParameters(i+3, false, &writebytes[i])) {
 				console->write("Unable to parse input bytes.\n");
 				return;
 			}
@@ -689,15 +689,15 @@ public:
 		uint16_t version;
 		uint16_t size = 0;
 
-		if (parameters.parse_parameters(1, true, &sect_id, &version, &size)) {
+		if (parameters.parseParameters(1, true, &sect_id, &version, &size)) {
 			// Okay!
-		} else if (parameters.parse_parameters(1, true, &sect_id, &version)) {
+		} else if (parameters.parseParameters(1, true, &sect_id, &version)) {
 			// Still okay!
-		} else if (parameters.parse_parameters(1, true, &sect_name, &version, &size)) {
+		} else if (parameters.parseParameters(1, true, &sect_name, &version, &size)) {
 			// Fine, parse $section as a string.
 			if (PersistentStorageAllocations::name_to_id->count(sect_name))
 				sect_id = PersistentStorageAllocations::name_to_id->at(sect_name);
-		} else if (parameters.parse_parameters(1, true, &sect_name, &version)) {
+		} else if (parameters.parseParameters(1, true, &sect_name, &version)) {
 			// Fine, parse $section as a string, and there's no size specified.
 			if (PersistentStorageAllocations::name_to_id->count(sect_name))
 				sect_id = PersistentStorageAllocations::name_to_id->at(sect_name);
@@ -757,9 +757,9 @@ public:
 		uint16_t sect_id = 0;
 		std::string sect_name;
 
-		if (parameters.parse_parameters(1, true, &sect_id)) {
+		if (parameters.parseParameters(1, true, &sect_id)) {
 			// Okay!
-		} else if (parameters.parse_parameters(1, true, &sect_name)) {
+		} else if (parameters.parseParameters(1, true, &sect_name)) {
 			// Fine, parse $section as a string, and there's no size specified.
 			if (PersistentStorageAllocations::name_to_id->count(sect_name))
 				sect_id = PersistentStorageAllocations::name_to_id->at(sect_name);
@@ -781,18 +781,18 @@ private:
 };
 
 void PersistentStorage::registerConsoleCommands(CommandParser &parser, const std::string &prefix) {
-	parser.register_command(prefix + "list_sections", std::make_shared<PersistentStorage::ListSectionsCommand>(*this));
-	parser.register_command(prefix + "read", std::make_shared<PersistentStorage::ReadCommand>(*this));
-	parser.register_command(prefix + "write", std::make_shared<PersistentStorage::WriteCommand>(*this));
-	parser.register_command(prefix + "set_section_version", std::make_shared<PersistentStorage::SetSectionVersionCommand>(*this));
-	parser.register_command(prefix + "deleteSection", std::make_shared<PersistentStorage::DeleteSectionCommand>(*this));
+	parser.registerCommand(prefix + "list_sections", std::make_shared<PersistentStorage::ListSectionsCommand>(*this));
+	parser.registerCommand(prefix + "read", std::make_shared<PersistentStorage::ReadCommand>(*this));
+	parser.registerCommand(prefix + "write", std::make_shared<PersistentStorage::WriteCommand>(*this));
+	parser.registerCommand(prefix + "set_section_version", std::make_shared<PersistentStorage::SetSectionVersionCommand>(*this));
+	parser.registerCommand(prefix + "deleteSection", std::make_shared<PersistentStorage::DeleteSectionCommand>(*this));
 }
 
 void PersistentStorage::deregisterConsoleCommands(CommandParser &parser, const std::string &prefix) {
-	parser.register_command(prefix + "list_sections", nullptr);
-	parser.register_command(prefix + "read", nullptr);
-	parser.register_command(prefix + "write", nullptr);
-	parser.register_command(prefix + "set_section_version", nullptr);
-	parser.register_command(prefix + "deleteSection", nullptr);
+	parser.registerCommand(prefix + "list_sections", nullptr);
+	parser.registerCommand(prefix + "read", nullptr);
+	parser.registerCommand(prefix + "write", nullptr);
+	parser.registerCommand(prefix + "set_section_version", nullptr);
+	parser.registerCommand(prefix + "deleteSection", nullptr);
 }
 

@@ -260,7 +260,7 @@ public:
 	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
 		std::string arg;
 		if (parameters.nargs() > 1) {
-			if (!parameters.parse_parameters(1, true, &arg)) {
+			if (!parameters.parseParameters(1, true, &arg)) {
 				console->write("Invalid arguments, see help.\n");
 				return;
 			}
@@ -308,7 +308,7 @@ public:
  * @param prefix A prefix for the registered commands.
  */
 void MStateMachine::register_console_commands(CommandParser &parser, const std::string &prefix) {
-	parser.register_command(prefix + "handle_override", std::make_shared<ConsoleCommand_handle_override>(*this));
+	parser.registerCommand(prefix + "handle_override", std::make_shared<ConsoleCommand_handle_override>(*this));
 }
 
 /**
@@ -317,5 +317,5 @@ void MStateMachine::register_console_commands(CommandParser &parser, const std::
  * @param prefix A prefix for the registered commands.
  */
 void MStateMachine::deregister_console_commands(CommandParser &parser, const std::string &prefix) {
-	parser.register_command(prefix + "handle_override", NULL);
+	parser.registerCommand(prefix + "handle_override", NULL);
 }

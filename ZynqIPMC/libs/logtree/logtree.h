@@ -18,6 +18,7 @@
 #ifndef SRC_COMMON_ZYNQIPMC_LIBS_LOGTREE_H_
 #define SRC_COMMON_ZYNQIPMC_LIBS_LOGTREE_H_
 
+#include <services/console/command_parser.h>
 #include "FreeRTOS.h"
 #include "semphr.h"
 #include <string>
@@ -25,7 +26,6 @@
 #include <vector>
 #include <map>
 #include <functional>
-#include <services/console/CommandParser.h>
 
 /**
  * The LogTree class provides as tree of logging facilities which can be

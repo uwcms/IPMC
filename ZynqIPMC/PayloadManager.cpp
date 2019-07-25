@@ -493,12 +493,12 @@ public:
 		uint8_t new_level;
 		bool force = false;
 		// Parse $new_level parameter.
-		if (!parameters.parse_parameters(1, (parameters.nargs() == 2), &new_level)) {
+		if (!parameters.parseParameters(1, (parameters.nargs() == 2), &new_level)) {
 			console->write("Invalid parameters.\n");
 			return;
 		}
 		// Parse $force parameter.
-		if (parameters.nargs() >= 3 && !parameters.parse_parameters(2, true, &force)) {
+		if (parameters.nargs() >= 3 && !parameters.parseParameters(2, true, &force)) {
 			console->write("Invalid parameters.\n");
 			return;
 		}
@@ -546,7 +546,7 @@ public:
 		} else {
 			uint8_t mz_number;
 			// Parse $mz_number parameter.
-			if (!parameters.parse_parameters(1, false, &mz_number)) {
+			if (!parameters.parseParameters(1, false, &mz_number)) {
 				console->write("Invalid parameters.\n");
 				return;
 			}
@@ -685,7 +685,7 @@ public:
 
 	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
 		uint8_t sensor_number;
-		if (!parameters.parse_parameters(1, true, &sensor_number)) {
+		if (!parameters.parseParameters(1, true, &sensor_number)) {
 			console->write("Invalid parameters.  Try `help`.\n");
 			return;
 		}
@@ -739,7 +739,7 @@ public:
 		uint8_t sensor_number;
 		std::string enable_type;
 		CommandParser::CommandParameters::xint16_t assertmask, deassertmask;
-		if (!parameters.parse_parameters(1, true, &sensor_number, &enable_type, &assertmask, &deassertmask)) {
+		if (!parameters.parseParameters(1, true, &sensor_number, &enable_type, &assertmask, &deassertmask)) {
 			console->write("Invalid parameters.  Try `help`.\n");
 			return;
 		}
@@ -812,11 +812,11 @@ public:
  * @param prefix A prefix for the registered commands.
  */
 void PayloadManager::register_console_commands(CommandParser &parser, const std::string &prefix) {
-	parser.register_command(prefix + "power_level", std::make_shared<ConsoleCommand_PayloadManager_power_level>(*this));
-	parser.register_command(prefix + "mz_control", std::make_shared<ConsoleCommand_PayloadManager_mz_control>(*this));
-	parser.register_command(prefix + "read_ipmi_sensors", std::make_shared<ConsoleCommand_read_ipmi_sensors>());
-	parser.register_command(prefix + "get_sensor_event_enables", std::make_shared<ConsoleCommand_get_sensor_event_enables>());
-	parser.register_command(prefix + "set_sensor_event_enables", std::make_shared<ConsoleCommand_set_sensor_event_enables>(*this));
+	parser.registerCommand(prefix + "power_level", std::make_shared<ConsoleCommand_PayloadManager_power_level>(*this));
+	parser.registerCommand(prefix + "mz_control", std::make_shared<ConsoleCommand_PayloadManager_mz_control>(*this));
+	parser.registerCommand(prefix + "read_ipmi_sensors", std::make_shared<ConsoleCommand_read_ipmi_sensors>());
+	parser.registerCommand(prefix + "get_sensor_event_enables", std::make_shared<ConsoleCommand_get_sensor_event_enables>());
+	parser.registerCommand(prefix + "set_sensor_event_enables", std::make_shared<ConsoleCommand_set_sensor_event_enables>(*this));
 }
 
 /**
@@ -825,9 +825,9 @@ void PayloadManager::register_console_commands(CommandParser &parser, const std:
  * @param prefix A prefix for the registered commands.
  */
 void PayloadManager::deregister_console_commands(CommandParser &parser, const std::string &prefix) {
-	parser.register_command(prefix + "power_level", NULL);
-	parser.register_command(prefix + "mz_control", NULL);
-	parser.register_command(prefix + "read_ipmi_sensors", NULL);
-	parser.register_command(prefix + "get_sensor_event_enables", NULL);
-	parser.register_command(prefix + "set_sensor_event_enables", NULL);
+	parser.registerCommand(prefix + "power_level", NULL);
+	parser.registerCommand(prefix + "mz_control", NULL);
+	parser.registerCommand(prefix + "read_ipmi_sensors", NULL);
+	parser.registerCommand(prefix + "get_sensor_event_enables", NULL);
+	parser.registerCommand(prefix + "set_sensor_event_enables", NULL);
 }

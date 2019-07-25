@@ -25,28 +25,16 @@
 #include <FreeRTOS.h>
 #include <semphr.h>
 #include <event_groups.h>
-#include <services/console/CommandParser.h>
 #include <libs/ansi_code/ansi_code.h>
 #include <libs/logtree/logtree.h>
 #include <libs/threading.h>
+#include <services/console/command_parser.h>
 
 /**
  * A generic console service.
  */
 class ConsoleSvc {
 public:
-	/**
-	 * Factory function.  All parameters match the constructor.
-	 *
-	 * @note Since the parameters are specific, this function cannot be virtual.
-	 */
-	static std::shared_ptr<ConsoleSvc> create(CommandParser &parser, const std::string &name, LogTree &logtree, bool echo, TickType_t read_data_timeout=10) {
-		throw std::logic_error("ConsoleSvc is an abstract class. Please instantiate a specialization.");
-		std::shared_ptr<ConsoleSvc> ret(new ConsoleSvc(parser, name, logtree, echo, read_data_timeout));
-		ret->weakself = ret;
-		return ret;
-	}
-
 	virtual ~ConsoleSvc();
 
 	ConsoleSvc(ConsoleSvc const &) = delete;      ///< Class is not assignable.
@@ -250,13 +238,13 @@ protected:
 	 * This is called immediately before object deletion (if relevant) and
 	 * thread death.
 	 */
-	virtual void shutdown_complete() { };
+	virtual void shutdownComplete() { };
 
-	/// A virtual method handling input, to be overridden by implementations.
-	virtual ssize_t raw_read(char *buf, size_t len, TickType_t timeout, TickType_t read_data_timeout) { configASSERT(0); return 0; };
+	//! A pure virtual method handling input, to be overridden by implementations.
+	virtual ssize_t rawRead(char *buf, size_t len, TickType_t timeout, TickType_t read_data_timeout) = 0;
 
-	/// A virtual method handling output, to be overridden by implementations.
-	virtual ssize_t raw_write(const char *buf, size_t len, TickType_t timeout) { configASSERT(0); return 0; };
+	//! A pure virtual method handling output, to be overridden by implementations.
+	virtual ssize_t rawWrite(const char *buf, size_t len, TickType_t timeout) = 0;
 
 	CommandParser &parser;			///< The command parser for this console.
 	const std::string name;			///< The name for this ConsoleSvc's thread, logging, etc.
@@ -284,6 +272,6 @@ protected:
  * @param level The loglevel of the message
  * @return The message formatted for console output
  */
-std::string ConsoleSvcLogFormat(const std::string &message, enum LogTree::LogLevel level);
+std::string consoleSvcLogFormat(const std::string &message, enum LogTree::LogLevel level);
 
 #endif /* SRC_COMMON_ZYNQIPMC_SERVICES_CONSOLE_CONSOLESVC_H_ */

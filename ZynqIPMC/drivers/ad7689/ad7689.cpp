@@ -69,11 +69,11 @@ const float AD7689::rawToVolts(uint32_t raw) const {
 }
 
 void AD7689::registerConsoleCommands(CommandParser &parser, const std::string &prefix) {
-	parser.register_command(prefix + "override", std::make_shared<Override>(*this));
+	parser.registerCommand(prefix + "override", std::make_shared<Override>(*this));
 }
 
 void AD7689::deregisterConsoleCommands(CommandParser &parser, const std::string &prefix) {
-	parser.register_command(prefix + "override", NULL);
+	parser.registerCommand(prefix + "override", NULL);
 }
 
 std::string AD7689::Override::get_helptext(const std::string &command) const {
@@ -88,7 +88,7 @@ void AD7689::Override::execute(std::shared_ptr<ConsoleSvc> console, const Comman
 	unsigned int channel;
 	std::string value;
 
-	if (!parameters.parse_parameters(1, false, &channel, &value)) {
+	if (!parameters.parseParameters(1, false, &channel, &value)) {
 		console->write("Invalid parameters, see help.\n");
 		return;
 	}
