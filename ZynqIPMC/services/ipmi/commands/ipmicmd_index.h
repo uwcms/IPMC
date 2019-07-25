@@ -18,7 +18,7 @@
 #ifndef SRC_COMMON_ZYNQIPMC_SERVICES_IPMI_COMMANDS_IPMICMD_INDEX_H_
 #define SRC_COMMON_ZYNQIPMC_SERVICES_IPMI_COMMANDS_IPMICMD_INDEX_H_
 
-#include <services/ipmi/ipmbsvc/IPMICommandParser.h>
+#include <services/ipmi/ipmbsvc/ipmi_command_parser.h>
 
 //! Mapping of all supported IPMI commands.
 extern std::map<uint16_t, IPMICommandParser::ipmi_cmd_handler_t> *ipmicmd_index;

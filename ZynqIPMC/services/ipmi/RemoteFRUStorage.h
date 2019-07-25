@@ -1,8 +1,8 @@
 #ifndef SRC_COMMON_UW_IPMC_SERVICES_IPMI_REMOTEFRUSTORAGE_H_
 #define SRC_COMMON_UW_IPMC_SERVICES_IPMI_REMOTEFRUSTORAGE_H_
 
+#include <services/ipmi/ipmbsvc/ipmbsvc.h>
 #include <stddef.h>
-#include <services/ipmi/ipmbsvc/IPMBSvc.h>
 #include <memory>
 #include <vector>
 

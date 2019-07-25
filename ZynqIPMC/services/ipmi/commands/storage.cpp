@@ -17,11 +17,11 @@
 
 #include <Core.h>
 #include <services/ipmi/IPMI.h>
-#include <services/ipmi/ipmbsvc/IPMBSvc.h>
 #include <services/ipmi/sdr/SensorDataRepository.h>
 #include <libs/printf.h>
 #include <libs/threading.h>
 #include <services/ipmi/commands/ipmicmd_index.h>
+#include <services/ipmi/ipmbsvc/ipmbsvc.h>
 #include <services/persistentstorage/persistent_storage.h>
 
 #define RETURN_ERROR(ipmb, message, completion_code) \

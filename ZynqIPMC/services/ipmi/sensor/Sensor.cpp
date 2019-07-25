@@ -10,13 +10,13 @@
 #include <services/ipmi/sdr/SensorDataRecordSensor.h>
 #include <services/ipmi/sdr/SensorDataRecordReadableSensor.h>
 #include <services/ipmi/sdr/SensorDataRecord01.h>
-#include <services/ipmi/ipmbsvc/IPMBSvc.h>
 #include <libs/printf.h>
 #include <libs/except.h>
 #include <IPMC.h>
 #include <Core.h>
 #include <libs/threading.h>
 #include <math.h>
+#include <services/ipmi/ipmbsvc/ipmbsvc.h>
 
 /**
  * Instantiate a Sensor.
@@ -68,7 +68,7 @@ void Sensor::send_event(enum EventDirection direction, const std::vector<uint8_t
 	data.push_back(sdr->sensor_number());
 	data.push_back((static_cast<uint8_t>(direction) << 7) | sdr->event_type_reading_code());
 	data.insert(data.end(), event_data.begin(), event_data.end());
-	std::shared_ptr<IPMI_MSG> msg = std::make_shared<IPMI_MSG>(0, er.ipmb->ipmb_address, er.lun, er.addr, IPMI::NetFn::Sensor_Event, IPMI::Sensor_Event::Platform_Event, data);
+	std::shared_ptr<IPMI_MSG> msg = std::make_shared<IPMI_MSG>(0, er.ipmb->getIPMBAddress(), er.lun, er.addr, IPMI::NetFn::Sensor_Event, IPMI::Sensor_Event::Platform_Event, data);
 	this->log.log(stdsprintf("Sending event on \"%s\" sensor to %hhu.%02hhx: %s", sdr->id_string().c_str(), er.lun, er.addr, msg->format().c_str()), LogTree::LOG_INFO);
 	ipmb0->send(msg);
 }

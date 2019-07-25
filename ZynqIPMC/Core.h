@@ -14,8 +14,8 @@
 #include <drivers/spi_eeprom/spi_eeprom.h>
 #include <drivers/watchdog/ps_wdt.h>
 #include <libs/logtree/logtree.h>
+#include <services/ipmi/ipmbsvc/ipmbsvc.h>
 
-#include <services/ipmi/ipmbsvc/IPMBSvc.h>
 #include <services/ipmi/MStateMachine.h>
 #include <services/persistentstorage/persistent_storage.h>
 

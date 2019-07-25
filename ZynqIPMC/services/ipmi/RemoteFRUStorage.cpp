@@ -20,8 +20,8 @@
 std::shared_ptr<RemoteFRUStorage> RemoteFRUStorage::Probe(IPMBSvc *ipmb, uint8_t target, uint8_t dev, BaseType_t retry_delay) {
 	std::shared_ptr<IPMI_MSG> probersp;
 	for (int retry = 0; retry < 3; ++retry) {
-		probersp = ipmb->send_sync(std::make_shared<IPMI_MSG>(
-				0, ipmb->ipmb_address,
+		probersp = ipmb->sendSync(std::make_shared<IPMI_MSG>(
+				0, ipmb->getIPMBAddress(),
 				0, target,
 				(IPMI::Get_FRU_Inventory_Area_Info >> 8) & 0xff, IPMI::Get_FRU_Inventory_Area_Info & 0xff,
 				std::vector<uint8_t> {dev}));
@@ -90,8 +90,8 @@ std::vector<uint8_t> RemoteFRUStorage::ReadData(uint16_t offset, uint16_t size, 
 
 		std::shared_ptr<IPMI_MSG> rd_rsp;
 		for (int i = 0; i < 3; ++i) {
-			rd_rsp = this->ipmb->send_sync(
-					std::make_shared<IPMI_MSG>(0, this->ipmb->ipmb_address, 0, this->ipmb_target,
+			rd_rsp = this->ipmb->sendSync(
+					std::make_shared<IPMI_MSG>(0, this->ipmb->getIPMBAddress(), 0, this->ipmb_target,
 							(IPMI::Read_FRU_Data >> 8) & 0xff,
 							IPMI::Read_FRU_Data & 0xff,
 							std::vector<uint8_t> {

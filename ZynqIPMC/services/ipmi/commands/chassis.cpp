@@ -16,8 +16,8 @@
  */
 
 #include <services/ipmi/commands/ipmicmd_index.h>
+#include <services/ipmi/ipmbsvc/ipmbsvc.h>
 #include <services/ipmi/IPMI.h>
-#include <services/ipmi/ipmbsvc/IPMBSvc.h>
 
 // Chassis Device Commands
 

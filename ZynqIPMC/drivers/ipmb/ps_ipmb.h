@@ -33,7 +33,7 @@
 #include <drivers/generics/ipmb.h>
 #include <drivers/interrupt_based_driver.h>
 #include <services/ipmi/IPMI_MSG.h>
-#include <services/ipmi/ipmbsvc/IPMBSvc.h>
+#include <services/ipmi/ipmbsvc/ipmbsvc.h>
 
 /**
  * An interrupt-based driver for the PS I2C, specialized for IPMB functionality.

@@ -19,8 +19,8 @@
 
 #include <IPMC.h>
 #include <libs/printf.h>
+#include <services/ipmi/ipmbsvc/ipmbsvc.h>
 #include <services/ipmi/IPMI.h>
-#include <services/ipmi/ipmbsvc/IPMBSvc.h>
 
 void ipmicmd_default(IPMBSvc &ipmb, const IPMI_MSG &message) {
 	LogTree &logtree = ipmb.logroot["unknown_commands"];

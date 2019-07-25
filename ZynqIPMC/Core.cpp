@@ -135,8 +135,8 @@ void core_driver_init() {
 	ps_ipmb[1] = new PSIPMB(XPAR_PS7_I2C_1_DEVICE_ID, XPAR_PS7_I2C_1_INTR, ipmbaddr);
 	IPMBPair *ipmb0pair = new IPMBPair(ps_ipmb[0], ps_ipmb[1], &(log_ipmb0["outgoing_messages"]));
 	ipmi_command_parser = new IPMICommandParser(ipmicmd_default, *ipmicmd_index);
-	ipmb0 = new IPMBSvc(ipmb0pair, ipmbaddr, ipmi_command_parser, log_ipmb0, "ipmb0", swdt);
-	ipmb0->register_console_commands(console_command_parser, "ipmb0.");
+	ipmb0 = new IPMBSvc(*ipmb0pair, ipmbaddr, ipmi_command_parser, log_ipmb0, "ipmb0", swdt);
+	ipmb0->registerConsoleCommands(console_command_parser, "ipmb0.");
 	ipmi_event_receiver.ipmb = ipmb0;
 	ipmi_event_receiver.lun = 0;
 	ipmi_event_receiver.addr = 0x20; // Should be `0xFF "Disabled"`, maybe?
