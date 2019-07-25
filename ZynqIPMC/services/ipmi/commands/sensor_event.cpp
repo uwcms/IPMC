@@ -190,7 +190,7 @@ static void ipmicmd_Get_Device_SDR(IPMBSvc &ipmb, const IPMI_MSG &message) {
 		next_record = 0xFFFF;
 	std::vector<uint8_t> reply{IPMI::Completion::Success, static_cast<uint8_t>(next_record & 0xFF), static_cast<uint8_t>(next_record >> 8)};
 	std::vector<uint8_t> sdrdata = record->u8export(message.rsSA, 0);
-	int i = message.data[4]; // offset
+	size_t i = message.data[4]; // offset
 	size_t limit = message.data[4] + message.data[5] /* bytes to read */;
 	if (limit > sdrdata.size())
 		limit = sdrdata.size();
