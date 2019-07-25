@@ -1,3 +1,20 @@
+/*
+ * This file is part of the ZYNQ-IPMC Framework.
+ *
+ * The ZYNQ-IPMC Framework is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ZYNQ-IPMC Framework is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include <services/ipmi/IPMI.h>
 #include <services/ipmi/ipmbsvc/IPMBSvc.h>
 #include <services/ipmi/sensor/SensorSet.h>
@@ -10,8 +27,8 @@
 #include <IPMC.h>
 #include <Core.h>
 #include <PayloadManager.h>
+#include <services/ipmi/commands/ipmicmd_index.h>
 #include <services/persistentstorage/persistent_storage.h>
-#include "IPMICmd_Index.h"
 
 #define RETURN_ERROR(ipmb, message, completion_code) \
 	do { \
@@ -155,7 +172,7 @@ IPMICMD_INDEX_REGISTER(Get_Device_SDR_Info);
 static void ipmicmd_Get_Device_SDR(IPMBSvc &ipmb, const IPMI_MSG &message) {
 	if (message.data_len != 6)
 		RETURN_ERROR(ipmb, message, IPMI::Completion::Request_Data_Length_Invalid);
-	uint16_t reservation = (message.data[1] << 8) | message.data[0];
+	//uint16_t reservation = (message.data[1] << 8) | message.data[0]; // not used
 	uint16_t record_id = (message.data[3] << 8) | message.data[2];
 	if (record_id == 0xFFFF)
 		record_id = device_sdr_repo.size() - 1;
@@ -174,7 +191,7 @@ static void ipmicmd_Get_Device_SDR(IPMBSvc &ipmb, const IPMI_MSG &message) {
 	std::vector<uint8_t> reply{IPMI::Completion::Success, static_cast<uint8_t>(next_record & 0xFF), static_cast<uint8_t>(next_record >> 8)};
 	std::vector<uint8_t> sdrdata = record->u8export(message.rsSA, 0);
 	int i = message.data[4]; // offset
-	int limit = message.data[4] + message.data[5] /* bytes to read */;
+	size_t limit = message.data[4] + message.data[5] /* bytes to read */;
 	if (limit > sdrdata.size())
 		limit = sdrdata.size();
 	for (; i < limit; ++i)

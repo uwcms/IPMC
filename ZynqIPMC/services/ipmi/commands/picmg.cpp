@@ -1,10 +1,27 @@
+/*
+ * This file is part of the ZYNQ-IPMC Framework.
+ *
+ * The ZYNQ-IPMC Framework is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ZYNQ-IPMC Framework is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include <Core.h>
 #include <services/ipmi/IPMI.h>
 #include <services/ipmi/ipmbsvc/IPMBSvc.h>
 #include <services/ipmi/sdr/SensorDataRepository.h>
 #include <services/ipmi/MStateMachine.h>
 #include <PayloadManager.h>
-#include "IPMICmd_Index.h"
+#include <services/ipmi/commands/ipmicmd_index.h>
 
 // AdvancedTCA
 
@@ -105,7 +122,7 @@ static void ipmicmd_Set_FRU_LED_State(IPMBSvc &ipmb, const IPMI_MSG &message) {
 	IPMI_LED &led = *ipmi_leds.at(message.data[2]);
 	uint8_t function = message.data[3];
 	uint8_t on_duration = message.data[4];
-	uint8_t color = message.data[5]; // We ignore this.
+	//uint8_t color = message.data[5]; // We ignore this.
 	struct IPMI_LED::Action action;
 	action.min_duration = 0;
 
@@ -122,7 +139,7 @@ static void ipmicmd_Set_FRU_LED_State(IPMBSvc &ipmb, const IPMI_MSG &message) {
 		// LAMP TEST
 		led.lamp_test(on_duration * pdMS_TO_TICKS(100));
 	}
-	else if (function = 0xFC) {
+	else if (function == 0xFC) {
 		action.effect = IPMI_LED::INACTIVE; // Turn off override mode
 		led.override(action);
 	}

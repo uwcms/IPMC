@@ -16,10 +16,9 @@
 #include <drivers/ps_gpio/ps_gpio.h>
 #include <drivers/ps_spi/ps_spi.h>
 #include <drivers/spi_flash/spi_flash.h>
-#include <services/ipmi/commands/IPMICmd_Index.h>
-
 #include <libs/printf.h>
 #include <services/console/uartconsolesvc.h>
+#include <services/ipmi/commands/ipmicmd_index.h>
 
 #define REBOOT_STATUS_REG (XPS_SYS_CTRL_BASEADDR + 0x258)
 
