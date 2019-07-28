@@ -11,7 +11,7 @@
 #include <libs/threading.h>
 #include <services/console/consolesvc.h>
 
-MStateMachine::MStateMachine(std::shared_ptr<HotswapSensor> hotswap_sensor, IPMI_LED &blue_led, LogTree &log)
+MStateMachine::MStateMachine(std::shared_ptr<HotswapSensor> hotswap_sensor, IPMILED &blue_led, LogTree &log)
 	: deactivate_payload(NULL), _mstate(1), hotswap_sensor(hotswap_sensor), blue_led(blue_led), log(log),
 	  _activation_locked(false), _deactivation_locked(false), _startup_locked(true), _fault_locked(false),
 	  _physical_handle_state(HANDLE_OPEN), _override_handle_state(HANDLE_NULL) {
@@ -214,24 +214,24 @@ void MStateMachine::transition(uint8_t mstate, enum HotswapSensor::StateTransiti
  */
 void MStateMachine::update_ipmi_led(uint8_t prev_mstate, uint8_t mstate) {
 	MutexGuard<true> lock(this->mutex, true);
-	struct IPMI_LED::Action action;
+	struct IPMILED::Action action;
 	action.min_duration = 0;
 	action.periodMs = 1000; // Ignored for non-blink, always accurate for blink.
 	switch (mstate) {
 	case 1:
-		action.effect = IPMI_LED::ON; break;
+		action.effect = IPMILED::ON; break;
 	case 2:
-		action.effect = IPMI_LED::BLINK;
+		action.effect = IPMILED::BLINK;
 		action.timeOnMs = 900;
 		if (prev_mstate == 1)
 			action.min_duration = 1000;
 		break;
 	case 3:
 	case 4:
-		action.effect = IPMI_LED::OFF; break;
+		action.effect = IPMILED::OFF; break;
 	case 5:
 	case 6:
-		action.effect = IPMI_LED::BLINK;
+		action.effect = IPMILED::BLINK;
 		action.timeOnMs = 100;
 		if (prev_mstate == 4)
 			action.min_duration = 1000;

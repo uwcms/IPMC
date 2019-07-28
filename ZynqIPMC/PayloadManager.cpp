@@ -119,9 +119,9 @@ PayloadManager::PayloadManager(MStateMachine *mstate_machine, LogTree &log)
 	: mstate_machine(mstate_machine), log(log), sp_context_update_timer(NULL) {
 	configASSERT(this->mutex = xSemaphoreCreateRecursiveMutex());
 
-	struct IPMI_LED::Action ledstate;
+	struct IPMILED::Action ledstate;
 	ledstate.min_duration = 0;
-	ledstate.effect = IPMI_LED::OFF;
+	ledstate.effect = IPMILED::OFF;
 	ipmi_leds[2]->submit(ledstate);
 }
 
@@ -296,26 +296,26 @@ void PayloadManager::run_sensor_thread() {
 			this->alarmlevel_sensor->transition(alarm_level);
 
 			if (alarm_level != old_level) {
-				struct IPMI_LED::Action ledstate;
+				struct IPMILED::Action ledstate;
 				ledstate.min_duration = 0;
 				ledstate.periodMs = 1000;
 				switch (alarm_level) {
 				case SeveritySensor::OK:
-					ledstate.effect = IPMI_LED::OFF;
+					ledstate.effect = IPMILED::OFF;
 					break;
 				case SeveritySensor::NC:
-					ledstate.effect = IPMI_LED::BLINK;
+					ledstate.effect = IPMILED::BLINK;
 					ledstate.timeOnMs = 100;
 					break;
 				case SeveritySensor::CR:
-					ledstate.effect = IPMI_LED::BLINK;
+					ledstate.effect = IPMILED::BLINK;
 					ledstate.timeOnMs = 900;
 					break;
 				case SeveritySensor::NR:
-					ledstate.effect = IPMI_LED::ON;
+					ledstate.effect = IPMILED::ON;
 					break;
 				default:
-					ledstate.effect = IPMI_LED::BLINK;
+					ledstate.effect = IPMILED::BLINK;
 					ledstate.timeOnMs = 500;
 				}
 				ipmi_leds[1]->submit(ledstate);

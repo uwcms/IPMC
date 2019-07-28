@@ -119,32 +119,32 @@ static void ipmicmd_Set_FRU_LED_State(IPMBSvc &ipmb, const IPMI_MSG &message) {
 	if (message.data[2] > 3)
 		// We don't have more than 4 controllable LEDs.
 		RETURN_ERROR(ipmb, message, IPMI::Completion::Invalid_Data_Field_In_Request /* Specified */);
-	IPMI_LED &led = *ipmi_leds.at(message.data[2]);
+	IPMILED &led = *ipmi_leds.at(message.data[2]);
 	uint8_t function = message.data[3];
 	uint8_t on_duration = message.data[4];
 	//uint8_t color = message.data[5]; // We ignore this.
-	struct IPMI_LED::Action action;
+	struct IPMILED::Action action;
 	action.min_duration = 0;
 
 	if (function == 0) {
-		action.effect = IPMI_LED::OFF;
+		action.effect = IPMILED::OFF;
 	}
 	else if (0x01 <= function && function <= 0xFA) {
-		action.effect = IPMI_LED::BLINK;
+		action.effect = IPMILED::BLINK;
 		action.timeOnMs = on_duration * pdMS_TO_TICKS(10);
 		action.periodMs = action.timeOnMs + function * pdMS_TO_TICKS(10);
 		led.override(action);
 	}
 	else if (function == 0xFB) {
 		// LAMP TEST
-		led.lamp_test(on_duration * pdMS_TO_TICKS(100));
+		led.lampTest(on_duration * pdMS_TO_TICKS(100));
 	}
 	else if (function == 0xFC) {
-		action.effect = IPMI_LED::INACTIVE; // Turn off override mode
+		action.effect = IPMILED::INACTIVE; // Turn off override mode
 		led.override(action);
 	}
 	else if (function == 0xFF) {
-		action.effect = IPMI_LED::OFF;
+		action.effect = IPMILED::OFF;
 		led.override(action);
 	}
 	else {
@@ -162,28 +162,28 @@ static void ipmicmd_Get_FRU_LED_State(IPMBSvc &ipmb, const IPMI_MSG &message) {
 	if (message.data[2] > 3)
 		// We don't have more than 4 controllable LEDs.
 		RETURN_ERROR(ipmb, message, IPMI::Completion::Invalid_Data_Field_In_Request /* Specified */);
-	IPMI_LED &led = *ipmi_leds.at(message.data[2]);
-	struct IPMI_LED::Action action = led.get_current_physical_action();
+	IPMILED &led = *ipmi_leds.at(message.data[2]);
+	struct IPMILED::Action action = led.getCurrentPhysicalAction();
 	uint8_t color = message.data[2] + 1; // Nice how these things work out, isn't it?
 
 	std::shared_ptr<IPMI_MSG> reply = message.prepare_reply();
 	reply->data[0] = IPMI::Completion::Success;
 	reply->data[1] = 0; // PICMG Identifier (Specified)
 	reply->data[2] = 1<<0; // We do have a local control state.
-	if (action.control_level == IPMI_LED::OVERRIDE)
+	if (action.control_level == IPMILED::OVERRIDE)
 		reply->data[2] |= 1<<1; // The override state is active.
-	if (action.control_level == IPMI_LED::LAMPTEST)
+	if (action.control_level == IPMILED::LAMPTEST)
 		reply->data[2] = 1<<2; // The Lamp Test state is active.
 
-	action = led.get_current_local_action();
+	action = led.getCurrentLocalAction();
 	uint32_t ticksOn = action.timeOnMs;
 	uint32_t ticksOff = action.periodMs - action.timeOnMs;
 
-	if (action.effect == IPMI_LED::OFF) {
+	if (action.effect == IPMILED::OFF) {
 		reply->data[3] = 0;
 		reply->data[4] = 0;
 	}
-	else if (action.effect == IPMI_LED::BLINK) {
+	else if (action.effect == IPMILED::BLINK) {
 		uint32_t unitsOff = ticksOff / pdMS_TO_TICKS(10);
 		reply->data[3] = unitsOff;
 		if (unitsOff < 1)
@@ -212,15 +212,15 @@ static void ipmicmd_Get_FRU_LED_State(IPMBSvc &ipmb, const IPMI_MSG &message) {
 
 	// Fine so we have an override level too.
 
-	action = led.get_current_override_action();
+	action = led.getCurrentOverrideAction();
 	ticksOn = action.timeOnMs;
 	ticksOff = action.periodMs - action.timeOnMs;
 
-	if (action.effect == IPMI_LED::OFF) {
+	if (action.effect == IPMILED::OFF) {
 		reply->data[7] = 0;
 		reply->data[8] = 0;
 	}
-	else if (action.effect == IPMI_LED::BLINK) {
+	else if (action.effect == IPMILED::BLINK) {
 		uint32_t unitsOff = ticksOff / pdMS_TO_TICKS(10);
 		reply->data[7] = unitsOff;
 		if (unitsOff < 1)
@@ -248,7 +248,7 @@ static void ipmicmd_Get_FRU_LED_State(IPMBSvc &ipmb, const IPMI_MSG &message) {
 	}
 
 	// Fine, so we have a lamp test too.
-	uint32_t lamp_test_remaining_decisec = led.get_current_lamp_test_duration().getTimeout() / pdMS_TO_TICKS(100);
+	uint32_t lamp_test_remaining_decisec = led.getCurrentLampTestDuration().getTimeout() / pdMS_TO_TICKS(100);
 	reply->data[10] = lamp_test_remaining_decisec;
 	if (lamp_test_remaining_decisec > 127)
 		reply->data[10] = 127;

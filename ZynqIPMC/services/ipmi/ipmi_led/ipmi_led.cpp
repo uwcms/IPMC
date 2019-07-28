@@ -1,22 +1,33 @@
 /*
- * IPMILED.cpp
+ * This file is part of the ZYNQ-IPMC Framework.
  *
- *  Created on: Jan 16, 2019
- *      Author: jtikalsky
+ * The ZYNQ-IPMC Framework is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ZYNQ-IPMC Framework is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <libs/threading.h>
-#include <services/ipmi/ipmi_led/IPMILED.h>
+#include <services/ipmi/ipmi_led/ipmi_led.h>
+
 #include <IPMC.h>
 
-IPMI_LED::IPMI_LED(LED &led) : led(led), local_min_duration(0ULL), lamp_test_timeout(0ULL), timer(NULL) {
+IPMILED::IPMILED(LED &led) : led(led), local_min_duration(0ULL), lampTest_timeout(0ULL), timer(nullptr) {
 	this->local_action.effect = OFF;
 	this->local_action.min_duration = 0;
 	this->override_action.effect = INACTIVE;
 	this->mutex = xSemaphoreCreateRecursiveMutex();
 }
 
-IPMI_LED::~IPMI_LED() {
+IPMILED::~IPMILED() {
 	MutexGuard<true> lock(this->mutex, true);
 	if (this->timer)
 		this->timer->cancel();
@@ -24,53 +35,51 @@ IPMI_LED::~IPMI_LED() {
 	vSemaphoreDelete(this->mutex);
 }
 
-void IPMI_LED::submit(struct Action action) {
+void IPMILED::submit(struct Action action) {
 	MutexGuard<true> lock(this->mutex, true);
 	this->future_actions.push_back(action);
-	this->update_current_action();
+	this->updateCurrentAction();
 }
 
-void IPMI_LED::override(struct Action action) {
+void IPMILED::override(struct Action action) {
 	MutexGuard<true> lock(this->mutex, true);
-	action.min_duration = UINT64_MAX; // This is only used to return the value in get_current_physical_action()
+	action.min_duration = UINT64_MAX; // This is only used to return the value in getCurrentPhysicalAction()
 	this->override_action = action;
-	this->apply_physical_action();
+	this->applyPhysicalAction();
 }
 
-void IPMI_LED::lamp_test(uint64_t duration) {
+void IPMILED::lampTest(uint64_t duration) {
 	MutexGuard<true> lock(this->mutex, true);
-	this->lamp_test_timeout.setTimeout(duration);
-	this->apply_physical_action();
+	this->lampTest_timeout.setTimeout(duration);
+	this->applyPhysicalAction();
 }
 
-struct IPMI_LED::Action IPMI_LED::get_current_local_action() {
+struct IPMILED::Action IPMILED::getCurrentLocalAction() {
 	MutexGuard<true> lock(this->mutex, true);
 	return this->local_action;
 }
-struct IPMI_LED::Action IPMI_LED::get_current_override_action() {
+struct IPMILED::Action IPMILED::getCurrentOverrideAction() {
 	MutexGuard<true> lock(this->mutex, true);
 	return this->override_action;
 
 }
-AbsoluteTimeout IPMI_LED::get_current_lamp_test_duration() {
+AbsoluteTimeout IPMILED::getCurrentLampTestDuration() {
 	MutexGuard<true> lock(this->mutex, true);
-	return this->lamp_test_timeout;
+	return this->lampTest_timeout;
 }
 
-struct IPMI_LED::Action IPMI_LED::get_current_physical_action() {
+struct IPMILED::Action IPMILED::getCurrentPhysicalAction() {
 	MutexGuard<true> lock(this->mutex, true);
 
 	struct Action action;
-	if (this->lamp_test_timeout.getTimeout()) {
+	if (this->lampTest_timeout.getTimeout()) {
 		action.effect = ON;
-		action.min_duration = this->lamp_test_timeout.getTimeout();
+		action.min_duration = this->lampTest_timeout.getTimeout();
 		action.control_level = LAMPTEST;
-	}
-	else if (this->override_action.effect != INACTIVE) {
+	} else if (this->override_action.effect != INACTIVE) {
 		action = this->override_action;
 		action.control_level = OVERRIDE;
-	}
-	else {
+	} else {
 		action = this->local_action;
 		action.min_duration = this->local_min_duration.getTimeout();
 		action.control_level = LOCAL;
@@ -78,37 +87,44 @@ struct IPMI_LED::Action IPMI_LED::get_current_physical_action() {
 	return action;
 }
 
-void IPMI_LED::reset_local() {
+void IPMILED::resetLocal() {
 	MutexGuard<true> lock(this->mutex, true);
+
 	while(this->future_actions.size())
 		this->future_actions.pop_front();
+
 	this->local_min_duration.setTimeout(0ULL);
+
 	if (this->timer)
 		this->timer->cancel();
-	this->timer = NULL;
+
+	this->timer = nullptr;
 }
 
-void IPMI_LED::update_current_action() {
+void IPMILED::updateCurrentAction() {
 	MutexGuard<true> lock(this->mutex, true);
+
 	while (!this->local_min_duration.getTimeout() && this->future_actions.size()) {
 		this->local_action = this->future_actions.front();
 		this->future_actions.pop_front();
 		this->local_min_duration.setTimeout(this->local_action.min_duration);
-		this->apply_physical_action();
+		this->applyPhysicalAction();
 	}
+
 	if (this->timer) {
 		this->timer->cancel();
-		this->timer = NULL;
+		this->timer = nullptr;
 	}
+
 	if (this->local_min_duration.getTimeout()) {
-		this->timer = std::make_shared<TimerService::Timer>([this]()->void{ this->update_current_action(); }, this->local_min_duration);
+		this->timer = std::make_shared<TimerService::Timer>([this]()->void{ this->updateCurrentAction(); }, this->local_min_duration);
 		TimerService::globalTimer(TASK_PRIORITY_SERVICE).submit(this->timer);
 	}
 }
 
-void IPMI_LED::apply_physical_action() {
+void IPMILED::applyPhysicalAction() {
 	MutexGuard<true> lock(this->mutex, true);
-	struct Action action = this->get_current_physical_action();
+	struct Action action = this->getCurrentPhysicalAction();
 
 	switch (action.effect) {
 	case OFF:   this->led.off(); break;
