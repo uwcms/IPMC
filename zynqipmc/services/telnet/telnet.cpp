@@ -15,11 +15,10 @@
  * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <core.h>
 #include "telnet.h"
-#include <IPMC.h> // TODO: Remove later
 #include <functional>
 #include <string>
-#include <Core.h>
 #include <drivers/network/server_socket.h>
 #include <libs/authentication/authentication.h>
 #include <libs/printf.h>
@@ -212,7 +211,7 @@ void TelnetClient::threadTelnetc() {
 			if (Auth::validateCredentials(pass)) {
 				log.log(stdsprintf("Telnet login successful from %s:%hu", addr.getAddress().c_str(), addr.getPort()), LogTree::LOG_NOTICE);
 
-				std::string banner = generate_banner();
+				std::string banner = generateBanner();
 				windows_newline(banner);
 				(void)banner.c_str();
 				vTaskDelay(1); // yield to get stack overflow checked.

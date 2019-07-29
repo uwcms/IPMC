@@ -30,11 +30,11 @@
 
 #include "persistent_storage.h"
 #include <string>
-#include <IPMC.h> // TODO: Remove this
 #include <FreeRTOS.h>
 #include <semphr.h>
 #include <task.h>
 #include <event_groups.h>
+#include <core.h>
 #include <drivers/tracebuffer/tracebuffer.h>
 #include <services/console/consolesvc.h>
 #include <libs/printf.h>

@@ -6,7 +6,6 @@
  */
 
 #include <services/ipmi/sdr/SensorDataRecord02.h>
-#include <IPMC.h>
 
 void SensorDataRecord02::validate() const {
 	SensorDataRecordReadableSensor::validate();

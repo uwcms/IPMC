@@ -17,7 +17,6 @@
 
 #include <libs/logtree/logtree.h>
 
-#include <IPMC.h>
 #include <libs/printf.h>
 #include <services/ipmi/ipmbsvc/ipmbsvc.h>
 #include <services/ipmi/IPMI.h>

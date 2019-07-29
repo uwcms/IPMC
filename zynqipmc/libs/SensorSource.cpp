@@ -9,7 +9,7 @@
 
 #include <libs/threading.h>
 
-#include <IPMC.h>
+#include <core.h>
 #include "SensorSource.h"
 
 std::string SensorSource::sensorUnitToString(const SensorUnit& u) {

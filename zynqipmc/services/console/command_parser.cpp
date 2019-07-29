@@ -17,7 +17,6 @@
 
 #include "FreeRTOS.h"
 #include "task.h"
-#include <IPMC.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <algorithm>
@@ -25,6 +24,7 @@
 #include <libs/threading.h>
 #include <services/console/command_parser.h>
 #include <services/console/consolesvc.h>
+#include <core.h>
 
 /// The default 'help' console command.
 class CommandParser::HelpCommand : public CommandParser::Command {

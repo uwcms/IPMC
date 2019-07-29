@@ -160,7 +160,7 @@ public:
 
 	/**
 	 * Reserves the repository, returning the new reservation id.
-	 * @return the new reservation id.
+	 * @return The new reservation id.
 	 */
 	reservation_t reserve();
 
@@ -178,7 +178,7 @@ private:
 	 * @param reservation The reservation to acquire or verify.
 	 * @throw reservation_cancelled_error
 	 */
-	void assert_reservation(reservation_t &reservation);
+	void assertReservation(reservation_t &reservation);
 };
 
 #endif /* SRC_COMMON_ZYNQIPMC_SERVICES_IPMI_SDR_SENSOR_DATA_REPOSITORY_H_ */

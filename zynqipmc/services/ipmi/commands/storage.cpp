@@ -15,7 +15,7 @@
  * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <Core.h>
+#include <core.h>
 #include <services/ipmi/IPMI.h>
 #include <libs/printf.h>
 #include <libs/threading.h>

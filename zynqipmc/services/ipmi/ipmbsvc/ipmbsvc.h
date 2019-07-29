@@ -25,7 +25,6 @@
 #include <semphr.h>
 #include <queue.h>
 #include <task.h>
-#include <IPMC.h>
 #include <drivers/watchdog/ps_wdt.h>
 #include <libs/logtree/logtree.h>
 #include <libs/ringbuffer.h>
@@ -54,15 +53,6 @@ public:
 	 */
 	IPMBSvc(IPMB &ipmb, uint8_t ipmb_address, IPMICommandParser *command_parser, LogTree &logtree, const std::string name, PSWDT *wdt, bool wait_for_service_init = true);
 	virtual ~IPMBSvc();
-
-	/**
-	 * Look up the IPMB address of this node via MIO GPIOs associated with the
-	 * hardware address assignment pins in on the backplane connector.
-	 *
-	 * @param gpios  The MIO pins for the HW address lines.
-	 * @return       The IPMB address of this node.
-	 */
-	static uint8_t lookupIpmbAddress(const int gpios[8]);
 
 	/**
 	 * The supplied function will be called when a response to this outgoing

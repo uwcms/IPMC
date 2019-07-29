@@ -26,7 +26,6 @@
 #include <FreeRTOS.h>
 #include <semphr.h>
 #include <queue.h>
-#include <IPMC.h>
 #include <libs/ringbuffer.h>
 #include <libs/threading.h>
 #include <libs/statcounter/statcounter.h>

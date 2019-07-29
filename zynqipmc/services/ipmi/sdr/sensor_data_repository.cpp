@@ -31,7 +31,7 @@ SensorDataRepository::~SensorDataRepository() {
 
 uint16_t SensorDataRepository::add(const SensorDataRecord &record, reservation_t reservation) {
 	MutexGuard<true> lock(this->mutex, true);
-	this->assert_reservation(reservation);
+	this->assertReservation(reservation);
 
 	/* Ensure we have our own copy, and that it is valid.
 	 * Retrievals are const, and we want modifications to be done by replacement.
@@ -64,7 +64,7 @@ uint16_t SensorDataRepository::add(const SensorDataRecord &record, reservation_t
 
 void SensorDataRepository::add(const SensorDataRepository &sdrepository, reservation_t reservation) {
 	MutexGuard<true> lock(this->mutex, true);
-	this->assert_reservation(reservation);
+	this->assertReservation(reservation);
 	for (auto it = sdrepository.records.begin(), eit = sdrepository.records.end(); it != eit; ++it) {
 		try {
 			this->add(**it, reservation);
@@ -76,7 +76,7 @@ void SensorDataRepository::add(const SensorDataRepository &sdrepository, reserva
 
 bool SensorDataRepository::remove(uint16_t id, reservation_t reservation) {
 	MutexGuard<true> lock(this->mutex, true);
-	this->assert_reservation(reservation);
+	this->assertReservation(reservation);
 	bool removed = false;
 
 	if (id <= this->records.size()) {
@@ -91,7 +91,7 @@ bool SensorDataRepository::remove(uint16_t id, reservation_t reservation) {
 
 bool SensorDataRepository::remove(const SensorDataRecord &record, reservation_t reservation) {
 	MutexGuard<true> lock(this->mutex, true);
-	this->assert_reservation(reservation);
+	this->assertReservation(reservation);
 	bool removed = false;
 
 	for (auto it = this->records.begin(); it != this->records.end(); /* below */) {
@@ -110,7 +110,7 @@ bool SensorDataRepository::remove(const SensorDataRecord &record, reservation_t 
 
 void SensorDataRepository::clear(reservation_t reservation) {
 	MutexGuard<true> lock(this->mutex, true);
-	this->assert_reservation(reservation);
+	this->assertReservation(reservation);
 	this->records.clear();
 	this->last_update_ts = time(nullptr);
 }
@@ -204,7 +204,7 @@ std::vector<uint8_t> SensorDataRepository::u8export() const {
 
 bool SensorDataRepository::u8import(const std::vector<uint8_t> &data, reservation_t reservation) {
 	MutexGuard<true> lock(this->mutex, true);
-	this->assert_reservation(reservation);
+	this->assertReservation(reservation);
 
 	if (data.size() < 2) return false; // No data here.
 	if (ipmi_checksum(data)) return false; // Invalid checksum.
@@ -263,7 +263,7 @@ void SensorDataRepository::renumber() {
 	}
 }
 
-void SensorDataRepository::assert_reservation(reservation_t &reservation) {
+void SensorDataRepository::assertReservation(reservation_t &reservation) {
 	MutexGuard<true> lock(this->mutex, true);
 	if (!reservation) {
 		reservation = this->reserve();

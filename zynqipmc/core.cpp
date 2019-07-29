@@ -1,15 +1,23 @@
 /*
- * Core.cpp
+ * This file is part of the ZYNQ-IPMC Framework.
  *
- *  Created on: Jun 28, 2019
- *      Author: mpv
+ * The ZYNQ-IPMC Framework is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ZYNQ-IPMC Framework is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <core.h>
 #include <drivers/ipmb/ipmb_pair.h>
 #include "config/ZynqIPMCConfig.h"
-#include "Core.h"
-
-// TODO: Change this?
 #include <BoardPayloadManager.h>
 
 #include <drivers/ipmb/ps_ipmb.h>
@@ -22,8 +30,11 @@
 
 #define REBOOT_STATUS_REG (XPS_SYS_CTRL_BASEADDR + 0x258)
 
+//! Defines how many bytes the trace buffer will have.
+#define TRACEBUFFER_SIZE (1*1024*1024) // 1MB
+
 /**
- * Global Variables
+ * Global variables
  */
 LogTree LOG("ipmc");
 
@@ -45,14 +56,82 @@ IPMICommandParser *ipmi_command_parser;
 
 MStateMachine *mstatemachine = nullptr;
 
-/**
- * Core-specific Variables
- */
+SensorDataRepository device_sdr_repo;
+SensorSet ipmc_sensors(&device_sdr_repo);
+
+// Core-specific variables
 LogTree::Filter *console_log_filter = nullptr;
 CommandParser console_command_parser;
-std::shared_ptr<UARTConsoleSvc> console_service;
 
-static void console_log_handler(LogTree &logtree, const std::string &message, enum LogTree::LogLevel level);
+static std::shared_ptr<UARTConsoleSvc> console_service;
+static uint8_t tracebuffer_contents[TRACEBUFFER_SIZE];
+static TraceBuffer *trace_buffer = nullptr;
+static uint8_t tracebuffer_object_memory[sizeof(TraceBuffer)];
+
+static void console_log_handler(LogTree &logtree, const std::string &message, enum LogTree::LogLevel level) {
+	std::string logmsg = consoleSvcLogFormat(message, level);
+
+	/* We write with 0 timeout, because we'd rather lose lines than hang on UART
+	* output.  That's what the tracebuffer is for anyway.
+	*/
+	if (!console_service || IN_INTERRUPT() || IN_CRITICAL()) {
+		// Still early startup.
+		windows_newline(logmsg);
+		psuart0->write((const u8*)logmsg.data(), logmsg.size(), 0);
+	}
+	else {
+		// We have to use a short timeout here, rather than none, due to the mutex involved.
+		// TODO: Maybe there's a better way?
+		console_service->write(logmsg, 1);
+	}
+}
+
+__attribute__((weak)) void initFruData(bool reinit) {
+	LOG.log("initFruData is not implemented in the user code, this might be a bug if IPMI operation is desired!", LogTree::LOG_WARNING);
+}
+
+__attribute__((weak)) void initDeviceSDRs(bool reinit) {
+	LOG.log("initFruData is not implemented in the user code, this might be a bug if IPMI operation is desired!", LogTree::LOG_WARNING);
+}
+
+__attribute__((weak)) std::string generateBanner() {
+	std::string bannerstr;
+	bannerstr += "********************************************************************************\n";
+	bannerstr += "\n";
+	bannerstr += std::string("ZYNQ-IPMC - Open-source IPMC hardware and software framework\n");
+	bannerstr += std::string("HW revision : rev") + (char)('A'+IPMC_HW_REVISION) + "\n";
+	bannerstr += std::string("SW revision : ") + GIT_DESCRIBE + " (" + GIT_BRANCH + ")\n";
+	if ((IPMC_SERIAL != 0xffff) & (IPMC_SERIAL != 0)) {
+		bannerstr += std::string("HW serial   : ") + std::to_string(IPMC_SERIAL) + "\n";
+	} else {
+		bannerstr += std::string("HW serial   : unset\n");
+	}
+	bannerstr += std::string("Build date  : ") + COMPILE_DATE + "\n";
+	bannerstr += std::string("Build host  : ") + COMPILE_HOST + "\n";
+	bannerstr += std::string("Build conf  : ") + BUILD_CONFIGURATION + "\n";
+	bannerstr += std::string("OS version  : FreeRTOS ") + tskKERNEL_VERSION_NUMBER + "\n";
+
+	const char* imageNames[] = {"fallback", "A", "B", "test"};
+	bannerstr += std::string("Flash image : ") + ((IMAGE_LOADED > 3)?"Unknown":imageNames[IMAGE_LOADED]) + " (" + std::to_string(IMAGE_LOADED) + ")\n";
+
+	if (GIT_STATUS[0] != '\0')
+		bannerstr += std::string("\n") + GIT_STATUS; // contains a trailing \n
+	bannerstr += "\n";
+	bannerstr += "********************************************************************************\n";
+	return bannerstr;
+}
+
+void startInitTask() {
+	init_complete = xEventGroupCreate();
+
+	runTask("init", TASK_PRIORITY_WATCHDOG, []() -> void {
+		core_driver_init();
+		xEventGroupSetBits(init_complete, 0x01);
+		core_service_init();
+		xEventGroupSetBits(init_complete, 0x02);
+		LOG.log(std::string("\n") + generateBanner(), LogTree::LOG_NOTICE); // This is the ONLY place that should EVER log directly to LOG rather than a subtree.
+	});
+}
 
 // TODO: Check if new returns are not nullptr
 void core_driver_init() {
@@ -126,7 +205,7 @@ void core_driver_init() {
 	 * done.  SDRs will not be reloaded from EEPROM and will remain in their
 	 * default state until the sdr_init thread has time to run.
 	 */
-	init_device_sdrs(false);
+	initDeviceSDRs(false);
 
 	LogTree &log_ipmb0 = LOG["ipmi"]["ipmb"]["ipmb0"];
 	log_ipmb0.log(stdsprintf("Our IPMB0 address is %02Xh", ipmbaddr), LogTree::LOG_NOTICE);
@@ -172,7 +251,7 @@ void core_service_init() {
 	 * system operator's responsibility to ensure FRU Data is reinitialized or
 	 * updated as necessary.
 	 */
-	init_fru_data(true);
+	initFruData(true);
 #endif
 
 #define MB * (1024 * 1024)
@@ -199,20 +278,33 @@ __attribute__((weak)) void watchdog_ontrip() {
 	// This function can be overriden in IPMC.cc
 }
 
-static void console_log_handler(LogTree &logtree, const std::string &message, enum LogTree::LogLevel level) {
-	std::string logmsg = consoleSvcLogFormat(message, level);
+/* We will want this to run as a very early constructor regardless, so that no
+ * matter how early in the boot process we crash, chances are the tracebuffer
+ * data is still valid, even if it is empty.
+ *
+ * 101 is the earliest non-reserved constructor priority value, according to my
+ * understanding.
+ */
+TraceBuffer& getTraceBuffer() __attribute__((constructor(101)));
 
-	/* We write with 0 timeout, because we'd rather lose lines than hang on UART
-	* output.  That's what the tracebuffer is for anyway.
-	*/
-	if (!console_service || IN_INTERRUPT() || IN_CRITICAL()) {
-		// Still early startup.
-		windows_newline(logmsg);
-		psuart0->write((const u8*)logmsg.data(), logmsg.size(), 0);
-	}
-	else {
-		// We have to use a short timeout here, rather than none, due to the mutex involved.
-		// TODO: Maybe there's a better way?
-		console_service->write(logmsg, 1);
-	}
+/**
+ * Instantiate (if required) and retrieve the TraceBuffer.
+ * @return A functional TraceBuffer by reference.
+ */
+TraceBuffer& getTraceBuffer() {
+	// Hopefully this will all just be done already and ready to use.
+	if (trace_buffer)
+		return *trace_buffer;
+
+	CriticalGuard critical(true);
+	/* Sadly can't get away with doing this in advance, because it'll modify the
+	 * static array.  Luckily it's a quick operation.
+	 *
+	 * Unfortunately we probably also can't call new, because this might even
+	 * be happening in an ISR.  Therefore we will use placement new on a
+	 * preallocated buffer.
+	 */
+	if (!trace_buffer)
+		trace_buffer = new (tracebuffer_object_memory) TraceBuffer(tracebuffer_contents, TRACEBUFFER_SIZE);
+	return *trace_buffer;
 }

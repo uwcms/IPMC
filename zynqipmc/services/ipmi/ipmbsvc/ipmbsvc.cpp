@@ -16,7 +16,7 @@
  */
 
 #include <services/ipmi/RemoteFRUStorage.h>
-#include <IPMC.h>
+#include <core.h>
 #include "xgpiops.h"
 #include <FreeRTOS.h>
 #include "queue.h"
@@ -80,26 +80,6 @@ IPMBSvc::~IPMBSvc() {
 	vSemaphoreDelete(this->sendq_mutex);
 	vSemaphoreDelete(this->sendq_notify_sem);
 	vQueueDelete(this->recvq);
-}
-
-uint8_t IPMBSvc::lookupIpmbAddress(const int gpios[8]) {
-	uint8_t address = 0;
-	uint8_t parity = 0;
-	for (int i = 0; i < 8; ++i) {
-		XGpioPs_SetDirectionPin(&gpiops, gpios[i], 0);
-		uint8_t val = XGpioPs_ReadPin(&gpiops, gpios[i]);
-		configASSERT(val <= 1);
-		address |= val << i;
-		parity ^= val;
-	}
-	/* TODO: Failed address (odd-)parity (bad slot wiring) is simply unsupported
-	 * at this time.
-	 *
-	 * We should eventually find a way to do as specified for this, send an
-	 * error report, and at least mention something on the console.
-	 */
-	//configASSERT(parity);
-	return (address & 0x7f)<<1; // The high HA bit on the Zone 1 connector is parity.  IPMB addr is HWaddr<<1
 }
 
 void IPMBSvc::send(std::shared_ptr<IPMI_MSG> msg, response_cb_t response_cb) {

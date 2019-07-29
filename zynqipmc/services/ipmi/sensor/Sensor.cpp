@@ -5,14 +5,13 @@
  *      Author: jtikalsky
  */
 
+#include <core.h>
 #include <services/ipmi/sensor/Sensor.h>
 #include <services/ipmi/sdr/SensorDataRecordSensor.h>
 #include <services/ipmi/sdr/SensorDataRecordReadableSensor.h>
 #include <services/ipmi/sdr/SensorDataRecord01.h>
 #include <libs/printf.h>
 #include <libs/except.h>
-#include <IPMC.h>
-#include <Core.h>
 #include <libs/threading.h>
 #include <math.h>
 #include <services/ipmi/ipmbsvc/ipmbsvc.h>

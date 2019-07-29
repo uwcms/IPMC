@@ -88,11 +88,11 @@ XScuGic xInterruptController; 	/* Interrupt controller instance */
  */
 void vConfigureTickInterrupt( void )
 {
-BaseType_t xStatus;
-extern void FreeRTOS_Tick_Handler( void );
-XScuTimer_Config *pxTimerConfig;
-XScuGic_Config *pxGICConfig;
-const uint8_t ucRisingEdge = 3;
+	BaseType_t xStatus;
+	extern void FreeRTOS_Tick_Handler( void );
+	XScuTimer_Config *pxTimerConfig;
+	XScuGic_Config *pxGICConfig;
+	const uint8_t ucRisingEdge = 3;
 
 	/* This function is called with the IRQ interrupt disabled, and the IRQ
 	interrupt should be left disabled.  It is enabled automatically when the
@@ -156,10 +156,10 @@ http://www.freertos.org/Using-FreeRTOS-on-Cortex-A-Embedded-Processors.html for
 more information */
 void vApplicationFPUSafeIRQHandler( uint32_t ulICCIAR )
 {
-extern const XScuGic_Config XScuGic_ConfigTable[];
-static const XScuGic_VectorTableEntry *pxVectorTable = XScuGic_ConfigTable[ XPAR_SCUGIC_SINGLE_DEVICE_ID ].HandlerTable;
-uint32_t ulInterruptID;
-const XScuGic_VectorTableEntry *pxVectorEntry;
+	extern const XScuGic_Config XScuGic_ConfigTable[];
+	static const XScuGic_VectorTableEntry *pxVectorTable = XScuGic_ConfigTable[ XPAR_SCUGIC_SINGLE_DEVICE_ID ].HandlerTable;
+	uint32_t ulInterruptID;
+	const XScuGic_VectorTableEntry *pxVectorEntry;
 
 	/* Re-enable interrupts. */
 	__asm ( "cpsie i" );

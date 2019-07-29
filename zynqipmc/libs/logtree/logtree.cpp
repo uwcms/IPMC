@@ -19,7 +19,6 @@
 
 #include "FreeRTOS.h"
 #include "semphr.h"
-#include <IPMC.h>
 #include <libs/printf.h>
 #include <libs/except.h>
 #include <libs/threading.h>

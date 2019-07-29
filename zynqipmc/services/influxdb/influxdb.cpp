@@ -17,9 +17,9 @@
 
 // TODO: Consider implementing retries if failed to push metrics
 
+#include <core.h>
 #include "influxdb.h"
 #include <chrono>
-#include <Core.h>
 #include <services/persistentstorage/persistent_storage.h>
 #include <libs/threading.h>
 #include <services/console/consolesvc.h>

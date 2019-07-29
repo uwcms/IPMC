@@ -17,9 +17,9 @@
 
 // TODO: Remove printf
 
-#include <libs/threading.h>
 #include "elm.h"
-#include <IPMC.h> // TODO: Consider removing this when things are shuffled around.
+#include <core.h>
+#include <libs/threading.h>
 
 ELM::ELM(UART &uart, GPIO *targetsel) :
 uart(uart), targetsel(targetsel) {

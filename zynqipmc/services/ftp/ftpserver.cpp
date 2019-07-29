@@ -16,7 +16,7 @@
  */
 
 #include "ftp.h"
-#include <IPMC.h> // TODO: Remove this at some point
+#include <core.h>
 #include <libs/threading.h>
 
 

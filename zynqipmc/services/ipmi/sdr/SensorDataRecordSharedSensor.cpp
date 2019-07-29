@@ -6,7 +6,6 @@
  */
 
 #include <services/ipmi/sdr/SensorDataRecord02.h>
-#include <IPMC.h>
 
 /// Create a bitmask with the lower `nbits` bits set.
 #define LOWBITS(nbits) (0xff >> (8-(nbits)))

@@ -19,8 +19,6 @@
 #include <libs/threading.h>
 #include <semphr.h>
 #include <services/ipmi/ipmbsvc/ipmi_command_parser.h>
-
-#include <IPMC.h>
 #include <services/ipmi/IPMI_MSG.h>
 #include <functional>
 #include <map>

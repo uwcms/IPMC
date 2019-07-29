@@ -11,7 +11,7 @@ public:
 	}
 
 	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
-		console->write(generate_banner());
+		console->write(generateBanner());
 	}
 
 	//virtual std::vector<std::string> complete(const CommandParser::CommandParameters &parameters) const { };

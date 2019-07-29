@@ -16,9 +16,8 @@
  */
 
 #include "telnetconsolesvc.h"
+#include <core.h>
 #include <drivers/tracebuffer/tracebuffer.h>
-
-#include <IPMC.h> // TODO: Remove later
 
 Telnet::TelnetConsoleSvc::TelnetConsoleSvc(std::shared_ptr<Socket> socket, std::shared_ptr<InputProtocolParser> proto, CommandParser &parser, const std::string &name, LogTree &logtree, bool echo, TickType_t read_data_timeout, std::function<void(TelnetConsoleSvc&)> shutdownComplete_cb)
 		: ConsoleSvc(parser, name, logtree, echo, read_data_timeout), socket(socket), proto(proto), shutdownComplete_cb(shutdownComplete_cb) {

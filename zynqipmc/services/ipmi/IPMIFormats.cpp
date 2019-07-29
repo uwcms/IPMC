@@ -8,7 +8,6 @@
 #include <services/ipmi/IPMIFormats.h>
 #include <libs/printf.h>
 #include <iterator>
-#include <IPMC.h>
 
 /**
  * Perform basic validation on the provided IPMI Type/Length field, and return
@@ -114,7 +113,6 @@ std::string render_ipmi_type_length_field(const std::vector<uint8_t> &data) {
 	}
 	else {
 		// We have already iterated over values [0,1,2,3] of a 2 bit field.
-		configASSERT(0);
 		return "";
 	}
 }

@@ -1,4 +1,3 @@
-#include <IPMC.h>
 #include <services/ipmi/IPMIFormats.h>
 #include <services/ipmi/sdr/SensorDataRecord12.h>
 #include <iterator>

@@ -1,15 +1,32 @@
 /*
- * libwrap.c
+ * This file is part of the ZYNQ-IPMC Framework.
  *
- *  Created on: Sep 14, 2017
- *      Author: jtikalsky
+ * The ZYNQ-IPMC Framework is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ZYNQ-IPMC Framework is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <IPMC.h>
+/**
+ * This file contains several standard functions implemented in a way that is optimal
+ * for the ZYQN-IPMC framework, including memory management and stdout.
+ *
+ * None of this functions will be directly used, the compiler will take care of wrapping
+ * and the system calls.
+ */
+
 #include <libs/printf.h>
 #include <FreeRTOS.h>
 #include <semphr.h>
-#include <IPMC.h>
+#include <core.h>
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -24,7 +41,17 @@
 
 #define WRAP_ATTR __attribute__((externally_visible))
 
+//! Re-declare cpp new
+inline void* operator new(std::size_t n) { return malloc(n); }
+
+//! Re-declare cpp delete
+inline void operator delete(void* p) throw() { free(p); }
+
 extern "C" {
+/**
+ * List of original system functions that will be getting replaced.
+ * @{
+ */
 int __real_printf(const char *format, ...);
 int __real_sprintf(char *str, const char *format, ...);
 int __real_snprintf(char *str, size_t size, const char *format, ...);
@@ -32,7 +59,12 @@ int __real_vprintf(const char *format, va_list ap);
 int __real_vsprintf(char *str, const char *format, va_list ap);
 int __real_vsnprintf(char *str, size_t size, const char *format, va_list ap);
 void __real_sha_256(const unsigned char *in, const unsigned int size, unsigned char *out);
+/** @}*/
 
+/**
+ * List of custom system functions that will get implemented.
+ * @{
+ */
 void *__wrap_malloc(size_t size) WRAP_ATTR __attribute__((malloc, alloc_size(1)));
 void __wrap_free(void *ptr) WRAP_ATTR;
 void *__wrap_calloc(size_t nmemb, size_t size) WRAP_ATTR __attribute__((malloc, alloc_size(1,2)));
@@ -47,13 +79,17 @@ void __wrap_xil_printf( const char8 *ctrl1, ...) WRAP_ATTR;
 void __wrap_print( const char8 *ptr) WRAP_ATTR;
 unsigned __wrap_sleep(unsigned int seconds) WRAP_ATTR;
 void __wrap_sha_256(const unsigned char *in, const unsigned int size, unsigned char *out) WRAP_ATTR;
+/** @}*/
 
-/* The following is to support time functions without a RTC.
+/**
+ * The following is to support time functions without a RTC.
  * timeofday_in_us should be incremented with an internal timer function
  * and it should be set by NTP.
+ * @{
  */
 volatile uint32_t _ntp_updates = 0;
 volatile uint64_t _time_in_us = 0;
+/** @}*/
 
 int _gettimeofday( struct timeval *tv, struct timezone *tz )
 {
@@ -69,7 +105,7 @@ int _gettimeofday( struct timeval *tv, struct timezone *tz )
 
 } // extern "C"
 
-SemaphoreHandle_t stdlib_mutex = NULL;
+SemaphoreHandle_t stdlib_mutex = nullptr;
 
 void *__wrap_malloc(size_t size) {
 	// The FreeRTOS pvPortMalloc/vPortFree are not ISR safe, only critical safe.
@@ -87,10 +123,11 @@ void __wrap_free(void *ptr) {
 
 void *__wrap_calloc(size_t nmemb, size_t size) {
 	configASSERT(0); // Unimplemented.  Check manpage for memory initialization requirements.
-	return NULL;
+	return nullptr;
 }
 
-/* We need to allocate this somewhere, and the FreeRTOS managed allocation is
+/**
+ * We need to allocate this somewhere, and the FreeRTOS managed allocation is
  * declared as static, so we can't check it's address or offsets relative to it,
  * which we will need to do for abort safety in realloc, below.
  */
@@ -103,19 +140,19 @@ void *__wrap_realloc(void *ptr, size_t size) {
      * by ptr to size bytes.  The contents will be unchanged in the range from
      * the start of the region up to the minimum of the old and new sizes.  If
      * the new size is larger than the old size, the added memory will not  be
-     * initialized.   If  ptr  is  NULL,  then  the call is equivalent to mal‐
+     * initialized.   If  ptr  is  nullptr,  then  the call is equivalent to mal‐
      * loc(size), for all values of size; if size is equal to zero, and ptr is
-     * not  NULL,  then  the  call  is equivalent to free(ptr).  Unless ptr is
-     * NULL, it must have been returned by an earlier call to  malloc(),  cal‐
+     * not  nullptr,  then  the  call  is equivalent to free(ptr).  Unless ptr is
+     * nullptr, it must have been returned by an earlier call to  malloc(),  cal‐
      * loc()  or  realloc().  If the area pointed to was moved, a free(ptr) is
      * done.
 	 */
 	if (!ptr)
-		return (size ? malloc(size) : NULL);
+		return (size ? malloc(size) : nullptr);
 
 	if (!size) {
 		free(ptr);
-		return NULL;
+		return nullptr;
 	}
 
 	// We... aren't going to be smart about this, sorry.
@@ -175,7 +212,7 @@ int __wrap_vprintf(const char *format, va_list ap) {
 	 */
 	va_list ap2;
 	va_copy(ap2, ap);
-	int s = vsnprintf(NULL, 0, format, ap) + 1;
+	int s = vsnprintf(nullptr, 0, format, ap) + 1;
 	if (s <= 0) {
 		va_end(ap);
 		va_end(ap2);
@@ -189,7 +226,7 @@ int __wrap_vprintf(const char *format, va_list ap) {
 	free(str);
 
 	// printf goes through the log facility now.
-	static LogTree *printf_trace = NULL;
+	static LogTree *printf_trace = nullptr;
 	if (!printf_trace)
 		printf_trace = &LOG["printf"];
 	printf_trace->log(outstr, LogTree::LOG_NOTICE);
@@ -232,7 +269,7 @@ void ipmc_lwip_printf(const char *ctrl1, ...) {
 	va_list ap, ap2;
 	va_start(ap, ctrl1);
 	va_copy(ap2, ap);
-	int s = vsnprintf(NULL, 0, ctrl1, ap) + 1;
+	int s = vsnprintf(nullptr, 0, ctrl1, ap) + 1;
 	if (s <= 0) {
 		va_end(ap);
 		va_end(ap2);
@@ -278,7 +315,7 @@ void ipmc_lwip_printf(const char *ctrl1, ...) {
 //			outlevel = it->second;
 //	}
 
-	static LogTree *lwiplog = NULL;
+	static LogTree *lwiplog = nullptr;
 	if (!lwiplog)
 		lwiplog = &LOG["network"]["lwip"];
 	//lwiplog->log(outstr, outlevel);
@@ -294,10 +331,65 @@ unsigned __wrap_sleep(unsigned int seconds) {
 	return 0;
 }
 
-static SemaphoreHandle_t librsa_mutex = NULL;
+static SemaphoreHandle_t librsa_mutex = nullptr;
 
 void __wrap_sha_256(const unsigned char *in, const unsigned int size, unsigned char *out) {
 	safe_init_static_mutex(librsa_mutex, false);
 	MutexGuard<false> lock(librsa_mutex, true);
 	__real_sha_256(in, size, out);
 }
+
+// Expose __real_print which is then used in abort()
+extern "C" {
+void __real_print(const char8 *ptr);
+}
+
+// Replace week abort with one that actually does something.
+// In case abort gets called there will be a stack trace showing on the console.
+// __real_printf is used so that writes to the UART driver are blocking.
+void abort() {
+	BackTrace *extrace = BackTrace::traceException();
+
+	TaskHandle_t handler = xTaskGetCurrentTaskHandle();
+	std::string tskname = "unknown_task";
+	if (handler) {
+		tskname = pcTaskGetName(handler);
+	}
+
+	std::string output;
+	if (extrace) {
+		output += "\n-- ABORT DUE TO EXCEPTION --\n";
+		output += extrace->toString();
+	} else {
+		BackTrace trace;
+		trace.trace();
+		output += "\n-- ABORT CALLED --\n";
+		output += trace.toString();
+	}
+
+	output += "-- ASSERTING --\n";
+
+	/* Put it through the trace facility, so regardless of our ability to
+	 * put it through the standard log paths, it gets trace logged.
+	 */
+	std::string log_facility = "ipmc.unhandled_exception." + tskname;
+	TRACE.log(log_facility.c_str(), log_facility.size(), LogTree::LOG_CRITICAL, output.c_str(), output.size());
+
+	// Put it directly to the UART console, for the same reason.
+	std::string wnl_output = output;
+	windows_newline(wnl_output);
+	__real_print(wnl_output.c_str());
+
+	// Put it through the standard log system.
+	LOG[tskname].log(output, LogTree::LOG_CRITICAL);
+
+	configASSERT(0);
+
+	/* This function is attribute noreturn, configASSERT(0) can technically
+	 * return within a debugger.  This literally can't, it has no epilogue.
+	 *
+	 * Ensure it doesn't.
+	 */
+	while (1);
+}
+

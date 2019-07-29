@@ -19,7 +19,7 @@
 #if XSDK_INDEXING || __has_include("xwdtps.h")
 
 #include "ps_wdt.h"
-#include <IPMC.h>
+#include <core.h>
 #include <FreeRTOS.h>
 #include <task.h>
 #include <libs/threading.h>

@@ -11,11 +11,11 @@
 #include <services/ipmi/sdr/SensorDataRecordReadableSensor.h>
 #include <services/ipmi/sdr/SensorDataRecord01.h>
 #include <libs/printf.h>
-#include <IPMC.h>
 #include <math.h>
 #include <services/ipmi/ipmbsvc/ipmbsvc.h>
 #include <services/ipmi/sdr/sensor_data_repository.h>
 #include <cmath>
+#include <core.h>
 
 ThresholdSensor::ThresholdSensor(const std::vector<uint8_t> &sdr_key, LogTree &log)
 	: Sensor(sdr_key, log), nominal_event_status_override_value(0xFFFF) {

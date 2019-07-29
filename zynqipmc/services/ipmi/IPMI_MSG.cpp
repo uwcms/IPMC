@@ -9,7 +9,6 @@
 #include <services/ipmi/IPMI.h>
 #include <libs/printf.h>
 #include <libs/except.h>
-#include <IPMC.h>
 
 /// Instantiate an IPMI_MSG as a blank slate.
 IPMI_MSG::IPMI_MSG()

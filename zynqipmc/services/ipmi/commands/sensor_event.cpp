@@ -15,6 +15,7 @@
  * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <core.h>
 #include <services/ipmi/IPMI.h>
 #include <services/ipmi/sensor/SensorSet.h>
 #include <services/ipmi/sensor/Sensor.h>
@@ -22,8 +23,6 @@
 #include <services/ipmi/sdr/SensorDataRecordSensor.h>
 #include <services/ipmi/sdr/SensorDataRecordReadableSensor.h>
 #include <services/ipmi/sdr/SensorDataRecord01.h>
-#include <IPMC.h>
-#include <Core.h>
 #include <PayloadManager.h>
 #include <services/ipmi/commands/ipmicmd_index.h>
 #include <services/ipmi/ipmbsvc/ipmbsvc.h>

@@ -18,7 +18,7 @@
 #include <libs/threading.h>
 #include <services/ipmi/ipmi_led/ipmi_led.h>
 
-#include <IPMC.h>
+#include <core.h>
 
 IPMILED::IPMILED(LED &led) : led(led), local_min_duration(0ULL), lampTest_timeout(0ULL), timer(nullptr) {
 	this->local_action.effect = OFF;

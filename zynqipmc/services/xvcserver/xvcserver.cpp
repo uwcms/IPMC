@@ -17,9 +17,9 @@
 
 
 #include "xvcserver.h"
+#include <core.h>
 #include <drivers/network/server_socket.h>
 #include <libs/threading.h>
-#include <IPMC.h> // TODO: Remove this at some point
 
 XVCServer::XVCServer(void* baseAddr, LogTree& log, uint16_t port) :
 kBaseAddr(baseAddr), log(log), kPort(port) {

@@ -22,11 +22,12 @@
 #include <timers.h>
 #include <event_groups.h>
 #include <task.h>
+#include <core.h>
 #include <drivers/tracebuffer/tracebuffer.h>
 #include <libs/printf.h>
 #include <libs/except.h>
 #include <libs/threading.h>
-#include <IPMC.h> //TODO: Disconnect this if possible
+#include <ZynqIPMCConfig.h>
 
 TickType_t AbsoluteTimeout::getTimeout() {
 	if (this->timeout64 == UINT64_MAX)

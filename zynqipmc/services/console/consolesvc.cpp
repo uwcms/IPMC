@@ -16,7 +16,7 @@
  */
 
 #include "consolesvc.h"
-#include <IPMC.h> // TODO: Remove later on
+#include <core.h>
 #include <drivers/tracebuffer/tracebuffer.h>
 #include <libs/printf.h>
 

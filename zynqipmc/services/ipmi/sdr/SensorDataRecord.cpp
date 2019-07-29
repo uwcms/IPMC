@@ -6,7 +6,6 @@
  */
 
 #include <services/ipmi/sdr/SensorDataRecord.h>
-#include <IPMC.h>
 
 #include <services/ipmi/sdr/SensorDataRecord01.h>
 #include <services/ipmi/sdr/SensorDataRecord02.h>

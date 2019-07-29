@@ -19,7 +19,6 @@
 #if XSDK_INDEXING || __has_include("xiicps.h")
 
 #include "ps_ipmb.h"
-#include "IPMC.h"
 #include "xscugic.h"
 #include "xiicps.h"
 #include <FreeRTOS.h>

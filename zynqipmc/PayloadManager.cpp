@@ -5,14 +5,14 @@
  *      Author: jtikalsky
  */
 
+#include <core.h>
 #include <PayloadManager.h>
 #include <libs/printf.h>
 #include <services/ipmi/sensor/SensorSet.h>
 #include <services/ipmi/sensor/ThresholdSensor.h>
 #include <services/ipmi/sdr/SensorDataRecordReadableSensor.h>
 #include <exception>
-#include <IPMC.h>
-#include <Core.h>
+//#include <IPMC.h>
 #include <libs/threading.h>
 #include <services/console/consolesvc.h>
 #include <services/persistentstorage/persistent_storage.h>
