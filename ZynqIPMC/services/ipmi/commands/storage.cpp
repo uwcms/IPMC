@@ -17,11 +17,11 @@
 
 #include <Core.h>
 #include <services/ipmi/IPMI.h>
-#include <services/ipmi/sdr/SensorDataRepository.h>
 #include <libs/printf.h>
 #include <libs/threading.h>
 #include <services/ipmi/commands/ipmicmd_index.h>
 #include <services/ipmi/ipmbsvc/ipmbsvc.h>
+#include <services/ipmi/sdr/sensor_data_repository.h>
 #include <services/persistentstorage/persistent_storage.h>
 
 #define RETURN_ERROR(ipmb, message, completion_code) \
@@ -97,7 +97,7 @@ IPMICMD_INDEX_REGISTER(Write_FRU_Data);
 // SDR Device Commands
 
 static void ipmicmd_Get_SDR_Repository_Info(IPMBSvc &ipmb, const IPMI_MSG &message) {
-	time_t last_update = sdr_repo.last_update_timestamp();
+	time_t last_update = sdr_repo.lastUpdateTimestamp();
 	std::shared_ptr<IPMI_MSG> reply = message.prepare_reply();
 	reply->data[0] = IPMI::Completion::Success;
 	reply->data[1] = 0x51; // SDR Version (Spec 2.0: 51h)
@@ -209,7 +209,7 @@ static void ipmicmd_Partial_Add_SDR(IPMBSvc &ipmb, const IPMI_MSG &message) {
 	bool commit = message.data[4] & 1;
 	std::vector<uint8_t> sdrdata(message.data+7, message.data+message.data_len);
 
-	if (reservation != sdr_repo.get_current_reservation())
+	if (reservation != sdr_repo.getCurrentReservation())
 		RETURN_ERROR(ipmb, message, IPMI::Completion::Reservation_Cancelled);
 
 	// Create a static map of partial adds.
@@ -294,7 +294,7 @@ static void ipmicmd_Delete_SDR(IPMBSvc &ipmb, const IPMI_MSG &message) {
 		RETURN_ERROR(ipmb, message, IPMI::Completion::Request_Data_Length_Invalid);
 	uint16_t reservation = (message.data[1] << 8) | message.data[0];
 	uint16_t record_id = (message.data[3] << 8) | message.data[2];
-	if (reservation != sdr_repo.get_current_reservation())
+	if (reservation != sdr_repo.getCurrentReservation())
 		RETURN_ERROR(ipmb, message, IPMI::Completion::Reservation_Cancelled);
 	try {
 		if (!sdr_repo.remove(record_id, reservation))
@@ -311,7 +311,7 @@ static void ipmicmd_Clear_SDR_Repository(IPMBSvc &ipmb, const IPMI_MSG &message)
 	if (message.data_len != 6)
 		RETURN_ERROR(ipmb, message, IPMI::Completion::Request_Data_Length_Invalid);
 	uint16_t reservation = (message.data[1] << 8) | message.data[0];
-	if (reservation != sdr_repo.get_current_reservation())
+	if (reservation != sdr_repo.getCurrentReservation())
 		RETURN_ERROR(ipmb, message, IPMI::Completion::Reservation_Cancelled);
 	if (message.data[2] != 'C' || message.data[3] != 'L' || message.data[4] != 'R')
 		RETURN_ERROR(ipmb, message, IPMI::Completion::Invalid_Data_Field_In_Request);

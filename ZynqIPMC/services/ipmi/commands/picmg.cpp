@@ -17,11 +17,11 @@
 
 #include <Core.h>
 #include <services/ipmi/IPMI.h>
-#include <services/ipmi/sdr/SensorDataRepository.h>
 #include <services/ipmi/MStateMachine.h>
 #include <PayloadManager.h>
 #include <services/ipmi/commands/ipmicmd_index.h>
 #include <services/ipmi/ipmbsvc/ipmbsvc.h>
+#include <services/ipmi/sdr/sensor_data_repository.h>
 
 // AdvancedTCA
 
@@ -131,8 +131,8 @@ static void ipmicmd_Set_FRU_LED_State(IPMBSvc &ipmb, const IPMI_MSG &message) {
 	}
 	else if (0x01 <= function && function <= 0xFA) {
 		action.effect = IPMILED::BLINK;
-		action.timeOnMs = on_duration * pdMS_TO_TICKS(10);
-		action.periodMs = action.timeOnMs + function * pdMS_TO_TICKS(10);
+		action.time_on_ms = on_duration * pdMS_TO_TICKS(10);
+		action.period_ms = action.time_on_ms + function * pdMS_TO_TICKS(10);
 		led.override(action);
 	}
 	else if (function == 0xFB) {
@@ -176,8 +176,8 @@ static void ipmicmd_Get_FRU_LED_State(IPMBSvc &ipmb, const IPMI_MSG &message) {
 		reply->data[2] = 1<<2; // The Lamp Test state is active.
 
 	action = led.getCurrentLocalAction();
-	uint32_t ticksOn = action.timeOnMs;
-	uint32_t ticksOff = action.periodMs - action.timeOnMs;
+	uint32_t ticksOn = action.time_on_ms;
+	uint32_t ticksOff = action.period_ms - action.time_on_ms;
 
 	if (action.effect == IPMILED::OFF) {
 		reply->data[3] = 0;
@@ -213,8 +213,8 @@ static void ipmicmd_Get_FRU_LED_State(IPMBSvc &ipmb, const IPMI_MSG &message) {
 	// Fine so we have an override level too.
 
 	action = led.getCurrentOverrideAction();
-	ticksOn = action.timeOnMs;
-	ticksOff = action.periodMs - action.timeOnMs;
+	ticksOn = action.time_on_ms;
+	ticksOff = action.period_ms - action.time_on_ms;
 
 	if (action.effect == IPMILED::OFF) {
 		reply->data[7] = 0;

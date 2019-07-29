@@ -16,11 +16,11 @@
  */
 
 #include <services/ipmi/IPMI.h>
-#include <services/ipmi/sdr/SensorDataRepository.h>
 #include <IPMC.h>
 #include <Core.h>
 #include <services/ipmi/commands/ipmicmd_index.h>
 #include <services/ipmi/ipmbsvc/ipmbsvc.h>
+#include <services/ipmi/sdr/sensor_data_repository.h>
 
 // IPM Device “Global” Commands
 

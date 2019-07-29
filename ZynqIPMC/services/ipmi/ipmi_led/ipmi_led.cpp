@@ -130,8 +130,8 @@ void IPMILED::applyPhysicalAction() {
 	case OFF:   this->led.off(); break;
 	case ON:    this->led.on(); break;
 	case DIM:   this->led.dim(action.intensity); break;
-	case BLINK: this->led.blink(action.periodMs, action.timeOnMs); break;
-	case PULSE: this->led.pulse(action.periodMs); break;
+	case BLINK: this->led.blink(action.period_ms, action.time_on_ms); break;
+	case PULSE: this->led.pulse(action.period_ms); break;
 	default:
 		// Uh. Guess we'll just pass on this one.
 		break;

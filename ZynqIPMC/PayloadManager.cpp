@@ -298,25 +298,25 @@ void PayloadManager::run_sensor_thread() {
 			if (alarm_level != old_level) {
 				struct IPMILED::Action ledstate;
 				ledstate.min_duration = 0;
-				ledstate.periodMs = 1000;
+				ledstate.period_ms = 1000;
 				switch (alarm_level) {
 				case SeveritySensor::OK:
 					ledstate.effect = IPMILED::OFF;
 					break;
 				case SeveritySensor::NC:
 					ledstate.effect = IPMILED::BLINK;
-					ledstate.timeOnMs = 100;
+					ledstate.time_on_ms = 100;
 					break;
 				case SeveritySensor::CR:
 					ledstate.effect = IPMILED::BLINK;
-					ledstate.timeOnMs = 900;
+					ledstate.time_on_ms = 900;
 					break;
 				case SeveritySensor::NR:
 					ledstate.effect = IPMILED::ON;
 					break;
 				default:
 					ledstate.effect = IPMILED::BLINK;
-					ledstate.timeOnMs = 500;
+					ledstate.time_on_ms = 500;
 				}
 				ipmi_leds[1]->submit(ledstate);
 			}

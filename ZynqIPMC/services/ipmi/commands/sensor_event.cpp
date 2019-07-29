@@ -19,7 +19,6 @@
 #include <services/ipmi/sensor/SensorSet.h>
 #include <services/ipmi/sensor/Sensor.h>
 #include <services/ipmi/sensor/ThresholdSensor.h>
-#include <services/ipmi/sdr/SensorDataRepository.h>
 #include <services/ipmi/sdr/SensorDataRecordSensor.h>
 #include <services/ipmi/sdr/SensorDataRecordReadableSensor.h>
 #include <services/ipmi/sdr/SensorDataRecord01.h>
@@ -28,6 +27,7 @@
 #include <PayloadManager.h>
 #include <services/ipmi/commands/ipmicmd_index.h>
 #include <services/ipmi/ipmbsvc/ipmbsvc.h>
+#include <services/ipmi/sdr/sensor_data_repository.h>
 #include <services/persistentstorage/persistent_storage.h>
 
 #define RETURN_ERROR(ipmb, message, completion_code) \
@@ -162,7 +162,7 @@ static void ipmicmd_Get_Device_SDR_Info(IPMBSvc &ipmb, const IPMI_MSG &message) 
 		if (lun_sensor_count[i])
 			reply->data[2] |= (1 << i); // Sensors exist on this LUN.
 
-	time_t update_ts = device_sdr_repo.last_update_timestamp();
+	time_t update_ts = device_sdr_repo.lastUpdateTimestamp();
 	for (int i = 0; i < 4; ++i)
 		reply->data[3+i] = (update_ts >> (8*i)) & 0xff;
 	ipmb.send(reply);

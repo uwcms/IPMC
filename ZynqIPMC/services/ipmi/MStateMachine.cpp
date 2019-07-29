@@ -216,13 +216,13 @@ void MStateMachine::update_ipmi_led(uint8_t prev_mstate, uint8_t mstate) {
 	MutexGuard<true> lock(this->mutex, true);
 	struct IPMILED::Action action;
 	action.min_duration = 0;
-	action.periodMs = 1000; // Ignored for non-blink, always accurate for blink.
+	action.period_ms = 1000; // Ignored for non-blink, always accurate for blink.
 	switch (mstate) {
 	case 1:
 		action.effect = IPMILED::ON; break;
 	case 2:
 		action.effect = IPMILED::BLINK;
-		action.timeOnMs = 900;
+		action.time_on_ms = 900;
 		if (prev_mstate == 1)
 			action.min_duration = 1000;
 		break;
@@ -232,7 +232,7 @@ void MStateMachine::update_ipmi_led(uint8_t prev_mstate, uint8_t mstate) {
 	case 5:
 	case 6:
 		action.effect = IPMILED::BLINK;
-		action.timeOnMs = 100;
+		action.time_on_ms = 100;
 		if (prev_mstate == 4)
 			action.min_duration = 1000;
 		break;
