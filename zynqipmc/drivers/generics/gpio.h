@@ -18,10 +18,10 @@
 #ifndef SRC_COMMON_ZYNQIPMC_DRIVERS_GENERICS_GPIO_H_
 #define SRC_COMMON_ZYNQIPMC_DRIVERS_GENERICS_GPIO_H_
 
-#include <ZynqIPMCConfig.h>
 #include <libs/printf.h>
 #include <services/console/command_parser.h>
 #include <services/console/consolesvc.h>
+#include <zynqipmc_config.h>
 
 /**
  * Abstract class for GPIOs with base functions for bus or individual pin operation declared.

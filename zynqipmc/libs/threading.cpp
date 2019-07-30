@@ -27,7 +27,7 @@
 #include <libs/printf.h>
 #include <libs/except.h>
 #include <libs/threading.h>
-#include <ZynqIPMCConfig.h>
+#include <zynqipmc_config.h>
 
 TickType_t AbsoluteTimeout::getTimeout() {
 	if (this->timeout64 == UINT64_MAX)

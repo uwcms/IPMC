@@ -19,7 +19,7 @@ public:
 		const std::string NORMAL = ANSICode::color();
 
 
-		for (auto const &sensor : PayloadManager::GetADCSensors()) {
+		for (auto const &sensor : PayloadManager::getADCSensors()) {
 			uint32_t raw = sensor.second.adc.readRaw();
 			float value = sensor.second.adc.rawToFloat(raw);
 

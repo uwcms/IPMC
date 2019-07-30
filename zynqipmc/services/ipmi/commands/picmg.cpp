@@ -16,9 +16,9 @@
  */
 
 #include <core.h>
+#include <payload_manager.h>
 #include <services/ipmi/IPMI.h>
 #include <services/ipmi/MStateMachine.h>
-#include <PayloadManager.h>
 #include <services/ipmi/commands/ipmicmd_index.h>
 #include <services/ipmi/ipmbsvc/ipmbsvc.h>
 #include <services/ipmi/sdr/sensor_data_repository.h>
@@ -354,7 +354,7 @@ static void ipmicmd_Set_Port_State(IPMBSvc &ipmb, const IPMI_MSG &message) {
 	if (!payload_manager)
 		// Not yet initialized (we got an IPMI message before ipmc_service_init() completed)
 		RETURN_ERROR(ipmb, message, IPMI::Completion::Node_Busy);
-	payload_manager->update_link_enable(LinkDescriptor(linkid, enable));
+	payload_manager->updateLinkEnable(LinkDescriptor(linkid, enable));
 	ipmb.send(message.prepare_reply({IPMI::Completion::Success, 0}));
 }
 IPMICMD_INDEX_REGISTER(Set_Port_State);
@@ -372,7 +372,7 @@ static void ipmicmd_Compute_Power_Properties(IPMBSvc &ipmb, const IPMI_MSG &mess
 	if (!payload_manager)
 		// Not yet initialized (we got an IPMI message before ipmc_service_init() completed)
 		RETURN_ERROR(ipmb, message, IPMI::Completion::Node_Busy);
-	PowerProperties properties = payload_manager->get_power_properties(message.data[1], true);
+	PowerProperties properties = payload_manager->getPowerProperties(message.data[1], true);
 	ipmb.send(message.prepare_reply({IPMI::Completion::Success, 0, properties.spanned_slots, properties.controller_location}));
 }
 IPMICMD_INDEX_REGISTER(Compute_Power_Properties);
@@ -386,7 +386,7 @@ static void ipmicmd_Set_Power_Level(IPMBSvc &ipmb, const IPMI_MSG &message) {
 		// Not yet initialized (we got an IPMI message before ipmc_service_init() completed)
 		RETURN_ERROR(ipmb, message, IPMI::Completion::Node_Busy);
 
-	PowerProperties properties = payload_manager->get_power_properties(message.data[1], false);
+	PowerProperties properties = payload_manager->getPowerProperties(message.data[1], false);
 	uint8_t new_power_level = properties.current_power_level;
 	if (message.data[2] != 0xFF)
 		new_power_level = message.data[2];
@@ -395,7 +395,7 @@ static void ipmicmd_Set_Power_Level(IPMBSvc &ipmb, const IPMI_MSG &message) {
 
 	if (properties.current_power_level != new_power_level) {
 		try {
-			payload_manager->set_power_level(message.data[1], new_power_level);
+			payload_manager->setPowerLevel(message.data[1], new_power_level);
 		}
 		catch (std::domain_error &e) {
 			RETURN_ERROR(ipmb, message, IPMI::Completion::Parameter_Out_Of_Range);
@@ -415,7 +415,7 @@ static void ipmicmd_Get_Power_Level(IPMBSvc &ipmb, const IPMI_MSG &message) {
 		// Not yet initialized (we got an IPMI message before ipmc_service_init() completed)
 		RETURN_ERROR(ipmb, message, IPMI::Completion::Node_Busy);
 
-	PowerProperties properties = payload_manager->get_power_properties(message.data[1], false);
+	PowerProperties properties = payload_manager->getPowerProperties(message.data[1], false);
 
 	std::shared_ptr<IPMI_MSG> reply = message.prepare_reply({IPMI::Completion::Success, 0, 0, 0, 0});
 	if (properties.dynamic_reconfiguration)

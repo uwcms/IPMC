@@ -40,13 +40,13 @@ public:
 			uint32_t reboot_status = Xil_In32(REBOOT_STATUS_REG);
 			reboot_status &= ~(0x0F000000);
 			reboot_status |= ((target << 24) & 0x0F000000);
-			console->write(stdsprintf("Setting REBOOT_STATUS to 0x%08x.\n", reboot_status));
+			console->write(stdsprintf("Setting REBOOT_STATUS to 0x%08lx.\n", reboot_status));
 
 			Xil_Out32(SLCR_UNLOCK_REG, 0xDF0D); // Unlock key
 			Xil_Out32(REBOOT_STATUS_REG, reboot_status);
 		}
 
-		if (wasFlashUpgradeSuccessful == true) {
+		if (flash_upgrade_successful == true) {
 			console->write("Flushing persistent storage...\n");
 			SemaphoreHandle_t psdone = xSemaphoreCreateBinary();
 			persistent_storage->flush([&psdone]() -> void { xSemaphoreGive(psdone); });
@@ -62,8 +62,6 @@ public:
 			console->write("Restart is disabled due to a failed firmware attempt (flash may be corrupted).\n");
 		}
 	}
-
-	//virtual std::vector<std::string> complete(const CommandParser::CommandParameters &parameters) const { };
 };
 
 }

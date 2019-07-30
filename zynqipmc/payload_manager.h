@@ -1,12 +1,22 @@
 /*
- * PayloadManager.h
+ * This file is part of the ZYNQ-IPMC Framework.
  *
- *  Created on: Dec 4, 2018
- *      Author: jtikalsky
+ * The ZYNQ-IPMC Framework is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ZYNQ-IPMC Framework is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef SRC_COMMON_ZYNQIPMC_PAYLOADMANAGER_H_
-#define SRC_COMMON_ZYNQIPMC_PAYLOADMANAGER_H_
+#ifndef SRC_COMMON_ZYNQIPMC_PAYLOAD_MANAGER_H_
+#define SRC_COMMON_ZYNQIPMC_PAYLOAD_MANAGER_H_
 
 #include <drivers/ad7689/ad7689.h>
 #include <drivers/generics/adc.h>
@@ -117,7 +127,24 @@ public:
 	bool operator!=(const LinkDescriptor &b) const {
 		return std::vector<uint8_t>(*this) != std::vector<uint8_t>(b);
 	}
+
+	/**
+	 * Register or look up an OEM LinkType GUID, and return the LinkType index
+	 * associated with it.
+	 *
+	 * @param oem_guid The GUID (16 bytes) to register.
+	 * @return The LinkType index associated with this GUID.
+	 * @throws std::domain_error if an invalid GUID is supplied
+	 * @throws std::out_of_range if there is no more space in the table
+	 */
 	static uint8_t map_oem_LinkType_guid(const std::vector<uint8_t> &oem_guid);
+
+	/**
+	 * Looks up an OEM LinkType index and converts it to the appropriate OEM GUID.
+	 * @param LinkType The LinkType index
+	 * @return The OEM GUID
+	 * @throws std::out_of_range if the LinkType is not registered.
+	 */
 	static std::vector<uint8_t> lookup_oem_LinkType_guid(uint8_t LinkType);
 
 protected:
@@ -125,21 +152,28 @@ protected:
 	static std::map< uint8_t, std::vector<uint8_t> > oem_guids; ///< A mapping of registered OEM GUIDs.
 };
 
-class PayloadManager {
+class PayloadManager : public ConsoleCommandSupport {
 public:
+	/**
+	 * Instantiate the PayloadManager and perform all required initialization.
+	 *
+	 * @param mstate_machine The MStateMachine to register
+	 * @param log The LogTree to use
+	 */
 	PayloadManager(MStateMachine *mstate_machine, LogTree &log);
 	virtual ~PayloadManager();
 
-	virtual void Config() = 0;
+	virtual void config() = 0;
 
-	virtual PowerProperties get_power_properties(uint8_t fru, bool recompute=false) = 0;
-	virtual void set_power_level(uint8_t fru, uint8_t level) = 0;
+	virtual PowerProperties getPowerProperties(uint8_t fru, bool recompute = false) = 0;
+	virtual void setPowerLevel(uint8_t fru, uint8_t level) = 0;
 
-	void update_link_enable(const LinkDescriptor &descriptor);
-	std::vector<LinkDescriptor> get_links() const;
+	void updateLinkEnable(const LinkDescriptor &descriptor);
+	std::vector<LinkDescriptor> getLinks() const;
 
-	void register_console_commands(CommandParser &parser, const std::string &prefix);
-	void deregister_console_commands(CommandParser &parser, const std::string &prefix);
+	// From base class ConsoleCommandSupport:
+	virtual void registerConsoleCommands(CommandParser &parser, const std::string &prefix);
+	virtual void deregisterConsoleCommands(CommandParser &parser, const std::string &prefix);
 
 	class ADCSensor {
 	public:
@@ -153,6 +187,13 @@ public:
 	};
 
 protected:
+	// Console commands:
+	class PowerLevelCommand;
+	class MzControlCommand;
+	class ReadIPMISensorsCommand;
+	class GetSensorEventEnablesCommand;
+	class SetSensorEventEnablesCommand;
+
 	SemaphoreHandle_t mutex; ///< A mutex protecting internal data.
 	MStateMachine *mstate_machine; ///< The MStateMachine to notify of changes.
 	uint64_t mz_hf_vectors[XPAR_MGMT_ZONE_CTRL_0_MZ_CNT];
@@ -162,29 +203,36 @@ protected:
 	LogTree &log; ///< The LogTree for this object's messages.
 	std::vector<LinkDescriptor> links; ///< All supported E-Keying links.
 
-	void FinishConfig();
+	void finishConfig();
 
-	virtual void implement_power_level(uint8_t level) = 0;
-	virtual void ProcessNonManagedADCSensor(std::pair<std::string, ADCSensor> sensor);
-
-	friend class ConsoleCommand_PayloadManager_power_level;
-	friend class ConsoleCommand_PayloadManager_mz_control;
+	virtual void implementPowerLevel(uint8_t level) = 0;
+	virtual void processNonManagedADCSensor(std::pair<std::string, ADCSensor> sensor);
 
 	static std::map<std::string, ADCSensor> adc_sensors;
 	std::shared_ptr<SeveritySensor> alarmlevel_sensor;
-	void run_sensor_thread();
-	virtual bool is_MZ_in_context(int mz) const;
-	void update_sensor_processor_contexts();
+	void runSensorThread();
+
+	/**
+	 * Returns true if the specified MZ is in context, or false otherwise.
+	 * @param mz The MZ to check
+	 * @return true if the MZ is in context or the supplied MZ id is <0, else false
+	 */
+	virtual bool isMZInContext(int mz) const;
+	void updateSensorProcessorContexts();
 	std::shared_ptr<TimerService::Timer> sp_context_update_timer; ///< A timer used to re-enable sensor processor contexts.
 
 public:
-	void refresh_sensor_linkage();
+	/**
+	 * This refreshes the ADC Sensor to IPMI Sensor linkage by doing a name-based
+	 * lookup for each ADC Sensor in the global ipmc_sensors SensorSet.
+	 */
+	void refreshSensorLinkage();
 
-	static void AddADCSensor(ADCSensor sensor) {
+	static void addADCSensor(ADCSensor sensor) {
 		PayloadManager::adc_sensors.insert(std::pair<std::string, ADCSensor>(sensor.name, sensor));
 	}
 
-	static inline const std::map<std::string, ADCSensor>& GetADCSensors() { return PayloadManager::adc_sensors; };
+	static inline const std::map<std::string, ADCSensor>& getADCSensors() { return PayloadManager::adc_sensors; };
 };
 
-#endif /* SRC_COMMON_ZYNQIPMC_PAYLOADMANAGER_H_ */
+#endif /* SRC_COMMON_ZYNQIPMC_PAYLOAD_MANAGER_H_ */

@@ -17,9 +17,6 @@
 
 #include <core.h>
 #include <drivers/ipmb/ipmb_pair.h>
-#include "config/ZynqIPMCConfig.h"
-#include <BoardPayloadManager.h>
-
 #include <drivers/ipmb/ps_ipmb.h>
 #include <drivers/ps_gpio/ps_gpio.h>
 #include <drivers/ps_spi/ps_spi.h>
@@ -27,11 +24,19 @@
 #include <libs/printf.h>
 #include <services/console/uartconsolesvc.h>
 #include <services/ipmi/commands/ipmicmd_index.h>
+#include <zynqipmc_config.h>
+
+#include "../../board_payload_manager.h"
 
 #define REBOOT_STATUS_REG (XPS_SYS_CTRL_BASEADDR + 0x258)
 
-//! Defines how many bytes the trace buffer will have.
-#define TRACEBUFFER_SIZE (1*1024*1024) // 1MB
+/**
+ * A FreeRTOS EventGroup initialized by main() before the scheduler starts.
+ *
+ * [1] 1b = ipmc_service_init() has exited.
+ * [0] 1b = driver_init() has exited.
+ */
+EventGroupHandle_t init_complete;
 
 /**
  * Global variables
@@ -56,8 +61,14 @@ IPMICommandParser *ipmi_command_parser;
 
 MStateMachine *mstatemachine = nullptr;
 
+SensorDataRepository sdr_repo;
 SensorDataRepository device_sdr_repo;
 SensorSet ipmc_sensors(&device_sdr_repo);
+
+SemaphoreHandle_t fru_data_mutex;
+std::vector<uint8_t> fru_data;
+
+PayloadManager *payload_manager = nullptr;
 
 // Core-specific variables
 LogTree::Filter *console_log_filter = nullptr;
@@ -67,6 +78,8 @@ static std::shared_ptr<UARTConsoleSvc> console_service;
 static uint8_t tracebuffer_contents[TRACEBUFFER_SIZE];
 static TraceBuffer *trace_buffer = nullptr;
 static uint8_t tracebuffer_object_memory[sizeof(TraceBuffer)];
+
+std::vector<IPMILED*> ipmi_leds;  // Blue, Red, Green, Amber
 
 static void console_log_handler(LogTree &logtree, const std::string &message, enum LogTree::LogLevel level) {
 	std::string logmsg = consoleSvcLogFormat(message, level);
@@ -144,11 +157,11 @@ void core_driver_init() {
 	 *
 	 * We don't need to keep a reference.  This will never require adjustment.
 	 */
-	new LogTree::Filter(LOG, tracebuffer_log_handler, LogTree::LOG_TRACE);
+	new LogTree::Filter(LOG, tracebufferLogHandler, LogTree::LOG_TRACE);
 
 #ifdef ENABLE_WATCHDOGTIMER
 	// Initialize the watchdog.
-	swdt = new PSWDT(XPAR_PS7_WDT_0_DEVICE_ID, 8, LOG["watchdog"], watchdog_ontrip);
+	swdt = new PSWDT(XPAR_PS7_WDT_0_DEVICE_ID, 8, LOG["watchdog"], watchdogOnTrip);
 #endif
 
 	// Initialize the UART console.
@@ -222,7 +235,7 @@ void core_driver_init() {
 #endif
 
 	// Run application specific driver initialization
-	driver_init();
+	driverInit();
 }
 
 void core_service_init() {
@@ -234,11 +247,11 @@ void core_service_init() {
 
 	// TODO: Change this?
 	payload_manager = new BoardPayloadManager(mstatemachine, LOG["payload_manager"]);
-	payload_manager->Config();
+	payload_manager->config();
 
-	payload_manager->register_console_commands(console_command_parser, "payload.");
+	payload_manager->registerConsoleCommands(console_command_parser, "payload.");
 	// IPMC Sensors have been instantiated already, so we can do this linkage now.
-	payload_manager->refresh_sensor_linkage();
+	payload_manager->refreshSensorLinkage();
 
 	/* SDRs must be initialized earlier so sensors are available to link up with
 	 * their drivers.  FRU Data will be done here, once the PayloadManager is
@@ -271,11 +284,18 @@ void core_service_init() {
 #undef MB
 
 	// Run application specific service initialization
-	service_init();
+	serviceInit();
 }
 
-__attribute__((weak)) void watchdog_ontrip() {
-	// This function can be overriden in IPMC.cc
+// TODO
+#include <core_console_commands/ps.h>
+
+__attribute__((weak)) void watchdogOnTrip() {
+	LOG["watchdog"].log(std::string("\n")+ConsoleCommand_ps::get_ps_string(), LogTree::LOG_NOTICE);
+}
+
+__attribute__((weak)) void tracebufferLogHandler(LogTree &logtree, const std::string &message, enum LogTree::LogLevel level) {
+	TRACE.log(logtree.getPath().data(), logtree.getPath().size(), level, message.data(), message.size());
 }
 
 /* We will want this to run as a very early constructor regardless, so that no

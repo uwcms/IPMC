@@ -83,7 +83,7 @@ protected:
 	uint16_t event_context; ///< A mask of events that are in context and can be active.
 	uint16_t last_enabled_assertions; ///< A mask of event assertions that were (enabled & supported) at last update.
 	uint16_t last_enabled_deassertions; ///< A mask of event deassertions that were (enabled & supported) at last update.
-	uint16_t nominal_event_status_override_value; ///< An overriden "nominal event mask".  Valid range: 0x000-0xFFF.  0xFFFF = disabled.
+	uint16_t nominal_event_status_override_value; ///< An overridden "nominal event mask".  Valid range: 0x000-0xFFF.  0xFFFF = disabled.
 	SemaphoreHandle_t value_mutex; ///< A mutex protecting value fields.
 };
 

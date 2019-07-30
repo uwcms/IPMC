@@ -1,19 +1,28 @@
 /*
- * PayloadManager.cpp
+ * This file is part of the ZYNQ-IPMC Framework.
  *
- *  Created on: Dec 4, 2018
- *      Author: jtikalsky
+ * The ZYNQ-IPMC Framework is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ZYNQ-IPMC Framework is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <core.h>
-#include <PayloadManager.h>
 #include <libs/printf.h>
 #include <services/ipmi/sensor/SensorSet.h>
 #include <services/ipmi/sensor/ThresholdSensor.h>
 #include <services/ipmi/sdr/SensorDataRecordReadableSensor.h>
 #include <exception>
-//#include <IPMC.h>
 #include <libs/threading.h>
+#include <payload_manager.h>
 #include <services/console/consolesvc.h>
 #include <services/persistentstorage/persistent_storage.h>
 
@@ -21,7 +30,7 @@
 #define CONTEXT_EVENT_MASK 0xfc0 // mask only lower events
 #define OOC_NOMINAL_EVENT_STATUS 0x555 // When "out of context", presume the sensor value is zero, below all thresholds
 
-SemaphoreHandle_t LinkDescriptor::oem_guid_mutex = NULL;
+SemaphoreHandle_t LinkDescriptor::oem_guid_mutex = nullptr;
 std::map< uint8_t, std::vector<uint8_t> > LinkDescriptor::oem_guids;
 std::map<std::string, PayloadManager::ADCSensor> PayloadManager::adc_sensors;
 
@@ -45,8 +54,10 @@ LinkDescriptor::LinkDescriptor(
 
 LinkDescriptor::LinkDescriptor(const std::vector<uint8_t> &bytes, bool enabled) :
 	enabled(enabled) {
-	if (bytes.size() < 4)
+	if (bytes.size() < 4) {
 		throw std::domain_error("A Link Descriptor must be a four byte field.");
+	}
+
 	this->LinkGroupingID = bytes[3];
 	this->LinkTypeExtension = bytes[2] >> 4;
 	this->LinkType = ((bytes[2] & 0x0F) << 4) | ((bytes[1] & 0xF0) >> 4);
@@ -67,28 +78,23 @@ LinkDescriptor::operator std::vector<uint8_t>() const {
 	return out;
 }
 
-/**
- * Register or look up an OEM LinkType GUID, and return the LinkType index
- * associated with it.
- *
- * @param oem_guid The GUID (16 bytes) to register.
- * @return The LinkType index associated with this GUID.
- * @throws std::domain_error if an invalid GUID is supplied
- * @throws std::out_of_range if there is no more space in the table
- */
 uint8_t LinkDescriptor::map_oem_LinkType_guid(const std::vector<uint8_t> &oem_guid) {
-	if (oem_guid.size() != 16)
+	if (oem_guid.size() != 16) {
 		throw std::domain_error("OEM LinkType GUIDs are 16 byte values.");
+	}
+
 	safe_init_static_mutex(oem_guid_mutex, false);
 	MutexGuard<false> lock(oem_guid_mutex, true);
-	for (auto it = oem_guids.begin(), eit = oem_guids.end(); it != eit; ++it)
-		if (it->second == oem_guid)
+	for (auto it = oem_guids.begin(), eit = oem_guids.end(); it != eit; ++it) {
+		if (it->second == oem_guid) {
 			return it->first;
+		}
+	}
 
 	// Or if not found, attempt to register.
 	for (uint8_t mapping = 0xF0; mapping < 0xFF; ++mapping) {
-			if (oem_guids.count(mapping))
-				continue;
+			if (oem_guids.count(mapping)) continue;
+
 			oem_guids[mapping] = oem_guid;
 			return mapping;
 	}
@@ -97,26 +103,14 @@ uint8_t LinkDescriptor::map_oem_LinkType_guid(const std::vector<uint8_t> &oem_gu
 	throw std::out_of_range("No remaining OEM LinkType GUID slots available. (Only 15 can be specified in FRU Data, by §3.7.2.3 ¶318)");
 }
 
-/**
- * Looks up an OEM LinkType index and converts it to the appropriate OEM GUID.
- * @param LinkType The LinkType index
- * @return The OEM GUID
- * @throws std::out_of_range if the LinkType is not registered.
- */
 std::vector<uint8_t> LinkDescriptor::lookup_oem_LinkType_guid(uint8_t LinkType) {
 	safe_init_static_mutex(oem_guid_mutex, false);
 	MutexGuard<false> lock(oem_guid_mutex, true);
 	return oem_guids.at(LinkType);
 }
 
-/**
- * Instantiate the PayloadManager and perform all required initialization.
- *
- * @param mstate_machine The MStateMachine to register
- * @param log The LogTree to use
- */
 PayloadManager::PayloadManager(MStateMachine *mstate_machine, LogTree &log)
-	: mstate_machine(mstate_machine), log(log), sp_context_update_timer(NULL) {
+	: mstate_machine(mstate_machine), log(log), sp_context_update_timer(nullptr) {
 	configASSERT(this->mutex = xSemaphoreCreateRecursiveMutex());
 
 	struct IPMILED::Action ledstate;
@@ -125,18 +119,21 @@ PayloadManager::PayloadManager(MStateMachine *mstate_machine, LogTree &log)
 	ipmi_leds[2]->submit(ledstate);
 }
 
-void PayloadManager::FinishConfig() {
+void PayloadManager::finishConfig() {
 	std::vector<ADC::Channel*> sensor_processor_channels(XPAR_IPMI_SENSOR_PROC_0_SENSOR_CNT);
-	for (auto &adcsensor : PayloadManager::adc_sensors)
-		if (adcsensor.second.sensor_processor_id >= 0)
+	for (auto &adcsensor : PayloadManager::adc_sensors) {
+		if (adcsensor.second.sensor_processor_id >= 0) {
 			sensor_processor_channels[adcsensor.second.sensor_processor_id] = &adcsensor.second.adc;
+		}
+	}
+
 	// TODO: Maybe this can't be common, check later.
 	this->sensor_processor = new SensorProcessor(XPAR_IPMI_SENSOR_PROC_0_DEVICE_ID, XPAR_FABRIC_IPMI_SENSOR_PROC_0_IRQ_O_INTR, sensor_processor_channels);
 
 	// The sensor processor is configured and enabled by the sensor linkage
 	// update, as this is where thresholds become available.
 
-	runTask("pyld_adcsensors", TASK_PRIORITY_SERVICE, [this]()->void{this->run_sensor_thread();});
+	runTask("pyld_adcsensors", TASK_PRIORITY_SERVICE, [this]()->void{this->runSensorThread();});
 }
 
 PayloadManager::~PayloadManager() {
@@ -151,15 +148,15 @@ PayloadManager::~PayloadManager() {
 	}
 
 	SuspendGuard suspend(true);
-	this->mstate_machine->deactivate_payload = NULL;
+	this->mstate_machine->deactivate_payload = nullptr;
 	suspend.release();
 
-	configASSERT(0); // We don't have a clean way to shut down the sensor thread.
+	configASSERT(0); // TODO: We don't have a clean way to shut down the sensor thread.
 
 	vSemaphoreDelete(this->mutex);
 }
 
-void PayloadManager::update_link_enable(const LinkDescriptor &descriptor) {
+void PayloadManager::updateLinkEnable(const LinkDescriptor &descriptor) {
 	MutexGuard<true> lock(this->mutex, true);
 	for (auto it = this->links.begin(), eit = this->links.end(); it != eit; ++it) {
 		if (*it == descriptor && it->enabled != descriptor.enabled) {
@@ -172,20 +169,21 @@ void PayloadManager::update_link_enable(const LinkDescriptor &descriptor) {
 			 * the link is available, or hesitate to actually power one up
 			 * before a link that it uses unconditionally is confirmed.
 			 */
-			if (it->enabled)
+			if (it->enabled) {
 				this->log.log(stdsprintf("E-Keying port enabled on Interface %hhu, Channel %hhu.", static_cast<uint8_t>(it->Interface), it->ChannelNumber), LogTree::LOG_INFO);
-			else
+			} else {
 				this->log.log(stdsprintf("E-Keying port disabled on Interface %hhu, Channel %hhu.", static_cast<uint8_t>(it->Interface), it->ChannelNumber), LogTree::LOG_INFO);
+			}
 		}
 	}
 }
 
-std::vector<LinkDescriptor> PayloadManager::get_links() const {
+std::vector<LinkDescriptor> PayloadManager::getLinks() const {
 	MutexGuard<true> lock(this->mutex, true);
 	return this->links;
 }
 
-void PayloadManager::run_sensor_thread() {
+void PayloadManager::runSensorThread() {
 	while (true) {
 		// Wait for scheduled or priority execution, then read any events.
 		TickType_t timeout = pdMS_TO_TICKS(100);
@@ -202,7 +200,7 @@ void PayloadManager::run_sensor_thread() {
 							this->log.log(stdsprintf("Sensor %s (Proc[%d]) has no matching Sensor object (are SDRs configured correctly?), not processing received event for this sensor.", adcsensor.second.name.c_str(), adcsensor.second.sensor_processor_id), LogTree::LOG_ERROR);
 							continue;
 						}
-						bool in_context = this->is_MZ_in_context(adcsensor.second.mz_context);
+						bool in_context = this->isMZInContext(adcsensor.second.mz_context);
 						ipmisensor->nominal_event_status_override(in_context ? 0xFFFF /* disable override */ : OOC_NOMINAL_EVENT_STATUS);
 						ipmisensor->log.log(stdsprintf("Sensor Processor event for %s at reading %f: +0x%04x -0x%04x", ipmisensor->sensor_identifier().c_str(), adcsensor.second.adc.rawToFloat(event.reading_from_isr), event.event_thresholds_assert, event.event_thresholds_deassert), LogTree::LOG_DIAGNOSTIC);
 						ipmisensor->update_value(adcsensor.second.adc.rawToFloat(event.reading_from_isr), (in_context ? 0xfff : CONTEXT_EVENT_MASK), UINT64_MAX, event.event_thresholds_assert, event.event_thresholds_deassert);
@@ -215,12 +213,16 @@ void PayloadManager::run_sensor_thread() {
 		enum SeveritySensor::Level alarm_level = SeveritySensor::OK;
 		{
 			MutexGuard<true> lock(this->mutex, true);
+
 			// If we made it to NR, we faulted, and we're staying in NR.
-			if (this->alarmlevel_sensor && this->alarmlevel_sensor->get_raw_severity_level() == SeveritySensor::NR)
+			if (this->alarmlevel_sensor && this->alarmlevel_sensor->get_raw_severity_level() == SeveritySensor::NR) {
 				alarm_level = SeveritySensor::NR;
+			}
+
 			// If we are in M1 or at power level 0, and fault lock was cleared, we're returning to OK.
-			if ((this->mstate_machine->mstate() == 1 || this->power_properties.current_power_level == 0) && !mstate_machine->fault_lock())
+			if ((this->mstate_machine->mstate() == 1 || this->power_properties.current_power_level == 0) && !mstate_machine->fault_lock()) {
 				alarm_level = SeveritySensor::OK;
+			}
 		}
 
 		// Alert on fault transitions.
@@ -229,8 +231,8 @@ void PayloadManager::run_sensor_thread() {
 			for (unsigned i = 0; i < XPAR_MGMT_ZONE_CTRL_0_MZ_CNT; ++i) {
 				bool state = false, transition = false;
 				state = this->mgmt_zones[i]->getPowerState(&transition);
-				if (transition)
-					continue;
+				if (transition) continue;
+
 				if (state != this->mgmt_zones[i]->getDesiredPowerState()) {
 					this->log.log(stdsprintf("Management Zone %u has faulted!  The global power enable state is %lu at time of software processing.", i, this->mgmt_zones[i]->getPowerEnableStatus(false)), LogTree::LOG_ERROR);
 					// Acknowledge the fault by setting desired state to off.
@@ -249,11 +251,10 @@ void PayloadManager::run_sensor_thread() {
 		MutexGuard<true> lock(this->mutex, true);
 		for (auto &adcsensor : this->adc_sensors) {
 			std::shared_ptr<ThresholdSensor> ipmisensor = adcsensor.second.ipmi_sensor.lock();
-			if (!ipmisensor)
-				continue; // Can't update an unlinked sensor.
+			if (!ipmisensor) continue; // Can't update an unlinked sensor.
 
 			float reading = (float)adcsensor.second.adc.readFloat();
-			bool in_context = this->is_MZ_in_context(adcsensor.second.mz_context);
+			bool in_context = this->isMZInContext(adcsensor.second.mz_context);
 			ipmisensor->nominal_event_status_override(in_context ? 0xFFFF /* disable override */ : OOC_NOMINAL_EVENT_STATUS);
 			//ipmisensor->log.log(stdsprintf("Standard ADC read for %s shows %f %s context.", ipmisensor->sensor_identifier().c_str(), reading, (in_context ? "in" : "out of")), LogTree::LOG_TRACE);
 			ipmisensor->update_value(reading, (in_context ? 0xfff : CONTEXT_EVENT_MASK));
@@ -261,12 +262,17 @@ void PayloadManager::run_sensor_thread() {
 			ThresholdSensor::Value value = ipmisensor->get_value();
 			uint16_t active_events = value.active_events & value.event_context & value.enabled_assertions;
 
-			if ((active_events & 0x081) && alarm_level < SeveritySensor::NC)
+			if ((active_events & 0x081) && alarm_level < SeveritySensor::NC) {
 				alarm_level = SeveritySensor::NC;
-			if ((active_events & 0x204) && alarm_level < SeveritySensor::CR)
+			}
+
+			if ((active_events & 0x204) && alarm_level < SeveritySensor::CR) {
 				alarm_level = SeveritySensor::CR;
-			if ((active_events & 0x810) && alarm_level < SeveritySensor::NR)
+			}
+
+			if ((active_events & 0x810) && alarm_level < SeveritySensor::NR) {
 				alarm_level = SeveritySensor::NR;
+			}
 
 			if (active_events & 0x810) {
 				/* We have NR events on this sensor, and must fault any zones it is part of.
@@ -282,12 +288,14 @@ void PayloadManager::run_sensor_thread() {
 				 * didn't quite make it to the exact value of the higher
 				 * resolution firmware setting.
 				 */
-				for (int i = 0; i < XPAR_MGMT_ZONE_CTRL_0_MZ_CNT; ++i)
+				for (int i = 0; i < XPAR_MGMT_ZONE_CTRL_0_MZ_CNT; ++i) {
 					if (adcsensor.second.sensor_processor_id >= 0 &&
-							this->mz_hf_vectors[i] & (1 << adcsensor.second.sensor_processor_id))
+							this->mz_hf_vectors[i] & (1 << adcsensor.second.sensor_processor_id)) {
 						this->mgmt_zones[i]->setPowerState(ZoneController::Zone::KILL); // Issue software fault.
-					else
-						this->ProcessNonManagedADCSensor(adcsensor);
+					} else {
+						this->processNonManagedADCSensor(adcsensor);
+					}
+				}
 			}
 		}
 
@@ -299,6 +307,7 @@ void PayloadManager::run_sensor_thread() {
 				struct IPMILED::Action ledstate;
 				ledstate.min_duration = 0;
 				ledstate.period_ms = 1000;
+
 				switch (alarm_level) {
 				case SeveritySensor::OK:
 					ledstate.effect = IPMILED::OFF;
@@ -318,47 +327,50 @@ void PayloadManager::run_sensor_thread() {
 					ledstate.effect = IPMILED::BLINK;
 					ledstate.time_on_ms = 500;
 				}
+
 				ipmi_leds[1]->submit(ledstate);
 			}
 		}
 	}
 }
 
-void PayloadManager::ProcessNonManagedADCSensor(std::pair<std::string, ADCSensor> sensor) {
+void PayloadManager::processNonManagedADCSensor(std::pair<std::string, ADCSensor> sensor) {
 	this->log.log(std::string("Non-managed Sensor ") + sensor.second.name.c_str() + " has triggered a NR state but there is no handler defined.", LogTree::LOG_ERROR);
 }
 
-/**
- * Returns true if the specified MZ is in context, or false otherwise.
- * @param mz The MZ to check
- * @return true if the MZ is in context or the supplied MZ id is <0, else false
- */
-bool PayloadManager::is_MZ_in_context(int mz) const {
-	if (mz < 0)
-		return true; // -1 = no mz context concept for this sensor
+bool PayloadManager::isMZInContext(int mz) const {
+	if (mz < 0) return true; // -1 = no mz context concept for this sensor
+
 	ZoneController::Zone *zone = this->mgmt_zones[mz];
-	if (zone->getDesiredPowerState() == false)
+	if (zone->getDesiredPowerState() == false) {
 		return false;
-	if ((zone->getLastTransitionStart() + MZ_HOLDOFF_TICKS) > get_tick64())
+	}
+
+	if ((zone->getLastTransitionStart() + MZ_HOLDOFF_TICKS) > get_tick64()) {
 		return false;
+	}
 	return true;
 }
 
-void PayloadManager::update_sensor_processor_contexts() {
+void PayloadManager::updateSensorProcessorContexts() {
 	MutexGuard<true> lock(this->mutex, true);
 	AbsoluteTimeout next_update(UINT64_MAX);
 	uint64_t start_of_run = get_tick64();
+
 	if (this->sp_context_update_timer) {
 		this->sp_context_update_timer->cancel();
-		this->sp_context_update_timer = NULL;
+		this->sp_context_update_timer = nullptr;
 	}
+
 	for (auto& adcsensor : this->adc_sensors) {
 		std::shared_ptr<ThresholdSensor> sensor = adcsensor.second.ipmi_sensor.lock();
-		if (!sensor)
+		if (!sensor) {
 			continue; // We have no supported assertion mask to enable.
+		}
 
-		if (adcsensor.second.mz_context < 0)
+		if (adcsensor.second.mz_context < 0) {
 			continue; // This sensor doesn't do contexts
+		}
 
 		uint16_t desired_assertions = 0;
 		uint16_t desired_deassertions = 0;
@@ -368,49 +380,49 @@ void PayloadManager::update_sensor_processor_contexts() {
 			desired_assertions   = sensor->assertion_events_enabled() & sdr->assertion_lower_threshold_reading_mask();
 			desired_deassertions = sensor->deassertion_events_enabled() & sdr->deassertion_upper_threshold_reading_mask();
 
-			if (!this->is_MZ_in_context(adcsensor.second.mz_context)) {
+			if (!this->isMZInContext(adcsensor.second.mz_context)) {
 				desired_assertions &= CONTEXT_EVENT_MASK;
 				desired_deassertions &= CONTEXT_EVENT_MASK;
 				uint64_t holdoff_end = this->mgmt_zones[adcsensor.second.mz_context]->getLastTransitionStart() + MZ_HOLDOFF_TICKS;
 				//this->log.log(stdsprintf("MZ%d is out of context for sensor %s", adcsensor.second.mz_context, sensor->sensor_identifier().c_str()), LogTree::LOG_DIAGNOSTIC);
-				if (next_update.getTimeout64() > holdoff_end)
+				if (next_update.getTimeout64() > holdoff_end) {
 					next_update.setAbsTimeout(holdoff_end);
-			}
-			else {
+				}
+			} else {
 				//this->log.log(stdsprintf("MZ%d is in context for sensor %s", adcsensor.second.mz_context, sensor->sensor_identifier().c_str()), LogTree::LOG_DIAGNOSTIC);
 			}
+
 			this->sensor_processor->setEventEnable(adcsensor.second.sensor_processor_id, desired_assertions, desired_deassertions);
 		}
 	}
+
 	if (next_update.getTimeout64() > start_of_run && next_update.getTimeout64() != UINT64_MAX) {
 		// XSDK seems to crash if you put a lambda in a std::make_shared() directly.
 		// A lambda is required in order to allow capture and use of *this, however.
-		std::function<void(void)> self = [this]() -> void { this->update_sensor_processor_contexts(); };
+		std::function<void(void)> self = [this]() -> void { this->updateSensorProcessorContexts(); };
 		this->sp_context_update_timer = std::make_shared<TimerService::Timer>(self, next_update);
 		TimerService::globalTimer().submit(this->sp_context_update_timer);
 	}
 }
 
-/**
- * This refreshes the ADC Sensor to IPMI Sensor linkage by doing a name-based
- * lookup for each ADC Sensor in the global ipmc_sensors SensorSet.
- */
-void PayloadManager::refresh_sensor_linkage() {
+void PayloadManager::refreshSensorLinkage() {
 	MutexGuard<true> lock(this->mutex, true);
 	this->alarmlevel_sensor = std::dynamic_pointer_cast<SeveritySensor>(ipmc_sensors.find_by_name("Alarm Level"));
 
 	for (auto& adcsensor : this->adc_sensors) {
 		std::shared_ptr<ThresholdSensor> sensor = std::dynamic_pointer_cast<ThresholdSensor>(ipmc_sensors.find_by_name(adcsensor.second.name));
 		adcsensor.second.ipmi_sensor = sensor;
-		if (adcsensor.second.sensor_processor_id < 0)
+		if (adcsensor.second.sensor_processor_id < 0) {
 			continue;
+		}
+
 		if (sensor) {
 			std::shared_ptr<const SensorDataRecordReadableSensor> sdr = std::dynamic_pointer_cast<const SensorDataRecordReadableSensor>(device_sdr_repo.find(sensor->sdr_key));
 			if (sdr) {
 				uint16_t desired_assertions = sensor->assertion_events_enabled() & sdr->assertion_lower_threshold_reading_mask();
 				uint16_t desired_deassertions = sensor->deassertion_events_enabled() & sdr->deassertion_upper_threshold_reading_mask();
 
-				if (!this->is_MZ_in_context(adcsensor.second.mz_context)) {
+				if (!this->isMZInContext(adcsensor.second.mz_context)) {
 					desired_assertions &= CONTEXT_EVENT_MASK;
 					desired_deassertions &= CONTEXT_EVENT_MASK;
 				}
@@ -444,27 +456,22 @@ void PayloadManager::refresh_sensor_linkage() {
 						thresholds.UNC, thresholds.UCR, thresholds.UNR,
 						hysteresis.hyst_pos, hysteresis.hyst_neg,
 						assert, deassert), LogTree::LOG_DIAGNOSTIC);
-			}
-			else {
+			} else {
 				sensor->log.log(stdsprintf("Sensor %s (Proc[%d]) has no matching SDR.  Not updating sensor processor configuration for this sensor.", adcsensor.second.name.c_str(), adcsensor.second.sensor_processor_id), LogTree::LOG_WARNING);
 			}
-		}
-		else {
+		} else {
 			this->log.log(stdsprintf("Sensor %s (Proc[%d]) has no matching Sensor object (are SDRs configured correctly?), not updating hardfault configuration for this sensor.", adcsensor.second.name.c_str(), adcsensor.second.sensor_processor_id), LogTree::LOG_ERROR);
 		}
 	}
 }
 
-// No anonymous namespace because it needs to be declared friend.
 /// A backend power switch command
-class ConsoleCommand_PayloadManager_power_level : public CommandParser::Command {
+class PayloadManager::PowerLevelCommand : public CommandParser::Command {
 public:
-	PayloadManager &payloadmgr;
+	PowerLevelCommand(PayloadManager &payloadmgr) : payloadmgr(payloadmgr) { };
 
-	ConsoleCommand_PayloadManager_power_level(PayloadManager &payloadmgr) : payloadmgr(payloadmgr) { };
 	virtual std::string get_helptext(const std::string &command) const {
-		return stdsprintf(
-				"%s [$new_power_level [$force]]\n"
+		return command + " [$new_power_level [$force]]\n"
 				"  $new_power_level corresponds to an IPMI payload power level:\n"
 				"    0 = off\n"
 				"    1 = all backend power on\n"
@@ -472,14 +479,16 @@ public:
 				"\n"
 				"This command changes our backend power enables without affecting or overriding IPMI state.\n"
 				"\n"
-				"Without parameters, this will return power status.\n", command.c_str());
+				"Without parameters, this will return power status.\n";
 	}
 
 	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
 		if (parameters.nargs() == 1) {
 			unsigned int negotiated_power_watts = 0;
-			if (this->payloadmgr.power_properties.current_power_level)
+			if (this->payloadmgr.power_properties.current_power_level) {
 				negotiated_power_watts = this->payloadmgr.power_properties.power_levels[this->payloadmgr.power_properties.current_power_level-1];
+			}
+
 			negotiated_power_watts *= this->payloadmgr.power_properties.power_multiplier;
 			uint32_t pen_state = this->payloadmgr.mgmt_zones[0]->getPowerEnableStatus(false);
 			console->write(stdsprintf(
@@ -497,39 +506,40 @@ public:
 			console->write("Invalid parameters.\n");
 			return;
 		}
+
 		// Parse $force parameter.
 		if (parameters.nargs() >= 3 && !parameters.parseParameters(2, true, &force)) {
 			console->write("Invalid parameters.\n");
 			return;
 		}
+
 		if (new_level >= 2) {
 			console->write("Invalid power level.\n");
 			return;
 		}
+
 		if (new_level > this->payloadmgr.power_properties.current_power_level && !force) {
 			console->write("The requested power level is higher than our negotiated power budget.\n");
 			return;
 		}
-		this->payloadmgr.implement_power_level(new_level);
+
+		this->payloadmgr.implementPowerLevel(new_level);
 	}
 
-	//virtual std::vector<std::string> complete(const CommandParser::CommandParameters &parameters) const { };
+private:
+	PayloadManager &payloadmgr;
 };
 
 /// A management zone power switch command
-class ConsoleCommand_PayloadManager_mz_control : public CommandParser::Command {
+class PayloadManager::MzControlCommand : public CommandParser::Command {
 public:
-	PayloadManager &payloadmgr;
-
-	ConsoleCommand_PayloadManager_mz_control(PayloadManager &payloadmgr) : payloadmgr(payloadmgr) { };
+	MzControlCommand(PayloadManager &payloadmgr) : payloadmgr(payloadmgr) { };
 
 	virtual std::string get_helptext(const std::string &command) const {
-		return stdsprintf(
-				"%s [$mz_number [$on_off]]\n"
-				"\n"
+		return command + " [$mz_number [$on_off]]\n\n"
 				"This command changes our MZ enables without affecting or overriding IPMI state.\n"
 				"\n"
-				"Without parameters, this will return all MZ status.\n", command.c_str());
+				"Without parameters, this will return all MZ status.\n";
 	}
 
 	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
@@ -545,6 +555,7 @@ public:
 			}
 		} else {
 			uint8_t mz_number;
+
 			// Parse $mz_number parameter.
 			if (!parameters.parseParameters(1, false, &mz_number)) {
 				console->write("Invalid parameters.\n");
@@ -564,6 +575,7 @@ public:
 					console->write(" [" + this->payloadmgr.mgmt_zones[mz_number]->getName() + "]");
 				}
 				console->write(stdsprintf(" is currently %s.\n", (active?"ON":"OFF")));
+
 			} else {
 				ZoneController::Zone::PowerAction action = ZoneController::Zone::OFF;
 
@@ -579,21 +591,18 @@ public:
 				this->payloadmgr.mgmt_zones[mz_number]->setPowerState(action);
 			}
 		}
-
 	}
 
-	//virtual std::vector<std::string> complete(const CommandParser::CommandParameters &parameters) const { };
+private:
+	PayloadManager &payloadmgr;
 };
 
-namespace {
 /// A sensor readout command
-class ConsoleCommand_read_ipmi_sensors : public CommandParser::Command {
+class PayloadManager::ReadIPMISensorsCommand : public CommandParser::Command {
 public:
 	virtual std::string get_helptext(const std::string &command) const {
-		return stdsprintf(
-				"%s\n"
-				"\n"
-				"Read out the status of all IPMI sensors\n", command.c_str());
+		return command + "\n\n"
+				"Read out the status of all IPMI sensors\n";
 	}
 
 	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
@@ -602,8 +611,9 @@ public:
 			std::string name = sensorinfo.second->sensor_identifier();
 			{ // Common-ify the sensor name if possible.
 				std::shared_ptr<const SensorDataRecordSensor> sdr = std::dynamic_pointer_cast<const SensorDataRecordSensor>(device_sdr_repo.find(sensorinfo.second->sdr_key));
-				if (sdr)
+				if (sdr) {
 					name = sdr->id_string();
+				}
 			}
 			{ // Process if ThresholdSensor
 				std::shared_ptr<ThresholdSensor> sensor = std::dynamic_pointer_cast<ThresholdSensor>(sensorinfo.second);
@@ -624,10 +634,13 @@ public:
 							"unr-",
 							"unr+"
 					};
+
 					std::string thresholds;
-					for (int i = 0; i < 12; ++i)
-						if (value.active_events & 0x0a95 /* don't report lower going-high and upper going-low */ & 1<<i)
+					for (int i = 0; i < 12; ++i) {
+						if (value.active_events & 0x0a95 /* don't report lower going-high and upper going-low */ & 1<<i) {
 							thresholds += std::string(" ") + threshold_names[i];
+						}
+					}
 
 					out += stdsprintf("%3d %-30s %9.6f (raw %3hhu; %3u%% in context; events 0x%03hu%s)\n",
 							sensor->sdr_key[2],
@@ -655,8 +668,10 @@ public:
 				if (sensor) {
 					uint8_t status = static_cast<uint8_t>(sensor->get_sensor_value());
 					std::string label = "Invalid State";
-					if (status < 9)
+					if (status < 9) {
 						label = SeveritySensor::StateTransitionLabels[status];
+					}
+
 					out += stdsprintf("%3d %-30s State %hhu: %s\n",
 							sensor->sdr_key[2],
 							name.c_str(),
@@ -667,20 +682,14 @@ public:
 		}
 		console->write(out);
 	}
-
-	//virtual std::vector<std::string> complete(const CommandParser::CommandParameters &parameters) const { };
 };
-} // anonymous namespace
 
-namespace {
 /// A sensor readout command
-class ConsoleCommand_get_sensor_event_enables : public CommandParser::Command {
+class PayloadManager::GetSensorEventEnablesCommand : public CommandParser::Command {
 public:
 	virtual std::string get_helptext(const std::string &command) const {
-		return stdsprintf(
-				"%s $sensor_number\n"
-				"\n"
-				"Retrieve a sensor's event enable & event supported status.\n", command.c_str());
+		return command + " $sensor_number\n\n"
+				"Retrieve a sensor's event enable & event supported status.\n";
 	}
 
 	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
@@ -689,6 +698,7 @@ public:
 			console->write("Invalid parameters.  Try `help`.\n");
 			return;
 		}
+
 		std::shared_ptr<Sensor> sensor = ipmc_sensors.get(sensor_number);
 		if (!sensor) {
 			console->write("Unknown sensor number.\n");
@@ -709,30 +719,21 @@ public:
 
 			out += stdsprintf("Events Supported Mask (persistent) Assertions: 0x%03hx, Deassertions: 0x%03hx\n", asserts_supported, deasserts_supported);
 			out += stdsprintf("Effective Enabled Set (ena & sup)  Assertions: 0x%03hx, Deassertions: 0x%03hx\n", asserts_enabled & asserts_supported, deasserts_enabled & deasserts_supported);
-		}
-		else {
+		} else {
 			out += stdsprintf("Type 01/02 SDR unavailable for sensor %hhu.\n", sensor_number);
 		}
 		console->write(out);
 	}
-
-	//virtual std::vector<std::string> complete(const CommandParser::CommandParameters &parameters) const { };
 };
-} // anonymous namespace
 
-namespace {
 /// A sensor readout command
-class ConsoleCommand_set_sensor_event_enables : public CommandParser::Command {
+class PayloadManager::SetSensorEventEnablesCommand : public CommandParser::Command {
 public:
-	PayloadManager &payloadmgr;
-
-	ConsoleCommand_set_sensor_event_enables(PayloadManager &payloadmgr) : payloadmgr(payloadmgr) { };
+	SetSensorEventEnablesCommand(PayloadManager &payloadmgr) : payloadmgr(payloadmgr) { };
 
 	virtual std::string get_helptext(const std::string &command) const {
-		return stdsprintf(
-				"%s $sensor_number (enabled|supported) $assertion_mask $deassertion_mask\n"
-				"\n"
-				"Set a sensor's event enable or event supported status.\n", command.c_str());
+		return command + " $sensor_number (enabled|supported) $assertion_mask $deassertion_mask\n\n"
+				"Set a sensor's event enable or event supported status.\n";
 	}
 
 	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
@@ -743,6 +744,7 @@ public:
 			console->write("Invalid parameters.  Try `help`.\n");
 			return;
 		}
+
 		std::shared_ptr<Sensor> sensor = ipmc_sensors.get(sensor_number);
 		if (!sensor) {
 			console->write("Unknown sensor number.\n");
@@ -754,29 +756,30 @@ public:
 		if (enable_type == "enabled") {
 			sensor->assertion_events_enabled(assertmask);
 			sensor->deassertion_events_enabled(deassertmask);
-			payload_manager->refresh_sensor_linkage();
-		}
-		else if (enable_type == "supported") {
+			payload_manager->refreshSensorLinkage();
+		} else if (enable_type == "supported") {
 			if (!sdr) {
 				console->write(stdsprintf("Type 01/02 SDR unavailable for sensor %hhu.\n", sensor_number));
 				return;
 			}
+
 			std::shared_ptr<SensorDataRecordReadableSensor> mutable_sdr = std::dynamic_pointer_cast<SensorDataRecordReadableSensor>(sdr->interpret());
 			if (!mutable_sdr) {
 				console->write("Unable to reinterpret const SensorDataRecordReadableSensor as SensorDataRecordReadableSensor! Invariant failed! Aborted!\n");
 				return;
 			}
+
 			mutable_sdr->assertion_lower_threshold_reading_mask(assertmask);
 			mutable_sdr->deassertion_upper_threshold_reading_mask(deassertmask);
 
 			device_sdr_repo.add(*mutable_sdr, 0);
+
 			// Write changes to EEPROM
 			VariablePersistentAllocation sdr_persist(*persistent_storage, PersistentStorageAllocations::WISC_SDR_REPOSITORY);
 			sdr_persist.setData(device_sdr_repo.u8export());
 
-			this->payloadmgr.refresh_sensor_linkage();
-		}
-		else {
+			this->payloadmgr.refreshSensorLinkage();
+		} else {
 			console->write("Unknown enable type.  Try `help`.\n");
 			return;
 		}
@@ -795,39 +798,29 @@ public:
 
 			out += stdsprintf("Events Supported Mask (persistent) Assertions: 0x%03hx, Deassertions: 0x%03hx\n", asserts_supported, deasserts_supported);
 			out += stdsprintf("Effective Enabled Set (ena & sup)  Assertions: 0x%03hx, Deassertions: 0x%03hx\n", asserts_enabled & asserts_supported, deasserts_enabled & deasserts_supported);
-		}
-		else {
+		} else {
 			out += stdsprintf("Type 01/02 SDR unavailable for sensor %hhu.\n", sensor_number);
 		}
 		console->write(out);
 	}
 
-	//virtual std::vector<std::string> complete(const CommandParser::CommandParameters &parameters) const { };
+private:
+	PayloadManager &payloadmgr;
 };
-} // anonymous namespace
 
-/**
- * Register console commands related to the PayloadManager.
- * @param parser The command parser to register to.
- * @param prefix A prefix for the registered commands.
- */
-void PayloadManager::register_console_commands(CommandParser &parser, const std::string &prefix) {
-	parser.registerCommand(prefix + "power_level", std::make_shared<ConsoleCommand_PayloadManager_power_level>(*this));
-	parser.registerCommand(prefix + "mz_control", std::make_shared<ConsoleCommand_PayloadManager_mz_control>(*this));
-	parser.registerCommand(prefix + "read_ipmi_sensors", std::make_shared<ConsoleCommand_read_ipmi_sensors>());
-	parser.registerCommand(prefix + "get_sensor_event_enables", std::make_shared<ConsoleCommand_get_sensor_event_enables>());
-	parser.registerCommand(prefix + "set_sensor_event_enables", std::make_shared<ConsoleCommand_set_sensor_event_enables>(*this));
+
+void PayloadManager::registerConsoleCommands(CommandParser &parser, const std::string &prefix) {
+	parser.registerCommand(prefix + "power_level", std::make_shared<PayloadManager::PowerLevelCommand>(*this));
+	parser.registerCommand(prefix + "mz_control", std::make_shared<PayloadManager::MzControlCommand>(*this));
+	parser.registerCommand(prefix + "read_ipmi_sensors", std::make_shared<PayloadManager::ReadIPMISensorsCommand>());
+	parser.registerCommand(prefix + "get_sensor_event_enables", std::make_shared<PayloadManager::GetSensorEventEnablesCommand>());
+	parser.registerCommand(prefix + "set_sensor_event_enables", std::make_shared<PayloadManager::SetSensorEventEnablesCommand>(*this));
 }
 
-/**
- * Unregister console commands related to the PayloadManager.
- * @param parser The command parser to unregister from.
- * @param prefix A prefix for the registered commands.
- */
-void PayloadManager::deregister_console_commands(CommandParser &parser, const std::string &prefix) {
-	parser.registerCommand(prefix + "power_level", NULL);
-	parser.registerCommand(prefix + "mz_control", NULL);
-	parser.registerCommand(prefix + "read_ipmi_sensors", NULL);
-	parser.registerCommand(prefix + "get_sensor_event_enables", NULL);
-	parser.registerCommand(prefix + "set_sensor_event_enables", NULL);
+void PayloadManager::deregisterConsoleCommands(CommandParser &parser, const std::string &prefix) {
+	parser.registerCommand(prefix + "power_level", nullptr);
+	parser.registerCommand(prefix + "mz_control", nullptr);
+	parser.registerCommand(prefix + "read_ipmi_sensors", nullptr);
+	parser.registerCommand(prefix + "get_sensor_event_enables", nullptr);
+	parser.registerCommand(prefix + "set_sensor_event_enables", nullptr);
 }

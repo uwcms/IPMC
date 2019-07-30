@@ -1,3 +1,5 @@
+#include <algorithm>
+
 namespace {
 
 /// A "ps" console command.

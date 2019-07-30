@@ -16,6 +16,7 @@
  */
 
 #include <core.h>
+#include <payload_manager.h>
 #include <services/ipmi/IPMI.h>
 #include <services/ipmi/sensor/SensorSet.h>
 #include <services/ipmi/sensor/Sensor.h>
@@ -23,7 +24,6 @@
 #include <services/ipmi/sdr/SensorDataRecordSensor.h>
 #include <services/ipmi/sdr/SensorDataRecordReadableSensor.h>
 #include <services/ipmi/sdr/SensorDataRecord01.h>
-#include <PayloadManager.h>
 #include <services/ipmi/commands/ipmicmd_index.h>
 #include <services/ipmi/ipmbsvc/ipmbsvc.h>
 #include <services/ipmi/sdr/sensor_data_repository.h>
@@ -244,7 +244,7 @@ static void ipmicmd_Set_Sensor_Hysteresis(IPMBSvc &ipmb, const IPMI_MSG &message
 	VariablePersistentAllocation sdr_persist(*persistent_storage, PersistentStorageAllocations::WISC_SDR_REPOSITORY);
 	sdr_persist.setData(device_sdr_repo.u8export());
 	// Update Sensor Processor config
-	payload_manager->refresh_sensor_linkage();
+	payload_manager->refreshSensorLinkage();
 	// Return success
 	ipmb.send(message.prepare_reply({IPMI::Completion::Success}));
 }
@@ -312,7 +312,7 @@ static void ipmicmd_Set_Sensor_Threshold(IPMBSvc &ipmb, const IPMI_MSG &message)
 		sdr_persist.setData(device_sdr_repo.u8export());
 	}
 	// Update Sensor Processor config
-	payload_manager->refresh_sensor_linkage();
+	payload_manager->refreshSensorLinkage();
 	// Return success
 	ipmb.send(message.prepare_reply({IPMI::Completion::Success}));
 }
@@ -378,7 +378,7 @@ static void ipmicmd_Set_Sensor_Event_Enable(IPMBSvc &ipmb, const IPMI_MSG &messa
 	sensor->assertion_events_enabled(assertions);
 	sensor->deassertion_events_enabled(deassertions);
 	// Update Sensor Processor config
-	payload_manager->refresh_sensor_linkage();
+	payload_manager->refreshSensorLinkage();
 	// Return success
 	ipmb.send(message.prepare_reply({IPMI::Completion::Success}));
 }
