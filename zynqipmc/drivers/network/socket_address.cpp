@@ -29,7 +29,7 @@ SocketAddress::SocketAddress(const std::string& address, unsigned short port) {
 		// Invalid address format
 		// TODO: Use lwip_gethostbyname_r to be threadsafe
 		struct hostent *host = lwip_gethostbyname(address.c_str());
-		if (host != NULL) {
+		if (host != nullptr) {
 			memcpy(&this->sockaddr.sin_addr.s_addr,
 					host->h_addr,
 					host->h_length);

@@ -35,7 +35,7 @@ public:
 	 * @param default_route The default route when there is no match in the table.
 	 * @param log           An optional logtree for request dispatch tracking.
 	 */
-	IPMBDispatchRouter(const std::map<uint8_t, IPMB*> &routing_table, IPMB* default_route=NULL, LogTree *log=NULL);
+	IPMBDispatchRouter(const std::map<uint8_t, IPMB*> &routing_table, IPMB* default_route=nullptr, LogTree *log=nullptr);
 
 	virtual void setIncomingMessageQueue(QueueHandle_t incoming_message_queue);
 
@@ -53,7 +53,7 @@ public:
 
 private:
 	std::map<uint8_t, IPMB*> routing_table;	///< The routing table for this dispatch router
-	IPMB *default_route;					///< The target for all non-matched messages (or NULL to fail delivery)
+	IPMB *default_route;					///< The target for all non-matched messages (or nullptr to fail delivery)
 	LogTree *log;							///< An optional logtree for request dispatch tracking.
 };
 

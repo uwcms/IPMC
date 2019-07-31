@@ -98,7 +98,7 @@ void PLSPI::_InterruptHandler() {
 		(void) XSpi_GetStatusReg(&this->xspi);
 
 		unsigned int status = 0xFFFFFFFF; // Report failure
-		xQueueSendFromISR(this->sync, &status, NULL);
+		xQueueSendFromISR(this->sync, &status, nullptr);
 
 		return;		/* Do not continue servicing other interrupts */
 	}
@@ -141,17 +141,17 @@ void PLSPI::_InterruptHandler() {
 			 * Data Transfer Width is Byte (8 bit).
 			 */
 			if (data_width == XSP_DATAWIDTH_BYTE) {
-				if (this->xspi.RecvBufferPtr != NULL) {
+				if (this->xspi.RecvBufferPtr != nullptr) {
 					*this->xspi.RecvBufferPtr++ = (uint8_t) data;
 				}
 			} else if (data_width == XSP_DATAWIDTH_HALF_WORD) {
-				if (this->xspi.RecvBufferPtr != NULL) {
+				if (this->xspi.RecvBufferPtr != nullptr) {
 					*(uint16_t *) this->xspi.RecvBufferPtr =
 							(uint16_t) data;
 					this->xspi.RecvBufferPtr +=2;
 				}
 			} else if (data_width == XSP_DATAWIDTH_WORD) {
-				if (this->xspi.RecvBufferPtr != NULL) {
+				if (this->xspi.RecvBufferPtr != nullptr) {
 					*(uint32_t *) this->xspi.RecvBufferPtr =
 							data;
 					this->xspi.RecvBufferPtr +=4;
@@ -225,7 +225,7 @@ void PLSPI::_InterruptHandler() {
 			unsigned int status = 0;
 			if (this->xspi.Stats.RecvOverruns > 0) status = 1;
 
-			xQueueSendFromISR(this->sync, &status, NULL);
+			xQueueSendFromISR(this->sync, &status, nullptr);
 		}
 	}
 }

@@ -160,9 +160,9 @@ public:
 	}
 
 	virtual void deregisterConsoleCommands(CommandParser &parser, const std::string &prefix="") {
-		parser.registerCommand(prefix + "direction", NULL);
-		parser.registerCommand(prefix + "read", NULL);
-		parser.registerCommand(prefix + "write", NULL);
+		parser.registerCommand(prefix + "direction", nullptr);
+		parser.registerCommand(prefix + "read", nullptr);
+		parser.registerCommand(prefix + "write", nullptr);
 	}
 #endif
 };

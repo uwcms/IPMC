@@ -69,7 +69,7 @@ int ServerSocket::reuse() {
 }*/
 
 std::shared_ptr<Socket> ServerSocket::accept() {
-	if (!isValid()) return std::shared_ptr<Socket>(NULL);
+	if (!isValid()) return std::shared_ptr<Socket>(nullptr);
 
 	struct sockaddr_in from;
 	socklen_t l = sizeof(from);

@@ -139,8 +139,8 @@ public:
 		enum LogLevel getConfiguration(LogTree &logtree);
 
 		// From base class ConsoleCommandSupport:
-		void registerConsoleCommands(CommandParser &parser, const std::string &prefix="");
-		void deregisterConsoleCommands(CommandParser &parser, const std::string &prefix="");
+		virtual void registerConsoleCommands(CommandParser &parser, const std::string &prefix="");
+		virtual void deregisterConsoleCommands(CommandParser &parser, const std::string &prefix="");
 
 	private:
 		class LogLevelCommand;	///< Console command to change the log level of the filter.
@@ -187,8 +187,8 @@ public:
 	void log(const std::string &message, enum LogLevel level);
 
 	// From base class ConsoleCommandSupport:
-	void registerConsoleCommands(CommandParser &parser, const std::string &prefix="");
-	void deregisterConsoleCommands(CommandParser &parser, const std::string &prefix="");
+	virtual void registerConsoleCommands(CommandParser &parser, const std::string &prefix="");
+	virtual void deregisterConsoleCommands(CommandParser &parser, const std::string &prefix="");
 
 private:
 	/**

@@ -73,7 +73,7 @@ void AD7689::registerConsoleCommands(CommandParser &parser, const std::string &p
 }
 
 void AD7689::deregisterConsoleCommands(CommandParser &parser, const std::string &prefix) {
-	parser.registerCommand(prefix + "override", NULL);
+	parser.registerCommand(prefix + "override", nullptr);
 }
 
 std::string AD7689::Override::get_helptext(const std::string &command) const {

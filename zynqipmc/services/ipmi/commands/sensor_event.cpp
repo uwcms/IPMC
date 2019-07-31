@@ -271,7 +271,7 @@ static void ipmicmd_Set_Sensor_Threshold(IPMBSvc &ipmb, const IPMIMessage &messa
 	if (!sensor)
 		RETURN_ERROR(ipmb, message, IPMI::Completion::Requested_Sensor_Data_Or_Record_Not_Present);
 	std::shared_ptr<const SensorDataRecord01> sdr = std::dynamic_pointer_cast<const SensorDataRecord01>(device_sdr_repo.find(sensor->getSdrKey()));
-	std::shared_ptr<SensorDataRecord01> mutable_sdr = NULL;
+	std::shared_ptr<SensorDataRecord01> mutable_sdr = nullptr;
 	if (sdr)
 		mutable_sdr = std::dynamic_pointer_cast<SensorDataRecord01>(sdr->interpret());
 	uint8_t changed_thresholds = message.data[1];

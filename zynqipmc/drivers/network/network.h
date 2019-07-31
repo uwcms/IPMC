@@ -41,7 +41,7 @@ public:
 	 * @param net_ready_cb The callback function that will get called when network is up.
 	 * @throw std::logic_error is network was already previously initialized.
 	 */
-	Network(LogTree &logtree, const uint8_t mac[6], std::function<void(Network*)> net_ready_cb = NULL);
+	Network(LogTree &logtree, const uint8_t mac[6], std::function<void(Network*)> net_ready_cb = nullptr);
 	virtual ~Network() {};
 
 	Network(Network const&) = delete;			///< No copy.

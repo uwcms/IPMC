@@ -214,7 +214,7 @@ static void ipmicmd_Partial_Add_SDR(IPMBSvc &ipmb, const IPMIMessage &message) {
 
 	// Create a static map of partial adds.
 	// This may be called from two IPMBs simultaneously.  Be safe.
-	static SemaphoreHandle_t partials_mutex = NULL;
+	static SemaphoreHandle_t partials_mutex = nullptr;
 	safe_init_static_mutex(partials_mutex, false);
 	MutexGuard<false> lock(partials_mutex, true);
 	static uint16_t last_reservation = 0;

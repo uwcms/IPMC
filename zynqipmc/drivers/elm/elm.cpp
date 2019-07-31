@@ -138,7 +138,7 @@ void ELM::registerConsoleCommands(CommandParser &parser, const std::string &pref
 
 void ELM::deregisterConsoleCommands(CommandParser &parser, const std::string &prefix) {
 	if (this->targetsel)
-		parser.registerCommand(prefix + "bootsource", NULL);
+		parser.registerCommand(prefix + "bootsource", nullptr);
 }
 
 // TODO: Proper linkage between channels
@@ -224,7 +224,7 @@ int ELM::digestInput(Packet &p, TickType_t timeout) {
 
 				if (p.content) {
 					delete p.content;
-					p.content = NULL;
+					p.content = nullptr;
 				}
 
 				if (p.size == 0) {

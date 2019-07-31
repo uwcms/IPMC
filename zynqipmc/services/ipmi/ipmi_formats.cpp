@@ -40,7 +40,7 @@ std::string renderIpmiTypeLengthField(const std::vector<uint8_t> &data) {
 	const unsigned field_length = data[0] & 0x3f;
 
 	if (field_length == 0) {
-		return "<NULL>";
+		return "<nullptr>";
 	}
 
 	if (1+field_length > data.size()) {

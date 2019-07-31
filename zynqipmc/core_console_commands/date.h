@@ -12,7 +12,7 @@ public:
 
 	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
 		timeval tv;
-		gettimeofday(&tv, NULL);
+		gettimeofday(&tv, nullptr);
 		if (tv.tv_sec == 0) {
 			console->write("Time information unavailable.\n");
 		} else {

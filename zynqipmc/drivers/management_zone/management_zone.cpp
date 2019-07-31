@@ -239,7 +239,7 @@ void ZoneController::registerConsoleCommands(CommandParser &parser, const std::s
 }
 
 void ZoneController::deregisterConsoleCommands(CommandParser &parser, const std::string &prefix) {
-	parser.registerCommand(prefix + "override", NULL);
+	parser.registerCommand(prefix + "override", nullptr);
 }
 
 #endif

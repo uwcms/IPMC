@@ -104,7 +104,7 @@ bool toUint32(std::string &s, uint32_t &v) {
 	// Check if hex
 	if (s.length() > 2 && (s.substr(0, 2) == "0x")) {
 		errno = 0;
-		v = strtoul(s.substr(2).c_str(), NULL, 16);
+		v = strtoul(s.substr(2).c_str(), nullptr, 16);
 		if (errno != 0) return false;
 
 		return true;

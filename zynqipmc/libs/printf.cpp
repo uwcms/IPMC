@@ -24,7 +24,7 @@ std::string stdsprintf(const char *fmt, ...) {
     va_list va2;
     va_start(va, fmt);
     va_copy(va2, va);
-    size_t s = vsnprintf(NULL, 0, fmt, va) + 1;
+    size_t s = vsnprintf(nullptr, 0, fmt, va) + 1;
     char *str;
     if (s <= 128)
     	str = (char*)alloca(s);

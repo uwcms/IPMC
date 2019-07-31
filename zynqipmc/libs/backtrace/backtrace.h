@@ -45,7 +45,7 @@ void __wrap___cxa_free_exception(void *ex);
 struct BackTrace final {
 	static constexpr size_t MAX_TRACE_DEPTH = 20;
 
-	BackTrace() : count(0), name(NULL) {};
+	BackTrace() : count(0), name(nullptr) {};
 	~BackTrace() { if (this->name) free(name); };
 
 	/**

@@ -183,7 +183,7 @@ void PSWDT::activate_slot(slot_handle_t slot_handle) {
 	slot.config_cksum = ((~((static_cast<uint64_t>(slot.enabled)<<32)|static_cast<uint64_t>(slot.lifetime))) ^ (slotkey_lshifted1>>1));
 	slot.timeout = get_tick64() + slot.lifetime;
 	slot.timeout_cksum = ((~slot.timeout) ^ (slotkey_lshifted1>>1));
-	strncpy(const_cast<char*>(slot.last_serviced_by), pcTaskGetName(NULL), configMAX_TASK_NAME_LEN);
+	strncpy(const_cast<char*>(slot.last_serviced_by), pcTaskGetName(nullptr), configMAX_TASK_NAME_LEN);
 	slot.last_serviced_by[configMAX_TASK_NAME_LEN-1] = '\0'; // Terminate, just in case.
 
 	critical.release();
@@ -217,12 +217,12 @@ void PSWDT::deactivate_slot(slot_handle_t slot_handle, uint32_t deactivate_code)
 
 	slot.enabled = 0;
 	slot.config_cksum = ((~((static_cast<uint64_t>(slot.enabled)<<32)|static_cast<uint64_t>(slot.lifetime))) ^ (slotkey_lshifted1>>1));
-	strncpy(const_cast<char*>(slot.last_serviced_by), pcTaskGetName(NULL), configMAX_TASK_NAME_LEN);
+	strncpy(const_cast<char*>(slot.last_serviced_by), pcTaskGetName(nullptr), configMAX_TASK_NAME_LEN);
 	slot.last_serviced_by[configMAX_TASK_NAME_LEN-1] = '\0'; // Terminate, just in case.
 
 	critical.release();
 
-	this->log.log(stdsprintf("Watchdog slot %hhu deactivated by %s.", slotid, pcTaskGetName(NULL)), LogTree::LOG_INFO);
+	this->log.log(stdsprintf("Watchdog slot %hhu deactivated by %s.", slotid, pcTaskGetName(nullptr)), LogTree::LOG_INFO);
 }
 
 void PSWDT::service_slot(slot_handle_t slot_handle) {
@@ -253,12 +253,12 @@ void PSWDT::service_slot(slot_handle_t slot_handle) {
 
 	slot.timeout = get_tick64() + slot.lifetime;
 	slot.timeout_cksum = ((~slot.timeout) ^ (slotkey_lshifted1>>1));
-	strncpy(const_cast<char*>(slot.last_serviced_by), pcTaskGetName(NULL), configMAX_TASK_NAME_LEN);
+	strncpy(const_cast<char*>(slot.last_serviced_by), pcTaskGetName(nullptr), configMAX_TASK_NAME_LEN);
 	slot.last_serviced_by[configMAX_TASK_NAME_LEN-1] = '\0'; // Terminate, just in case.
 
 	critical.release();
 
-	this->log.log(stdsprintf("Watchdog slot %hhu serviced by %s.", slotid, pcTaskGetName(NULL)), LogTree::LOG_DIAGNOSTIC);
+	this->log.log(stdsprintf("Watchdog slot %hhu serviced by %s.", slotid, pcTaskGetName(nullptr)), LogTree::LOG_DIAGNOSTIC);
 }
 
 const volatile uint32_t PSWDT::deactivate_code_lshifted1 = 0x508030a4UL;

@@ -20,7 +20,7 @@
 
 #include "ps_gpio.h"
 
-PSGPIO::PSGPIO(uint16_t device_id, std::vector<uint8_t> pins) : GPIO(), kPinCount(pins.size()), pins(NULL) {
+PSGPIO::PSGPIO(uint16_t device_id, std::vector<uint8_t> pins) : GPIO(), kPinCount(pins.size()), pins(nullptr) {
 	if (this->kPinCount == 0) {
 		throw std::out_of_range("Cannot create an empty bus for PSGPIO(device_id=" + std::to_string(device_id) + ")");
 	}

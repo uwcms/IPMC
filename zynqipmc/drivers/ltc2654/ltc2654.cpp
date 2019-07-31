@@ -34,7 +34,7 @@ bool LTC2654::sendCommand(Address addr, Command cmd, uint16_t val) {
 		data[2] = val;
 	}
 
-	return this->spi.transfer(this->kChipSelect, data, NULL, sizeof(data), pdMS_TO_TICKS(1000));
+	return this->spi.transfer(this->kChipSelect, data, nullptr, sizeof(data), pdMS_TO_TICKS(1000));
 }
 
 void LTC2654::setDAC(Address addr, float ratio) {
@@ -130,5 +130,5 @@ void LTC2654::registerConsoleCommands(CommandParser &parser, const std::string &
 }
 
 void LTC2654::deregisterConsoleCommands(CommandParser &parser, const std::string &prefix) {
-	parser.registerCommand(prefix + "command", NULL);
+	parser.registerCommand(prefix + "command", nullptr);
 }

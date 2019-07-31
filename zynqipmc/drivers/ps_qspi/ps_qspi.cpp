@@ -395,7 +395,7 @@ void PSQSPI::_InterruptHandler() {
 		while ((count < transcount) &&
 			(count < XQSPIPS_RXFIFO_THRESHOLD_OPT)) {
 
-			if (this->qspi.RecvBufferPtr != NULL) {
+			if (this->qspi.RecvBufferPtr != nullptr) {
 				if (this->qspi.RequestedBytes < 4) {
 					data = XQspiPs_ReadReg(this->qspi.Config.BaseAddress,
 						XQSPIPS_RXD_OFFSET);
@@ -467,7 +467,7 @@ void PSQSPI::_InterruptHandler() {
 			this->qspi.IsBusy = FALSE;
 
 			uint32_t status = XST_SPI_TRANSFER_DONE;
-			xQueueSendFromISR(this->sync, &status, NULL);
+			xQueueSendFromISR(this->sync, &status, nullptr);
 		} else {
 			/*
 			 * Enable the TXOW interrupt.
@@ -500,14 +500,14 @@ void PSQSPI::_InterruptHandler() {
 		this->qspi.IsBusy = FALSE;
 
 		uint32_t status = XST_SPI_RECEIVE_OVERRUN;
-		xQueueSendFromISR(this->sync, &status, NULL);
+		xQueueSendFromISR(this->sync, &status, nullptr);
 	}
 
 	if (intr_status & XQSPIPS_IXR_TXUF_MASK) {
 		this->qspi.IsBusy = FALSE;
 
 		uint32_t status = XST_SPI_TRANSMIT_UNDERRUN;
-		xQueueSendFromISR(this->sync, &status, NULL);
+		xQueueSendFromISR(this->sync, &status, nullptr);
 	}
 }
 

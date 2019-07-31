@@ -245,8 +245,8 @@ void ESM::registerConsoleCommands(CommandParser &parser, const std::string &pref
 }
 
 void ESM::deregisterConsoleCommands(CommandParser &parser, const std::string &prefix) {
-	parser.registerCommand(prefix + "command", NULL);
-	parser.registerCommand(prefix + "restart", NULL);
+	parser.registerCommand(prefix + "command", nullptr);
+	parser.registerCommand(prefix + "restart", nullptr);
 	if (this->isFlashPresent())
-		parser.registerCommand(prefix + "flash.info", NULL);
+		parser.registerCommand(prefix + "flash.info", nullptr);
 }

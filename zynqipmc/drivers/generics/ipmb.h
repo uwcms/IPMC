@@ -28,7 +28,7 @@
  */
 class IPMB {
 public:
-	IPMB() : incoming_message_queue(NULL) { };
+	IPMB() : incoming_message_queue(nullptr) { };
 	virtual ~IPMB() { };
 
 public:
@@ -62,7 +62,7 @@ public:
 protected:
 	/**
 	 * This queue of typename IPMIMessage receives deliveries of incoming IPMB
-	 * messages from this interface, if not NULL.
+	 * messages from this interface, if not nullptr.
 	 */
 	QueueHandle_t incoming_message_queue;
 };

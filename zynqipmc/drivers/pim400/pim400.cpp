@@ -113,6 +113,6 @@ void PIM400::registerConsoleCommands(CommandParser &parser, const std::string &p
 }
 
 void PIM400::deregisterConsoleCommands(CommandParser &parser, const std::string &prefix) {
-	parser.registerCommand(prefix + "status", NULL);
+	parser.registerCommand(prefix + "status", nullptr);
 }
 

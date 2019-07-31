@@ -106,15 +106,15 @@ public:
 	};
 #endif
 
-	void registerConsoleCommands(CommandParser &parser, const std::string &prefix="") {
+	virtual void registerConsoleCommands(CommandParser &parser, const std::string &prefix="") {
 #ifdef ENABLE_DRIVER_COMMAND_SUPPORT
 		parser.registerCommand(prefix + "transfer", std::make_shared<SPIMaster::Transfer>(*this));
 #endif
 	}
 
-	void deregisterConsoleCommands(CommandParser &parser, const std::string &prefix="") {
+	virtual void deregisterConsoleCommands(CommandParser &parser, const std::string &prefix="") {
 #ifdef ENABLE_DRIVER_COMMAND_SUPPORT
-		parser.registerCommand(prefix + "transfer", NULL);
+		parser.registerCommand(prefix + "transfer", nullptr);
 #endif
 	}
 };

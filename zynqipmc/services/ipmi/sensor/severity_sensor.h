@@ -61,7 +61,7 @@ public:
 	void transition(enum Level level, bool send_event=true);
 
 	virtual std::vector<uint8_t> getSensorReading();
-	virtual uint16_t getSensorEventStatus(bool *reading_good=NULL);
+	virtual uint16_t getSensorEventStatus(bool *reading_good=nullptr);
 	virtual void rearm();
 
 	//! Return the current severity status.
