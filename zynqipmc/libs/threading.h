@@ -314,7 +314,7 @@ protected:
  * @return true if in an interrupt, else false
  */
 static inline bool IN_INTERRUPT() {
-	return (*(u32*)0xf8f01300 || *(u32*)0xf8f01304 || *(u32*)0xf8f01308);
+	return (*(uint32_t*)0xf8f01300 || *(uint32_t*)0xf8f01304 || *(uint32_t*)0xf8f01308);
 }
 
 /**

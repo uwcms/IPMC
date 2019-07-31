@@ -17,7 +17,7 @@
 
 #include <services/ipmi/ipmi.h>
 
-const std::map<u8, std::string> IPMI::NetFn::id_to_netfn {
+const std::map<uint8_t, std::string> IPMI::NetFn::id_to_netfn {
 	{ IPMI::NetFn::Chassis,      "Chassis"      },
 	{ IPMI::NetFn::Bridge,       "Bridge"       },
 	{ IPMI::NetFn::Sensor_Event, "Sensor/Event" },
@@ -29,7 +29,7 @@ const std::map<u8, std::string> IPMI::NetFn::id_to_netfn {
 	{ IPMI::NetFn::CMS,          "CMS"          },
 };
 
-const std::map<std::string, u8> IPMI::NetFn::netfn_to_id {
+const std::map<std::string, uint8_t> IPMI::NetFn::netfn_to_id {
 	{ "Chassis",      IPMI::NetFn::Chassis      },
 	{ "Bridge",       IPMI::NetFn::Bridge       },
 	{ "Sensor/Event", IPMI::NetFn::Sensor_Event },
@@ -41,7 +41,7 @@ const std::map<std::string, u8> IPMI::NetFn::netfn_to_id {
 	{ "CMS",          IPMI::NetFn::CMS          },
 };
 
-const std::map<u8, std::string> IPMI::Completion::id_to_cmplcode {
+const std::map<uint8_t, std::string> IPMI::Completion::id_to_cmplcode {
 	{ IPMI::Completion::Success,                                                                 "Success"                                                                 },
 	{ IPMI::Completion::FRU_Device_Busy,                                                         "FRU Device Busy"                                                         },
 	{ IPMI::Completion::Node_Busy,                                                               "Node Busy"                                                               },
@@ -69,7 +69,7 @@ const std::map<u8, std::string> IPMI::Completion::id_to_cmplcode {
 	{ IPMI::Completion::Command_Subfunction_Disabled_Or_Unavailable,                             "Command Subfunction Disabled Or Unavailable"                             },
 };
 
-const std::map<std::string, u8> IPMI::Completion::cmplcode_to_id {
+const std::map<std::string, uint8_t> IPMI::Completion::cmplcode_to_id {
 	{ "Success",                                                                 IPMI::Completion::Success                                                                 },
 	{ "FRU Device Busy",                                                         IPMI::Completion::FRU_Device_Busy                                                         },
 	{ "Node Busy",                                                               IPMI::Completion::Node_Busy                                                               },
@@ -97,7 +97,7 @@ const std::map<std::string, u8> IPMI::Completion::cmplcode_to_id {
 	{ "Command Subfunction Disabled Or Unavailable",                             IPMI::Completion::Command_Subfunction_Disabled_Or_Unavailable                             },
 };
 
-const std::map< u16, std::pair<std::string, std::string> > IPMI::id_to_cmd {
+const std::map< uint16_t, std::pair<std::string, std::string> > IPMI::id_to_cmd {
 	{ IPMI::Chassis::Get_Chassis_Capabilities,                   { "Chassis",      "Get Chassis Capabilities"                     } },
 	{ IPMI::Chassis::Get_Chassis_Status,                         { "Chassis",      "Get Chassis Status"                           } },
 	{ IPMI::Chassis::Chassis_Control,                            { "Chassis",      "Chassis Control"                              } },
@@ -305,7 +305,7 @@ const std::map< u16, std::pair<std::string, std::string> > IPMI::id_to_cmd {
 	{ IPMI::PICMG::Get_IP_Address_Source,                        { "PICMG",        "Get IP Address Source"                        } },
 };
 
-const std::map<std::string, u16> IPMI::cmd_to_id {
+const std::map<std::string, uint16_t> IPMI::cmd_to_id {
 	{ "Get Chassis Capabilities",                     IPMI::Chassis::Get_Chassis_Capabilities                   },
 	{ "Get Chassis Status",                           IPMI::Chassis::Get_Chassis_Status                         },
 	{ "Chassis Control",                              IPMI::Chassis::Chassis_Control                            },

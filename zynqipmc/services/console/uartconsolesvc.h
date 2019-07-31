@@ -56,10 +56,10 @@ private:
 	UART &uart; ///< The UART this console is driven by.
 
 	//! Pass read through to the UART.
-	virtual ssize_t rawRead(char *buf, size_t len, TickType_t timeout, TickType_t read_data_timeout) { return this->uart.read((u8*)buf, len, timeout, read_data_timeout); };
+	virtual ssize_t rawRead(char *buf, size_t len, TickType_t timeout, TickType_t read_data_timeout) { return this->uart.read((uint8_t*)buf, len, timeout, read_data_timeout); };
 
 	//! Pass write through to the UART.
-	virtual ssize_t rawWrite(const char *buf, size_t len, TickType_t timeout) { return this->uart.write((const u8*)buf, len, timeout); };
+	virtual ssize_t rawWrite(const char *buf, size_t len, TickType_t timeout) { return this->uart.write((const uint8_t*)buf, len, timeout); };
 };
 
 #endif /* SRC_COMMON_ZYNQ_SERVICES_CONSOLE_UARTCONSOLESVC_H_ */

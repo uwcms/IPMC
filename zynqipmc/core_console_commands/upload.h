@@ -39,7 +39,7 @@ public:
 			return;
 		}
 
-		std::shared_ptr<u8> buf(new u8[size]);
+		std::shared_ptr<uint8_t> buf(new uint8_t[size]);
 		size_t timeout_sec = 5 + (size / 10000); // Will wait 5 seconds plus 1 second for every 10kByte.
 
 		// Discard any incoming window size data, etc.
@@ -57,7 +57,7 @@ public:
 		console->write(std::to_string(bytesread) + " bytes successfully read from serial stream.\n");
 
 		// Check hash validity
-		u8 s256[SHA_VALBYTES] = {0};
+		uint8_t s256[SHA_VALBYTES] = {0};
 		sha_256(buf.get(), bytesread, s256);
 
 		std::string shahex;

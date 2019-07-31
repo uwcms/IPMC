@@ -90,7 +90,7 @@ static void console_log_handler(LogTree &logtree, const std::string &message, en
 	if (!console_service || IN_INTERRUPT() || IN_CRITICAL()) {
 		// Still early startup.
 		windows_newline(logmsg);
-		psuart0->write((const u8*)logmsg.data(), logmsg.size(), 0);
+		psuart0->write((const uint8_t*)logmsg.data(), logmsg.size(), 0);
 	}
 	else {
 		// We have to use a short timeout here, rather than none, due to the mutex involved.
@@ -148,7 +148,7 @@ void startInitTask() {
 
 // TODO: Check if new returns are not nullptr
 void core_driver_init() {
-	u32 reboot_status = Xil_In32(REBOOT_STATUS_REG) >> 24;
+	uint32_t reboot_status = Xil_In32(REBOOT_STATUS_REG) >> 24;
 	if (reboot_status & 0x4) IMAGE_LOADED = 3;
 	else IMAGE_LOADED = reboot_status & 0x3;
 	if (IPMC_HW_REVISION == 0) IMAGE_LOADED = 0;

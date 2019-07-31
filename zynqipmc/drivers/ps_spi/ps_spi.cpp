@@ -71,7 +71,7 @@ bool PSSPI::transfer(size_t chip, const uint8_t *sendbuf, uint8_t *recvbuf, size
 	XSpiPs_SetSlaveSelect(&this->xspips, chip);
 
 	// Start SPI transfer
-	XSpiPs_Transfer(&this->xspips, (u8*)sendbuf, recvbuf, bytes);
+	XSpiPs_Transfer(&this->xspips, (uint8_t*)sendbuf, recvbuf, bytes);
 	this->transfer_running = true;
 
 	// Block on the queue, waiting for irq to signal transfer completion
@@ -101,7 +101,7 @@ bool PSSPI::transfer(const uint8_t *sendbuf, uint8_t *recvbuf, size_t bytes, Tic
 	if (!this->inAtomic()) throw std::runtime_error("Not atomic, unsafe operation");
 
 	// Start SPI transfer
-	XSpiPs_Transfer(&this->xspips, (u8*)sendbuf, recvbuf, bytes);
+	XSpiPs_Transfer(&this->xspips, (uint8_t*)sendbuf, recvbuf, bytes);
 	this->transfer_running = true;
 
 	// Block on the queue, waiting for irq to signal transfer completion

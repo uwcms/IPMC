@@ -96,9 +96,9 @@ private:
 	PIM400 &pim400;
 };
 
-u8 PIM400::readRegister(const PIM400::PIM400Register reg) {
-	u8 a = reg;
-	u8 r = 0xFF;
+uint8_t PIM400::readRegister(const PIM400::PIM400Register reg) {
+	uint8_t a = reg;
+	uint8_t r = 0xFF;
 
 	this->i2c.atomic([this, &a, &r]() -> void {
 		this->i2c.write(this->kAddr, &a, 1, 1000 / portTICK_RATE_MS);
