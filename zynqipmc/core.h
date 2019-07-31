@@ -30,9 +30,9 @@
 #include <libs/logtree/logtree.h>
 #include <payload_manager.h>
 
-#include <services/ipmi/sensor/SensorSet.h>
 #include <services/ipmi/sdr/sensor_data_repository.h>
 #include <services/ipmi/ipmi_led/ipmi_led.h>
+#include <services/ipmi/sensor/sensor_set.h>
 
 //! ZYNQ-IPMC framework default priorities.
 ///@{

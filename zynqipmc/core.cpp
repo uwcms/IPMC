@@ -242,7 +242,7 @@ void core_service_init() {
 	console_service = UARTConsoleSvc::create(*psuart0, console_command_parser, "console", LOG["console"]["uart"], true);
 
 #ifdef ENABLE_IPMI
-	mstatemachine = new MStateMachine(std::dynamic_pointer_cast<HotswapSensor>(ipmc_sensors.find_by_name("Hotswap")), *ipmi_leds[0], LOG["mstatemachine"]);
+	mstatemachine = new MStateMachine(std::dynamic_pointer_cast<HotswapSensor>(ipmc_sensors.findByName("Hotswap")), *ipmi_leds[0], LOG["mstatemachine"]);
 	mstatemachine->register_console_commands(console_command_parser, "");
 
 	// TODO: Change this?

@@ -6,10 +6,10 @@
  */
 
 #include <services/ipmi/MStateMachine.h>
-#include <services/ipmi/sensor/HotswapSensor.h>
 #include <libs/printf.h>
 #include <libs/threading.h>
 #include <services/console/consolesvc.h>
+#include <services/ipmi/sensor/hotswap_sensor.h>
 
 MStateMachine::MStateMachine(std::shared_ptr<HotswapSensor> hotswap_sensor, IPMILED &blue_led, LogTree &log)
 	: deactivate_payload(NULL), _mstate(1), hotswap_sensor(hotswap_sensor), blue_led(blue_led), log(log),

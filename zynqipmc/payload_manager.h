@@ -24,8 +24,8 @@
 #include <services/ipmi/MStateMachine.h>
 #include <drivers/sensorprocessor/sensorprocessor.h>
 #include <services/console/consolesvc.h>
-#include <services/ipmi/sensor/ThresholdSensor.h>
-#include <services/ipmi/sensor/SeveritySensor.h>
+#include <services/ipmi/sensor/severity_sensor.h>
+#include <services/ipmi/sensor/threshold_sensor.h>
 #include <services/timer/timer.h>
 #include <vector>
 #include <map>

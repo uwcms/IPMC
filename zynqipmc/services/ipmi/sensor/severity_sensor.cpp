@@ -1,16 +1,26 @@
 /*
- * SeveritySensor.cpp
+ * This file is part of the ZYNQ-IPMC Framework.
  *
- *  Created on: Oct 30, 2018
- *      Author: jtikalsky
+ * The ZYNQ-IPMC Framework is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ZYNQ-IPMC Framework is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <services/ipmi/sensor/SeveritySensor.h>
 #include <FreeRTOS.h>
 #include <semphr.h>
 #include <libs/printf.h>
 #include <libs/except.h>
 #include <libs/threading.h>
+#include <services/ipmi/sensor/severity_sensor.h>
 
 SeveritySensor::SeveritySensor(const std::vector<uint8_t> &sdr_key, LogTree &log)
 	: Sensor(sdr_key, log), status(TRANS_OK) {
@@ -19,11 +29,6 @@ SeveritySensor::SeveritySensor(const std::vector<uint8_t> &sdr_key, LogTree &log
 SeveritySensor::~SeveritySensor() {
 }
 
-/**
- * Update the current severity level and send the appropriate events.
- * @param level The new severity level
- * @param send_event If true, send the appropriate IPMI event.
- */
 void SeveritySensor::transition(enum Level level, bool send_event) {
 	enum StateTransition old_status = this->status;
 	enum StateTransition new_status;
@@ -100,21 +105,22 @@ void SeveritySensor::transition(enum Level level, bool send_event) {
 	data.push_back(static_cast<uint8_t>(old_status));
 	data.push_back(0 /* Unspecified */);
 	if (send_event)
-		this->send_event(Sensor::EVENT_ASSERTION, data);
+		this->sendEvent(Sensor::EVENT_ASSERTION, data);
 }
 
-std::vector<uint8_t> SeveritySensor::get_sensor_reading() {
+std::vector<uint8_t> SeveritySensor::getSensorReading() {
 	std::vector<uint8_t> out{0/*IPMI::Completion::Success*/,0,0,0,0};
-	if (!this->all_events_disabled())
+	if (!this->getAllEventsDisabled())
 		out[2] |= 0x80;
-	if (!this->sensor_scanning_disabled())
+	if (!this->getSensorScanningDisabled())
 		out[2] |= 0x40;
 	uint16_t event_state = 1 << static_cast<uint8_t>(this->status);
 	out[3] = event_state & 0xff;
 	out[4] = event_state >> 8;
 	return out;
 }
-uint16_t SeveritySensor::get_sensor_event_status(bool *reading_good) {
+
+uint16_t SeveritySensor::getSensorEventStatus(bool *reading_good) {
 	if (reading_good)
 		*reading_good = true;
 	return (1 << static_cast<uint8_t>(this->status));
@@ -123,10 +129,10 @@ uint16_t SeveritySensor::get_sensor_event_status(bool *reading_good) {
 void SeveritySensor::rearm() {
 	std::vector<uint8_t> data;
 	data.push_back(0x00|static_cast<uint8_t>(this->status));
-	this->send_event(Sensor::EVENT_ASSERTION, data);
+	this->sendEvent(Sensor::EVENT_ASSERTION, data);
 }
 
-enum SeveritySensor::Level SeveritySensor::get_raw_severity_level() const {
+enum SeveritySensor::Level SeveritySensor::getRawSeverityLevel() const {
 	switch (this->status) {
 	case TRANS_OK:           return OK; break;
 	case TRANS_NC_FROM_OK:   return NC; break;
@@ -141,7 +147,7 @@ enum SeveritySensor::Level SeveritySensor::get_raw_severity_level() const {
 	}
 }
 
-enum SeveritySensor::StateTransition SeveritySensor::get_sensor_value() const {
+enum SeveritySensor::StateTransition SeveritySensor::getSensorValue() const {
 	return this->status;
 }
 

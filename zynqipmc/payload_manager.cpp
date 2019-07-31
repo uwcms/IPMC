@@ -17,13 +17,13 @@
 
 #include <core.h>
 #include <libs/printf.h>
-#include <services/ipmi/sensor/SensorSet.h>
-#include <services/ipmi/sensor/ThresholdSensor.h>
 #include <exception>
 #include <libs/threading.h>
 #include <payload_manager.h>
 #include <services/console/consolesvc.h>
 #include <services/ipmi/sdr/sensor_data_record_readable_sensor.h>
+#include <services/ipmi/sensor/sensor_set.h>
+#include <services/ipmi/sensor/threshold_sensor.h>
 #include <services/persistentstorage/persistent_storage.h>
 
 #define MZ_HOLDOFF_TICKS 140
@@ -201,9 +201,9 @@ void PayloadManager::runSensorThread() {
 							continue;
 						}
 						bool in_context = this->isMZInContext(adcsensor.second.mz_context);
-						ipmisensor->nominal_event_status_override(in_context ? 0xFFFF /* disable override */ : OOC_NOMINAL_EVENT_STATUS);
-						ipmisensor->log.log(stdsprintf("Sensor Processor event for %s at reading %f: +0x%04x -0x%04x", ipmisensor->sensor_identifier().c_str(), adcsensor.second.adc.rawToFloat(event.reading_from_isr), event.event_thresholds_assert, event.event_thresholds_deassert), LogTree::LOG_DIAGNOSTIC);
-						ipmisensor->update_value(adcsensor.second.adc.rawToFloat(event.reading_from_isr), (in_context ? 0xfff : CONTEXT_EVENT_MASK), UINT64_MAX, event.event_thresholds_assert, event.event_thresholds_deassert);
+						ipmisensor->setNominalEventStatusOverride(in_context ? 0xFFFF /* disable override */ : OOC_NOMINAL_EVENT_STATUS);
+						ipmisensor->getLog().log(stdsprintf("Sensor Processor event for %s at reading %f: +0x%04x -0x%04x", ipmisensor->sensorIdentifier().c_str(), adcsensor.second.adc.rawToFloat(event.reading_from_isr), event.event_thresholds_assert, event.event_thresholds_deassert), LogTree::LOG_DIAGNOSTIC);
+						ipmisensor->updateValue(adcsensor.second.adc.rawToFloat(event.reading_from_isr), (in_context ? 0xfff : CONTEXT_EVENT_MASK), UINT64_MAX, event.event_thresholds_assert, event.event_thresholds_deassert);
 					}
 				}
 			}
@@ -215,7 +215,7 @@ void PayloadManager::runSensorThread() {
 			MutexGuard<true> lock(this->mutex, true);
 
 			// If we made it to NR, we faulted, and we're staying in NR.
-			if (this->alarmlevel_sensor && this->alarmlevel_sensor->get_raw_severity_level() == SeveritySensor::NR) {
+			if (this->alarmlevel_sensor && this->alarmlevel_sensor->getRawSeverityLevel() == SeveritySensor::NR) {
 				alarm_level = SeveritySensor::NR;
 			}
 
@@ -255,11 +255,11 @@ void PayloadManager::runSensorThread() {
 
 			float reading = (float)adcsensor.second.adc.readFloat();
 			bool in_context = this->isMZInContext(adcsensor.second.mz_context);
-			ipmisensor->nominal_event_status_override(in_context ? 0xFFFF /* disable override */ : OOC_NOMINAL_EVENT_STATUS);
-			//ipmisensor->log.log(stdsprintf("Standard ADC read for %s shows %f %s context.", ipmisensor->sensor_identifier().c_str(), reading, (in_context ? "in" : "out of")), LogTree::LOG_TRACE);
-			ipmisensor->update_value(reading, (in_context ? 0xfff : CONTEXT_EVENT_MASK));
+			ipmisensor->setNominalEventStatusOverride(in_context ? 0xFFFF /* disable override */ : OOC_NOMINAL_EVENT_STATUS);
+			//ipmisensor->log.log(stdsprintf("Standard ADC read for %s shows %f %s context.", ipmisensor->sensorIdentifier().c_str(), reading, (in_context ? "in" : "out of")), LogTree::LOG_TRACE);
+			ipmisensor->updateValue(reading, (in_context ? 0xfff : CONTEXT_EVENT_MASK));
 
-			ThresholdSensor::Value value = ipmisensor->get_value();
+			ThresholdSensor::Value value = ipmisensor->getValue();
 			uint16_t active_events = value.active_events & value.event_context & value.enabled_assertions;
 
 			if ((active_events & 0x081) && alarm_level < SeveritySensor::NC) {
@@ -300,7 +300,7 @@ void PayloadManager::runSensorThread() {
 		}
 
 		if (this->alarmlevel_sensor) {
-			SeveritySensor::Level old_level = this->alarmlevel_sensor->get_raw_severity_level();
+			SeveritySensor::Level old_level = this->alarmlevel_sensor->getRawSeverityLevel();
 			this->alarmlevel_sensor->transition(alarm_level);
 
 			if (alarm_level != old_level) {
@@ -375,21 +375,21 @@ void PayloadManager::updateSensorProcessorContexts() {
 		uint16_t desired_assertions = 0;
 		uint16_t desired_deassertions = 0;
 
-		std::shared_ptr<const SensorDataRecordReadableSensor> sdr = std::dynamic_pointer_cast<const SensorDataRecordReadableSensor>(device_sdr_repo.find(sensor->sdr_key));
+		std::shared_ptr<const SensorDataRecordReadableSensor> sdr = std::dynamic_pointer_cast<const SensorDataRecordReadableSensor>(device_sdr_repo.find(sensor->getSdrKey()));
 		if (sdr) {
-			desired_assertions   = sensor->assertion_events_enabled() & sdr->assertion_lower_threshold_reading_mask();
-			desired_deassertions = sensor->deassertion_events_enabled() & sdr->deassertion_upper_threshold_reading_mask();
+			desired_assertions   = sensor->getAssertionEventsEnabled() & sdr->assertion_lower_threshold_reading_mask();
+			desired_deassertions = sensor->getDeassertionEventsEnabled() & sdr->deassertion_upper_threshold_reading_mask();
 
 			if (!this->isMZInContext(adcsensor.second.mz_context)) {
 				desired_assertions &= CONTEXT_EVENT_MASK;
 				desired_deassertions &= CONTEXT_EVENT_MASK;
 				uint64_t holdoff_end = this->mgmt_zones[adcsensor.second.mz_context]->getLastTransitionStart() + MZ_HOLDOFF_TICKS;
-				//this->log.log(stdsprintf("MZ%d is out of context for sensor %s", adcsensor.second.mz_context, sensor->sensor_identifier().c_str()), LogTree::LOG_DIAGNOSTIC);
+				//this->log.log(stdsprintf("MZ%d is out of context for sensor %s", adcsensor.second.mz_context, sensor->sensorIdentifier().c_str()), LogTree::LOG_DIAGNOSTIC);
 				if (next_update.getTimeout64() > holdoff_end) {
 					next_update.setAbsTimeout(holdoff_end);
 				}
 			} else {
-				//this->log.log(stdsprintf("MZ%d is in context for sensor %s", adcsensor.second.mz_context, sensor->sensor_identifier().c_str()), LogTree::LOG_DIAGNOSTIC);
+				//this->log.log(stdsprintf("MZ%d is in context for sensor %s", adcsensor.second.mz_context, sensor->sensorIdentifier().c_str()), LogTree::LOG_DIAGNOSTIC);
 			}
 
 			this->sensor_processor->setEventEnable(adcsensor.second.sensor_processor_id, desired_assertions, desired_deassertions);
@@ -407,20 +407,20 @@ void PayloadManager::updateSensorProcessorContexts() {
 
 void PayloadManager::refreshSensorLinkage() {
 	MutexGuard<true> lock(this->mutex, true);
-	this->alarmlevel_sensor = std::dynamic_pointer_cast<SeveritySensor>(ipmc_sensors.find_by_name("Alarm Level"));
+	this->alarmlevel_sensor = std::dynamic_pointer_cast<SeveritySensor>(ipmc_sensors.findByName("Alarm Level"));
 
 	for (auto& adcsensor : this->adc_sensors) {
-		std::shared_ptr<ThresholdSensor> sensor = std::dynamic_pointer_cast<ThresholdSensor>(ipmc_sensors.find_by_name(adcsensor.second.name));
+		std::shared_ptr<ThresholdSensor> sensor = std::dynamic_pointer_cast<ThresholdSensor>(ipmc_sensors.findByName(adcsensor.second.name));
 		adcsensor.second.ipmi_sensor = sensor;
 		if (adcsensor.second.sensor_processor_id < 0) {
 			continue;
 		}
 
 		if (sensor) {
-			std::shared_ptr<const SensorDataRecordReadableSensor> sdr = std::dynamic_pointer_cast<const SensorDataRecordReadableSensor>(device_sdr_repo.find(sensor->sdr_key));
+			std::shared_ptr<const SensorDataRecordReadableSensor> sdr = std::dynamic_pointer_cast<const SensorDataRecordReadableSensor>(device_sdr_repo.find(sensor->getSdrKey()));
 			if (sdr) {
-				uint16_t desired_assertions = sensor->assertion_events_enabled() & sdr->assertion_lower_threshold_reading_mask();
-				uint16_t desired_deassertions = sensor->deassertion_events_enabled() & sdr->deassertion_upper_threshold_reading_mask();
+				uint16_t desired_assertions = sensor->getAssertionEventsEnabled() & sdr->assertion_lower_threshold_reading_mask();
+				uint16_t desired_deassertions = sensor->getDeassertionEventsEnabled() & sdr->deassertion_upper_threshold_reading_mask();
 
 				if (!this->isMZInContext(adcsensor.second.mz_context)) {
 					desired_assertions &= CONTEXT_EVENT_MASK;
@@ -451,13 +451,13 @@ void PayloadManager::refreshSensorLinkage() {
 				thresholds = this->sensor_processor->getThresholds(adcsensor.second.sensor_processor_id);
 				this->sensor_processor->getEventEnable(adcsensor.second.sensor_processor_id, assert, deassert);
 				this->log.log(stdsprintf("Sensor %s [%d] Thr: 0x%04hx 0x%04hx 0x%04hx 0x%04hx 0x%04hx 0x%04hx Hyst: +0x%04hx -0x%04hx Ena: +0x%04hx -0x%04hx",
-						sensor->sensor_identifier().c_str(), adcsensor.second.sensor_processor_id,
+						sensor->sensorIdentifier().c_str(), adcsensor.second.sensor_processor_id,
 						thresholds.LNC, thresholds.LCR, thresholds.LNR,
 						thresholds.UNC, thresholds.UCR, thresholds.UNR,
 						hysteresis.hyst_pos, hysteresis.hyst_neg,
 						assert, deassert), LogTree::LOG_DIAGNOSTIC);
 			} else {
-				sensor->log.log(stdsprintf("Sensor %s (Proc[%d]) has no matching SDR.  Not updating sensor processor configuration for this sensor.", adcsensor.second.name.c_str(), adcsensor.second.sensor_processor_id), LogTree::LOG_WARNING);
+				sensor->getLog().log(stdsprintf("Sensor %s (Proc[%d]) has no matching SDR.  Not updating sensor processor configuration for this sensor.", adcsensor.second.name.c_str(), adcsensor.second.sensor_processor_id), LogTree::LOG_WARNING);
 			}
 		} else {
 			this->log.log(stdsprintf("Sensor %s (Proc[%d]) has no matching Sensor object (are SDRs configured correctly?), not updating hardfault configuration for this sensor.", adcsensor.second.name.c_str(), adcsensor.second.sensor_processor_id), LogTree::LOG_ERROR);
@@ -608,9 +608,9 @@ public:
 	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
 		std::string out;
 		for (auto &sensorinfo : SensorSet::container_type(ipmc_sensors)) {
-			std::string name = sensorinfo.second->sensor_identifier();
+			std::string name = sensorinfo.second->sensorIdentifier();
 			{ // Common-ify the sensor name if possible.
-				std::shared_ptr<const SensorDataRecordSensor> sdr = std::dynamic_pointer_cast<const SensorDataRecordSensor>(device_sdr_repo.find(sensorinfo.second->sdr_key));
+				std::shared_ptr<const SensorDataRecordSensor> sdr = std::dynamic_pointer_cast<const SensorDataRecordSensor>(device_sdr_repo.find(sensorinfo.second->getSdrKey()));
 				if (sdr) {
 					name = sdr->id_string();
 				}
@@ -618,7 +618,7 @@ public:
 			{ // Process if ThresholdSensor
 				std::shared_ptr<ThresholdSensor> sensor = std::dynamic_pointer_cast<ThresholdSensor>(sensorinfo.second);
 				if (sensor) {
-					ThresholdSensor::Value value = sensor->get_value();
+					ThresholdSensor::Value value = sensor->getValue();
 
 					static const std::string threshold_names[12] = {
 							"lnc-",
@@ -643,7 +643,7 @@ public:
 					}
 
 					out += stdsprintf("%3d %-30s %9.6f (raw %3hhu; %3u%% in context; events 0x%03hu%s)\n",
-							sensor->sdr_key[2],
+							sensor->getSdrKey()[2],
 							name.c_str(),
 							value.float_value,
 							value.byte_value,
@@ -657,23 +657,23 @@ public:
 				std::shared_ptr<HotswapSensor> sensor = std::dynamic_pointer_cast<HotswapSensor>(sensorinfo.second);
 				if (sensor) {
 					out += stdsprintf("%3d %-30s M%hhu\n",
-							sensor->sdr_key[2],
+							sensor->getSdrKey()[2],
 							name.c_str(),
-							sensor->get_mstate());
+							sensor->getMState());
 					continue;
 				}
 			}
 			{ // Process if SeveritySensor
 				std::shared_ptr<SeveritySensor> sensor = std::dynamic_pointer_cast<SeveritySensor>(sensorinfo.second);
 				if (sensor) {
-					uint8_t status = static_cast<uint8_t>(sensor->get_sensor_value());
+					uint8_t status = static_cast<uint8_t>(sensor->getSensorValue());
 					std::string label = "Invalid State";
 					if (status < 9) {
 						label = SeveritySensor::StateTransitionLabels[status];
 					}
 
 					out += stdsprintf("%3d %-30s State %hhu: %s\n",
-							sensor->sdr_key[2],
+							sensor->getSdrKey()[2],
 							name.c_str(),
 							status, label.c_str());
 					continue;
@@ -705,10 +705,10 @@ public:
 			return;
 		}
 
-		std::shared_ptr<const SensorDataRecordReadableSensor> sdr = std::dynamic_pointer_cast<const SensorDataRecordReadableSensor>(device_sdr_repo.find(sensor->sdr_key));
+		std::shared_ptr<const SensorDataRecordReadableSensor> sdr = std::dynamic_pointer_cast<const SensorDataRecordReadableSensor>(device_sdr_repo.find(sensor->getSdrKey()));
 
-		uint16_t asserts_enabled = sensor->assertion_events_enabled();
-		uint16_t deasserts_enabled = sensor->deassertion_events_enabled();
+		uint16_t asserts_enabled = sensor->getAssertionEventsEnabled();
+		uint16_t deasserts_enabled = sensor->getDeassertionEventsEnabled();
 
 		std::string out;
 		out += stdsprintf("Events Enabled Mask   (transient)  Assertions: 0x%03hx, Deassertions: 0x%03hx\n", asserts_enabled, deasserts_enabled);
@@ -751,11 +751,11 @@ public:
 			return;
 		}
 
-		std::shared_ptr<const SensorDataRecordReadableSensor> sdr = std::dynamic_pointer_cast<const SensorDataRecordReadableSensor>(device_sdr_repo.find(sensor->sdr_key));
+		std::shared_ptr<const SensorDataRecordReadableSensor> sdr = std::dynamic_pointer_cast<const SensorDataRecordReadableSensor>(device_sdr_repo.find(sensor->getSdrKey()));
 
 		if (enable_type == "enabled") {
-			sensor->assertion_events_enabled(assertmask);
-			sensor->deassertion_events_enabled(deassertmask);
+			sensor->setAssertionEventsEnabled(assertmask);
+			sensor->setDeassertionEventsEnabled(deassertmask);
 			payload_manager->refreshSensorLinkage();
 		} else if (enable_type == "supported") {
 			if (!sdr) {
@@ -787,11 +787,11 @@ public:
 
 		std::string out = "Configuration updated.\n\n";
 
-		uint16_t asserts_enabled = sensor->assertion_events_enabled();
-		uint16_t deasserts_enabled = sensor->deassertion_events_enabled();
+		uint16_t asserts_enabled = sensor->getAssertionEventsEnabled();
+		uint16_t deasserts_enabled = sensor->getDeassertionEventsEnabled();
 		out += stdsprintf("Events Enabled Mask   (transient)  Assertions: 0x%03hx, Deassertions: 0x%03hx\n", asserts_enabled, deasserts_enabled);
 
-		sdr = std::dynamic_pointer_cast<const SensorDataRecordReadableSensor>(device_sdr_repo.find(sensor->sdr_key));
+		sdr = std::dynamic_pointer_cast<const SensorDataRecordReadableSensor>(device_sdr_repo.find(sensor->getSdrKey()));
 		if (sdr) {
 			uint16_t asserts_supported = sdr->assertion_lower_threshold_reading_mask();
 			uint16_t deasserts_supported = sdr->deassertion_upper_threshold_reading_mask();

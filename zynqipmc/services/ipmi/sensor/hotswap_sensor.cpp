@@ -1,16 +1,26 @@
 /*
- * HotswapSensor.cpp
+ * This file is part of the ZYNQ-IPMC Framework.
  *
- *  Created on: Oct 30, 2018
- *      Author: jtikalsky
+ * The ZYNQ-IPMC Framework is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ZYNQ-IPMC Framework is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <services/ipmi/sensor/HotswapSensor.h>
 #include <FreeRTOS.h>
 #include <semphr.h>
 #include <libs/printf.h>
 #include <libs/except.h>
 #include <libs/threading.h>
+#include <services/ipmi/sensor/hotswap_sensor.h>
 
 HotswapSensor::HotswapSensor(const std::vector<uint8_t> &sdr_key, LogTree &log)
 	: Sensor(sdr_key, log), mstate(1), previous_mstate(0),
@@ -22,15 +32,11 @@ HotswapSensor::~HotswapSensor() {
 	vSemaphoreDelete(this->mutex);
 }
 
-/**
- * Update the current M-state and send the appropriate events.
- * @param new_state The new M-state
- * @param reason The reason for the state transition
- * @param send_event If true, send the appropriate IPMI event.
- */
 void HotswapSensor::transition(uint8_t new_state, enum StateTransitionReason reason, bool send_event) {
-	if (new_state >= 8)
+	if (new_state >= 8) {
 		throw std::domain_error(stdsprintf("Only M0-M7 are supported, not M%hhu.", new_state));
+	}
+
 	std::vector<uint8_t> data;
 	MutexGuard<false> lock(this->mutex, true);
 	data.push_back(0xA0|new_state);
@@ -40,22 +46,29 @@ void HotswapSensor::transition(uint8_t new_state, enum StateTransitionReason rea
 	this->mstate = new_state;
 	this->last_transition_reason = reason;
 	lock.release();
-	if (send_event)
-		this->send_event(Sensor::EVENT_ASSERTION, data);
+
+	if (send_event) {
+		this->sendEvent(Sensor::EVENT_ASSERTION, data);
+	}
 }
 
-std::vector<uint8_t> HotswapSensor::get_sensor_reading() {
+std::vector<uint8_t> HotswapSensor::getSensorReading() {
 	std::vector<uint8_t> out{0/*IPMI::Completion::Success*/,0,0,0};
-	if (!this->all_events_disabled())
+	if (!this->getAllEventsDisabled()) {
 		out[2] |= 0x80;
-	if (!this->sensor_scanning_disabled())
+	}
+
+	if (!this->getSensorScanningDisabled()) {
 		out[2] |= 0x40;
+	}
 	out[3] = this->mstate;
 	return out;
 }
-uint16_t HotswapSensor::get_sensor_event_status(bool *reading_good) {
-	if (reading_good)
+uint16_t HotswapSensor::getSensorEventStatus(bool *reading_good) {
+	if (reading_good) {
 		*reading_good = true;
+	}
+
 	return (1 << this->mstate);
 }
 
@@ -70,5 +83,5 @@ void HotswapSensor::rearm() {
 	data.push_back((static_cast<uint8_t>(this->last_transition_reason)<<4)|this->previous_mstate);
 	data.push_back(0 /* FRU Device ID */);
 	lock.release();
-	this->send_event(Sensor::EVENT_ASSERTION, data);
+	this->sendEvent(Sensor::EVENT_ASSERTION, data);
 }

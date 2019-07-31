@@ -1,12 +1,20 @@
 /*
- * ThresholdSensor.cpp
+ * This file is part of the ZYNQ-IPMC Framework.
  *
- *  Created on: Oct 19, 2018
- *      Author: jtikalsky
+ * The ZYNQ-IPMC Framework is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ZYNQ-IPMC Framework is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <services/ipmi/sensor/ThresholdSensor.h>
-#include <services/ipmi/sensor/Sensor.h>
 #include <libs/printf.h>
 #include <math.h>
 #include <services/ipmi/ipmbsvc/ipmbsvc.h>
@@ -16,11 +24,13 @@
 #include <services/ipmi/sdr/sensor_data_record_01.h>
 #include <services/ipmi/sdr/sensor_data_record_readable_sensor.h>
 #include <services/ipmi/sdr/sensor_data_record_sensor.h>
+#include <services/ipmi/sensor/sensor.h>
+#include <services/ipmi/sensor/threshold_sensor.h>
 
 ThresholdSensor::ThresholdSensor(const std::vector<uint8_t> &sdr_key, LogTree &log)
 	: Sensor(sdr_key, log), nominal_event_status_override_value(0xFFFF) {
 	this->value_mutex = xSemaphoreCreateMutex();
-	std::shared_ptr<const SensorDataRecord01> sdr01 = std::dynamic_pointer_cast<const SensorDataRecord01>(device_sdr_repo.find(this->sdr_key));
+	std::shared_ptr<const SensorDataRecord01> sdr01 = std::dynamic_pointer_cast<const SensorDataRecord01>(device_sdr_repo.find(this->getSdrKey()));
 	if (sdr01) {
 		// Update our initial thresholds from our Type 01 SDR data.
 		this->thresholds.lnc = sdr01->threshold_lnc_rawvalue();
@@ -29,8 +39,7 @@ ThresholdSensor::ThresholdSensor(const std::vector<uint8_t> &sdr_key, LogTree &l
 		this->thresholds.unc = sdr01->threshold_unc_rawvalue();
 		this->thresholds.ucr = sdr01->threshold_ucr_rawvalue();
 		this->thresholds.unr = sdr01->threshold_unr_rawvalue();
-	}
-	else {
+	} else {
 		// Apply defaults, and let the user fill them in after initialization.
 		this->thresholds.lnc = 0x00;
 		this->thresholds.lcr = 0x00;
@@ -62,11 +71,7 @@ struct ThresholdEvent {
 	uint8_t threshold; ///< The threshold triggering the event.
 };
 
-/**
- * Update thresholds in local cache from the SDR if present.
- * @param sdr01 The sdr to use.  It must be a type 01 SDR or NULL for NOOP
- */
-void ThresholdSensor::update_thresholds_from_sdr(std::shared_ptr<const SensorDataRecord01> sdr01) {
+void ThresholdSensor::updateThresholdsFromSdr(std::shared_ptr<const SensorDataRecord01> sdr01) {
 	if (sdr01) {
 		// Update our thresholds from SDR data.
 		this->thresholds.lnc = sdr01->threshold_lnc_rawvalue();
@@ -104,8 +109,7 @@ static void process_threshold(uint16_t &state, uint8_t bit, uint8_t threshold, u
 			assert = true;
 		if (intval < intthresh - static_cast<int>(hysteresis))
 			deassert = true;
-	}
-	else {
+	} else {
 		if (intval <= intthresh)
 			assert = true;
 		if (intval > intthresh + static_cast<int>(hysteresis))
@@ -113,15 +117,14 @@ static void process_threshold(uint16_t &state, uint8_t bit, uint8_t threshold, u
 	}
 
 	const uint16_t old_state = state;
-	if (old_state & (1<<bit))
+	if (old_state & (1<<bit)) {
 		assert = false; // Already asserted, no changes to make. (force is later)
-	else
+	} else {
 		deassert = false; // Already deasserted, no changes to make. (force is later)
+	}
 
-	if (assert)
-		state |= (1<<bit);
-	if (deassert)
-		state &= ~(1<<bit);
+	if (assert) state |= (1<<bit);
+	if (deassert) state &= ~(1<<bit);
 
 	if (deassert || extra_deassert) {
 		// Send deassertion event.
@@ -192,46 +195,16 @@ static uint16_t process_thresholds(uint16_t state, uint16_t event_context, const
 	return state;
 }
 
-/**
- * Update the internal state of this sensor with the provided float value and
- * generate any relevant events based on this.
- *
- * If the provided value is NAN, the sensor is presumed to be out of context,
- * there is considered to be no reading available, and event processing is
- * suspended.
- *
- * @param value The new sensor value
- * @param in_context True if this sensor is in context for this update. (Out of
- *                   context sensors will not send or process events.)
- * @param value_max_age The number of ticks after which the value should be
- *                      considered to be out of date and should be replaced with
- *                      NAN.
- * @param extra_assertions Send these event assertions regardless of the (non-NaN) value.
- * @param extra_deassertions Send these event deassertions regardless of the (non-NaN) value.
- *
- * @note For extra_(de)assertions, the following bitmask is interpreted:
- *       bit 11: 1b = upper non-recoverable going high occurred
- *       bit 10: 1b = upper non-recoverable going low occurred
- *       bit  9: 1b = upper critical going high occurred
- *       bit  8: 1b = upper critical going low occurred
- *       bit  7: 1b = upper non-critical going high occurred
- *       bit  6: 1b = upper non-critical going low occurred
- *       bit  5: 1b = lower non-recoverable going high occurred
- *       bit  4: 1b = lower non-recoverable going low occurred
- *       bit  3: 1b = lower critical going high occurred
- *       bit  2: 1b = lower critical going low occurred
- *       bit  1: 1b = lower non-critical going high occurred
- *       bit  0: 1b = lower non-critical going low occurred
- */
-void ThresholdSensor::update_value(const float value, uint16_t event_context, uint64_t value_max_age, uint16_t extra_assertions, uint16_t extra_deassertions) {
+void ThresholdSensor::updateValue(const float value, uint16_t event_context, uint64_t value_max_age, uint16_t extra_assertions, uint16_t extra_deassertions) {
 	MutexGuard<false> lock(this->value_mutex, true);
 	this->last_value = value;
 
 	uint64_t now = get_tick64();
-	if (UINT64_MAX - value_max_age <= now)
+	if (UINT64_MAX - value_max_age <= now) {
 		this->value_expiration = UINT64_MAX;
-	else
+	} else {
 		this->value_expiration = now + value_max_age;
+	}
 
 	if (std::isnan(value)) {
 		// If the value is expired or unavailable, treat all events as out of context.
@@ -239,20 +212,21 @@ void ThresholdSensor::update_value(const float value, uint16_t event_context, ui
 		return;
 	}
 
-	std::shared_ptr<const SensorDataRecordReadableSensor> sdr = std::dynamic_pointer_cast<const SensorDataRecordReadableSensor>(device_sdr_repo.find(this->sdr_key));
+	std::shared_ptr<const SensorDataRecordReadableSensor> sdr = std::dynamic_pointer_cast<const SensorDataRecordReadableSensor>(device_sdr_repo.find(this->getSdrKey()));
 	if (!sdr) {
-		this->logunique.logUnique(stdsprintf("Unable to locate a readable (Type 01/02) sensor %s in the Device SDR Repository!  Thresholds not updated!", this->sensor_identifier().c_str()), LogTree::LOG_ERROR);
+		this->logunique.logUnique(stdsprintf("Unable to locate a readable (Type 01/02) sensor %s in the Device SDR Repository!  Thresholds not updated!", this->sensorIdentifier().c_str()), LogTree::LOG_ERROR);
 		return;
 	}
+
 	if (sdr->event_type_reading_code() != SensorDataRecordSensor::EVENT_TYPE_THRESHOLD_SENSOR) {
-		this->logunique.logUnique(stdsprintf("Sensor %s is not a Threshold type sensor in the Device SDR Repository!  Thresholds not updated!", this->sensor_identifier().c_str()), LogTree::LOG_ERROR);
+		this->logunique.logUnique(stdsprintf("Sensor %s is not a Threshold type sensor in the Device SDR Repository!  Thresholds not updated!", this->sensorIdentifier().c_str()), LogTree::LOG_ERROR);
 		return;
 	}
 
 	const uint8_t byteval = sdr->fromFloat(value);
 
 	std::shared_ptr<const SensorDataRecord01> sdr01 = std::dynamic_pointer_cast<const SensorDataRecord01>(sdr);
-	this->update_thresholds_from_sdr(sdr01);
+	this->updateThresholdsFromSdr(sdr01);
 
 	// Automatic threshold calculation.
 	const uint8_t hysth = sdr->hysteresis_high();
@@ -271,18 +245,17 @@ void ThresholdSensor::update_value(const float value, uint16_t event_context, ui
 			nominal_event_status = this->nominal_event_status_override_value;
 
 			this->log.log(stdsprintf("Sensor %s: Nominalizing events 0x%04hx (0x%04hx -> 0x%04hx) based on nominal event mask override value 0x%04hx.",
-					this->sensor_identifier().c_str(),
+					this->sensorIdentifier().c_str(),
 					nominalize_bits, this->event_context, event_context,
 					nominal_event_status
 					), LogTree::LOG_DIAGNOSTIC);
-		}
-		else if (sdr01 && sdr01->nominal_reading_specified()) {
+		} else if (sdr01 && sdr01->nominal_reading_specified()) {
 			// We have an SDR with a nominal value, so we'll calculate the REAL nominal event status.
 			std::vector<struct ThresholdEvent> ignore_events;
 			nominal_event_status = process_thresholds(0, 0x0fff, this->thresholds, hystl, hysth, sdr01->nominal_reading_rawvalue(), ignore_events, 0, 0);
 
 			this->log.log(stdsprintf("Sensor %s: Nominalizing events 0x%04hx (0x%04hx -> 0x%04hx) based on nominal mask 0x%04hx @ 0x%02hhx (%f)",
-					this->sensor_identifier().c_str(),
+					this->sensorIdentifier().c_str(),
 					nominalize_bits, this->event_context, event_context,
 					nominal_event_status,
 					sdr01->nominal_reading_rawvalue(),
@@ -295,7 +268,7 @@ void ThresholdSensor::update_value(const float value, uint16_t event_context, ui
 		this->active_events |= nominalize_bits & nominal_event_status; // Assert any asserted-while-nominal out of context events.
 
 		this->log.log(stdsprintf("Sensor %s: Outcome 0x%04hx, with Extras +0x%04hx -0x%04hx",
-				this->sensor_identifier().c_str(),
+				this->sensorIdentifier().c_str(),
 				this->active_events,
 				extra_assertions,
 				extra_deassertions
@@ -318,8 +291,8 @@ void ThresholdSensor::update_value(const float value, uint16_t event_context, ui
 
 	const uint16_t supported_assertion_mask = sdr->assertion_lower_threshold_reading_mask();
 	const uint16_t supported_deassertion_mask = sdr->deassertion_upper_threshold_reading_mask();
-	const uint16_t enabled_assertion_mask = this->assertion_events_enabled();
-	const uint16_t enabled_deassertion_mask = this->deassertion_events_enabled();
+	const uint16_t enabled_assertion_mask = this->getAssertionEventsEnabled();
+	const uint16_t enabled_deassertion_mask = this->getDeassertionEventsEnabled();
 
 	this->last_enabled_assertions = supported_assertion_mask & enabled_assertion_mask;
 	this->last_enabled_deassertions = supported_deassertion_mask & enabled_deassertion_mask;
@@ -344,31 +317,28 @@ void ThresholdSensor::update_value(const float value, uint16_t event_context, ui
 	for (std::vector<struct ThresholdEvent>::iterator it = events.begin(), eit = events.end(); it != eit; ++it) {
 		if ( !(this->event_context & (1 << it->bit)) ) {
 			this->log.log(stdsprintf("Sensor %s: %s %s event for value 0x%02hhx (%f), threshold 0x%02hhx is out of context and will not be sent",
-					this->sensor_identifier().c_str(),
+					this->sensorIdentifier().c_str(),
 					threshold_names.at(it->bit).c_str(), (it->direction == Sensor::EVENT_ASSERTION ? "assertion" : "deassertion"),
 					it->value, value, it->threshold), LogTree::LOG_DIAGNOSTIC);
-		}
-		else if (
+		} else if (
 				(it->direction == Sensor::EVENT_ASSERTION && !(supported_assertion_mask & (1 << it->bit))) ||
 				(it->direction == Sensor::EVENT_DEASSERTION && !(supported_deassertion_mask & (1 << it->bit)))
 				) {
 			this->log.log(stdsprintf("Sensor %s: %s %s event for value 0x%02hhx (%f), threshold 0x%02hhx is specified as unsupported in the SDR and will not be sent",
-					this->sensor_identifier().c_str(),
+					this->sensorIdentifier().c_str(),
 					threshold_names.at(it->bit).c_str(), (it->direction == Sensor::EVENT_ASSERTION ? "assertion" : "deassertion"),
 					it->value, value, it->threshold), LogTree::LOG_DIAGNOSTIC);
-		}
-		else if (
+		} else if (
 				(it->direction == Sensor::EVENT_ASSERTION && !(enabled_assertion_mask & (1 << it->bit))) ||
 				(it->direction == Sensor::EVENT_DEASSERTION && !(enabled_deassertion_mask & (1 << it->bit)))
 				) {
 			this->log.log(stdsprintf("Sensor %s: %s %s event for value 0x%02hhx (%f), threshold 0x%02hhx is configured as disabled and will not be sent",
-					this->sensor_identifier().c_str(),
+					this->sensorIdentifier().c_str(),
 					threshold_names.at(it->bit).c_str(), (it->direction == Sensor::EVENT_ASSERTION ? "assertion" : "deassertion"),
 					it->value, value, it->threshold), LogTree::LOG_DIAGNOSTIC);
-		}
-		else {
+		} else {
 			this->log.log(stdsprintf("Sensor %s: Sending %s %s event for value 0x%02hhx (%f), threshold 0x%02hhx",
-					this->sensor_identifier().c_str(),
+					this->sensorIdentifier().c_str(),
 					threshold_names.at(it->bit).c_str(), (it->direction == Sensor::EVENT_ASSERTION ? "assertion" : "deassertion"),
 					it->value, value, it->threshold), LogTree::LOG_DIAGNOSTIC);
 
@@ -376,51 +346,27 @@ void ThresholdSensor::update_value(const float value, uint16_t event_context, ui
 			event_data.push_back(0x50 | it->bit);
 			event_data.push_back(it->value);
 			event_data.push_back(it->threshold);
-			this->send_event(it->direction, event_data);
+			this->sendEvent(it->direction, event_data);
 		}
 	}
 
 	this->logunique.clean();
 }
 
-/**
- * Override the auto-calculated nominal event status mask.
- *
- * This value is used to initialize event bits that come into context or are
- * rearmed while it is set.
- *
- * @param mask The new mask to set, or 0xFFFF to clear the override.
- */
-void ThresholdSensor::nominal_event_status_override(uint16_t mask) {
+void ThresholdSensor::setNominalEventStatusOverride(uint16_t mask) {
 	MutexGuard<false> lock(this->value_mutex, true);
 	this->nominal_event_status_override_value = mask;
 }
 
-/**
- * Retrieve the override value for the nominal event status mask.
- *
- * This value is used to initialize event bits that come into context or are
- * rearmed while it is set.
- *
- * @return The override mask, or 0xFFFF if disabled.
- */
-uint16_t ThresholdSensor::nominal_event_status_override() {
+uint16_t ThresholdSensor::getNominalEventStatusOverride() {
 	MutexGuard<false> lock(this->value_mutex, true);
 	return this->nominal_event_status_override_value;
 }
 
-/**
- * Get the current values and thresholds for this sensor.
- *
- * \note byte_value may be 0xFF if there is no SDR available to interpret it,
- *       but this is also a valid value.  If no value is available, float_value
- *       will be NAN.
- *
- * @return The current values & thresholds.
- */
-ThresholdSensor::Value ThresholdSensor::get_value() const {
+ThresholdSensor::Value ThresholdSensor::getValue() const {
 	Value value;
 	MutexGuard<false> lock(this->value_mutex, true);
+
 	uint64_t now = get_tick64();
 	value.float_value = this->last_value;
 	value.byte_value = 0xFF;
@@ -428,6 +374,7 @@ ThresholdSensor::Value ThresholdSensor::get_value() const {
 	value.event_context = this->event_context;
 	value.enabled_assertions = this->last_enabled_assertions;
 	value.enabled_deassertions = this->last_enabled_deassertions;
+
 	if (now >= this->value_expiration) {
 		value.float_value = NAN;
 		value.active_events = 0;
@@ -436,30 +383,31 @@ ThresholdSensor::Value ThresholdSensor::get_value() const {
 		value.enabled_deassertions = 0;
 	}
 	lock.release();
-	if (std::isnan(value.float_value))
-		return value;
-	std::shared_ptr<const SensorDataRecordSensor> sdr = std::dynamic_pointer_cast<const SensorDataRecordSensor>(device_sdr_repo.find(this->sdr_key));
+
+	if (std::isnan(value.float_value)) return value;
+	std::shared_ptr<const SensorDataRecordSensor> sdr = std::dynamic_pointer_cast<const SensorDataRecordSensor>(device_sdr_repo.find(this->getSdrKey()));
 	if (!sdr) {
-		this->logunique.logUnique(stdsprintf("Unable to locate sensor %s in the Device SDR Repository!", this->sensor_identifier().c_str()), LogTree::LOG_ERROR);
+		this->logunique.logUnique(stdsprintf("Unable to locate sensor %s in the Device SDR Repository!", this->sensorIdentifier().c_str()), LogTree::LOG_ERROR);
 		return value; // No exceptions available, so we'll send what we have, and byte_value can be something blatantly bad.
 	}
+
 	std::shared_ptr<const SensorDataRecordReadableSensor> sdr_readable = std::dynamic_pointer_cast<const SensorDataRecordReadableSensor>(sdr);
 	if (!sdr_readable) {
-		this->logunique.logUnique(stdsprintf("Sensor %s is not a readable (Type 01/02) sensor in the Device SDR Repository!", this->sensor_identifier().c_str()), LogTree::LOG_ERROR);
+		this->logunique.logUnique(stdsprintf("Sensor %s is not a readable (Type 01/02) sensor in the Device SDR Repository!", this->sensorIdentifier().c_str()), LogTree::LOG_ERROR);
 		return value; // No exceptions available, so we'll send what we have, and byte_value can be something blatantly bad.
 	}
 	value.byte_value = sdr_readable->fromFloat(value.float_value);
 	return value;
 }
 
-std::vector<uint8_t> ThresholdSensor::get_sensor_reading() {
-	Value value = this->get_value();
+std::vector<uint8_t> ThresholdSensor::getSensorReading() {
+	Value value = this->getValue();
 	std::vector<uint8_t> out;
 	out.push_back(IPMI::Completion::Success);
 	out.push_back(value.byte_value);
 	out.push_back(
-			(this->all_events_disabled() ? 0 : 0x80) |
-			(this->sensor_scanning_disabled() ? 0 : 0x40) |
+			(this->getAllEventsDisabled() ? 0 : 0x80) |
+			(this->getSensorScanningDisabled() ? 0 : 0x40) |
 			(std::isnan(value.float_value) ? 0x20 : 0)
 			);
 	out.push_back(
@@ -473,10 +421,11 @@ std::vector<uint8_t> ThresholdSensor::get_sensor_reading() {
 	return out;
 }
 
-uint16_t ThresholdSensor::get_sensor_event_status(bool *reading_good) {
-	Value value = this->get_value();
-	if (reading_good)
+uint16_t ThresholdSensor::getSensorEventStatus(bool *reading_good) {
+	Value value = this->getValue();
+	if (reading_good) {
 		*reading_good = !std::isnan(value.float_value);
+	}
 	return value.active_events;
 }
 
@@ -490,5 +439,5 @@ void ThresholdSensor::rearm() {
 	this->active_events = 0;
 	this->event_context = 0; // We'll put this out of context so its active events are reinitialized to nominal rather than spewing deasserts on SER/etc.
 	lock.release();
-	this->log.log(stdsprintf("Sensor %s rearmed!", this->sensor_identifier().c_str()), LogTree::LOG_INFO);
+	this->log.log(stdsprintf("Sensor %s rearmed!", this->sensorIdentifier().c_str()), LogTree::LOG_INFO);
 }

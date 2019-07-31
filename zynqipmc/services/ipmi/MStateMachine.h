@@ -12,8 +12,8 @@
 #include <libs/logtree/logtree.h>
 #include <semphr.h>
 #include <services/ipmi/ipmi_led/ipmi_led.h>
+#include <services/ipmi/sensor/hotswap_sensor.h>
 #include <stdint.h>
-#include <services/ipmi/sensor/HotswapSensor.h>
 #include <memory>
 #include <functional>
 
