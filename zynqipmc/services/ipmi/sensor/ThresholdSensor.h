@@ -8,8 +8,8 @@
 #ifndef SRC_COMMON_UW_IPMC_SERVICES_IPMI_SENSOR_THRESHOLDSENSOR_H_
 #define SRC_COMMON_UW_IPMC_SERVICES_IPMI_SENSOR_THRESHOLDSENSOR_H_
 
+#include <services/ipmi/sdr/sensor_data_record_01.h>
 #include <services/ipmi/sensor/Sensor.h>
-#include <services/ipmi/sdr/SensorDataRecord01.h>
 
 /**
  * A standard threshold sensor.

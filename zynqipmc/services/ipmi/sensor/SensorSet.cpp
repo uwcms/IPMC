@@ -101,7 +101,7 @@ std::shared_ptr<Sensor> SensorSet::find_by_sdr_key(const std::vector<uint8_t> &s
 std::shared_ptr<Sensor> SensorSet::find_by_sdr(std::shared_ptr<const SensorDataRecordSensor> sdr) {
 	if (!sdr)
 		return NULL;
-	return this->find_by_sdr_key(sdr->record_key());
+	return this->find_by_sdr_key(sdr->recordKey());
 }
 
 /**

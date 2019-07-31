@@ -1,7 +1,24 @@
-#ifndef SRC_COMMON_UW_IPMC_SERVICES_IPMI_SDR_SENSORDATARECORD12_H_
-#define SRC_COMMON_UW_IPMC_SERVICES_IPMI_SDR_SENSORDATARECORD12_H_
+/*
+ * This file is part of the ZYNQ-IPMC Framework.
+ *
+ * The ZYNQ-IPMC Framework is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ZYNQ-IPMC Framework is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
+ */
 
-#include <services/ipmi/sdr/SensorDataRecord.h>
+#ifndef SRC_COMMON_ZYNQIPMC_SERVICES_IPMI_SDR_SENSOR_DATA_RECORD_12_H_
+#define SRC_COMMON_ZYNQIPMC_SERVICES_IPMI_SDR_SENSOR_DATA_RECORD_12_H_
+
+#include <services/ipmi/sdr/sensor_data_record.h>
 #include <map>
 #include <string>
 
@@ -14,17 +31,19 @@ public:
 	SensorDataRecord12(const std::vector<uint8_t> &sdr_data = std::vector<uint8_t>()) : SensorDataRecord(sdr_data) { };
 	virtual ~SensorDataRecord12() { };
 
-	virtual std::vector<uint8_t> record_key() const;
+	virtual std::vector<uint8_t> recordKey() const;
 	virtual void validate() const;
-	virtual uint8_t parsed_record_type() const { return 0x12; };
-	virtual void initialize_blank(std::string name);
+	virtual uint8_t parsedRecordType() const { return 0x12; };
+	virtual void initializeBlank(std::string name);
 
 	/**
 	 * SDR Data Accessors
 	 *
-	 * \warning Do not call any accessors on a record that does not validate().
+	 * @warning Do not call any accessors on a record that does not validate().
 	 */
 	///@{
+	// Helper macro to instantiate getters and setters.
+	// a & b represent bit fields used in the source file.
 #define SDR_FIELD(name, type, byte, a, b, attributes) \
 	virtual type name() const attributes; \
 	virtual void name(type val) attributes;
@@ -66,4 +85,4 @@ public:
 	virtual std::vector<uint8_t> u8export(uint8_t self_ipmb_addr=0, uint8_t self_ipmb_channel=0) const;
 };
 
-#endif /* SRC_COMMON_UW_IPMC_SERVICES_IPMI_SDR_SENSORDATARECORDSENSOR_H_ */
+#endif /* SRC_COMMON_ZYNQIPMC_SERVICES_IPMI_SDR_SENSOR_DATA_RECORD_12_H_ */

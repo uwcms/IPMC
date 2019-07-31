@@ -1,21 +1,32 @@
 /*
- * SensorDataRecord02.cpp
+ * This file is part of the ZYNQ-IPMC Framework.
  *
- *  Created on: Aug 3, 2018
- *      Author: jtikalsky
+ * The ZYNQ-IPMC Framework is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ZYNQ-IPMC Framework is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <services/ipmi/sdr/SensorDataRecord02.h>
+#include <services/ipmi/sdr/sensor_data_record_02.h>
 
 void SensorDataRecord02::validate() const {
 	SensorDataRecordReadableSensor::validate();
 	SensorDataRecordSharedSensor::validate();
-	if (this->record_type() != 0x02)
+	if (this->recordType() != 0x02) {
 		throw invalid_sdr_error("SensorDataRecord02 supports only type 02h SDRs.");
+	}
 }
 
-void SensorDataRecord02::initialize_blank(std::string name) {
-	SensorDataRecordSensor::initialize_blank(name);
+void SensorDataRecord02::initializeBlank(std::string name) {
+	SensorDataRecordSensor::initializeBlank(name);
 	this->sdr_data[20] |= 0xc0; // Reserved, write 11b, by spec.
 	this->share_count(1); // We have at least one, not zero, sensors that we refer to by default.
 }
@@ -49,19 +60,23 @@ SDR_FIELD(hysteresis_low, uint8_t, 26, 7, 0, )
 
 SDR_FIELD(oem, uint8_t, 30, 7, 0, )
 
-uint8_t SensorDataRecord02::from_float(float value) const {
+uint8_t SensorDataRecord02::fromFloat(float value) const {
 	// SDR Type 02 don't specify any conversion method.  Convert as y=x.
 
 	uint8_t raw_discrete_value = static_cast<uint16_t>(value);
 	// Resolve domain errors.
-	if (value >= 0xff)
+	if (value >= 0xff) {
 		raw_discrete_value = 0xff;
-	if (value <= 0)
+	}
+
+	if (value <= 0) {
 		raw_discrete_value = 0;
+	}
+
 	return raw_discrete_value;
 }
 
-float SensorDataRecord02::to_float(uint8_t value) const {
+float SensorDataRecord02::toFloat(uint8_t value) const {
 	// SDR Type 02 don't specify any conversion method.  Convert as y=x.
 	return static_cast<float>(value);
 }

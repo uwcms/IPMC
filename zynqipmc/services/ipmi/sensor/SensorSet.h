@@ -5,8 +5,8 @@
 #include <map>
 #include <FreeRTOS.h>
 #include <semphr.h>
+#include <services/ipmi/sdr/sensor_data_record_sensor.h>
 #include <services/ipmi/sdr/sensor_data_repository.h>
-#include <services/ipmi/sdr/SensorDataRecordSensor.h>
 #include <services/ipmi/sensor/Sensor.h>
 
 /**

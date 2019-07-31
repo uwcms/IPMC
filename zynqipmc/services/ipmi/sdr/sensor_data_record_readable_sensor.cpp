@@ -1,17 +1,27 @@
 /*
- * SensorDataRecordReadableSensor.cpp
+ * This file is part of the ZYNQ-IPMC Framework.
  *
- *  Created on: Aug 8, 2018
- *      Author: jtikalsky
+ * The ZYNQ-IPMC Framework is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ZYNQ-IPMC Framework is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <services/ipmi/sdr/SensorDataRecordReadableSensor.h>
+#include "sensor_data_record_readable_sensor.h"
 #include <math.h>
 
-/// Create a bitmask with the lower `nbits` bits set.
+//! Create a bitmask with the lower `nbits` bits set.
 #define LOWBITS(nbits) (0xff >> (8-(nbits)))
 
-/// Define a `type` type SDR_FIELD from byte `byte`[a:b].
+//! Define a `type` type SDR_FIELD from byte `byte`[a:b].
 #define SDR_FIELD(name, type, byte, a, b, attributes) \
 	type SensorDataRecordReadableSensor::name() const attributes { \
 		this->validate(); \
@@ -45,10 +55,12 @@ SDR_FIELD(event_type_reading_code, uint8_t, 13, 7, 0, )
 
 uint8_t SensorDataRecordReadableSensor::threshold_comparisons_returned() const {
 	this->validate();
+
 	return ((this->sdr_data[17] & 0x70) >> 1) | ((this->sdr_data[15] & 0x70) >> 4);
 }
 void SensorDataRecordReadableSensor::threshold_comparisons_returned(uint8_t val) {
 	this->validate();
+
 	this->sdr_data[15] &= 0x0f;
 	this->sdr_data[15] |= (val & 0x07) << 4;
 	this->sdr_data[17] &= 0x0f;
@@ -57,10 +69,12 @@ void SensorDataRecordReadableSensor::threshold_comparisons_returned(uint8_t val)
 
 uint16_t SensorDataRecordReadableSensor::assertion_lower_threshold_reading_mask() const {
 	this->validate();
+
 	return ((this->sdr_data[15] & 0x0f)<<8) | this->sdr_data[14];
 }
 void SensorDataRecordReadableSensor::assertion_lower_threshold_reading_mask(uint16_t val) {
 	this->validate();
+
 	this->sdr_data[15] &= 0xf0;
 	this->sdr_data[15] |= (val >> 8) & 0x0f;
 	this->sdr_data[14] = val & 0xff;
@@ -68,10 +82,12 @@ void SensorDataRecordReadableSensor::assertion_lower_threshold_reading_mask(uint
 
 uint16_t SensorDataRecordReadableSensor::deassertion_upper_threshold_reading_mask() const {
 	this->validate();
+
 	return ((this->sdr_data[17] & 0x0f)<<8) | this->sdr_data[16];
 }
 void SensorDataRecordReadableSensor::deassertion_upper_threshold_reading_mask(uint16_t val) {
 	this->validate();
+
 	this->sdr_data[17] &= 0xf0;
 	this->sdr_data[17] |= (val >> 8) & 0x0f;
 	this->sdr_data[16] = val & 0xff;
@@ -79,10 +95,12 @@ void SensorDataRecordReadableSensor::deassertion_upper_threshold_reading_mask(ui
 
 uint16_t SensorDataRecordReadableSensor::discrete_reading_setable_threshold_reading_mask() const {
 	this->validate();
+
 	return (this->sdr_data[19]<<8) | this->sdr_data[18];
 }
 void SensorDataRecordReadableSensor::discrete_reading_setable_threshold_reading_mask(uint16_t val) {
 	this->validate();
+
 	this->sdr_data[19] = val >> 8;
 	this->sdr_data[18] = val & 0xff;
 }

@@ -1,14 +1,24 @@
 /*
- * SensorDataRecord01.h
+ * This file is part of the ZYNQ-IPMC Framework.
  *
- *  Created on: Aug 3, 2018
- *      Author: jtikalsky
+ * The ZYNQ-IPMC Framework is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ZYNQ-IPMC Framework is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef SRC_COMMON_UW_IPMC_SERVICES_IPMI_SDR_SENSORDATARECORD01_H_
-#define SRC_COMMON_UW_IPMC_SERVICES_IPMI_SDR_SENSORDATARECORD01_H_
+#ifndef SRC_COMMON_ZYNQIPMC_SERVICES_IPMI_SDR_SENSORDATARECORD01_H_
+#define SRC_COMMON_ZYNQIPMC_SERVICES_IPMI_SDR_SENSORDATARECORD01_H_
 
-#include <services/ipmi/sdr/SensorDataRecordReadableSensor.h>
+#include <services/ipmi/sdr/sensor_data_record_readable_sensor.h>
 #include <stdint.h>
 #include <vector>
 
@@ -20,24 +30,27 @@ public:
 	/// Instantiate a Type 01 SensorDataRecord
 	SensorDataRecord01(const std::vector<uint8_t> &sdr_data = std::vector<uint8_t>()) : SensorDataRecordSensor(sdr_data), SensorDataRecordReadableSensor(sdr_data) { };
 	virtual ~SensorDataRecord01() { };
+
 	virtual void validate() const;
-	virtual uint8_t parsed_record_type() const { return 0x01; };
+	virtual uint8_t parsedRecordType() const { return 0x01; };
 
 	/**
 	 * SDR Data Accessors
 	 *
-	 * \warning Do not call any accessors on a record that does not validate().
+	 * @warning Do not call any accessors on a record that does not validate().
 	 */
 	///@{
+	// Helper macro to instantiate getters and setters.
+	// a & b represent bit fields used in the source file.
 #define SDR_FIELD(name, type, byte, a, b, attributes) \
 	virtual type name() const attributes; \
 	virtual void name(type val) attributes;
 
 	enum UnitsNumericFormat {
-		UNITS_UNSIGNED     = 0,
-		UNITS_1SCOMPLEMENT = 1,
-		UNITS_2SCOMPLEMENT = 2,
-		UNITS_NONNUMERIC   = 3,
+		UNITS_UNSIGNED     = 0,//!< UNITS_UNSIGNED
+		UNITS_1SCOMPLEMENT = 1,//!< UNITS_1SCOMPLEMENT
+		UNITS_2SCOMPLEMENT = 2,//!< UNITS_2SCOMPLEMENT
+		UNITS_NONNUMERIC   = 3,//!< UNITS_NONNUMERIC
 	};
 	SDR_FIELD(units_numeric_format, enum UnitsNumericFormat, 20, 7, 6, )
 
@@ -109,11 +122,11 @@ public:
 	SDR_FIELD(oem, uint8_t, 46, 7, 0, )
 
 #undef SDR_FIELD
-	virtual uint8_t _get_id_string_offset() const { return 47; };
+	virtual uint8_t getIdStringOffset() const { return 47; };
 	///@}
 
-	virtual uint8_t from_float(float value) const;
-	virtual float to_float(uint8_t value) const;
+	virtual uint8_t fromFloat(float value) const;
+	virtual float toFloat(uint8_t value) const;
 };
 
-#endif /* SRC_COMMON_UW_IPMC_SERVICES_IPMI_SDR_SENSORDATARECORD01_H_ */
+#endif /* SRC_COMMON_ZYNQIPMC_SERVICES_IPMI_SDR_SENSORDATARECORD01_H_ */

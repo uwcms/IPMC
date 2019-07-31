@@ -7,15 +7,15 @@
 
 #include <services/ipmi/sensor/ThresholdSensor.h>
 #include <services/ipmi/sensor/Sensor.h>
-#include <services/ipmi/sdr/SensorDataRecordSensor.h>
-#include <services/ipmi/sdr/SensorDataRecordReadableSensor.h>
-#include <services/ipmi/sdr/SensorDataRecord01.h>
 #include <libs/printf.h>
 #include <math.h>
 #include <services/ipmi/ipmbsvc/ipmbsvc.h>
 #include <services/ipmi/sdr/sensor_data_repository.h>
 #include <cmath>
 #include <core.h>
+#include <services/ipmi/sdr/sensor_data_record_01.h>
+#include <services/ipmi/sdr/sensor_data_record_readable_sensor.h>
+#include <services/ipmi/sdr/sensor_data_record_sensor.h>
 
 ThresholdSensor::ThresholdSensor(const std::vector<uint8_t> &sdr_key, LogTree &log)
 	: Sensor(sdr_key, log), nominal_event_status_override_value(0xFFFF) {
@@ -249,7 +249,7 @@ void ThresholdSensor::update_value(const float value, uint16_t event_context, ui
 		return;
 	}
 
-	const uint8_t byteval = sdr->from_float(value);
+	const uint8_t byteval = sdr->fromFloat(value);
 
 	std::shared_ptr<const SensorDataRecord01> sdr01 = std::dynamic_pointer_cast<const SensorDataRecord01>(sdr);
 	this->update_thresholds_from_sdr(sdr01);
@@ -286,7 +286,7 @@ void ThresholdSensor::update_value(const float value, uint16_t event_context, ui
 					nominalize_bits, this->event_context, event_context,
 					nominal_event_status,
 					sdr01->nominal_reading_rawvalue(),
-					sdr01->to_float(sdr01->nominal_reading_rawvalue())
+					sdr01->toFloat(sdr01->nominal_reading_rawvalue())
 					), LogTree::LOG_DIAGNOSTIC);
 		}
 
@@ -448,7 +448,7 @@ ThresholdSensor::Value ThresholdSensor::get_value() const {
 		this->logunique.logUnique(stdsprintf("Sensor %s is not a readable (Type 01/02) sensor in the Device SDR Repository!", this->sensor_identifier().c_str()), LogTree::LOG_ERROR);
 		return value; // No exceptions available, so we'll send what we have, and byte_value can be something blatantly bad.
 	}
-	value.byte_value = sdr_readable->from_float(value.float_value);
+	value.byte_value = sdr_readable->fromFloat(value.float_value);
 	return value;
 }
 

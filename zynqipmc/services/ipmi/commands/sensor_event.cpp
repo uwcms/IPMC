@@ -21,11 +21,11 @@
 #include <services/ipmi/sensor/SensorSet.h>
 #include <services/ipmi/sensor/Sensor.h>
 #include <services/ipmi/sensor/ThresholdSensor.h>
-#include <services/ipmi/sdr/SensorDataRecordSensor.h>
-#include <services/ipmi/sdr/SensorDataRecordReadableSensor.h>
-#include <services/ipmi/sdr/SensorDataRecord01.h>
 #include <services/ipmi/commands/ipmicmd_index.h>
 #include <services/ipmi/ipmbsvc/ipmbsvc.h>
+#include <services/ipmi/sdr/sensor_data_record_01.h>
+#include <services/ipmi/sdr/sensor_data_record_readable_sensor.h>
+#include <services/ipmi/sdr/sensor_data_record_sensor.h>
 #include <services/ipmi/sdr/sensor_data_repository.h>
 #include <services/persistentstorage/persistent_storage.h>
 

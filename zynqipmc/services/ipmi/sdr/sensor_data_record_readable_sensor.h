@@ -1,14 +1,24 @@
 /*
- * SensorDataRecordReadableSensor.h
+ * This file is part of the ZYNQ-IPMC Framework.
  *
- *  Created on: Aug 8, 2018
- *      Author: jtikalsky
+ * The ZYNQ-IPMC Framework is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ZYNQ-IPMC Framework is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef SRC_COMMON_UW_IPMC_SERVICES_IPMI_SDR_SENSORDATARECORDREADABLESENSOR_H_
-#define SRC_COMMON_UW_IPMC_SERVICES_IPMI_SDR_SENSORDATARECORDREADABLESENSOR_H_
+#ifndef SRC_COMMON_ZYNQIPMC_SERVICES_IPMI_SDR_SENSORDATARECORDREADABLESENSOR_H_
+#define SRC_COMMON_ZYNQIPMC_SERVICES_IPMI_SDR_SENSORDATARECORDREADABLESENSOR_H_
 
-#include <services/ipmi/sdr/SensorDataRecordSensor.h>
+#include <services/ipmi/sdr/sensor_data_record_sensor.h>
 
 class SensorDataRecordReadableSensor: virtual public SensorDataRecordSensor {
 protected:
@@ -21,9 +31,11 @@ public:
 	/**
 	 * SDR Data Accessors
 	 *
-	 * \warning Do not call any accessors on a record that does not validate().
+	 * @warning Do not call any accessors on a record that does not validate().
 	 */
 	///@{
+	// Helper macro to instantiate getters and setters.
+	// a & b represent bit fields used in the source file.
 #define SDR_FIELD(name, type, byte, a, b, attributes) \
 	virtual type name() const attributes; \
 	virtual void name(type val) attributes;
@@ -58,19 +70,19 @@ public:
 	SDR_FIELD(sensor_type_code, uint8_t, 12, 7, 0, )
 	SDR_FIELD(event_type_reading_code, uint8_t, 13, 7, 0, )
 
-	/// Threshold comparisons returned.
+	//! Threshold comparisons returned.
 	virtual uint8_t threshold_comparisons_returned() const;
 	virtual void threshold_comparisons_returned(uint8_t val);
 
-	/// Assertion / Lower Threshold Reading Mask
+	//! Assertion / lower Threshold Reading Mask
 	virtual uint16_t assertion_lower_threshold_reading_mask() const;
 	virtual void assertion_lower_threshold_reading_mask(uint16_t val);
 
-	/// Deassertion / Upper Threshold Reading Mask
+	//! Deassertion / upper Threshold Reading Mask
 	virtual uint16_t deassertion_upper_threshold_reading_mask() const;
 	virtual void deassertion_upper_threshold_reading_mask(uint16_t val);
 
-	/// Discrete Reading Mask / Setable Threshold Reading Mask
+	//! Discrete Reading Mask / setable Threshold Reading Mask
 	virtual uint16_t discrete_reading_setable_threshold_reading_mask() const;
 	virtual void discrete_reading_setable_threshold_reading_mask(uint16_t val);
 
@@ -107,21 +119,22 @@ public:
 	 * Convert a floating point value to a one-byte IPMI value using the formula
 	 * specified by this SDR.
 	 *
-	 * @param value A float sensor value
-	 * @return A one-byte IPMI sensor value
+	 * @param value A float sensor value.
+	 * @return A one-byte IPMI sensor value.
 	 */
-	virtual uint8_t from_float(float value) const = 0;
+	virtual uint8_t fromFloat(float value) const = 0;
 
 	/**
 	 * Convert a one-byte IPMI value to a floating point value using the formula
 	 * specified by this SDR.
 	 *
-	 * @param value A one-byte IPMI sensor value
-	 * @return A float sensor value
+	 * @param value A one-byte IPMI sensor value.
+	 * @return A float sensor value.
 	 */
-	virtual float to_float(uint8_t value) const = 0;
+	virtual float toFloat(uint8_t value) const = 0;
 
-	static const std::map<uint8_t, std::string> sensor_unit_type_codes; ///< A table of human readable sensor unit types.
+	//! A table of human readable sensor unit types.
+	static const std::map<uint8_t, std::string> sensor_unit_type_codes;
 };
 
-#endif /* SRC_COMMON_UW_IPMC_SERVICES_IPMI_SDR_SENSORDATARECORDREADABLESENSOR_H_ */
+#endif /* SRC_COMMON_ZYNQIPMC_SERVICES_IPMI_SDR_SENSORDATARECORDREADABLESENSOR_H_ */

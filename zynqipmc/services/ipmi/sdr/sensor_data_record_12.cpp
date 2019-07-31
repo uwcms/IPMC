@@ -1,43 +1,70 @@
+/*
+ * This file is part of the ZYNQ-IPMC Framework.
+ *
+ * The ZYNQ-IPMC Framework is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ZYNQ-IPMC Framework is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include <services/ipmi/IPMIFormats.h>
-#include <services/ipmi/sdr/SensorDataRecord12.h>
+#include <services/ipmi/sdr/sensor_data_record_12.h>
 #include <iterator>
 
-std::vector<uint8_t> SensorDataRecord12::record_key() const {
+std::vector<uint8_t> SensorDataRecord12::recordKey() const {
 	this->validate();
 	return std::vector<uint8_t>(std::next(this->sdr_data.begin(), 5), std::next(this->sdr_data.begin(), 8));
 }
 
 void SensorDataRecord12::validate() const {
 	SensorDataRecord::validate();
-	if (this->record_type() != 0x12)
+	if (this->recordType() != 0x12) {
 		throw invalid_sdr_error("SensorDataRecord12 supports only type 12h SDRs.");
+	}
+
 	// Check that the ID field's Type/Length specification is valid.
-	if (this->sdr_data.size() < 16 +1U /* One byte of ID content */ +1U /* Change offset of last, to size of container */)
+	if (this->sdr_data.size() < 16 +1U /* One byte of ID content */ +1U /* Change offset of last, to size of container */) {
 		throw invalid_sdr_error("Truncated SDR");
+	}
+
 	unsigned idlen = ipmi_type_length_field_get_length(std::vector<uint8_t>(std::next(this->sdr_data.begin(), 16), this->sdr_data.end()));
-	if (idlen > 17) // IDString TypeLengthCode (= 1) + IDString Bytes (<= 16)
+	if (idlen > 17) { // IDString TypeLengthCode (= 1) + IDString Bytes (<= 16)
 		throw invalid_sdr_error("Invalid ID string");
-	if (16+idlen > this->sdr_data.size())
+	}
+
+	if (16+idlen > this->sdr_data.size()) {
 		throw invalid_sdr_error("Truncated ID string");
+	}
 }
 
-void SensorDataRecord12::initialize_blank(std::string name) {
-	if (name.size() > 16) // Specification limit
+void SensorDataRecord12::initializeBlank(std::string name) {
+	if (name.size() > 16) { // Specification limit
 		throw std::domain_error("Sensor names must be <= 16 characters.");
+	}
+
 	this->sdr_data.resize(0); // Clear
 	this->sdr_data.resize(16, 0); // Initialize Blank Fields
 	this->sdr_data.push_back(0xC0 | name.size()); // Type/Length code: Raw ASCII/Unicode, with length.
-	for (auto it = name.begin(), eit = name.end(); it != eit; ++it)
+	for (auto it = name.begin(), eit = name.end(); it != eit; ++it) {
 		this->sdr_data.push_back(static_cast<uint8_t>(*it));
+	}
 	this->sdr_data[2] = 0x51; // Set SDR version
-	this->sdr_data[3] = this->parsed_record_type(); // Set record type
+	this->sdr_data[3] = this->parsedRecordType(); // Set record type
 	this->sdr_data[4] = this->sdr_data.size() - 5; // Number of remaining bytes.
 }
 
-/// Create a bitmask with the lower `nbits` bits set.
+//! Create a bitmask with the lower `nbits` bits set.
 #define LOWBITS(nbits) (0xff >> (8-(nbits)))
 
-/// Define a `type` type SDR_FIELD from byte `byte`[a:b].
+//! Define a `type` type SDR_FIELD from byte `byte`[a:b].
 #define SDR_FIELD(name, type, byte, a, b, attributes) \
 	type SensorDataRecord12::name() const attributes { \
 		this->validate(); \
@@ -77,23 +104,32 @@ SDR_FIELD(oem, uint8_t, 14, 7, 0, )
 
 std::string SensorDataRecord12::id_string() const {
 	this->validate();
+
 	return render_ipmi_type_length_field(std::vector<uint8_t>(std::next(this->sdr_data.begin(), 16), this->sdr_data.end()));
 }
 void SensorDataRecord12::id_string(std::string val) {
 	this->validate();
-	if (val.size() > 16) // Specified.
+
+	if (val.size() > 16) { // Specified.
 		throw std::domain_error("Sensor names must be <= 16 characters.");
+	}
+
 	this->sdr_data.resize(16); // Downsize.
 	this->sdr_data.push_back(0xC0 | val.size()); // Type/Length code: Raw ASCII/Unicode, with length.
-	for (auto it = val.begin(), eit = val.end(); it != eit; ++it)
+	for (auto it = val.begin(), eit = val.end(); it != eit; ++it) {
 		this->sdr_data.push_back(static_cast<uint8_t>(*it));
+	}
 }
 
 std::vector<uint8_t> SensorDataRecord12::u8export(uint8_t self_ipmb_addr, uint8_t self_ipmb_channel) const {
 	std::vector<uint8_t> out = SensorDataRecord::u8export(self_ipmb_addr, self_ipmb_channel);
-	if (out[5] == 0)
+	if (out[5] == 0) {
 		out[5] = self_ipmb_addr;
-	if ((out[6] & 0x0f) == 0)
+	}
+
+	if ((out[6] & 0x0f) == 0) {
 		out[6] |= self_ipmb_channel;
+	}
+
 	return out;
 }

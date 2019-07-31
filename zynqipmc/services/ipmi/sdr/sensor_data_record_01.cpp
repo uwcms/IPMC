@@ -1,23 +1,33 @@
 /*
- * SensorDataRecord01.cpp
+ * This file is part of the ZYNQ-IPMC Framework.
  *
- *  Created on: Aug 3, 2018
- *      Author: jtikalsky
+ * The ZYNQ-IPMC Framework is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ZYNQ-IPMC Framework is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <services/ipmi/sdr/SensorDataRecord01.h>
 #include <math.h>
+#include <services/ipmi/sdr/sensor_data_record_01.h>
 
 void SensorDataRecord01::validate() const {
 	SensorDataRecordReadableSensor::validate();
-	if (this->record_type() != 0x01)
+	if (this->recordType() != 0x01)
 		throw invalid_sdr_error("SensorDataRecord01 supports only type 01h SDRs.");
 }
 
-/// Create a bitmask with the lower `nbits` bits set.
+//! Create a bitmask with the lower `nbits` bits set.
 #define LOWBITS(nbits) (0xff >> (8-(nbits)))
 
-/// Define a `type` type SDR_FIELD from byte `byte`[a:b].
+//! Define a `type` type SDR_FIELD from byte `byte`[a:b].
 #define SDR_FIELD(name, type, byte, a, b, attributes) \
 	type SensorDataRecord01::name() const attributes { \
 		this->validate(); \
@@ -135,7 +145,7 @@ SDR_FIELD(hysteresis_low, uint8_t, 43, 7, 0, )
 SDR_FIELD(oem, uint8_t, 46, 7, 0, )
 
 
-uint8_t SensorDataRecord01::from_float(float value) const {
+uint8_t SensorDataRecord01::fromFloat(float value) const {
 	// The reader side conversion function is: float = L[(M*raw + (B * 10^(Bexp) ) ) * 10^(Rexp) ] units
 
 	// Apply L_inv(x).  Done.  We only support linear sensors atm where this is L(x)=x.
@@ -165,7 +175,7 @@ uint8_t SensorDataRecord01::from_float(float value) const {
 	return raw_discrete_value;
 }
 
-float SensorDataRecord01::to_float(uint8_t value) const {
+float SensorDataRecord01::toFloat(uint8_t value) const {
 	// The reader side conversion function is: float = L[(M*raw + (B * 10^(Bexp) ) ) * 10^(Rexp) ] units
 
 	// Into float land to begin calculations.

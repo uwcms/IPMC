@@ -41,8 +41,8 @@ uint16_t SensorDataRepository::add(const SensorDataRecord &record, reservation_t
 		bool replaced = false;
 		for (size_type i = 0; i < this->records.size(); ++i) {
 			if (*this->records[i] == *interpreted) {
-				interpreted->record_id(i);
-				if (!this->records[i]->identical_content(*interpreted, true))
+				interpreted->recordId(i);
+				if (!this->records[i]->identicalContent(*interpreted, true))
 					this->last_update_ts = time(nullptr);
 				this->records[i] = interpreted;
 				replaced = true;
@@ -51,12 +51,12 @@ uint16_t SensorDataRepository::add(const SensorDataRecord &record, reservation_t
 		}
 
 		if (!replaced) {
-			interpreted->record_id(this->records.size());
+			interpreted->recordId(this->records.size());
 			this->records.push_back(interpreted);
 			this->last_update_ts = time(nullptr);
 		}
 
-		return interpreted->record_id();
+		return interpreted->recordId();
 	} else {
 		throw sdr_invalid_error("The provided SDR could not be interpreted.");
 	}
@@ -148,7 +148,7 @@ std::shared_ptr<const SensorDataRecord> SensorDataRepository::find(const std::ve
 	}
 
 	for (auto it = this->records.begin(), eit = this->records.end(); it != eit; ++it) {
-		if ((*it)->record_key() == key) {
+		if ((*it)->recordKey() == key) {
 			return *it;
 		}
 	}
@@ -259,7 +259,7 @@ SensorDataRepository::reservation_t SensorDataRepository::reserve() {
 void SensorDataRepository::renumber() {
 	MutexGuard<true> lock(this->mutex, true);
 	for (std::vector< std::shared_ptr<SensorDataRecord> >::size_type i = 0; i < this->records.size(); ++i) {
-		this->records.at(i)->record_id(i);
+		this->records.at(i)->recordId(i);
 	}
 }
 

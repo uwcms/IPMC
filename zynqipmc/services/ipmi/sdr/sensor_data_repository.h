@@ -24,8 +24,8 @@
 #include <memory>
 #include <stdint.h>
 #include <time.h>
-#include <services/ipmi/sdr/SensorDataRecord.h>
 #include <libs/except.h>
+#include <services/ipmi/sdr/sensor_data_record.h>
 
 class SensorDataRepository final {
 public:

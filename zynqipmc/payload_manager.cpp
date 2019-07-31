@@ -19,11 +19,11 @@
 #include <libs/printf.h>
 #include <services/ipmi/sensor/SensorSet.h>
 #include <services/ipmi/sensor/ThresholdSensor.h>
-#include <services/ipmi/sdr/SensorDataRecordReadableSensor.h>
 #include <exception>
 #include <libs/threading.h>
 #include <payload_manager.h>
 #include <services/console/consolesvc.h>
+#include <services/ipmi/sdr/sensor_data_record_readable_sensor.h>
 #include <services/persistentstorage/persistent_storage.h>
 
 #define MZ_HOLDOFF_TICKS 140
@@ -433,16 +433,16 @@ void PayloadManager::refreshSensorLinkage() {
 				this->sensor_processor->setEventEnable(adcsensor.second.sensor_processor_id, assert & desired_assertions, deassert & desired_deassertions);
 
 				// This is only going to work on increasing linear sensors, but that's all we can support at the moment.
-				uint16_t hystunit = adcsensor.second.adc.floatToRaw(sdr->to_float(1)) - adcsensor.second.adc.floatToRaw(sdr->to_float(0));
+				uint16_t hystunit = adcsensor.second.adc.floatToRaw(sdr->toFloat(1)) - adcsensor.second.adc.floatToRaw(sdr->toFloat(0));
 				this->sensor_processor->setHysteresis(adcsensor.second.sensor_processor_id, sdr->hysteresis_high() * hystunit, sdr->hysteresis_low() * hystunit);
 
 				Thr_Cfg thresholds;
-				thresholds.LNR = (sensor->thresholds.lnr == 0) ? 0 : adcsensor.second.adc.floatToRaw(sdr->to_float(sensor->thresholds.lnr));
-				thresholds.LCR = (sensor->thresholds.lcr == 0) ? 0 : adcsensor.second.adc.floatToRaw(sdr->to_float(sensor->thresholds.lcr));
-				thresholds.LNC = (sensor->thresholds.lnc == 0) ? 0 : adcsensor.second.adc.floatToRaw(sdr->to_float(sensor->thresholds.lnc));
-				thresholds.UNC = (sensor->thresholds.unc == 0xFF) ? 0xFFFF : adcsensor.second.adc.floatToRaw(sdr->to_float(sensor->thresholds.unc));
-				thresholds.UCR = (sensor->thresholds.ucr == 0xFF) ? 0xFFFF : adcsensor.second.adc.floatToRaw(sdr->to_float(sensor->thresholds.ucr));
-				thresholds.UNR = (sensor->thresholds.unr == 0xFF) ? 0xFFFF : adcsensor.second.adc.floatToRaw(sdr->to_float(sensor->thresholds.unr));
+				thresholds.LNR = (sensor->thresholds.lnr == 0) ? 0 : adcsensor.second.adc.floatToRaw(sdr->toFloat(sensor->thresholds.lnr));
+				thresholds.LCR = (sensor->thresholds.lcr == 0) ? 0 : adcsensor.second.adc.floatToRaw(sdr->toFloat(sensor->thresholds.lcr));
+				thresholds.LNC = (sensor->thresholds.lnc == 0) ? 0 : adcsensor.second.adc.floatToRaw(sdr->toFloat(sensor->thresholds.lnc));
+				thresholds.UNC = (sensor->thresholds.unc == 0xFF) ? 0xFFFF : adcsensor.second.adc.floatToRaw(sdr->toFloat(sensor->thresholds.unc));
+				thresholds.UCR = (sensor->thresholds.ucr == 0xFF) ? 0xFFFF : adcsensor.second.adc.floatToRaw(sdr->toFloat(sensor->thresholds.ucr));
+				thresholds.UNR = (sensor->thresholds.unr == 0xFF) ? 0xFFFF : adcsensor.second.adc.floatToRaw(sdr->toFloat(sensor->thresholds.unr));
 				this->sensor_processor->setThresholds(adcsensor.second.sensor_processor_id, thresholds);
 
 				this->sensor_processor->setEventEnable(adcsensor.second.sensor_processor_id, desired_assertions, desired_deassertions);

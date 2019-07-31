@@ -330,9 +330,9 @@ static void ipmicmd_Get_Device_Locator_Record_ID(IPMBSvc &ipmb, const IPMI_MSG &
 	ASSERT_PICMG_IDENTIFIER(ipmb, message);
 	const std::vector< std::shared_ptr<const SensorDataRecord> > device_sdr_repo_vector(device_sdr_repo);
 	for (auto it = device_sdr_repo_vector.begin(), eit = device_sdr_repo_vector.end(); it != eit; ++it) {
-		if ((*it)->record_type() != 0x12)
+		if ((*it)->recordType() != 0x12)
 			continue;
-		uint16_t key = (*it)->record_id();
+		uint16_t key = (*it)->recordId();
 		ipmb.send(message.prepare_reply({IPMI::Completion::Success, 0, static_cast<uint8_t>(key & 0xff), static_cast<uint8_t>(key >> 8)}));
 		return;
 	}
