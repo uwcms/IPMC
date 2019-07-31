@@ -93,7 +93,7 @@ public:
 	/**
 	 * Factory function.  All parameters match the constructor.
 	 *
-	 * \note Since the parameters are specific, this function cannot be virtual.
+	 * @note Since the parameters are specific, this function cannot be virtual.
 	 */
 	static std::shared_ptr<TelnetConsoleSvc> create(std::shared_ptr<Socket> socket, std::shared_ptr<InputProtocolParser> proto, CommandParser &parser, const std::string &name, LogTree &logtree, bool echo, TickType_t read_data_timeout=4, std::function<void(TelnetConsoleSvc&)> shutdownComplete_cb=nullptr) {
 		std::shared_ptr<TelnetConsoleSvc> ret(new TelnetConsoleSvc(socket, proto, parser, name, logtree, echo, read_data_timeout, shutdownComplete_cb));
@@ -115,7 +115,7 @@ private:
 	/**
 	 * Instantiate a Telnet console service.
 	 *
-	 * \note This will take ownership of the socket, and of itself, and delete
+	 * @note This will take ownership of the socket, and of itself, and delete
 	 *       both upon termination.
 	 *
 	 * @param socket The socket

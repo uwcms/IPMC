@@ -31,24 +31,24 @@ public:
 	/**
 	 * Read buffer from the I2C interface
 	 *
-	 * \param addr The target I2C slave address.
-	 * \param buf The buffer to read into.
-	 * \param len The maximum number of bytes to read.
-	 * \param timeout The timeout for this read, in standard FreeRTOS format.
-	 * \return The total number of bytes read, 0 if an error occurred.
-	 * \note Wrap around I2C::chain if multiple threads have access to the interface.
+	 * @param addr The target I2C slave address.
+	 * @param buf The buffer to read into.
+	 * @param len The maximum number of bytes to read.
+	 * @param timeout The timeout for this read, in standard FreeRTOS format.
+	 * @return The total number of bytes read, 0 if an error occurred.
+	 * @note Wrap around I2C::chain if multiple threads have access to the interface.
 	 */
 	virtual size_t read(uint8_t addr, uint8_t *buf, size_t len, TickType_t timeout = portMAX_DELAY, bool repeatedStart = false) = 0;
 
 	/**
 	 * Write buffer to the I2C interface
 	 *
-	 * \param addr The target I2C slave address.
-	 * \param buf The buffer to write from.
-	 * \param len The maximum number of bytes to write.
-	 * \param timeout The timeout for this read, in standard FreeRTOS format.
-	 * \return The total number of bytes written, 0 if an error occurred.
-	 * \note Wrap around I2C::chain if multiple threads have access to the interface.
+	 * @param addr The target I2C slave address.
+	 * @param buf The buffer to write from.
+	 * @param len The maximum number of bytes to write.
+	 * @param timeout The timeout for this read, in standard FreeRTOS format.
+	 * @return The total number of bytes written, 0 if an error occurred.
+	 * @note Wrap around I2C::chain if multiple threads have access to the interface.
 	 */
 	virtual size_t write(uint8_t addr, const uint8_t *buf, size_t len, TickType_t timeout = portMAX_DELAY, bool repeatedStart = false) = 0;
 

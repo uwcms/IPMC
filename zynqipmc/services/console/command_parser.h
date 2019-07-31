@@ -157,7 +157,7 @@ public:
 		/**
 		 * Retrieve the helptext for this command.
 		 *
-		 * \note Mandatory
+		 * @note Mandatory
 		 *
 		 * @param command The registered command name.
 		 * @return Help text for the command.
@@ -167,7 +167,7 @@ public:
 		/**
 		 * Execute the command.
 		 *
-		 * \note Mandatory
+		 * @note Mandatory
 		 *
 		 * @param console The calling console.  Use its safe_write() for stdout.
 		 * @param parameters The parameters for this command execution.
@@ -182,7 +182,7 @@ public:
 		 * parameter values.  It may return other values, and these will be
 		 * filtered by the caller.
 		 *
-		 * \note Optional
+		 * @note Optional
 		 *
 		 * @param parameters The current parameters as they stand.
 		 * @return
@@ -193,7 +193,7 @@ public:
 	/**
 	 * Parse a given command line and execute the associated command.
 	 *
-	 * \note Whitespace-only lines are automatically ignored as successful parses.
+	 * @note Whitespace-only lines are automatically ignored as successful parses.
 	 *
 	 * @param console The calling console.  Use its safe_write() for stdout.
 	 * @param commandline The command line to be parsed.

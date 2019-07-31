@@ -58,11 +58,11 @@ public:
 	 * The supplied function will be called when a response to this outgoing
 	 * message is received, or when delivery is aborted.
 	 *
-	 * \note This will not be called for outgoing response messages except in
+	 * @note This will not be called for outgoing response messages except in
 	 *       the case of inability to transmit.
 	 *
-	 * \param original The original IPMIMessage transmitted.
-	 * \param response The response IPMIMessage received, or nullptr if delivery aborted.
+	 * @param original The original IPMIMessage transmitted.
+	 * @param response The response IPMIMessage received, or nullptr if delivery aborted.
 	 */
 	typedef std::function<void(std::shared_ptr<IPMIMessage> original, std::shared_ptr<IPMIMessage> response)> response_cb_t;
 
