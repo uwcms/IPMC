@@ -15,7 +15,6 @@
  * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <services/ipmi/RemoteFRUStorage.h>
 #include <core.h>
 #include "xgpiops.h"
 #include <FreeRTOS.h>
@@ -26,6 +25,7 @@
 #include <libs/except.h>
 #include <services/console/consolesvc.h>
 #include <services/ipmi/ipmbsvc/ipmbsvc.h>
+#include <services/ipmi/remote_fru_storage.h>
 
 IPMBSvc::IPMBSvc(IPMB &ipmb, uint8_t ipmb_address, IPMICommandParser *command_parser, LogTree &logtree, const std::string name, PSWDT *wdt, bool wait_for_service_init) :
 		logroot(logtree),
@@ -44,7 +44,7 @@ IPMBSvc::IPMBSvc(IPMB &ipmb, uint8_t ipmb_address, IPMICommandParser *command_pa
 		log_messages_in(logtree["incoming_messages"]),
 		log_messages_out(logtree["outgoing_messages"]),
 		wdt(wdt) {
-	this->recvq = xQueueCreate(this->recvq_size, sizeof(IPMI_MSG));
+	this->recvq = xQueueCreate(this->recvq_size, sizeof(IPMIMessage));
 	configASSERT(this->recvq);
 
 	this->sendq_notify_sem = xSemaphoreCreateBinary();
@@ -82,7 +82,7 @@ IPMBSvc::~IPMBSvc() {
 	vQueueDelete(this->recvq);
 }
 
-void IPMBSvc::send(std::shared_ptr<IPMI_MSG> msg, response_cb_t response_cb) {
+void IPMBSvc::send(std::shared_ptr<IPMIMessage> msg, response_cb_t response_cb) {
 	if (this->setSequence(*msg)) {
 		/* std::list iterators are invalidated only by deleting the item they
 		 * point to, so inserts will never affect our iteration.  This allows us
@@ -109,7 +109,7 @@ void IPMBSvc::send(std::shared_ptr<IPMI_MSG> msg, response_cb_t response_cb) {
 	}
 }
 
-std::shared_ptr<IPMI_MSG> IPMBSvc::sendSync(std::shared_ptr<IPMI_MSG> msg) {
+std::shared_ptr<IPMIMessage> IPMBSvc::sendSync(std::shared_ptr<IPMIMessage> msg) {
 	if (msg->netFn & 1) {
 		// Response message
 		this->send(msg, nullptr);
@@ -117,9 +117,9 @@ std::shared_ptr<IPMI_MSG> IPMBSvc::sendSync(std::shared_ptr<IPMI_MSG> msg) {
 	}
 
 	SemaphoreHandle_t syncsem = xSemaphoreCreateBinary();
-	std::shared_ptr<IPMI_MSG> rsp;
+	std::shared_ptr<IPMIMessage> rsp;
 
-	this->send(msg, [&syncsem,&rsp](std::shared_ptr<IPMI_MSG> original, std::shared_ptr<IPMI_MSG> response) -> void {
+	this->send(msg, [&syncsem,&rsp](std::shared_ptr<IPMIMessage> original, std::shared_ptr<IPMIMessage> response) -> void {
 		rsp = response;
 		xSemaphoreGive(syncsem);
 	});
@@ -145,7 +145,7 @@ void IPMBSvc::runThread() {
 			configASSERT(pdTRUE == xSemaphoreTake(this->sendq_notify_sem, 0));
 			// Notification received.  No specific action to take here.
 		} else if (q == this->recvq) {
-			IPMI_MSG inmsg;
+			IPMIMessage inmsg;
 			configASSERT(pdTRUE == xQueueReceive(this->recvq, &inmsg, 0)); // If it selected it better receive.
 			UBaseType_t recvq_watermark = uxQueueMessagesWaiting(this->recvq) + 1;
 			this->stat_recvq_highwater.highWater(recvq_watermark);
@@ -157,15 +157,15 @@ void IPMBSvc::runThread() {
 				bool paired = false;
 				MutexGuard<false> lock(this->sendq_mutex, true);
 				for (auto it = this->outgoing_messages.begin(); it != this->outgoing_messages.end(); ++it) {
-					if (it->msg->match_reply(inmsg)) {
+					if (it->msg->matchReply(inmsg)) {
 						paired = true;
 						this->stat_messages_delivered.increment();
 						this->log_messages_in.log(std::string("Response received on ") + this->kName + ": " + inmsg.format(), LogTree::LOG_INFO);
 						if (it->response_cb) {
 							response_cb_t response_cb = it->response_cb;
-							std::shared_ptr<IPMI_MSG> msg = it->msg;
+							std::shared_ptr<IPMIMessage> msg = it->msg;
 							lock.release();
-							response_cb(msg, std::make_shared<IPMI_MSG>(inmsg));
+							response_cb(msg, std::make_shared<IPMIMessage>(inmsg));
 							lock.acquire();
 						}
 						this->outgoing_messages.erase(it); // Success!
@@ -216,7 +216,7 @@ void IPMBSvc::runThread() {
 					this->log_messages_out.log(std::string("Retransmit abandoned on ") + this->kName + ": " + it->msg->format(), LogTree::LOG_WARNING);
 					if (it->response_cb) {
 						response_cb_t response_cb = it->response_cb;
-						std::shared_ptr<IPMI_MSG> msg = it->msg;
+						std::shared_ptr<IPMIMessage> msg = it->msg;
 						lock.release();
 						response_cb(msg, nullptr);
 						lock.acquire();
@@ -228,7 +228,7 @@ void IPMBSvc::runThread() {
 				this->stat_send_attempts.increment();
 
 				// We don't want to hold the mutex while waiting on the bus.
-				std::shared_ptr<IPMI_MSG> wireout_msg = it->msg;
+				std::shared_ptr<IPMIMessage> wireout_msg = it->msg;
 				lock.release();
 				bool success;
 				if (wireout_msg->rsSA == this->kIPMBAddress && wireout_msg->rsLUN == 0) {
@@ -299,7 +299,7 @@ void IPMBSvc::runThread() {
 	}
 }
 
-bool IPMBSvc::setSequence(IPMI_MSG &msg) {
+bool IPMBSvc::setSequence(IPMIMessage &msg) {
 	if (msg.netFn & 1)
 		return true; // We don't alter the sequence numbers of outgoing replies, that's not our responsibility.
 
@@ -332,7 +332,7 @@ bool IPMBSvc::setSequence(IPMI_MSG &msg) {
 	return false; // No valid sequence numbers for this command!  All are used!  (Why the hell are we flooding the bus..?)
 }
 
-bool IPMBSvc::checkDuplicate(const IPMI_MSG &msg) {
+bool IPMBSvc::checkDuplicate(const IPMIMessage &msg) {
 	uint64_t now64 = get_tick64();
 
 	// First, expire old records, for cleanliness.
@@ -391,7 +391,7 @@ public:
 			return;
 		}
 
-		std::shared_ptr<IPMI_MSG> msg  = std::make_shared<IPMI_MSG>();
+		std::shared_ptr<IPMIMessage> msg  = std::make_shared<IPMIMessage>();
 		msg->rqSA     = this->ipmb.kIPMBAddress;
 		msg->rqLUN    = 0;
 		msg->rsSA     = addr;
@@ -414,7 +414,7 @@ public:
 
 			msg->data[i - data_offset] = databyte;
 		}
-		this->ipmb.send(msg, [console](std::shared_ptr<IPMI_MSG> original, std::shared_ptr<IPMI_MSG> response) -> void {
+		this->ipmb.send(msg, [console](std::shared_ptr<IPMIMessage> original, std::shared_ptr<IPMIMessage> response) -> void {
 			if (response) {
 				console->write(stdsprintf(
 						"Console IPMI command: %s\n"
@@ -468,10 +468,10 @@ public:
 				if ((frudev % 0x10) == 0)
 					console->write(stdsprintf("Enumerating FRU Storage Device %02hhXh...\n", frudev));
 
-				std::shared_ptr<RemoteFRUStorage> storage = RemoteFRUStorage::Probe(ipmb, ipmbtarget, frudev);
+				std::shared_ptr<RemoteFRUStorage> storage = RemoteFRUStorage::probe(ipmb, ipmbtarget, frudev);
 				if (storage) {
 					// Okay we probed one up.  Let's read its header.
-					if (!storage->ReadHeader()) {
+					if (!storage->readHeader()) {
 						console->write(stdsprintf("Unable to read FRU storage header for %02hhXh.\n", frudev));
 						continue;
 					}
@@ -485,17 +485,17 @@ public:
 			} else {
 				std::string out = "Found FRU Storages:\n";
 				for (auto it = fru_storages.begin(), eit = fru_storages.end(); it != eit; ++it) {
-					out += stdsprintf("  %02hhXh: %hu %s (Header Version %2hhu)\n", it->fru_device_id, it->size, it->byte_addressed?"bytes":"words", it->header_version);
-					if (it->internal_use_area_offset)
-						out += stdsprintf("       Internal Use Area Offset:  %4hu\n", it->internal_use_area_offset);
-					if (it->chassis_info_area_offset)
-						out += stdsprintf("       Chassis Info Area Offset:  %4hu\n", it->chassis_info_area_offset);
-					if (it->board_area_offset)
-						out += stdsprintf("       Board Area Offset:         %4hu\n", it->board_area_offset);
-					if (it->product_info_area_offset)
-						out += stdsprintf("       Product Info Area Offset:  %4hu\n", it->product_info_area_offset);
-					if (it->multirecord_area_offset)
-						out += stdsprintf("       Multi-Record  Area Offset: %4hu\n", it->multirecord_area_offset);
+					out += stdsprintf("  %02hhXh: %hu %s (Header Version %2hhu)\n", it->getFruDeviceId(), it->getStorageAreaSize(), it->isByteAddressed()?"bytes":"words", it->getHeaderVersion());
+					if (it->getInternalUseAreaOffset())
+						out += stdsprintf("       Internal Use Area Offset:  %4hu\n", it->getInternalUseAreaOffset());
+					if (it->getChassisInfoAreaOffset())
+						out += stdsprintf("       Chassis Info Area Offset:  %4hu\n", it->getChassisInfoAreaOffset());
+					if (it->getBoardAreaOffset())
+						out += stdsprintf("       Board Area Offset:         %4hu\n", it->getBoardAreaOffset());
+					if (it->getProductInfoAreaOffset())
+						out += stdsprintf("       Product Info Area Offset:  %4hu\n", it->getProductInfoAreaOffset());
+					if (it->getMultirecordAreaOffset())
+						out += stdsprintf("       Multi-Record  Area Offset: %4hu\n", it->getMultirecordAreaOffset());
 				}
 				console->write(out);
 			}
@@ -530,24 +530,24 @@ public:
 		IPMBSvc *ipmb = &this->ipmb;
 
 		runTask("dump_fru_store", TASK_PRIORITY_INTERACTIVE, [ipmb, console, ipmbtarget, frudev, all]() -> void {
-			std::shared_ptr<RemoteFRUStorage> storage = RemoteFRUStorage::Probe(ipmb, ipmbtarget, frudev);
+			std::shared_ptr<RemoteFRUStorage> storage = RemoteFRUStorage::probe(ipmb, ipmbtarget, frudev);
 			if (!storage) {
 				console->write(stdsprintf("Error querying FRU Inventory Area Info for FRU Device %02hhXh at IPMB address %02hhXh.\n", frudev, ipmbtarget));
 				return;
 			}
 
-			if (!storage->byte_addressed) {
+			if (!storage->isByteAddressed()) {
 				console->write("Unable to dump FRU Storage, word access is not supported.\n");
 				return;
 			}
 
-			if (storage->internal_use_area_offset) {
+			if (storage->getInternalUseAreaOffset()) {
 				console->write("Internal Use Area: Present\n");
 			}
 
-			if (storage->header_valid) {
-				if (storage->chassis_info_area_offset) {
-					std::shared_ptr<RemoteFRUStorage::ChassisInfo> chassis = storage->ReadChassisInfoArea();
+			if (storage->isHeaderValid()) {
+				if (storage->getChassisInfoAreaOffset()) {
+					std::shared_ptr<RemoteFRUStorage::ChassisInfo> chassis = storage->readChassisInfoArea();
 					std::string outbuf = "Chassis Information Area:\n";
 					if (!chassis) {
 						outbuf += "  Unreadable.\n";
@@ -572,8 +572,8 @@ public:
 					console->write(outbuf);
 				}
 
-				if (storage->board_area_offset) {
-					std::shared_ptr<RemoteFRUStorage::BoardArea> board = storage->ReadBoardArea();
+				if (storage->getBoardAreaOffset()) {
+					std::shared_ptr<RemoteFRUStorage::BoardArea> board = storage->readBoardArea();
 					std::string outbuf = "Board Area:\n";
 					if (!board) {
 						outbuf += "  Unreadable.\n";
@@ -611,8 +611,8 @@ public:
 					console->write(outbuf);
 				}
 
-				if (storage->product_info_area_offset) {
-					std::shared_ptr<RemoteFRUStorage::ProductInfoArea> product = storage->ReadProductInfoArea();
+				if (storage->getProductInfoAreaOffset()) {
+					std::shared_ptr<RemoteFRUStorage::ProductInfoArea> product = storage->readProductInfoArea();
 					std::string outbuf = "Product Info Area:\n";
 					if (!product) {
 						outbuf += "  Unreadable.\n";
@@ -640,12 +640,12 @@ public:
 					}
 					console->write(outbuf);
 				}
-				if (storage->multirecord_area_offset) {
+				if (storage->getMultirecordAreaOffset()) {
 					if (!all) {
 						console->write("Multi-Record Area: Present\n");
 					} else {
 						console->write("Multi-Record Area:\n");
-						std::vector< std::vector<uint8_t> > records = storage->ReadMultiRecordArea();
+						std::vector< std::vector<uint8_t> > records = storage->readMultiRecordArea();
 						if (records.empty()) {
 							console->write("  Read error.\n");
 						} else {
@@ -663,9 +663,9 @@ public:
 			else {
 				// Invalid Header
 
-				std::vector<uint8_t> frubuf = storage->ReadData(0, storage->size, [console, storage](uint16_t offset, uint16_t size) {
+				std::vector<uint8_t> frubuf = storage->readData(0, storage->getStorageAreaSize(), [console, storage](uint16_t offset, uint16_t size) {
 					if ((offset % 0x200) == 0) {
-						console->write(stdsprintf("Reading FRU Storage... %5hxh/%hxh\n", storage->size-size, storage->size));
+						console->write(stdsprintf("Reading FRU Storage... %5hxh/%hxh\n", storage->getStorageAreaSize()-size, storage->getStorageAreaSize()));
 					}
 				});
 

@@ -24,7 +24,7 @@ void IPMBPair::setIncomingMessageQueue(QueueHandle_t incoming_message_queue) {
 	this->ipmb[1]->setIncomingMessageQueue(incoming_message_queue);
 }
 
-bool IPMBPair::sendMessage(IPMI_MSG &msg, uint32_t retry) {
+bool IPMBPair::sendMessage(IPMIMessage &msg, uint32_t retry) {
 	uint8_t hash = 0;
 	hash += msg.rsSA + msg.rsLUN;
 	hash += msg.rqSA + msg.rqLUN + msg.rqSeq;

@@ -15,7 +15,7 @@
  * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <services/ipmi/IPMIFormats.h>
+#include <services/ipmi/ipmi_formats.h>
 #include <services/ipmi/sdr/sensor_data_record_12.h>
 #include <iterator>
 
@@ -35,7 +35,7 @@ void SensorDataRecord12::validate() const {
 		throw invalid_sdr_error("Truncated SDR");
 	}
 
-	unsigned idlen = ipmi_type_length_field_get_length(std::vector<uint8_t>(std::next(this->sdr_data.begin(), 16), this->sdr_data.end()));
+	unsigned idlen = getIpmiTypeLengthFieldLength(std::vector<uint8_t>(std::next(this->sdr_data.begin(), 16), this->sdr_data.end()));
 	if (idlen > 17) { // IDString TypeLengthCode (= 1) + IDString Bytes (<= 16)
 		throw invalid_sdr_error("Invalid ID string");
 	}
@@ -105,7 +105,7 @@ SDR_FIELD(oem, uint8_t, 14, 7, 0, )
 std::string SensorDataRecord12::id_string() const {
 	this->validate();
 
-	return render_ipmi_type_length_field(std::vector<uint8_t>(std::next(this->sdr_data.begin(), 16), this->sdr_data.end()));
+	return renderIpmiTypeLengthField(std::vector<uint8_t>(std::next(this->sdr_data.begin(), 16), this->sdr_data.end()));
 }
 void SensorDataRecord12::id_string(std::string val) {
 	this->validate();

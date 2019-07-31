@@ -96,9 +96,9 @@ void PSIPMB::setupMaster() {
 	this->enableInterrupts();
 }
 
-bool PSIPMB::sendMessage(IPMI_MSG &msg, uint32_t retry) {
+bool PSIPMB::sendMessage(IPMIMessage &msg, uint32_t retry) {
 	uint8_t msgbuf[this->i2c_bufsize];
-	int msglen = msg.unparse_message(msgbuf, this->i2c_bufsize);
+	int msglen = msg.unparseMessage(msgbuf, this->i2c_bufsize);
 
 	MutexGuard<false> lock(this->mutex, true);
 	this->setupMaster();
@@ -306,8 +306,8 @@ void PSIPMB::_HandleStatus(uint32_t StatusEvent) {
 	StatusEvent &= 0x03ffffff;
 
 	if (StatusEvent == XIICPS_EVENT_COMPLETE_RECV) {
-		IPMI_MSG msg;
-		if (msg.parse_message(this->i2c_inbuf, this->i2c_bufsize - LeftOverBytes, this->kIPMBAddr)) {
+		IPMIMessage msg;
+		if (msg.parseMessage(this->i2c_inbuf, this->i2c_bufsize - LeftOverBytes, this->kIPMBAddr)) {
 			BaseType_t ret = pdFALSE;
 			if (this->incoming_message_queue)
 				ret = xQueueSendFromISR(this->incoming_message_queue, &msg, &isrwake);

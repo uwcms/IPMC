@@ -21,9 +21,9 @@
 #include <drivers/ad7689/ad7689.h>
 #include <drivers/generics/adc.h>
 #include <drivers/management_zone/management_zone.h>
-#include <services/ipmi/MStateMachine.h>
 #include <drivers/sensorprocessor/sensorprocessor.h>
 #include <services/console/consolesvc.h>
+#include <services/ipmi/m_state_machine.h>
 #include <services/ipmi/sensor/severity_sensor.h>
 #include <services/ipmi/sensor/threshold_sensor.h>
 #include <services/timer/timer.h>

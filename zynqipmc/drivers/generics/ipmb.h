@@ -20,8 +20,8 @@
 
 #include <FreeRTOS.h>
 #include <queue.h>
+#include <services/ipmi/ipmi_message.h>
 #include <xil_types.h>
-#include <services/ipmi/IPMI_MSG.h>
 
 /**
  * A generic abstract interface for an IPMB driver.
@@ -53,15 +53,15 @@ public:
 	/**
 	 * This function will send a message out on the IPMB in a blocking manner.
 	 *
-	 * @param msg   The IPMI_MSG to deliver.
+	 * @param msg   The IPMIMessage to deliver.
 	 * @param retry The retry counter for this message.
 	 * @return      true if message was delivered else false
 	 */
-	virtual bool sendMessage(IPMI_MSG &msg, uint32_t retry = 0) = 0;
+	virtual bool sendMessage(IPMIMessage &msg, uint32_t retry = 0) = 0;
 
 protected:
 	/**
-	 * This queue of typename IPMI_MSG receives deliveries of incoming IPMB
+	 * This queue of typename IPMIMessage receives deliveries of incoming IPMB
 	 * messages from this interface, if not NULL.
 	 */
 	QueueHandle_t incoming_message_queue;

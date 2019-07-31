@@ -243,7 +243,7 @@ void core_service_init() {
 
 #ifdef ENABLE_IPMI
 	mstatemachine = new MStateMachine(std::dynamic_pointer_cast<HotswapSensor>(ipmc_sensors.findByName("Hotswap")), *ipmi_leds[0], LOG["mstatemachine"]);
-	mstatemachine->register_console_commands(console_command_parser, "");
+	mstatemachine->registerConsoleCommands(console_command_parser, "");
 
 	// TODO: Change this?
 	payload_manager = new BoardPayloadManager(mstatemachine, LOG["payload_manager"]);

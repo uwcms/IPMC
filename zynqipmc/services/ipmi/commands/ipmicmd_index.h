@@ -33,6 +33,6 @@ extern std::map<uint16_t, IPMICommandParser::ipmi_cmd_handler_t> *ipmicmd_index;
 	}
 
 //! Default IPMI command when it is not supported.
-void ipmicmd_default(IPMBSvc &ipmb, const IPMI_MSG &message);
+void ipmicmd_default(IPMBSvc &ipmb, const IPMIMessage &message);
 
 #endif /* SRC_COMMON_ZYNQIPMC_SERVICES_IPMI_COMMANDS_IPMICMD_INDEX_H_ */

@@ -1,26 +1,27 @@
 /*
- * RemoteFRUStorage.cpp
+ * This file is part of the ZYNQ-IPMC Framework.
  *
- *  Created on: Jul 18, 2018
- *      Author: jtikalsky
+ * The ZYNQ-IPMC Framework is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ZYNQ-IPMC Framework is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <services/ipmi/RemoteFRUStorage.h>
-#include <services/ipmi/IPMIFormats.h>
+#include <services/ipmi/ipmi_formats.h>
+#include <services/ipmi/remote_fru_storage.h>
 
-/**
- * Read out a FRU Storage Area header via the IPMB and return the parsed record.
- *
- * \param ipmb The IPMB to send the request on
- * \param target The IPMB address to request FRU Storage Area data from
- * \param dev The FRU Storage Device to query on the specified target
- * \param retry_delay This code will retry several times in the case of failure. vTaskDelay(retry_delay) between them.
- * \return A shared_ptr to a RemoteFRUStorage object, or a NULL shared_ptr on failure
- */
-std::shared_ptr<RemoteFRUStorage> RemoteFRUStorage::Probe(IPMBSvc *ipmb, uint8_t target, uint8_t dev, BaseType_t retry_delay) {
-	std::shared_ptr<IPMI_MSG> probersp;
+std::shared_ptr<RemoteFRUStorage> RemoteFRUStorage::probe(IPMBSvc *ipmb, uint8_t target, uint8_t dev, BaseType_t retry_delay) {
+	std::shared_ptr<IPMIMessage> probersp;
 	for (int retry = 0; retry < 3; ++retry) {
-		probersp = ipmb->sendSync(std::make_shared<IPMI_MSG>(
+		probersp = ipmb->sendSync(std::make_shared<IPMIMessage>(
 				0, ipmb->getIPMBAddress(),
 				0, target,
 				(IPMI::Get_FRU_Inventory_Area_Info >> 8) & 0xff, IPMI::Get_FRU_Inventory_Area_Info & 0xff,
@@ -31,24 +32,21 @@ std::shared_ptr<RemoteFRUStorage> RemoteFRUStorage::Probe(IPMBSvc *ipmb, uint8_t
 		}
 		break;
 	}
-	if (!probersp || probersp->data_len != 4 || probersp->data[0] != IPMI::Completion::Success)
-		return NULL;
+
+	if (!probersp || probersp->data_len != 4 || probersp->data[0] != IPMI::Completion::Success) {
+		return nullptr;
+	}
+
 	std::shared_ptr<RemoteFRUStorage> storage = std::make_shared<RemoteFRUStorage>(ipmb, target, dev,
 			((probersp->data[2]<<8) | probersp->data[1]),
 			!(probersp->data[3]&1)
 			);
-	storage->ReadHeader();
+	storage->readHeader();
 	return storage;
 }
 
-/**
- * Read the header from the FRU storage and populate this object's data.
- *
- * @param retry_delay This code will retry several times in the case of failure. vTaskDelay(retry_delay) between them.
- * @return true on success, else false (however check RemoteFRUStorage.header_checksum_valid!)
- */
-bool RemoteFRUStorage::ReadHeader(BaseType_t retry_delay) {
-	std::vector<uint8_t> header = this->ReadData(0, 8, NULL, retry_delay);
+bool RemoteFRUStorage::readHeader(BaseType_t retry_delay) {
+	std::vector<uint8_t> header = this->readData(0, 8, nullptr, retry_delay);
 	this->header_version           = 0;
 	this->internal_use_area_offset = 0;
 	this->chassis_info_area_offset = 0;
@@ -56,9 +54,10 @@ bool RemoteFRUStorage::ReadHeader(BaseType_t retry_delay) {
 	this->product_info_area_offset = 0;
 	this->multirecord_area_offset  = 0;
 
-	this->header_valid = (header.size() >= 8 && ipmi_checksum(header) == 0 && header[0] == 1 /* recognized version */);
-	if (header.size() >= 1)
+	this->header_valid = (header.size() >= 8 && IPMIMessage::checksum(header) == 0 && header[0] == 1 /* recognized version */);
+	if (header.size() >= 1) {
 		this->header_version = header[0];
+	}
 	if (this->header_valid) {
 		this->internal_use_area_offset = header[1]*8;
 		this->chassis_info_area_offset = header[2]*8;
@@ -69,29 +68,22 @@ bool RemoteFRUStorage::ReadHeader(BaseType_t retry_delay) {
 	return header.size() == 8;
 }
 
-/**
- * Read the specified FRU Storage Area contents.
- *
- * @param offset The offset to start reading from
- * @param size The number of bytes to read
- * @param progress_callback A function called every read to report progress, or NULL
- * @param retry_delay This code will retry several times in the case of failure. vTaskDelay(retry_delay) between them.
- * @return
- */
-std::vector<uint8_t> RemoteFRUStorage::ReadData(uint16_t offset, uint16_t size, std::function<void(uint16_t offset, uint16_t size)> progress_callback, BaseType_t retry_delay) const {
+std::vector<uint8_t> RemoteFRUStorage::readData(uint16_t offset, uint16_t size, std::function<void(uint16_t offset, uint16_t size)> progress_callback, BaseType_t retry_delay) const {
 	std::vector<uint8_t> outbuf;
 	outbuf.reserve(size);
 	while (size) {
-		if (progress_callback)
+		if (progress_callback) {
 			progress_callback(offset, size);
+		}
+
 		uint8_t rd_size = 0x10;
 		if (size < rd_size)
 			rd_size = size;
 
-		std::shared_ptr<IPMI_MSG> rd_rsp;
+		std::shared_ptr<IPMIMessage> rd_rsp;
 		for (int i = 0; i < 3; ++i) {
 			rd_rsp = this->ipmb->sendSync(
-					std::make_shared<IPMI_MSG>(0, this->ipmb->getIPMBAddress(), 0, this->ipmb_target,
+					std::make_shared<IPMIMessage>(0, this->ipmb->getIPMBAddress(), 0, this->ipmb_target,
 							(IPMI::Read_FRU_Data >> 8) & 0xff,
 							IPMI::Read_FRU_Data & 0xff,
 							std::vector<uint8_t> {
@@ -102,54 +94,50 @@ std::vector<uint8_t> RemoteFRUStorage::ReadData(uint16_t offset, uint16_t size, 
 							}
 					)
 			);
+
 			if (!rd_rsp || (rd_rsp->data_len && rd_rsp->data[0] == IPMI::Completion::FRU_Device_Busy)) {
 				vTaskDelay(retry_delay);
 				continue;
 			}
+
 			break;
 		}
+
 		if (!rd_rsp || rd_rsp->data_len < 2 || rd_rsp->data[0] != IPMI::Completion::Success || rd_rsp->data_len != rd_rsp->data[1]+2) {
 			outbuf.clear();
 			return outbuf;
 		}
+
 		outbuf.insert(outbuf.end(), rd_rsp->data + 2, rd_rsp->data + rd_rsp->data_len);
 		offset += rd_rsp->data[1];
 		size -= rd_rsp->data[1];
 	}
+
 	return outbuf;
 }
 
-/**
- * Read and parse the Chassis Info Area of this FRU Data Area
- *
- * @param retry_delay This code will retry several times in the case of failure. vTaskDelay(retry_delay) between them.
- * @return A shared_ptr to a ChassisInfo record, or a null shared_ptr on failure
- */
-std::shared_ptr<RemoteFRUStorage::ChassisInfo> RemoteFRUStorage::ReadChassisInfoArea(BaseType_t retry_delay) {
-	std::vector<uint8_t> data = this->ReadData(this->chassis_info_area_offset, 2);
-	if (data.size() < 2)
-		return NULL; // Unable to read value.
-	if (data[0] != 1)
-		return NULL; // Unsupported format.
+std::shared_ptr<RemoteFRUStorage::ChassisInfo> RemoteFRUStorage::readChassisInfoArea(BaseType_t retry_delay) {
+	std::vector<uint8_t> data = this->readData(this->chassis_info_area_offset, 2);
+	if (data.size() < 2) return nullptr; // Unable to read value.
+	if (data[0] != 1) return nullptr; // Unsupported format.
 	uint16_t info_area_length = data[1]*8;
-	data = this->ReadData(this->chassis_info_area_offset, info_area_length);
-	if (data.size() != info_area_length)
-		return NULL; // Unable to read data area.
-	if (ipmi_checksum(data) != 0)
-		return NULL; // Corrupt data area.
+	data = this->readData(this->chassis_info_area_offset, info_area_length);
+	if (data.size() != info_area_length) return nullptr; // Unable to read data area.
+	if (IPMIMessage::checksum(data) != 0) return nullptr; // Corrupt data area.
 
 	std::shared_ptr<RemoteFRUStorage::ChassisInfo> chassis = std::make_shared<RemoteFRUStorage::ChassisInfo>();
 	uint16_t parse_offset = 0;
 
 	chassis->info_area_version = data[parse_offset++];
 
-	if (data[parse_offset++] * 8 != info_area_length)
-		return NULL; // Data changed during processing.
+	if (data[parse_offset++] * 8 != info_area_length) {
+		return nullptr; // Data changed during processing.
+	}
 
 #define CHECK_OFFSET(len) \
 	do { \
 		if (parse_offset + (len) > info_area_length) \
-			return NULL; /* Invalid Type/Length field. */ \
+			return nullptr; /* Invalid Type/Length field. */ \
 	} while (0)
 
 #define PARSE_TLFIELD(field) \
@@ -157,7 +145,7 @@ std::shared_ptr<RemoteFRUStorage::ChassisInfo> RemoteFRUStorage::ReadChassisInfo
 		uint8_t len = data[parse_offset] & 0x3f; \
 		CHECK_OFFSET(len); \
 		std::vector<uint8_t> subvec(data.begin()+parse_offset, data.begin()+parse_offset+1+len); \
-		field = render_ipmi_type_length_field(subvec); \
+		field = renderIpmiTypeLengthField(subvec); \
 		parse_offset += 1+len; \
 	} while (0);
 
@@ -171,7 +159,7 @@ std::shared_ptr<RemoteFRUStorage::ChassisInfo> RemoteFRUStorage::ReadChassisInfo
 		uint8_t len = data[parse_offset] & 0x3f;
 		CHECK_OFFSET(len);
 		std::vector<uint8_t> subvec(data.begin()+parse_offset, data.begin()+parse_offset+1+len);
-		chassis->custom_info.push_back(render_ipmi_type_length_field(subvec));
+		chassis->custom_info.push_back(renderIpmiTypeLengthField(subvec));
 		parse_offset += 1+len;
 	}
 #undef PARSE_TLFIELD
@@ -179,37 +167,28 @@ std::shared_ptr<RemoteFRUStorage::ChassisInfo> RemoteFRUStorage::ReadChassisInfo
 	return chassis;
 }
 
-/**
- * Read and parse the Board Area of this FRU Data Area
- *
- * @param retry_delay This code will retry several times in the case of failure. vTaskDelay(retry_delay) between them.
- * @return A shared_ptr to a BoardArea record, or a null shared_ptr on failure
- */
-std::shared_ptr<RemoteFRUStorage::BoardArea> RemoteFRUStorage::ReadBoardArea(BaseType_t retry_delay) {
-	std::vector<uint8_t> data = this->ReadData(this->board_area_offset, 2);
-	if (data.size() < 2)
-		return NULL; // Unable to read value.
-	if (data[0] != 1)
-		return NULL; // Unsupported format.
+std::shared_ptr<RemoteFRUStorage::BoardArea> RemoteFRUStorage::readBoardArea(BaseType_t retry_delay) {
+	std::vector<uint8_t> data = this->readData(this->board_area_offset, 2);
+	if (data.size() < 2) return nullptr; // Unable to read value.
+	if (data[0] != 1) return nullptr; // Unsupported format.
 	uint16_t info_area_length = data[1]*8;
-	data = this->ReadData(this->board_area_offset, info_area_length);
-	if (data.size() != info_area_length)
-		return NULL; // Unable to read data area.
-	if (ipmi_checksum(data) != 0)
-		return NULL; // Corrupt data area.
+	data = this->readData(this->board_area_offset, info_area_length);
+	if (data.size() != info_area_length) return nullptr; // Unable to read data area.
+	if (IPMIMessage::checksum(data) != 0) return nullptr; // Corrupt data area.
 
 	std::shared_ptr<RemoteFRUStorage::BoardArea> board = std::make_shared<RemoteFRUStorage::BoardArea>();
 	uint16_t parse_offset = 0;
 
 	board->board_area_version = data[parse_offset++];
 
-	if (data[parse_offset++] * 8 != info_area_length)
-		return NULL; // Data changed during processing.
+	if (data[parse_offset++] * 8 != info_area_length) {
+		return nullptr; // Data changed during processing.
+	}
 
 #define CHECK_OFFSET(len) \
 	do { \
 		if (parse_offset + (len) > info_area_length) \
-			return NULL; /* Invalid Type/Length field. */ \
+			return nullptr; /* Invalid Type/Length field. */ \
 	} while (0)
 
 #define PARSE_TLFIELD(field) \
@@ -217,7 +196,7 @@ std::shared_ptr<RemoteFRUStorage::BoardArea> RemoteFRUStorage::ReadBoardArea(Bas
 		uint8_t len = data[parse_offset] & 0x3f; \
 		CHECK_OFFSET(len); \
 		std::vector<uint8_t> subvec(data.begin()+parse_offset, data.begin()+parse_offset+1+len); \
-		field = render_ipmi_type_length_field(subvec); \
+		field = renderIpmiTypeLengthField(subvec); \
 		parse_offset += 1+len; \
 	} while (0);
 
@@ -243,7 +222,7 @@ std::shared_ptr<RemoteFRUStorage::BoardArea> RemoteFRUStorage::ReadBoardArea(Bas
 		uint8_t len = data[parse_offset] & 0x3f;
 		CHECK_OFFSET(len);
 		std::vector<uint8_t> subvec(data.begin()+parse_offset, data.begin()+parse_offset+1+len);
-		board->custom_info.push_back(render_ipmi_type_length_field(subvec));
+		board->custom_info.push_back(renderIpmiTypeLengthField(subvec));
 		parse_offset += 1+len;
 	}
 #undef PARSE_TLFIELD
@@ -251,37 +230,28 @@ std::shared_ptr<RemoteFRUStorage::BoardArea> RemoteFRUStorage::ReadBoardArea(Bas
 	return board;
 }
 
-/**
- * Read and parse the Product Info Area of this FRU Data Area
- *
- * @param retry_delay This code will retry several times in the case of failure. vTaskDelay(retry_delay) between them.
- * @return A shared_ptr to a ProductInfoArea record, or a null shared_ptr on failure
- */
-std::shared_ptr<RemoteFRUStorage::ProductInfoArea> RemoteFRUStorage::ReadProductInfoArea(BaseType_t retry_delay) {
-	std::vector<uint8_t> data = this->ReadData(this->product_info_area_offset, 2);
-	if (data.size() < 2)
-		return NULL; // Unable to read value.
-	if (data[0] != 1)
-		return NULL; // Unsupported format.
+std::shared_ptr<RemoteFRUStorage::ProductInfoArea> RemoteFRUStorage::readProductInfoArea(BaseType_t retry_delay) {
+	std::vector<uint8_t> data = this->readData(this->product_info_area_offset, 2);
+	if (data.size() < 2) return nullptr; // Unable to read value.
+	if (data[0] != 1) return nullptr; // Unsupported format.
 	uint16_t info_area_length = data[1]*8;
-	data = this->ReadData(this->product_info_area_offset, info_area_length);
-	if (data.size() != info_area_length)
-		return NULL; // Unable to read data area.
-	if (ipmi_checksum(data) != 0)
-		return NULL; // Corrupt data area.
+	data = this->readData(this->product_info_area_offset, info_area_length);
+	if (data.size() != info_area_length) return nullptr; // Unable to read data area.
+	if (IPMIMessage::checksum(data) != 0) return nullptr; // Corrupt data area.
 
 	std::shared_ptr<RemoteFRUStorage::ProductInfoArea> product = std::make_shared<RemoteFRUStorage::ProductInfoArea>();
 	uint16_t parse_offset = 0;
 
 	product->info_area_version = data[parse_offset++];
 
-	if (data[parse_offset++] * 8 != info_area_length)
-		return NULL; // Data changed during processing.
+	if (data[parse_offset++] * 8 != info_area_length) {
+		return nullptr; // Data changed during processing.
+	}
 
 #define CHECK_OFFSET(len) \
 	do { \
 		if (parse_offset + (len) > info_area_length) \
-			return NULL; /* Invalid Type/Length field. */ \
+			return nullptr; /* Invalid Type/Length field. */ \
 	} while (0)
 
 #define PARSE_TLFIELD(field) \
@@ -289,7 +259,7 @@ std::shared_ptr<RemoteFRUStorage::ProductInfoArea> RemoteFRUStorage::ReadProduct
 		uint8_t len = data[parse_offset] & 0x3f; \
 		CHECK_OFFSET(len); \
 		std::vector<uint8_t> subvec(data.begin()+parse_offset, data.begin()+parse_offset+1+len); \
-		field = render_ipmi_type_length_field(subvec); \
+		field = renderIpmiTypeLengthField(subvec); \
 		parse_offset += 1+len; \
 	} while (0);
 
@@ -313,7 +283,7 @@ std::shared_ptr<RemoteFRUStorage::ProductInfoArea> RemoteFRUStorage::ReadProduct
 		uint8_t len = data[parse_offset] & 0x3f;
 		CHECK_OFFSET(len);
 		std::vector<uint8_t> subvec(data.begin()+parse_offset, data.begin()+parse_offset+1+len);
-		product->custom_info.push_back(render_ipmi_type_length_field(subvec));
+		product->custom_info.push_back(renderIpmiTypeLengthField(subvec));
 		parse_offset += 1+len;
 	}
 #undef PARSE_TLFIELD
@@ -321,26 +291,32 @@ std::shared_ptr<RemoteFRUStorage::ProductInfoArea> RemoteFRUStorage::ReadProduct
 	return product;
 }
 
-std::vector< std::vector<uint8_t> > RemoteFRUStorage::ReadMultiRecordArea(BaseType_t retry_delay) {
+std::vector< std::vector<uint8_t> > RemoteFRUStorage::readMultiRecordArea(BaseType_t retry_delay) {
 	std::vector< std::vector<uint8_t> > records;
 	uint16_t offset = this->multirecord_area_offset;
 	while (true) {
-		std::vector<uint8_t> data = this->ReadData(offset, 5);
-		if (data.size() < 5)
+		std::vector<uint8_t> data = this->readData(offset, 5);
+		if (data.size() < 5) {
 			return std::vector< std::vector<uint8_t> >(); // Unable to read value.
-		if (ipmi_checksum(data) != 0)
+		}
+		if (IPMIMessage::checksum(data) != 0) {
 			return std::vector< std::vector<uint8_t> >(); // Header checksum failure.
+		}
 		uint16_t size = 5+data[2];
-		data = this->ReadData(offset, size);
-		if (data.size() != size)
+		data = this->readData(offset, size);
+		if (data.size() != size) {
 			return std::vector< std::vector<uint8_t> >(); // Read failure.
-		if (ipmi_checksum(std::vector<uint8_t>(data.begin(), std::next(data.begin(), 5))) != 0)
+		}
+		if (IPMIMessage::checksum(std::vector<uint8_t>(data.begin(), std::next(data.begin(), 5))) != 0) {
 			return std::vector< std::vector<uint8_t> >(); // Header checksum failure on full read.
-		if (ipmi_checksum(std::vector<uint8_t>(std::next(data.begin(), 5), data.end())) != data[3])
+		}
+		if (IPMIMessage::checksum(std::vector<uint8_t>(std::next(data.begin(), 5), data.end())) != data[3]) {
 			return std::vector< std::vector<uint8_t> >(); // Record checksum failure.
+		}
 		records.emplace_back(data);
-		if (data[1] & 0x80 /* EOL */)
+		if (data[1] & 0x80 /* EOL */) {
 			break; // Last entry.
+		}
 		offset += size;
 	}
 	return records;

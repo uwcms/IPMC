@@ -19,7 +19,7 @@
 #include <libs/threading.h>
 #include <semphr.h>
 #include <services/ipmi/ipmbsvc/ipmi_command_parser.h>
-#include <services/ipmi/IPMI_MSG.h>
+#include <services/ipmi/ipmi_message.h>
 #include <functional>
 #include <map>
 
@@ -42,7 +42,7 @@ void IPMICommandParser::registerHandler(uint16_t command, ipmi_cmd_handler_t han
 	}
 }
 
-void IPMICommandParser::dispatch(IPMBSvc &ipmb, const IPMI_MSG &message) {
+void IPMICommandParser::dispatch(IPMBSvc &ipmb, const IPMIMessage &message) {
 	ipmi_cmd_handler_t handler = this->default_handler;
 	uint16_t command = (message.netFn << 8) | message.cmd;
 	MutexGuard<false> lock(this->mutex, true);

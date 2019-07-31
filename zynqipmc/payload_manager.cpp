@@ -220,7 +220,7 @@ void PayloadManager::runSensorThread() {
 			}
 
 			// If we are in M1 or at power level 0, and fault lock was cleared, we're returning to OK.
-			if ((this->mstate_machine->mstate() == 1 || this->power_properties.current_power_level == 0) && !mstate_machine->fault_lock()) {
+			if ((this->mstate_machine->getMState() == 1 || this->power_properties.current_power_level == 0) && !mstate_machine->getFaultLock()) {
 				alarm_level = SeveritySensor::OK;
 			}
 		}
@@ -239,7 +239,7 @@ void PayloadManager::runSensorThread() {
 					this->mgmt_zones[i]->setPowerState(ZoneController::Zone::OFF);
 					alarm_level = SeveritySensor::NR;
 					// Set the fault lock flag in the MStateMachine so we can't go M1->M2 without the handle going out first.
-					this->mstate_machine->fault_lock(true);
+					this->mstate_machine->setFaultLock(true);
 				}
 			}
 			/* We did this before any standard sensor processing, so we won't

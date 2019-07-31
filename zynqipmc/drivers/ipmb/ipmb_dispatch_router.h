@@ -45,11 +45,11 @@ public:
 	 * The routing table will be consulted, and if no match is found, this will fall
 	 * back to the default route, or fail the delivery.
 	 *
-	 * @param msg   The IPMI_MSG to deliver.
+	 * @param msg   The IPMIMessage to deliver.
 	 * @param retry The retry count for this message.
 	 * @return      true if message was delivered else false.
 	 */
-	virtual bool sendMessage(IPMI_MSG &msg, uint32_t retry=0);
+	virtual bool sendMessage(IPMIMessage &msg, uint32_t retry=0);
 
 private:
 	std::map<uint8_t, IPMB*> routing_table;	///< The routing table for this dispatch router

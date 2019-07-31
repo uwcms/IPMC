@@ -16,17 +16,17 @@
  */
 
 #include <core.h>
-#include <services/ipmi/IPMI.h>
 #include <libs/printf.h>
 #include <libs/threading.h>
 #include <services/ipmi/commands/ipmicmd_index.h>
 #include <services/ipmi/ipmbsvc/ipmbsvc.h>
+#include <services/ipmi/ipmi.h>
 #include <services/ipmi/sdr/sensor_data_repository.h>
 #include <services/persistentstorage/persistent_storage.h>
 
 #define RETURN_ERROR(ipmb, message, completion_code) \
 	do { \
-		ipmb.send(message.prepare_reply({completion_code})); \
+		ipmb.send(message.prepareReply({completion_code})); \
 		return; \
 	} while (0)
 
@@ -34,17 +34,17 @@
 
 #define FRU_AREA_SIZE 1024
 
-static void ipmicmd_Get_FRU_Inventory_Area_Info(IPMBSvc &ipmb, const IPMI_MSG &message) {
+static void ipmicmd_Get_FRU_Inventory_Area_Info(IPMBSvc &ipmb, const IPMIMessage &message) {
 	if (message.data_len != 1)
 		RETURN_ERROR(ipmb, message, IPMI::Completion::Invalid_Data_Field_In_Request);
 	if (message.data[0] != 0) // We only support one FRU Device
 		RETURN_ERROR(ipmb, message, IPMI::Completion::Parameter_Out_Of_Range);
 	// We'll claim a perfectly reasonable FRU_AREA_SIZE byte FRU Data Area
-	ipmb.send(message.prepare_reply({IPMI::Completion::Success, (FRU_AREA_SIZE & 0xFF), (FRU_AREA_SIZE >> 8), 0}));
+	ipmb.send(message.prepareReply({IPMI::Completion::Success, (FRU_AREA_SIZE & 0xFF), (FRU_AREA_SIZE >> 8), 0}));
 }
 IPMICMD_INDEX_REGISTER(Get_FRU_Inventory_Area_Info);
 
-static void ipmicmd_Read_FRU_Data(IPMBSvc &ipmb, const IPMI_MSG &message) {
+static void ipmicmd_Read_FRU_Data(IPMBSvc &ipmb, const IPMIMessage &message) {
 	if (message.data_len != 4)
 		RETURN_ERROR(ipmb, message, IPMI::Completion::Invalid_Data_Field_In_Request);
 	if (message.data[0] != 0) // We only support one FRU Device
@@ -52,7 +52,7 @@ static void ipmicmd_Read_FRU_Data(IPMBSvc &ipmb, const IPMI_MSG &message) {
 
 	uint16_t offset = (message.data[2] << 8) | message.data[1];
 	uint8_t read_count = message.data[3];
-	if (1+read_count > IPMI_MSG::max_data_len)
+	if (1+read_count > IPMIMessage::max_data_len)
 		RETURN_ERROR(ipmb, message, IPMI::Completion::Cannot_Return_Requested_Number_Of_Data_Bytes);
 	if (offset >= FRU_AREA_SIZE)
 		RETURN_ERROR(ipmb, message, IPMI::Completion::Cannot_Return_Requested_Number_Of_Data_Bytes);
@@ -66,11 +66,11 @@ static void ipmicmd_Read_FRU_Data(IPMBSvc &ipmb, const IPMI_MSG &message) {
 		reply.push_back(0); // Fill it out with 0s.
 	lock.release();
 	reply[1] = reply.size() - 2;
-	ipmb.send(message.prepare_reply(reply));
+	ipmb.send(message.prepareReply(reply));
 }
 IPMICMD_INDEX_REGISTER(Read_FRU_Data);
 
-static void ipmicmd_Write_FRU_Data(IPMBSvc &ipmb, const IPMI_MSG &message) {
+static void ipmicmd_Write_FRU_Data(IPMBSvc &ipmb, const IPMIMessage &message) {
 	if (message.data_len < 3)
 		RETURN_ERROR(ipmb, message, IPMI::Completion::Invalid_Data_Field_In_Request);
 	if (message.data[0] != 0) // We only support one FRU Device
@@ -90,15 +90,15 @@ static void ipmicmd_Write_FRU_Data(IPMBSvc &ipmb, const IPMI_MSG &message) {
 	}
 	VariablePersistentAllocation(*persistent_storage, PersistentStorageAllocations::WISC_FRU_DATA).setData(fru_data);
 	lock.release();
-	ipmb.send(message.prepare_reply({IPMI::Completion::Success, bytes_written}));
+	ipmb.send(message.prepareReply({IPMI::Completion::Success, bytes_written}));
 }
 IPMICMD_INDEX_REGISTER(Write_FRU_Data);
 
 // SDR Device Commands
 
-static void ipmicmd_Get_SDR_Repository_Info(IPMBSvc &ipmb, const IPMI_MSG &message) {
+static void ipmicmd_Get_SDR_Repository_Info(IPMBSvc &ipmb, const IPMIMessage &message) {
 	time_t last_update = sdr_repo.lastUpdateTimestamp();
-	std::shared_ptr<IPMI_MSG> reply = message.prepare_reply();
+	std::shared_ptr<IPMIMessage> reply = message.prepareReply();
 	reply->data[0] = IPMI::Completion::Success;
 	reply->data[1] = 0x51; // SDR Version (Spec 2.0: 51h)
 	reply->data[2] = sdr_repo.size() & 0xff; // Record Count LSB
@@ -127,20 +127,20 @@ static void ipmicmd_Get_SDR_Repository_Info(IPMBSvc &ipmb, const IPMI_MSG &messa
 IPMICMD_INDEX_REGISTER(Get_SDR_Repository_Info);
 
 #if 0 // Unimplemented.
-static void ipmicmd_Get_SDR_Repository_Allocation_Info(IPMBSvc &ipmb, const IPMI_MSG &message) {
+static void ipmicmd_Get_SDR_Repository_Allocation_Info(IPMBSvc &ipmb, const IPMIMessage &message) {
 	// Unimplemented
 }
 IPMICMD_INDEX_REGISTER(Get_SDR_Repository_Allocation_Info);
 #endif
 
-static void ipmicmd_Reserve_SDR_Repository_Storage(IPMBSvc &ipmb, const IPMI_MSG &message) {
+static void ipmicmd_Reserve_SDR_Repository_Storage(IPMBSvc &ipmb, const IPMIMessage &message) {
 	// Required. PICMG 3.0 REQ 3.353
 	uint16_t reservation = sdr_repo.reserve();
-	ipmb.send(message.prepare_reply({IPMI::Completion::Success, static_cast<uint8_t>(reservation & 0xFF), static_cast<uint8_t>(reservation >> 8)}));
+	ipmb.send(message.prepareReply({IPMI::Completion::Success, static_cast<uint8_t>(reservation & 0xFF), static_cast<uint8_t>(reservation >> 8)}));
 }
 IPMICMD_INDEX_REGISTER(Reserve_SDR_Repository_Storage);
 
-static void ipmicmd_Get_SDR(IPMBSvc &ipmb, const IPMI_MSG &message) {
+static void ipmicmd_Get_SDR(IPMBSvc &ipmb, const IPMIMessage &message) {
 	if (message.data_len != 6)
 		RETURN_ERROR(ipmb, message, IPMI::Completion::Request_Data_Length_Invalid);
 	//uint16_t reservation = (message.data[1] << 8) | message.data[0]; // not used
@@ -167,13 +167,13 @@ static void ipmicmd_Get_SDR(IPMBSvc &ipmb, const IPMI_MSG &message) {
 		limit = sdrdata.size();
 	for (; i < limit; ++i)
 		reply.push_back(sdrdata[i]);
-	if (reply.size() > IPMI_MSG::max_data_len)
+	if (reply.size() > IPMIMessage::max_data_len)
 		RETURN_ERROR(ipmb, message, IPMI::Completion::Cannot_Return_Requested_Number_Of_Data_Bytes);
-	ipmb.send(message.prepare_reply(reply));
+	ipmb.send(message.prepareReply(reply));
 }
 IPMICMD_INDEX_REGISTER(Get_SDR);
 
-static void ipmicmd_Add_SDR(IPMBSvc &ipmb, const IPMI_MSG &message) {
+static void ipmicmd_Add_SDR(IPMBSvc &ipmb, const IPMIMessage &message) {
 	std::vector<uint8_t> sdrdata(message.data, message.data+message.data_len);
 	std::shared_ptr<SensorDataRecord> record = SensorDataRecord::interpret(sdrdata);
 	if (!record) {
@@ -196,11 +196,11 @@ static void ipmicmd_Add_SDR(IPMBSvc &ipmb, const IPMI_MSG &message) {
 		RETURN_ERROR(ipmb, message, IPMI::Completion::Invalid_Data_Field_In_Request);
 	}
 	sdr_repo.add(*record, 0);
-	ipmb.send(message.prepare_reply({IPMI::Completion::Success}));
+	ipmb.send(message.prepareReply({IPMI::Completion::Success}));
 }
 IPMICMD_INDEX_REGISTER(Add_SDR);
 
-static void ipmicmd_Partial_Add_SDR(IPMBSvc &ipmb, const IPMI_MSG &message) {
+static void ipmicmd_Partial_Add_SDR(IPMBSvc &ipmb, const IPMIMessage &message) {
 	if (message.data_len < 7)
 		RETURN_ERROR(ipmb, message, IPMI::Completion::Request_Data_Length_Invalid);
 	uint16_t reservation = (message.data[1] << 8) | message.data[0];
@@ -285,11 +285,11 @@ static void ipmicmd_Partial_Add_SDR(IPMBSvc &ipmb, const IPMI_MSG &message) {
 			RETURN_ERROR(ipmb, message, IPMI::Completion::Reservation_Cancelled);
 		}
 	}
-	ipmb.send(message.prepare_reply({IPMI::Completion::Success, static_cast<uint8_t>(record_id & 0xff), static_cast<uint8_t>(record_id >> 8)}));
+	ipmb.send(message.prepareReply({IPMI::Completion::Success, static_cast<uint8_t>(record_id & 0xff), static_cast<uint8_t>(record_id >> 8)}));
 }
 IPMICMD_INDEX_REGISTER(Partial_Add_SDR);
 
-static void ipmicmd_Delete_SDR(IPMBSvc &ipmb, const IPMI_MSG &message) {
+static void ipmicmd_Delete_SDR(IPMBSvc &ipmb, const IPMIMessage &message) {
 	if (message.data_len != 4)
 		RETURN_ERROR(ipmb, message, IPMI::Completion::Request_Data_Length_Invalid);
 	uint16_t reservation = (message.data[1] << 8) | message.data[0];
@@ -303,11 +303,11 @@ static void ipmicmd_Delete_SDR(IPMBSvc &ipmb, const IPMI_MSG &message) {
 	catch (SensorDataRepository::reservation_cancelled_error) {
 		RETURN_ERROR(ipmb, message, IPMI::Completion::Reservation_Cancelled);
 	}
-	ipmb.send(message.prepare_reply({IPMI::Completion::Success, message.data[2], message.data[3]}));
+	ipmb.send(message.prepareReply({IPMI::Completion::Success, message.data[2], message.data[3]}));
 }
 IPMICMD_INDEX_REGISTER(Delete_SDR);
 
-static void ipmicmd_Clear_SDR_Repository(IPMBSvc &ipmb, const IPMI_MSG &message) {
+static void ipmicmd_Clear_SDR_Repository(IPMBSvc &ipmb, const IPMIMessage &message) {
 	if (message.data_len != 6)
 		RETURN_ERROR(ipmb, message, IPMI::Completion::Request_Data_Length_Invalid);
 	uint16_t reservation = (message.data[1] << 8) | message.data[0];
@@ -322,40 +322,40 @@ static void ipmicmd_Clear_SDR_Repository(IPMBSvc &ipmb, const IPMI_MSG &message)
 	catch (SensorDataRepository::reservation_cancelled_error) {
 		RETURN_ERROR(ipmb, message, IPMI::Completion::Reservation_Cancelled);
 	}
-	ipmb.send(message.prepare_reply({IPMI::Completion::Success}));
+	ipmb.send(message.prepareReply({IPMI::Completion::Success}));
 }
 IPMICMD_INDEX_REGISTER(Clear_SDR_Repository);
 
 #if 0 // Unimplemented.
-static void ipmicmd_Get_SDR_Repository_Time(IPMBSvc &ipmb, const IPMI_MSG &message) {
+static void ipmicmd_Get_SDR_Repository_Time(IPMBSvc &ipmb, const IPMIMessage &message) {
 	// Unimplemented.
 }
 IPMICMD_INDEX_REGISTER(Get_SDR_Repository_Time);
 #endif
 
 #if 0 // Unimplemented.
-static void ipmicmd_Set_SDR_Repository_Time(IPMBSvc &ipmb, const IPMI_MSG &message) {
+static void ipmicmd_Set_SDR_Repository_Time(IPMBSvc &ipmb, const IPMIMessage &message) {
 	// Unimplemented.
 }
 IPMICMD_INDEX_REGISTER(Set_SDR_Repository_Time);
 #endif
 
 #if 0 // Unimplemented.
-static void ipmicmd_Enter_SDR_Repository_Update_Mode(IPMBSvc &ipmb, const IPMI_MSG &message) {
+static void ipmicmd_Enter_SDR_Repository_Update_Mode(IPMBSvc &ipmb, const IPMIMessage &message) {
 	// Unimplemented.
 }
 IPMICMD_INDEX_REGISTER(Enter_SDR_Repository_Update_Mode);
 #endif
 
 #if 0 // Unimplemented.
-static void ipmicmd_Exit_SDR_Repository_Update_Mode(IPMBSvc &ipmb, const IPMI_MSG &message) {
+static void ipmicmd_Exit_SDR_Repository_Update_Mode(IPMBSvc &ipmb, const IPMIMessage &message) {
 	// Unimplemented.
 }
 IPMICMD_INDEX_REGISTER(Exit_SDR_Repository_Update_Mode);
 #endif
 
 #if 0 // Unimplemented.
-static void ipmicmd_Run_Initialization_Agent(IPMBSvc &ipmb, const IPMI_MSG &message) {
+static void ipmicmd_Run_Initialization_Agent(IPMBSvc &ipmb, const IPMIMessage &message) {
 	// Unimplemented.
 }
 IPMICMD_INDEX_REGISTER(Run_Initialization_Agent);
@@ -365,84 +365,84 @@ IPMICMD_INDEX_REGISTER(Run_Initialization_Agent);
 // SEL Device Commands
 
 #if 0 // Unimplemented.
-static void ipmicmd_Get_SEL_Info(IPMBSvc &ipmb, const IPMI_MSG &message) {
+static void ipmicmd_Get_SEL_Info(IPMBSvc &ipmb, const IPMIMessage &message) {
 	// Unimplemented.
 }
 IPMICMD_INDEX_REGISTER(Get_SEL_Info);
 #endif
 
 #if 0 // Unimplemented.
-static void ipmicmd_Get_SEL_Allocation_Info(IPMBSvc &ipmb, const IPMI_MSG &message) {
+static void ipmicmd_Get_SEL_Allocation_Info(IPMBSvc &ipmb, const IPMIMessage &message) {
 	// Unimplemented.
 }
 IPMICMD_INDEX_REGISTER(Get_SEL_Allocation_Info);
 #endif
 
 #if 0 // Unimplemented.
-static void ipmicmd_Reserve_SEL(IPMBSvc &ipmb, const IPMI_MSG &message) {
+static void ipmicmd_Reserve_SEL(IPMBSvc &ipmb, const IPMIMessage &message) {
 	// Unimplemented.
 }
 IPMICMD_INDEX_REGISTER(Reserve_SEL);
 #endif
 
 #if 0 // Unimplemented.
-static void ipmicmd_Get_SEL_Entry(IPMBSvc &ipmb, const IPMI_MSG &message) {
+static void ipmicmd_Get_SEL_Entry(IPMBSvc &ipmb, const IPMIMessage &message) {
 	// Unimplemented.
 }
 IPMICMD_INDEX_REGISTER(Get_SEL_Entry);
 #endif
 
 #if 0 // Unimplemented.
-static void ipmicmd_Add_SEL_Entry(IPMBSvc &ipmb, const IPMI_MSG &message) {
+static void ipmicmd_Add_SEL_Entry(IPMBSvc &ipmb, const IPMIMessage &message) {
 	// Unimplemented.
 }
 IPMICMD_INDEX_REGISTER(Add_SEL_Entry);
 #endif
 
 #if 0 // Unimplemented.
-static void ipmicmd_Partial_Add_SEL_Entry(IPMBSvc &ipmb, const IPMI_MSG &message) {
+static void ipmicmd_Partial_Add_SEL_Entry(IPMBSvc &ipmb, const IPMIMessage &message) {
 	// Unimplemented.
 }
 IPMICMD_INDEX_REGISTER(Partial_Add_SEL_Entry);
 #endif
 
 #if 0 // Unimplemented.
-static void ipmicmd_Delete_SEL_Entry(IPMBSvc &ipmb, const IPMI_MSG &message) {
+static void ipmicmd_Delete_SEL_Entry(IPMBSvc &ipmb, const IPMIMessage &message) {
 	// Unimplemented.
 }
 IPMICMD_INDEX_REGISTER(Delete_SEL_Entry);
 #endif
 
 #if 0 // Unimplemented.
-static void ipmicmd_Clear_SEL(IPMBSvc &ipmb, const IPMI_MSG &message) {
+static void ipmicmd_Clear_SEL(IPMBSvc &ipmb, const IPMIMessage &message) {
 	// Unimplemented.
 }
 IPMICMD_INDEX_REGISTER(Clear_SEL);
 #endif
 
 #if 0 // Unimplemented.
-static void ipmicmd_Get_SEL_Time(IPMBSvc &ipmb, const IPMI_MSG &message) {
+static void ipmicmd_Get_SEL_Time(IPMBSvc &ipmb, const IPMIMessage &message) {
 	// Unimplemented.
 }
 IPMICMD_INDEX_REGISTER(Get_SEL_Time);
 #endif
 
 #if 0 // Unimplemented.
-static void ipmicmd_Set_SEL_Time(IPMBSvc &ipmb, const IPMI_MSG &message) {
+static void ipmicmd_Set_SEL_Time(IPMBSvc &ipmb, const IPMIMessage &message) {
 	// Unimplemented.
 }
 IPMICMD_INDEX_REGISTER(Set_SEL_Time);
 #endif
 
 #if 0 // Unimplemented.
-static void ipmicmd_Get_Auxiliary_Log_Status(IPMBSvc &ipmb, const IPMI_MSG &message) {
+static void ipmicmd_Get_Auxiliary_Log_Status(IPMBSvc &ipmb, const IPMIMessage &message) {
 	// Unimplemented.
 }
 IPMICMD_INDEX_REGISTER(Get_Auxiliary_Log_Status);
 #endif
 
 #if 0 // Unimplemented.
-static void ipmicmd_Set_Auxiliary_Log_Status(IPMBSvc &ipmb, const IPMI_MSG &message) {
+static void ipmicmd_Set_Auxiliary_Log_Status(IPMBSvc &ipmb, const IPMIMessage &message) {
 	// Unimplemented.
 }
 IPMICMD_INDEX_REGISTER(Set_Auxiliary_Log_Status);

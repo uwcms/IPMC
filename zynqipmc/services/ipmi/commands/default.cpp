@@ -19,9 +19,9 @@
 
 #include <libs/printf.h>
 #include <services/ipmi/ipmbsvc/ipmbsvc.h>
-#include <services/ipmi/IPMI.h>
+#include <services/ipmi/ipmi.h>
 
-void ipmicmd_default(IPMBSvc &ipmb, const IPMI_MSG &message) {
+void ipmicmd_default(IPMBSvc &ipmb, const IPMIMessage &message) {
 	LogTree &logtree = ipmb.logroot["unknown_commands"];
 
 	u16 cmd = (message.netFn<<8) | message.cmd;
@@ -32,5 +32,5 @@ void ipmicmd_default(IPMBSvc &ipmb, const IPMI_MSG &message) {
 		logtree.log(stdsprintf("Unimplemented and unknown IPMI command received: %s", message.format().c_str()), LogTree::LOG_NOTICE);
 	}
 
-	ipmb.send(message.prepare_reply({IPMI::Completion::Invalid_Command}));
+	ipmb.send(message.prepareReply({IPMI::Completion::Invalid_Command}));
 }

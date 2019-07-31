@@ -32,8 +32,8 @@
 #include <libs/threading.h>
 #include <services/console/command_parser.h>
 #include <services/ipmi/ipmbsvc/ipmi_command_parser.h>
-#include <services/ipmi/IPMI_MSG.h>
-#include <services/ipmi/IPMI.h>
+#include <services/ipmi/ipmi.h>
+#include <services/ipmi/ipmi_message.h>
 
 /**
  * An IPMBSvc driver.
@@ -61,26 +61,26 @@ public:
 	 * \note This will not be called for outgoing response messages except in
 	 *       the case of inability to transmit.
 	 *
-	 * \param original The original IPMI_MSG transmitted.
-	 * \param response The response IPMI_MSG received, or nullptr if delivery aborted.
+	 * \param original The original IPMIMessage transmitted.
+	 * \param response The response IPMIMessage received, or nullptr if delivery aborted.
 	 */
-	typedef std::function<void(std::shared_ptr<IPMI_MSG> original, std::shared_ptr<IPMI_MSG> response)> response_cb_t;
+	typedef std::function<void(std::shared_ptr<IPMIMessage> original, std::shared_ptr<IPMIMessage> response)> response_cb_t;
 
 	/**
-	 * Enqueue an outgoing IPMI_MSG.
+	 * Enqueue an outgoing IPMIMessage.
 	 *
 	 * @note This will update the sequence number on any request (not response) message.
 	 *
-	 * @param msg  A shared_ptr<IPMI_MSG> to enqueue.
+	 * @param msg  A shared_ptr<IPMIMessage> to enqueue.
 	 * @param response_cb  A response callback to be called when a response is
 	 *                     received, or on error.  It is never called for a
 	 *                     "successful" response message delivery, as these are not
 	 *                     ACK'd in IPMI.
 	 */
-	void send(std::shared_ptr<IPMI_MSG> msg, response_cb_t response_cb = nullptr);
+	void send(std::shared_ptr<IPMIMessage> msg, response_cb_t response_cb = nullptr);
 
 	/**
-	 * Enqueue an outgoing IPMI_MSG.
+	 * Enqueue an outgoing IPMIMessage.
 	 *
 	 * @note This will update the sequence number on any request (not response) message.
 	 *
@@ -92,7 +92,7 @@ public:
 	 *         as there is no acknowledgment mechanism for response messages, so
 	 *         there is nothing to block for.
 	 */
-	std::shared_ptr<IPMI_MSG> sendSync(std::shared_ptr<IPMI_MSG> msg);
+	std::shared_ptr<IPMIMessage> sendSync(std::shared_ptr<IPMIMessage> msg);
 
 	//! Returns the IPMB address.
 	inline uint8_t getIPMBAddress() { return this->kIPMBAddress; };
@@ -124,11 +124,11 @@ private:
 	 */
 	class IPMB_MsgRec {
 	public:
-		std::shared_ptr<IPMI_MSG> msg; ///< The message.
+		std::shared_ptr<IPMIMessage> msg; ///< The message.
 		response_cb_t response_cb;     ///< The response callback, used to report error or success.
 		uint8_t retry_count;           ///< The current retry count.
 		AbsoluteTimeout next_retry;    ///< The timeout for the next retry.
-		IPMB_MsgRec(std::shared_ptr<IPMI_MSG> &msg, response_cb_t response_cb = nullptr) : msg(msg), response_cb(response_cb), retry_count(0), next_retry(0ul) { };
+		IPMB_MsgRec(std::shared_ptr<IPMIMessage> &msg, response_cb_t response_cb = nullptr) : msg(msg), response_cb(response_cb), retry_count(0), next_retry(0ul) { };
 	};
 
 	const uint8_t kIPMBAddress;				///< The IPMB address of this node.
@@ -179,10 +179,10 @@ private:
 	/**
 	 * This function will assign an available sequence number to an outgoing IPMI message.
 	 *
-	 * @param msg The IPMI_MSG to update the sequence number of.
+	 * @param msg The IPMIMessage to update the sequence number of.
 	 * @return true if success, else false if no valid sequence number was available.
 	 */
-	bool setSequence(IPMI_MSG &msg);
+	bool setSequence(IPMIMessage &msg);
 
 	/**
 	 * A record of incoming sequence numbers for commands.
@@ -201,10 +201,10 @@ private:
 	/**
 	 * This function will determine whether an incoming IPMI message is a duplicate.
 	 *
-	 * @param msg The IPMI_MSG to check the sequence number of
+	 * @param msg The IPMIMessage to check the sequence number of
 	 * @return true if duplicate, else false
 	 */
-	bool checkDuplicate(const IPMI_MSG &msg);
+	bool checkDuplicate(const IPMIMessage &msg);
 
 	void runThread(); ///< \protected Run the IPMBSvc thread code.
 };

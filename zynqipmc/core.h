@@ -24,7 +24,6 @@
 #include <drivers/spi_eeprom/spi_eeprom.h>
 #include <drivers/watchdog/ps_wdt.h>
 #include <services/ipmi/ipmbsvc/ipmbsvc.h>
-#include <services/ipmi/MStateMachine.h>
 #include <services/persistentstorage/persistent_storage.h>
 #include <drivers/tracebuffer/tracebuffer.h>
 #include <libs/logtree/logtree.h>
@@ -32,6 +31,7 @@
 
 #include <services/ipmi/sdr/sensor_data_repository.h>
 #include <services/ipmi/ipmi_led/ipmi_led.h>
+#include <services/ipmi/m_state_machine.h>
 #include <services/ipmi/sensor/sensor_set.h>
 
 //! ZYNQ-IPMC framework default priorities.

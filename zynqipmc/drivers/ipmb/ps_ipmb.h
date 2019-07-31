@@ -31,7 +31,7 @@
 #include <libs/statcounter/statcounter.h>
 #include <drivers/generics/ipmb.h>
 #include <drivers/interrupt_based_driver.h>
-#include <services/ipmi/IPMI_MSG.h>
+#include <services/ipmi/ipmi_message.h>
 #include <services/ipmi/ipmbsvc/ipmbsvc.h>
 
 /**
@@ -50,7 +50,7 @@ public:
 	PSIPMB(uint16_t device_id, uint16_t intr_id, uint8_t addr);
 	virtual ~PSIPMB();
 
-	virtual bool sendMessage(IPMI_MSG &msg, uint32_t retry = 0);
+	virtual bool sendMessage(IPMIMessage &msg, uint32_t retry = 0);
 
 protected:
 	static const int i2c_bufsize = 40;	///< Buffer size for I2C interactions. (Must be 1 greater than needed.)

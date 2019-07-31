@@ -20,7 +20,7 @@
 
 #include <FreeRTOS.h>
 #include <semphr.h>
-#include <services/ipmi/IPMI_MSG.h>
+#include <services/ipmi/ipmi_message.h>
 #include <functional>
 #include <map>
 
@@ -37,9 +37,9 @@ public:
 	 * dispatched through this parser.
 	 *
 	 * @param ipmb The IPMB this command came in through.
-	 * @param message The IPMI_MSG received.
+	 * @param message The IPMIMessage received.
 	 */
-	typedef std::function<void(IPMBSvc &ipmb, const IPMI_MSG &message)> ipmi_cmd_handler_t;
+	typedef std::function<void(IPMBSvc &ipmb, const IPMIMessage &message)> ipmi_cmd_handler_t;
 
 	/**
 	 * Instantiate an IPMI command parser.
@@ -62,9 +62,9 @@ public:
 	 * Parse an IPMI command and dispatch it to the appropriate handler.
 	 *
 	 * @param ipmb The IPMB this command came in through.
-	 * @param message The IPMI_MSG received.
+	 * @param message The IPMIMessage received.
 	 */
-	void dispatch(IPMBSvc &ipmb, const IPMI_MSG &message);
+	void dispatch(IPMBSvc &ipmb, const IPMIMessage &message);
 
 protected:
 	SemaphoreHandle_t mutex; ///< A mutex protecting the mapping.

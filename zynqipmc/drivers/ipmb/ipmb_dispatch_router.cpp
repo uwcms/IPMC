@@ -31,7 +31,7 @@ void IPMBDispatchRouter::setIncomingMessageQueue(QueueHandle_t incoming_message_
 		this->default_route->setIncomingMessageQueue(incoming_message_queue);
 }
 
-bool IPMBDispatchRouter::sendMessage(IPMI_MSG &msg, uint32_t retry) {
+bool IPMBDispatchRouter::sendMessage(IPMIMessage &msg, uint32_t retry) {
 	// If the target is in our tables, dispatch to it.
 	if (this->routing_table.count(msg.rsSA)) {
 		if (this->log)

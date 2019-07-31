@@ -47,11 +47,11 @@ public:
 	 * disabled, it will not be used and all messages will be directed to the other.
 	 * If both IPMBs are disabled, this will return false immediately.
 	 *
-	 * @param msg   The IPMI_MSG to deliver.
+	 * @param msg   The IPMIMessage to deliver.
 	 * @param retry The retry count for this message.
 	 * @return      true if message was delivered else false.
 	 */
-	virtual bool sendMessage(IPMI_MSG &msg, uint32_t retry = 0);
+	virtual bool sendMessage(IPMIMessage &msg, uint32_t retry = 0);
 
 private:
 	IPMB *ipmb[2];        ///< The IPMBs bonded into this configuration.

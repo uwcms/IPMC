@@ -15,9 +15,9 @@
  * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <services/ipmi/IPMIFormats.h>
 #include <iterator>
 #include <libs/printf.h>
+#include <services/ipmi/ipmi_formats.h>
 #include <services/ipmi/sdr/sensor_data_record_sensor.h>
 
 std::vector<uint8_t> SensorDataRecordSensor::recordKey() const {
@@ -33,7 +33,7 @@ void SensorDataRecordSensor::validate() const {
 		throw invalid_sdr_error("Truncated SDR");
 	}
 
-	unsigned idlen = ipmi_type_length_field_get_length(std::vector<uint8_t>(std::next(this->sdr_data.begin(), this->getIdStringOffset()), this->sdr_data.end()));
+	unsigned idlen = getIpmiTypeLengthFieldLength(std::vector<uint8_t>(std::next(this->sdr_data.begin(), this->getIdStringOffset()), this->sdr_data.end()));
 
 	if (idlen > 17) { // IDString TypeLengthCode (= 1) + IDString Bytes (<= 16)
 		throw invalid_sdr_error("Invalid ID string");
@@ -90,7 +90,7 @@ SDR_FIELD(entity_instance, uint8_t, 9, 6, 0, )
 std::string SensorDataRecordSensor::id_string() const {
 	this->validate();
 
-	return render_ipmi_type_length_field(std::vector<uint8_t>(std::next(this->sdr_data.begin(), this->getIdStringOffset()), this->sdr_data.end()));
+	return renderIpmiTypeLengthField(std::vector<uint8_t>(std::next(this->sdr_data.begin(), this->getIdStringOffset()), this->sdr_data.end()));
 }
 
 void SensorDataRecordSensor::id_string(std::string val) {
@@ -124,5 +124,5 @@ std::vector<uint8_t> SensorDataRecordSensor::u8export(uint8_t self_ipmb_addr, ui
 }
 
 uint8_t SensorDataRecordSensor::getExtendedDataOffset() const {
-	return this->getIdStringOffset() + ipmi_type_length_field_get_length(std::vector<uint8_t>(std::next(this->sdr_data.begin(), this->getIdStringOffset()), this->sdr_data.end()));
+	return this->getIdStringOffset() + getIpmiTypeLengthFieldLength(std::vector<uint8_t>(std::next(this->sdr_data.begin(), this->getIdStringOffset()), this->sdr_data.end()));
 }

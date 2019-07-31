@@ -16,7 +16,7 @@
  */
 
 #include <libs/threading.h>
-#include <services/ipmi/IPMI_MSG.h> // for ipmi_checksum()
+#include <services/ipmi/ipmi_message.h> // for IPMIMessage::checksum()
 #include <services/ipmi/sdr/sensor_data_repository.h>
 
 SensorDataRepository::SensorDataRepository()
@@ -198,7 +198,7 @@ std::vector<uint8_t> SensorDataRepository::u8export() const {
 		output.insert(output.end(), record.sdr_data.begin(), record.sdr_data.end());
 	}
 
-	output.insert(output.begin(), ipmi_checksum(output));
+	output.insert(output.begin(), IPMIMessage::checksum(output));
 	return output;
 }
 
@@ -207,7 +207,7 @@ bool SensorDataRepository::u8import(const std::vector<uint8_t> &data, reservatio
 	this->assertReservation(reservation);
 
 	if (data.size() < 2) return false; // No data here.
-	if (ipmi_checksum(data)) return false; // Invalid checksum.
+	if (IPMIMessage::checksum(data)) return false; // Invalid checksum.
 
 	// Retrieve Update Timestamp
 	if (data.size() < 1+sizeof(time_t)) return false;
