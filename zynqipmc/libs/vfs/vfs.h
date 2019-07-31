@@ -15,8 +15,8 @@
  * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef SRC_COMMON_UW_IPMC_LIBS_VFS_H_
-#define SRC_COMMON_UW_IPMC_LIBS_VFS_H_
+#ifndef SRC_COMMON_ZYNQIPMC_LIBS_VFS_H_
+#define SRC_COMMON_ZYNQIPMC_LIBS_VFS_H_
 
 #include <libs/utils.h>
 #include <functional>
@@ -105,4 +105,4 @@ private:
 	static VFS::File::DirectoryContents files;	///< Virtual file root directory.
 };
 
-#endif /* SRC_COMMON_UW_IPMC_LIBS_VFS_H_ */
+#endif /* SRC_COMMON_ZYNQIPMC_LIBS_VFS_H_ */

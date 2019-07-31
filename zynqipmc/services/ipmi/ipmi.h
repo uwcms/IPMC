@@ -15,8 +15,8 @@
  * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef SRC_COMMON_UW_IPMC_SERVICES_IPMI_IPMI_H_
-#define SRC_COMMON_UW_IPMC_SERVICES_IPMI_IPMI_H_
+#ifndef SRC_COMMON_ZYNQIPMC_SERVICES_IPMI_IPMI_H_
+#define SRC_COMMON_ZYNQIPMC_SERVICES_IPMI_IPMI_H_
 
 #include <xil_types.h>
 #include <map>
@@ -422,4 +422,4 @@ namespace IPMI {
 	using namespace CMS;
 }
 
-#endif /* SRC_COMMON_UW_IPMC_SERVICES_IPMI_IPMI_H_ */
+#endif /* SRC_COMMON_ZYNQIPMC_SERVICES_IPMI_IPMI_H_ */

@@ -15,8 +15,8 @@
  * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef SRC_COMMON_UW_IPMC_SERVICES_INFLUXDB_INFLUXDB_H_
-#define SRC_COMMON_UW_IPMC_SERVICES_INFLUXDB_INFLUXDB_H_
+#ifndef SRC_COMMON_ZYNQIPMC_SERVICES_INFLUXDB_INFLUXDB_H_
+#define SRC_COMMON_ZYNQIPMC_SERVICES_INFLUXDB_INFLUXDB_H_
 
 #include <string>
 #include <FreeRTOS.h>
@@ -126,4 +126,4 @@ private:
 	bool push(const MetricSet& metrics);
 };
 
-#endif /* SRC_COMMON_UW_IPMC_SERVICES_INFLUXDB_INFLUXDB_H_ */
+#endif /* SRC_COMMON_ZYNQIPMC_SERVICES_INFLUXDB_INFLUXDB_H_ */

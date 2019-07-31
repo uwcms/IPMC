@@ -208,7 +208,7 @@ void PSIPMB::_VariableLengthSlaveInterruptHandler()
 	/*
 	 * Determine whether the device is sending.
 	 */
-	if (this->iic.RecvBufferPtr == NULL) {
+	if (this->iic.RecvBufferPtr == nullptr) {
 		IsSend = 1U;
 	}
 

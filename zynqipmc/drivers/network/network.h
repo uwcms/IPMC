@@ -15,8 +15,8 @@
  * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef SRC_COMMON_UW_IPMC_DRIVERS_NETWORK_NETWORK_H_
-#define SRC_COMMON_UW_IPMC_DRIVERS_NETWORK_NETWORK_H_
+#ifndef SRC_COMMON_ZYNQIPMC_DRIVERS_NETWORK_NETWORK_H_
+#define SRC_COMMON_ZYNQIPMC_DRIVERS_NETWORK_NETWORK_H_
 
 #include <string>
 #include <lwip/netif.h>
@@ -95,4 +95,4 @@ private:
 };
 
 
-#endif /* SRC_COMMON_UW_IPMC_DRIVERS_NETWORK_NETWORK_H_ */
+#endif /* SRC_COMMON_ZYNQIPMC_DRIVERS_NETWORK_NETWORK_H_ */

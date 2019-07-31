@@ -98,4 +98,4 @@ private:
 	bool connected;	///< true if interrupt is connected.
 };
 
-#endif /* SRC_COMMON_UW_IPMC_DRIVERS_INTERRUPTBASEDDRIVER_H_ */
+#endif /* SRC_COMMON_ZYNQIPMC_DRIVERS_INTERRUPTBASEDDRIVER_H_ */

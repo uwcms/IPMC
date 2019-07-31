@@ -5,8 +5,8 @@
  *      Author: mpv
  */
 
-#ifndef SRC_COMMON_UW_IPMC_LIBS_SENSORSOURCE_H_
-#define SRC_COMMON_UW_IPMC_LIBS_SENSORSOURCE_H_
+#ifndef SRC_COMMON_ZYNQIPMC_LIBS_SENSORSOURCE_H_
+#define SRC_COMMON_ZYNQIPMC_LIBS_SENSORSOURCE_H_
 
 // TODO: Not being used, can be removed later on
 
@@ -57,4 +57,4 @@ private:
 	uint32_t tickInterval;
 };
 
-#endif /* SRC_COMMON_UW_IPMC_LIBS_SENSORSOURCE_H_ */
+#endif /* SRC_COMMON_ZYNQIPMC_LIBS_SENSORSOURCE_H_ */

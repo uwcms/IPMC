@@ -15,8 +15,8 @@
  * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef SRC_COMMON_UW_IPMC_DRIVERS_SPI_EEPROM_SPIEEPROM_H_
-#define SRC_COMMON_UW_IPMC_DRIVERS_SPI_EEPROM_SPIEEPROM_H_
+#ifndef SRC_COMMON_ZYNQIPMC_DRIVERS_SPI_EEPROM_SPIEEPROM_H_
+#define SRC_COMMON_ZYNQIPMC_DRIVERS_SPI_EEPROM_SPIEEPROM_H_
 
 #include <FreeRTOS.h>
 #include <semphr.h>
@@ -51,4 +51,4 @@ protected:
 	size_t chip_select;			///< The chip select for this EEPROM.
 };
 
-#endif /* SRC_COMMON_UW_IPMC_DRIVERS_SPI_EEPROM_SPIEEPROM_H_ */
+#endif /* SRC_COMMON_ZYNQIPMC_DRIVERS_SPI_EEPROM_SPIEEPROM_H_ */

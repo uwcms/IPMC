@@ -15,8 +15,8 @@
  * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef SRC_COMMON_UW_IPMC_DRIVERS_PLI2C_PLI2C_H_
-#define SRC_COMMON_UW_IPMC_DRIVERS_PLI2C_PLI2C_H_
+#ifndef SRC_COMMON_ZYNQIPMC_DRIVERS_PLI2C_PLI2C_H_
+#define SRC_COMMON_ZYNQIPMC_DRIVERS_PLI2C_PLI2C_H_
 
 // Only include driver if PL IIC is detected in the BSP.
 #if XSDK_INDEXING || __has_include("xiic.h")
@@ -60,4 +60,4 @@ private:
 
 #endif
 
-#endif /* SRC_COMMON_UW_IPMC_DRIVERS_PLI2C_PLI2C_H_ */
+#endif /* SRC_COMMON_ZYNQIPMC_DRIVERS_PLI2C_PLI2C_H_ */
