@@ -57,7 +57,7 @@ public:
 	public:
 		Send(I2C &i2c) : i2c(i2c) {};
 
-		virtual std::string get_helptext(const std::string &command) const {
+		virtual std::string getHelpText(const std::string &command) const {
 			return command + " $slave_addr [$byte1 $byte2 ..]\n\n"
 					"Send bytes to connected I2C slave. Byte declaration is optional.\n";
 		}
@@ -114,7 +114,7 @@ public:
 	public:
 		Recv(I2C &i2c) : i2c(i2c) {};
 
-		virtual std::string get_helptext(const std::string &command) const {
+		virtual std::string getHelpText(const std::string &command) const {
 			return command + " $slave_addr $byte_count\n\n"
 					"Receive bytes from connected I2C slave. $byte_count is the number of bytes to read.\n";
 		}

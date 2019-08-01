@@ -162,7 +162,7 @@ public:
 		 * @param command The registered command name.
 		 * @return Help text for the command.
 		 */
-		virtual std::string getHelpText(const std::string &command) const { configASSERT(0); return ""; };
+		virtual std::string getHelpText(const std::string &command) const = 0;
 
 		/**
 		 * Execute the command.
@@ -172,7 +172,7 @@ public:
 		 * @param console The calling console.  Use its safe_write() for stdout.
 		 * @param parameters The parameters for this command execution.
 		 */
-		virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParameters &parameters) = 0;//{ configASSERT(0); };
+		virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParameters &parameters) = 0;
 
 		/**
 		 * Provide completion options for the specified parameter (using .cursor_*).

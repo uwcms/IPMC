@@ -20,7 +20,7 @@ namespace CoreCommands {
 /// A "set_serial" console command.
 class SetSerialCommand : public CommandParser::Command {
 public:
-	virtual std::string get_helptext(const std::string &command) const {
+	virtual std::string getHelpText(const std::string &command) const {
 		return command + " $serial\n\n"
 				"Set the IPMC serial number.\n"
 				"NOTE: This cannot be changed once set!\n";

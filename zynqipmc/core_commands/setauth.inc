@@ -20,7 +20,7 @@ namespace CoreCommands {
 /// A "setauth" console command.
 class SetAuthCommand : public CommandParser::Command {
 public:
-	virtual std::string get_helptext(const std::string &command) const {
+	virtual std::string getHelpText(const std::string &command) const {
 		return command + " $username $password\n\n"
 				"Change network access username and password.\n";
 	}

@@ -63,7 +63,7 @@ public:
 	public:
 		Transfer(SPIMaster &spi) : spi(spi) {};
 
-		virtual std::string get_helptext(const std::string &command) const {
+		virtual std::string getHelpText(const std::string &command) const {
 			return command + " $byte_count [$byte1 $byte2 ..]\n\n"
 					"Low level QSPI/SPI data transfer. Byte declaration is optional.\n";
 		}

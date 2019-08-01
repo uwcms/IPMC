@@ -164,7 +164,7 @@ class ESM::Command : public CommandParser::Command {
 public:
 	Command(ESM &esm) : esm(esm) { };
 
-	virtual std::string get_helptext(const std::string &command) const {
+	virtual std::string getHelpText(const std::string &command) const {
 		return command + "\n\n"
 				"Send a command to the ESM and see its output. Use ? to see possible commands.\n";
 	}
@@ -200,7 +200,7 @@ class ESM::Restart : public CommandParser::Command {
 public:
 	Restart(ESM &esm) : esm(esm) { };
 
-	virtual std::string get_helptext(const std::string &command) const {
+	virtual std::string getHelpText(const std::string &command) const {
 		return command + "\n\n"
 				"Restart the ESM module. Network interface will go down while restart is in progress.\n";
 	}
@@ -218,7 +218,7 @@ class ESM::FlashInfo : public CommandParser::Command {
 public:
 	FlashInfo(ESM &esm) : esm(esm) { };
 
-	virtual std::string get_helptext(const std::string &command) const {
+	virtual std::string getHelpText(const std::string &command) const {
 		return command + "\n\n"
 				"Show information about the ESM flash. Network will go down if it is the first time accessing the flash.\n";
 	}

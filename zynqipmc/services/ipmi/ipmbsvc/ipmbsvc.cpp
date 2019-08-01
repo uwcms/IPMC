@@ -359,7 +359,7 @@ class IPMBSvc::SendMsgCommand : public CommandParser::Command {
 public:
 	SendMsgCommand(IPMBSvc &ipmb) : ipmb(ipmb) { };
 
-	virtual std::string get_helptext(const std::string &command) const {
+	virtual std::string getHelpText(const std::string &command) const {
 		return command + " $targetaddr $netfn $cmd_hex [$data ...]\n" +
 				command + " $targetaddr $cmd_name [$data ...]\n\n"
 				"Send an IPMI command on this IPMB.\n"
@@ -448,7 +448,7 @@ class IPMBSvc::EnumerateFruStoragesCommand : public CommandParser::Command {
 public:
 	EnumerateFruStoragesCommand(IPMBSvc &ipmb) : ipmb(ipmb) { };
 
-	virtual std::string get_helptext(const std::string &command) const {
+	virtual std::string getHelpText(const std::string &command) const {
 		return command + " $targetaddr\n\n"
 				"Enumerate all FRU storage devices on a specified device.\n";
 	}
@@ -511,7 +511,7 @@ class IPMBSvc::DumpFruStorageCommand : public CommandParser::Command {
 public:
 	DumpFruStorageCommand(IPMBSvc &ipmb) : ipmb(ipmb) { };
 
-	virtual std::string get_helptext(const std::string &command) const {
+	virtual std::string getHelpText(const std::string &command) const {
 		return command + " $targetaddr $fru_storage_id\n\n"
 				"Dump the contents of the specified FRU storage device.\n";
 	}
@@ -698,7 +698,7 @@ class IPMBSvc::StatusCommand : public CommandParser::Command {
 public:
 	StatusCommand(IPMBSvc &ipmb) : ipmb(ipmb) { };
 
-	virtual std::string get_helptext(const std::string &command) const {
+	virtual std::string getHelpText(const std::string &command) const {
 		return command + "\n\n"
 				"Get the IPMBSvc status.\n";
 	}

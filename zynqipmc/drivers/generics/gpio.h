@@ -86,7 +86,7 @@ public:
 	public:
 		Direction(GPIO &gpio) : gpio(gpio) {};
 
-		virtual std::string get_helptext(const std::string &command) const {
+		virtual std::string getHelpText(const std::string &command) const {
 			return command + " [$new_value]\n\n"
 					"Retrieve or set the direction bit array of GPIO module. Bits set as 0 are inputs, outputs are set as 1.\n";
 		}
@@ -115,7 +115,7 @@ public:
 	public:
 		Read(GPIO &gpio) : gpio(gpio) {};
 
-		virtual std::string get_helptext(const std::string &command) const {
+		virtual std::string getHelpText(const std::string &command) const {
 			return command + "\n\n"
 					"Reads the current value of the GPIO module input pins.\n";
 		}
@@ -134,7 +134,7 @@ public:
 	public:
 		Write(GPIO &gpio) : gpio(gpio) {};
 
-		virtual std::string get_helptext(const std::string &command) const {
+		virtual std::string getHelpText(const std::string &command) const {
 			return command + " $new_value\n\n"
 					"Set the output value of pins set as outputs\n";
 		}

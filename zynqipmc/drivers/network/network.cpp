@@ -167,7 +167,7 @@ class Network::Status : public CommandParser::Command {
 public:
 	Status(Network &network) : network(network) { };
 
-	virtual std::string get_helptext(const std::string &command) const {
+	virtual std::string getHelpText(const std::string &command) const {
 		return command + "\n\n"
 				"Shows network status and statistics.\n";
 	}

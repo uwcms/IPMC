@@ -505,7 +505,7 @@ class PersistentStorage::ListSectionsCommand : public CommandParser::Command {
 public:
 	ListSectionsCommand(PersistentStorage &storage) : storage(storage) { };
 
-	virtual std::string get_helptext(const std::string &command) const {
+	virtual std::string getHelpText(const std::string &command) const {
 		return command + "\n\n"
 				"Lists all persistent storage sections.\n";
 	}
@@ -531,7 +531,7 @@ class PersistentStorage::ReadCommand : public CommandParser::Command {
 public:
 	ReadCommand(PersistentStorage &storage) : storage(storage) { };
 
-	virtual std::string get_helptext(const std::string &command) const {
+	virtual std::string getHelpText(const std::string &command) const {
 		return command + " $section $start $length\n\n"
 				"Read from a given section.\n";
 	}
@@ -597,7 +597,7 @@ class PersistentStorage::WriteCommand : public CommandParser::Command {
 public:
 	WriteCommand(PersistentStorage &storage) : storage(storage) { };
 
-	virtual std::string get_helptext(const std::string &command) const {
+	virtual std::string getHelpText(const std::string &command) const {
 		return command + " $section $start $byte [...]\n\n"
 				"Write to a given section.\n";
 	}
@@ -678,7 +678,7 @@ class PersistentStorage::SetSectionVersionCommand : public CommandParser::Comman
 public:
 	SetSectionVersionCommand(PersistentStorage &storage) : storage(storage) { };
 
-	virtual std::string get_helptext(const std::string &command) const {
+	virtual std::string getHelpText(const std::string &command) const {
 		return command + " $section $version [$size]\n\n"
 				"Sets the version number of a given section, automatically creating it if a size is specified.\n";
 	}
@@ -744,7 +744,7 @@ class PersistentStorage::DeleteSectionCommand : public CommandParser::Command {
 public:
 	DeleteSectionCommand(PersistentStorage &storage) : storage(storage) { };
 
-	virtual std::string get_helptext(const std::string &command) const {
+	virtual std::string getHelpText(const std::string &command) const {
 		return command + " $section\n\n"
 				"Deletes a given storage section.\n"
 				"\n"

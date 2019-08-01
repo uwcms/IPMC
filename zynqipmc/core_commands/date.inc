@@ -20,7 +20,7 @@ namespace CoreCommands {
 /// A "date" console command.
 class DateCommand : public CommandParser::Command {
 public:
-	virtual std::string get_helptext(const std::string &command) const {
+	virtual std::string getHelpText(const std::string &command) const {
 		return command + "\n\n"
 				"Print the current system time. Updated by SNTP and kept by FreeRTOS.\n";
 	}

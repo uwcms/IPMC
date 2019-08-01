@@ -470,7 +470,7 @@ class PayloadManager::PowerLevelCommand : public CommandParser::Command {
 public:
 	PowerLevelCommand(PayloadManager &payloadmgr) : payloadmgr(payloadmgr) { };
 
-	virtual std::string get_helptext(const std::string &command) const {
+	virtual std::string getHelpText(const std::string &command) const {
 		return command + " [$new_power_level [$force]]\n"
 				"  $new_power_level corresponds to an IPMI payload power level:\n"
 				"    0 = off\n"
@@ -535,7 +535,7 @@ class PayloadManager::MzControlCommand : public CommandParser::Command {
 public:
 	MzControlCommand(PayloadManager &payloadmgr) : payloadmgr(payloadmgr) { };
 
-	virtual std::string get_helptext(const std::string &command) const {
+	virtual std::string getHelpText(const std::string &command) const {
 		return command + " [$mz_number [$on_off]]\n\n"
 				"This command changes our MZ enables without affecting or overriding IPMI state.\n"
 				"\n"
@@ -600,7 +600,7 @@ private:
 /// A sensor readout command
 class PayloadManager::ReadIPMISensorsCommand : public CommandParser::Command {
 public:
-	virtual std::string get_helptext(const std::string &command) const {
+	virtual std::string getHelpText(const std::string &command) const {
 		return command + "\n\n"
 				"Read out the status of all IPMI sensors\n";
 	}
@@ -687,7 +687,7 @@ public:
 /// A sensor readout command
 class PayloadManager::GetSensorEventEnablesCommand : public CommandParser::Command {
 public:
-	virtual std::string get_helptext(const std::string &command) const {
+	virtual std::string getHelpText(const std::string &command) const {
 		return command + " $sensor_number\n\n"
 				"Retrieve a sensor's event enable & event supported status.\n";
 	}
@@ -731,7 +731,7 @@ class PayloadManager::SetSensorEventEnablesCommand : public CommandParser::Comma
 public:
 	SetSensorEventEnablesCommand(PayloadManager &payloadmgr) : payloadmgr(payloadmgr) { };
 
-	virtual std::string get_helptext(const std::string &command) const {
+	virtual std::string getHelpText(const std::string &command) const {
 		return command + " $sensor_number (enabled|supported) $assertion_mask $deassertion_mask\n\n"
 				"Set a sensor's event enable or event supported status.\n";
 	}

@@ -22,7 +22,7 @@ class FlashVerifyCommand : public CommandParser::Command {
 public:
 	FlashVerifyCommand(Flash &flash) : flash(flash) {};
 
-	virtual std::string get_helptext(const std::string &command) const {
+	virtual std::string getHelpText(const std::string &command) const {
 		return stdsprintf(
 				"%s $partition\n\n"
 				"Check if an image in the QSPI flash is valid.\n"
@@ -82,7 +82,7 @@ class FlashInfoCommand : public CommandParser::Command {
 public:
 	FlashInfoCommand(Flash &flash) : flash(flash) {};
 
-	virtual std::string get_helptext(const std::string &command) const {
+	virtual std::string getHelpText(const std::string &command) const {
 		return command + "\n\n"
 				"Info about the flash.\n";
 	}

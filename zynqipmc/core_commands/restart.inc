@@ -22,7 +22,7 @@ namespace CoreCommands {
 /// A "restart" command
 class RestartCommand : public CommandParser::Command {
 public:
-	virtual std::string get_helptext(const std::string &command) const {
+	virtual std::string getHelpText(const std::string &command) const {
 		return command + " [$image]\n"
 				"Do a complete restart to the IPMC, loading firmware and software from flash.\n"
 				"A target image to reboot to can be picked by selecting fallback, A, B, or test.\n";

@@ -20,7 +20,7 @@ namespace CoreCommands {
 /// A "update" console command.
 class UploadCommand : public CommandParser::Command {
 public:
-	virtual std::string get_helptext(const std::string &command) const {
+	virtual std::string getHelpText(const std::string &command) const {
 		return command + " $filename $bytes $sha256\n\n"
 				"Uploads a file using the serial console. Check Github for instructions.\n";
 	}

@@ -24,7 +24,7 @@ class BootTargetCommand : public CommandParser::Command {
 public:
 	BootTargetCommand(EEPROM *eeprom) : eeprom(eeprom) {};
 
-	virtual std::string get_helptext(const std::string &command) const {
+	virtual std::string getHelpText(const std::string &command) const {
 		return command + " [fallback|A|B|test]\n\n"
 				"Retrieve or set the IPMC boot target.";
 	}

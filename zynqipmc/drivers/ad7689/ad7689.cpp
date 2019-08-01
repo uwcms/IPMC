@@ -71,7 +71,7 @@ const float AD7689::rawToVolts(uint32_t raw) const {
 class AD7689::Override final : public CommandParser::Command {
 public:
 	Override(AD7689 &adc) : adc(adc) { };
-	virtual std::string get_helptext(const std::string &command) const {
+	virtual std::string getHelpText(const std::string &command) const {
 		return command + "$channel $off|hex_value\n\n"
 				"Override a specific ADC channel.\n\n"
 				"Examples:\n"

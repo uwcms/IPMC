@@ -225,7 +225,7 @@ class InfluxDB::StatusCommand : public CommandParser::Command {
 public:
 	StatusCommand(InfluxDB &influxdb) : influxdb(influxdb) { };
 
-	virtual std::string get_helptext(const std::string &command) const {
+	virtual std::string getHelpText(const std::string &command) const {
 		return command + "\n\n"
 				"Prints current InfluxDB status.\n";
 	}
@@ -243,7 +243,7 @@ class InfluxDB::ConfigCommand : public CommandParser::Command {
 public:
 	ConfigCommand(InfluxDB &influxdb) : influxdb(influxdb) { };
 
-	virtual std::string get_helptext(const std::string &command) const {
+	virtual std::string getHelpText(const std::string &command) const {
 		return command + "\n\n"
 				"Changes or shows InfluxDB client configuration. Usage:\n" +
 				command + " database-url port database-name flush-interval-s\n";

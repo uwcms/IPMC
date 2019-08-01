@@ -110,7 +110,7 @@ public:
 		return str.substr(0, str.find_last_of('@'));
 	}
 
-	virtual std::string get_helptext(const std::string &command) const {
+	virtual std::string getHelpText(const std::string &command) const {
 		return stdsprintf(
 				"%s [pattern]\n"
 				"\n"

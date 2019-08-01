@@ -63,7 +63,7 @@ class PIM400::Status : public CommandParser::Command {
 public:
 	Status(PIM400 &pim400) : pim400(pim400) { };
 
-	virtual std::string get_helptext(const std::string &command) const {
+	virtual std::string getHelpText(const std::string &command) const {
 		return command + "\n\n"
 				"Read the PIM400 status.\n";
 	}

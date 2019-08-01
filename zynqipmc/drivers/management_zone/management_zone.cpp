@@ -142,7 +142,7 @@ class ZoneController::Override final : public CommandParser::Command {
 public:
 	Override(ZoneController &zonectrl) : zonectrl(zonectrl) { };
 
-	virtual std::string get_helptext(const std::string &command) const {
+	virtual std::string getHelpText(const std::string &command) const {
 		return command + " reset|enable|drive|level enable_number|0xXXXX 0|1|0xXXXX\n\n"
 					"Enable, drive and set the override mode of specific power enable pins.\n";
 	}

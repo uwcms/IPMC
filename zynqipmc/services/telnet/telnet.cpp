@@ -92,7 +92,7 @@ class TelnetClient::LogoutCommand : public CommandParser::Command {
 public:
 	LogoutCommand(std::shared_ptr<Telnet::TelnetConsoleSvc> console) : console(console) { };
 
-	virtual std::string get_helptext(const std::string &command) const {
+	virtual std::string getHelpText(const std::string &command) const {
 		return command + "\n\n"\
 				"Disconnect from your telnet session.\n";
 	}

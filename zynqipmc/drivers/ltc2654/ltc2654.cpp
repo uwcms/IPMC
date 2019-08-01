@@ -49,7 +49,7 @@ class LTC2654::Send : public CommandParser::Command {
 public:
 	Send(LTC2654 &dac) : dac(dac) {};
 
-	virtual std::string get_helptext(const std::string &command) const {
+	virtual std::string getHelpText(const std::string &command) const {
 		return command + "%s <channel: A|B|C|D> <command: W|U|S|D> [val]\n\n"
 				"Operate the DAC, check LTC2654 datasheet. Mid-point is 0x7ff at 12bits.\n"
 				"Example usage: " + command + " B W 0x7ff\n";

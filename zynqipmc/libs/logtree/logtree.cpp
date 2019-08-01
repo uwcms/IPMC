@@ -189,7 +189,7 @@ class LogTree::LogCommand : public CommandParser::Command {
 public:
 	LogCommand(LogTree &logtree) : logtree(logtree) { };
 
-	virtual std::string get_helptext(const std::string &command) const {
+	virtual std::string getHelpText(const std::string &command) const {
 		return command + " LOGLEVEL \"text\" [...]\n"
 				"\n"
 				"LOGLEVEL is any prefix of:\n"
@@ -293,7 +293,7 @@ class LogTree::Filter::LogLevelCommand : public CommandParser::Command {
 public:
 	LogLevelCommand(LogTree::Filter &filter, LogTree &root) : filter(filter), root(root) { };
 
-	virtual std::string get_helptext(const std::string &command) const {
+	virtual std::string getHelpText(const std::string &command) const {
 		return command +
 				"%s logtree [LOGLEVEL]\n"
 				"\n"

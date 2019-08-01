@@ -253,7 +253,7 @@ class MStateMachine::HandleOverrideCommand : public CommandParser::Command {
 public:
 	HandleOverrideCommand(MStateMachine &mstatemachine) : mstatemachine(mstatemachine) { };
 
-	virtual std::string get_helptext(const std::string &command) const {
+	virtual std::string getHelpText(const std::string &command) const {
 		return command + " [in|out|release]\n\n"
 				"Set the handle override state.\n";
 	}

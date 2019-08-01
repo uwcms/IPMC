@@ -77,7 +77,7 @@ class ELM::BootSource : public CommandParser::Command {
 public:
 	BootSource(ELM &elm) : elm(elm) { };
 
-	virtual std::string get_helptext(const std::string &command) const {
+	virtual std::string getHelpText(const std::string &command) const {
 		return command + " [release|sdcard|flash]\n\n"
 				"Overrides the ELM boot source.\n";
 	}
@@ -117,7 +117,7 @@ class ELM::Quiesce : public CommandParser::Command {
 public:
 	Quiesce(ELM &elm) : elm(elm) { };
 
-	virtual std::string get_helptext(const std::string &command) const {
+	virtual std::string getHelpText(const std::string &command) const {
 		return command + "\n\n"
 				"Send a quiesce request to the ELM to .\n";
 	}
