@@ -102,6 +102,7 @@ static void console_log_handler(LogTree &logtree, const std::string &message, en
 	}
 }
 
+//TODO: throw instead
 __attribute__((weak)) void initFruData(bool reinit) {
 	LOG.log("initFruData is not implemented in the user code, this might be a bug if IPMI operation is desired!", LogTree::LOG_WARNING);
 }
