@@ -1,15 +1,34 @@
+/*
+ * This file is part of the ZYNQ-IPMC Framework.
+ *
+ * The ZYNQ-IPMC Framework is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ZYNQ-IPMC Framework is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+#include <payload_manager.h>
+#include <drivers/ad7689/ad7689.h>
 #include <libs/ansi_code/ansi_code.h>
-#include <map>
+#include <libs/printf.h>
+#include <vector>
 
-namespace {
+namespace CoreCommands {
 
-/// A "version" console command.
-class ConsoleCommand_adc : public CommandParser::Command {
+/// A "adc" console command.
+class AdcCommand : public CommandParser::Command {
 public:
 	virtual std::string get_helptext(const std::string &command) const {
-		return stdsprintf(
-				"%s\n\n"
-				"Print the values of all ADC channels on the IPMC.\n", command.c_str());
+		return command + "\n\n"
+				"Print the values of all ADC channels on the IPMC.\n";
 	}
 
 	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
@@ -17,7 +36,6 @@ public:
 		const std::string RED = ANSICode::color(ANSICode::RED, ANSICode::NOCOLOR, true);
 		const std::string YELLOW = ANSICode::color(ANSICode::YELLOW, ANSICode::NOCOLOR, true);
 		const std::string NORMAL = ANSICode::color();
-
 
 		for (auto const &sensor : PayloadManager::getADCSensors()) {
 			uint32_t raw = sensor.second.adc.readRaw();

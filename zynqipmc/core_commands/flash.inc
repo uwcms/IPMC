@@ -1,11 +1,26 @@
-namespace {
+/*
+ * This file is part of the ZYNQ-IPMC Framework.
+ *
+ * The ZYNQ-IPMC Framework is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ZYNQ-IPMC Framework is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
+ */
 
-class ConsoleCommand_flash_verify : public CommandParser::Command {
+namespace CoreCommands {
+
+/// A "flash.verify" console command.
+class FlashVerifyCommand : public CommandParser::Command {
 public:
-
-	Flash &flash;
-
-	ConsoleCommand_flash_verify(Flash &flash) : flash(flash) {};
+	FlashVerifyCommand(Flash &flash) : flash(flash) {};
 
 	virtual std::string get_helptext(const std::string &command) const {
 		return stdsprintf(
@@ -57,15 +72,19 @@ public:
 		}
 #undef MB
 	}
+
+private:
+	Flash &flash;
 };
 
-class ConsoleCommand_flash_info : public CommandParser::Command {
+/// A "flash.info" console command.
+class FlashInfoCommand : public CommandParser::Command {
 public:
+	FlashInfoCommand(Flash &flash) : flash(flash) {};
+
 	virtual std::string get_helptext(const std::string &command) const {
-		return stdsprintf(
-				"%s\n"
-				"\n"
-				"Info about the flash.\n", command.c_str());
+		return command + "\n\n"
+				"Info about the flash.\n";
 	}
 
 	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
@@ -73,6 +92,9 @@ public:
 
 		console->write("Total flash size: " + bytesToString(qspiflash->getTotalSize()) + "\n");
 	}
+
+private:
+	Flash &flash;
 };
 
 }

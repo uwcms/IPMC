@@ -110,6 +110,8 @@ extern EventGroupHandle_t init_complete;
 void init_stdlib_mutex();
 extern SemaphoreHandle_t stdlib_mutex;
 
+extern bool flash_upgrade_successful;
+
 /**
  * Banner that gets displayed when booting, connectivity via Telnet and also after running version.
  * @return String with banner contents.

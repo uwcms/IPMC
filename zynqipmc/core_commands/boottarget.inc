@@ -1,24 +1,28 @@
 /*
- * bootimage.h
+ * This file is part of the ZYNQ-IPMC Framework.
  *
- *  Created on: Apr 4, 2019
- *      Author: mpv
+ * The ZYNQ-IPMC Framework is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ZYNQ-IPMC Framework is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
  */
-
-#ifndef SRC_COMMON_ZYNQIPMC_CORE_CONSOLE_COMMANDS_BOOTTARGET_H_
-#define SRC_COMMON_ZYNQIPMC_CORE_CONSOLE_COMMANDS_BOOTTARGET_H_
 
 #include <drivers/generics/eeprom.h>
 
-namespace {
+namespace CoreCommands {
 
 /// A "boottarget" command
-class ConsoleCommand_boottarget : public CommandParser::Command {
+class BootTargetCommand : public CommandParser::Command {
 public:
-
-	EEPROM *eeprom;
-
-	ConsoleCommand_boottarget(EEPROM *eeprom) : eeprom(eeprom) {};
+	BootTargetCommand(EEPROM *eeprom) : eeprom(eeprom) {};
 
 	virtual std::string get_helptext(const std::string &command) const {
 		return command + " [fallback|A|B|test]\n\n"
@@ -74,9 +78,9 @@ public:
 			}
 		}
 	}
+
+private:
+	EEPROM *eeprom;
 };
 
 }
-
-
-#endif /* SRC_COMMON_ZYNQIPMC_CORE_CONSOLE_COMMANDS_BOOTTARGET_H_ */

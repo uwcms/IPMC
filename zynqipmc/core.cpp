@@ -70,6 +70,9 @@ std::vector<uint8_t> fru_data;
 
 PayloadManager *payload_manager = nullptr;
 
+// TODO: Make flash file set this.
+bool flash_upgrade_successful = true;
+
 // Core-specific variables
 LogTree::Filter *console_log_filter = nullptr;
 CommandParser console_command_parser;
@@ -288,10 +291,10 @@ void core_service_init() {
 }
 
 // TODO
-#include <core_console_commands/ps.h>
+#include <core_commands/ps.inc>
 
 __attribute__((weak)) void watchdogOnTrip() {
-	LOG["watchdog"].log(std::string("\n")+ConsoleCommand_ps::get_ps_string(), LogTree::LOG_NOTICE);
+	LOG["watchdog"].log(std::string("\n")+CoreCommands::PsCommand::getString(), LogTree::LOG_NOTICE);
 }
 
 __attribute__((weak)) void tracebufferLogHandler(LogTree &logtree, const std::string &message, enum LogTree::LogLevel level) {
