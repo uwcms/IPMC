@@ -60,17 +60,10 @@ public:
 	virtual void registerConsoleCommands(CommandParser &parser, const std::string &prefix="");
 	virtual void deregisterConsoleCommands(CommandParser &parser, const std::string &prefix="");
 
-	//! Allows to override the ADC values from the console, useful for testing and debugging.
-	class Override final : public CommandParser::Command {
-	public:
-		Override(AD7689 &adc) : adc(adc) { };
-		virtual std::string get_helptext(const std::string &command) const;
-		virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters);
-	private:
-		AD7689 &adc;
-	};
-
 private:
+	//! Allows to override the ADC values from the console, useful for testing and debugging.
+	class Override;
+
 	mutable AD7689_S adc = {0};	///< Internal ADC driver data.
 	uint32_t kSlaveInterface;	///< Target slave interface.
 };

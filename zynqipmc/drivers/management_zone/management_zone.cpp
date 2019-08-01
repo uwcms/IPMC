@@ -19,6 +19,7 @@
 #if XSDK_INDEXING || __has_include("mgmt_zone_ctrl.h")
 
 #include "management_zone.h"
+#include <services/console/telnetconsolesvc.h>
 #include <libs/printf.h>
 #include <libs/except.h>
 #include <libs/threading.h>
@@ -142,92 +143,98 @@ public:
 	Override(ZoneController &zonectrl) : zonectrl(zonectrl) { };
 
 	virtual std::string get_helptext(const std::string &command) const {
-		return command + " reset|enable|disable|drive|level enable_number [0|1]\n\n"
-				"Enable, drive and set the override mode of specific power enable pins.\n";
+		return command + " reset|enable|drive|level enable_number|0xXXXX 0|1|0xXXXX\n\n"
+					"Enable, drive and set the override mode of specific power enable pins.\n";
 	}
+
 	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
-		// TODO: Uncomment when IP gets updated, otherwise this won't compile
-//		if (parameters.nargs() == 1) {
-//			uint32_t enables = Mgmt_Zone_Ctrl_Get_Enable_Override(&this->zonectrl.zone);
-//			uint32_t drive = Mgmt_Zone_Ctrl_Get_Override_Drive(&this->zonectrl.zone);
-//			uint32_t level = Mgmt_Zone_Ctrl_Get_Override_Level(&this->zonectrl.zone);
-//
-//			console->write(stdsprintf("Override Enables: 0x%08lx\n", enables));
-//			console->write(stdsprintf("Override Drive:   0x%08lx\n", drive));
-//			console->write(stdsprintf("Override Level:   0x%08lx\n", level));
-//
-//			return;
-//		}
-//
-//		if (parameters.nargs() < 2) {
-//			console->write("Invalid arguments, see help.\n");
-//			return;
-//		}
-//
-//		std::string option;
-//		uint32_t pwren;
-//
-//		if (!parameters.parse_parameters(1, false, &option, &pwren)) {
-//			console->write("Invalid arguments, see help.\n");
-//			return;
-//		}
-//
-//		if (pwren >= this->zonectrl.getPowerEnablesCount()) {
-//			console->write("Power enable pin out-of-range, see help.\n");
-//			return;
-//		}
-//
-//		if (!option.compare("reset")) {
-//			Mgmt_Zone_Ctrl_Set_Enable_Override(&this->zonectrl.zone, 0);
-//			Mgmt_Zone_Ctrl_Set_Override_Drive(&this->zonectrl.zone, 0);
-//			Mgmt_Zone_Ctrl_Set_Override_Level(&this->zonectrl.zone, 0);
-//		} else if (!option.compare("disable")) {
-//			uint32_t enables = Mgmt_Zone_Ctrl_Get_Enable_Override(&this->zonectrl.zone);
-//			enables |= (1 << pwren);
-//			Mgmt_Zone_Ctrl_Set_Enable_Override(&this->zonectrl.zone, enables);
-//
-//		} else if (!option.compare("disable")) {
-//			uint32_t enables = Mgmt_Zone_Ctrl_Get_Enable_Override(&this->zonectrl.zone);
-//			enables &= ~(1 << pwren);
-//			Mgmt_Zone_Ctrl_Set_Enable_Override(&this->zonectrl.zone, enables);
-//
-//		} else if (!option.compare("drive")) {
-//			uint32_t val = 0;
-//			if (!parameters.parse_parameters(3, true, &val) || (val > 1)) {
-//				console->write("Invalid arguments, see help.\n");
-//				return;
-//			}
-//
-//			uint32_t drive = Mgmt_Zone_Ctrl_Get_Override_Drive(&this->zonectrl.zone);
-//
-//			if (val == 0) {
-//				drive &= ~(1 << pwren);
-//			} else {
-//				drive |= (1 << pwren);
-//			}
-//
-//			Mgmt_Zone_Ctrl_Set_Override_Drive(&this->zonectrl.zone, drive);
-//
-//		} else if (!option.compare("level")) {
-//			uint32_t val = 0;
-//			if (!parameters.parse_parameters(3, true, &val) || (val > 1)) {
-//				console->write("Invalid arguments, see help.\n");
-//				return;
-//			}
-//
-//			uint32_t level = Mgmt_Zone_Ctrl_Get_Override_Level(&this->zonectrl.zone);
-//
-//			if (val == 0) {
-//				level &= ~(1 << pwren);
-//			} else {
-//				level |= (1 << pwren);
-//			}
-//
-//			Mgmt_Zone_Ctrl_Set_Override_Level(&this->zonectrl.zone, level);
-//		} else {
-//			console->write("Unknown option, see help.\n");
-//			return;
-//		}
+		if (parameters.nargs() == 1) {
+			uint32_t enables = Mgmt_Zone_Ctrl_Get_Enable_Override(&this->zonectrl.zone);
+			uint32_t drive = Mgmt_Zone_Ctrl_Get_Override_Drive(&this->zonectrl.zone);
+			uint32_t level = Mgmt_Zone_Ctrl_Get_Override_Level(&this->zonectrl.zone);
+			uint32_t input = Mgmt_Zone_Ctrl_Get_Override_Input(&this->zonectrl.zone);
+
+			console->write(stdsprintf("Override Enables: 0x%08lx\n", enables));
+			console->write(stdsprintf("Override Drive:   0x%08lx\n", drive));
+			console->write(stdsprintf("Override Level:   0x%08lx\n", level));
+			console->write(stdsprintf("Override Input:   0x%08lx\n", input));
+
+			return;
+		}
+
+		if (parameters.nargs() < 2) {
+			console->write("Invalid arguments, see help.\n");
+			return;
+		}
+
+		std::string option, pwren_str;
+		bool multiple;
+		uint32_t pwren, val;
+
+		if (!parameters.parseParameters(1, false, &option, &pwren_str, &val)) {
+			console->write("Invalid arguments, see help.\n");
+			return;
+		}
+
+		if (!pwren_str.substr(0, 2).compare("0x")) {
+			multiple = true;
+		}
+
+		if (!CommandParser::CommandParameters::parse_one(pwren_str, &pwren)) {
+			console->write("Invalid arguments, see help.\n");
+			return;
+		}
+
+		if (!multiple && (pwren >= this->zonectrl.getPowerEnableCount())) {
+			console->write("Power enable pin out-of-range, see help.\n");
+			return;
+		}
+
+		if (!option.compare("reset")) {
+			Mgmt_Zone_Ctrl_Set_Enable_Override(&this->zonectrl.zone, 0);
+			Mgmt_Zone_Ctrl_Set_Override_Drive(&this->zonectrl.zone, 0);
+			Mgmt_Zone_Ctrl_Set_Override_Level(&this->zonectrl.zone, 0);
+
+		} else if (!option.compare("enable")) {
+			uint32_t enables = Mgmt_Zone_Ctrl_Get_Enable_Override(&this->zonectrl.zone);
+			if (multiple) {
+				enables &= ~pwren;
+				enables |= (pwren & val);
+			} else {
+				if (val > 0) enables |= (1 << pwren);
+				else enables &= ~(1 << pwren);
+			}
+			Mgmt_Zone_Ctrl_Set_Enable_Override(&this->zonectrl.zone, enables);
+
+		} else if (!option.compare("drive")) {
+			uint32_t drive = Mgmt_Zone_Ctrl_Get_Override_Drive(&this->zonectrl.zone);
+
+			if (multiple) {
+				drive &= ~pwren;
+				drive |= (pwren & val);
+			} else {
+				if (val > 0) drive |= (1 << pwren);
+				else drive &= ~(1 << pwren);
+			}
+
+			Mgmt_Zone_Ctrl_Set_Override_Drive(&this->zonectrl.zone, drive);
+
+		} else if (!option.compare("level")) {
+			uint32_t level = Mgmt_Zone_Ctrl_Get_Override_Level(&this->zonectrl.zone);
+
+			if (multiple) {
+				level &= ~pwren;
+				level |= (pwren & val);
+			} else {
+				if (val > 0) level |= (1 << pwren);
+				else level &= ~(1 << pwren);
+			}
+
+			Mgmt_Zone_Ctrl_Set_Override_Level(&this->zonectrl.zone, level);
+		} else {
+			console->write("Unknown option, see help.\n");
+			return;
+		}
 	}
 
 private:

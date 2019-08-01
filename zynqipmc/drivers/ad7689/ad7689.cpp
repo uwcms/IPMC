@@ -68,55 +68,62 @@ const float AD7689::rawToVolts(uint32_t raw) const {
 	return ((float)(raw) * 2500.0 / 65535.0 / 1000.0);
 }
 
+class AD7689::Override final : public CommandParser::Command {
+public:
+	Override(AD7689 &adc) : adc(adc) { };
+	virtual std::string get_helptext(const std::string &command) const {
+		return command + "$channel $off|hex_value\n\n"
+				"Override a specific ADC channel.\n\n"
+				"Examples:\n"
+				" Set channel 2 to maximum value: " + command + " 2 0xffff\n"
+				" Turn off channel overriding:    " + command + " 2 off\n";
+	}
+
+	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
+		unsigned int channel;
+		std::string value;
+
+		if (!parameters.parseParameters(1, false, &channel, &value)) {
+			console->write("Invalid parameters, see help.\n");
+			return;
+		}
+
+		if (channel > 7) {
+			console->write("Channel out-of-range.\n");
+			return;
+		}
+
+		if (value.compare("off") == 0) {
+			// Disabled
+			uint32_t ovrrd = AD7689_S_Get_Ch_Ovrrd_Enables(&(adc.adc));
+			ovrrd &= ~((1 << channel) << (adc.kSlaveInterface * 8));
+			AD7689_S_Set_Ch_Ovrrd_Enables(&(adc.adc), ovrrd);
+		} else {
+			unsigned int val;
+
+			if (!CommandParser::CommandParameters::parse_one(value, &val)) {
+				console->write("Invalid value.\n");
+				return;
+			}
+
+			AD7689_S_Set_Ovrrd_Val(&(adc.adc), adc.kSlaveInterface, channel, val);
+
+			uint32_t ovrrd = AD7689_S_Get_Ch_Ovrrd_Enables(&(adc.adc));
+			ovrrd |= ((1 << channel) << (adc.kSlaveInterface * 8));
+			AD7689_S_Set_Ch_Ovrrd_Enables(&(adc.adc), ovrrd);
+		}
+	}
+
+private:
+	AD7689 &adc;
+};
+
 void AD7689::registerConsoleCommands(CommandParser &parser, const std::string &prefix) {
 	parser.registerCommand(prefix + "override", std::make_shared<Override>(*this));
 }
 
 void AD7689::deregisterConsoleCommands(CommandParser &parser, const std::string &prefix) {
 	parser.registerCommand(prefix + "override", nullptr);
-}
-
-std::string AD7689::Override::get_helptext(const std::string &command) const {
-	return command + "$channel $off|hex_value\n\n"
-			"Override a specific ADC channel.\n\n"
-			"Examples:\n"
-			" Set channel 2 to maximum value: " + command + " 2 0xffff\n"
-			" Turn off channel overriding:    " + command + " 2 off\n";
-}
-
-void AD7689::Override::execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
-	unsigned int channel;
-	std::string value;
-
-	if (!parameters.parseParameters(1, false, &channel, &value)) {
-		console->write("Invalid parameters, see help.\n");
-		return;
-	}
-
-	if (channel > 7) {
-		console->write("Channel out-of-range.\n");
-		return;
-	}
-
-	if (value.compare("off") == 0) {
-		// Disabled
-		uint32_t ovrrd = AD7689_S_Get_Ch_Ovrrd_Enables(&(adc.adc));
-		ovrrd &= ~((1 << channel) << (adc.kSlaveInterface * 8));
-		AD7689_S_Set_Ch_Ovrrd_Enables(&(adc.adc), ovrrd);
-	} else {
-		unsigned int val;
-
-		if (!CommandParser::CommandParameters::parse_one(value, &val)) {
-			console->write("Invalid value.\n");
-			return;
-		}
-
-		AD7689_S_Set_Ovrrd_Val(&(adc.adc), adc.kSlaveInterface, channel, val);
-
-		uint32_t ovrrd = AD7689_S_Get_Ch_Ovrrd_Enables(&(adc.adc));
-		ovrrd |= ((1 << channel) << (adc.kSlaveInterface * 8));
-		AD7689_S_Set_Ch_Ovrrd_Enables(&(adc.adc), ovrrd);
-	}
 }
 
 #endif
