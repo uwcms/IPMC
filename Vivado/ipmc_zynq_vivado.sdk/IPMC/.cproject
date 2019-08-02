@@ -55,7 +55,6 @@
 								<option id="xilinx.gnu.compiler.inferred.swplatform.includes.2140270495" name="Software Platform Include Path" superClass="xilinx.gnu.compiler.inferred.swplatform.includes" useByScannerDiscovery="false"/>
 								<option id="xilinx.gnu.compiler.misc.other.1786095451" name="Other flags" superClass="xilinx.gnu.compiler.misc.other" useByScannerDiscovery="false" value="-c -fmessage-length=0 -MT&quot;$@&quot; -mcpu=cortex-a9 -mfpu=vfpv3 -mfloat-abi=hard" valueType="string"/>
 								<option id="xilinx.gnu.compiler.dircategory.includes.343536745" name="Include Paths" superClass="xilinx.gnu.compiler.dircategory.includes" useByScannerDiscovery="false" valueType="includePath">
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/IPMC/src/common/uw-ipmc}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/IPMC/src/config}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/IPMC/src/components}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/IPMC/src/common/lwIP/src/contrib/ports/xilinx/include}&quot;"/>
@@ -64,6 +63,10 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/IPMC/src/common/FreeRTOS/portable/GCC/ARM_CA9}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/IPMC/src/common/FreeRTOS/include}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ipmc_standalone_bsp/ps7_cortexa9_0/include}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/IPMC/src/common/zynqipmc}&quot;"/>
+								</option>
+								<option id="xilinx.gnu.compiler.symbols.defined.1533812871" name="Defined symbols (-D)" superClass="xilinx.gnu.compiler.symbols.defined" useByScannerDiscovery="false" valueType="definedSymbols">
+									<listOptionValue builtIn="false" value="XSDK_INDEXING=1"/>
 								</option>
 								<inputType id="xilinx.gnu.armv7.cxx.compiler.input.250788085" name="C++ source files" superClass="xilinx.gnu.armv7.cxx.compiler.input"/>
 							</tool>
@@ -109,7 +112,11 @@
 							<tool command="arm-none-eabi-gcc" commandLinePattern="${COMMAND} -c ${FLAGS} ${OUTPUT_FLAG}${OUTPUT_PREFIX}${OUTPUT} ${INPUTS}" id="xilinx.gnu.armv7.c.toolchain.assembler.debug.1770931359" name="ARM v7 gcc assembler" superClass="xilinx.gnu.armv7.c.toolchain.assembler.debug.1499529413">
 								<inputType id="xilinx.gnu.assembler.input.383446966" superClass="xilinx.gnu.assembler.input"/>
 							</tool>
-							<tool id="xilinx.gnu.armv7.c.toolchain.compiler.debug.1881006763" name="ARM v7 gcc compiler" superClass="xilinx.gnu.armv7.c.toolchain.compiler.debug.445798207"/>
+							<tool id="xilinx.gnu.armv7.c.toolchain.compiler.debug.1881006763" name="ARM v7 gcc compiler" superClass="xilinx.gnu.armv7.c.toolchain.compiler.debug.445798207">
+								<option id="xilinx.gnu.compiler.symbols.defined.1068668847" name="Defined symbols (-D)" superClass="xilinx.gnu.compiler.symbols.defined" valueType="definedSymbols">
+									<listOptionValue builtIn="false" value="XSDK_INDEXING=1"/>
+								</option>
+							</tool>
 							<tool command="arm-none-eabi-g++" commandLinePattern="${COMMAND} ${FLAGS} ${OUTPUT_FLAG} ${OUTPUT_PREFIX}${OUTPUT} ${INPUTS}" id="xilinx.gnu.armv7.cxx.toolchain.compiler.debug.2018400508" name="ARM v7 g++ compiler" superClass="xilinx.gnu.armv7.cxx.toolchain.compiler.debug.664527097">
 								<option id="xilinx.gnu.compiler.misc.other.1201634990" name="Other flags" superClass="xilinx.gnu.compiler.misc.other" value="-c -fmessage-length=0 -MT&quot;$@&quot; -mcpu=cortex-a9 -mfpu=vfpv3 -mfloat-abi=hard -x c" valueType="string"/>
 								<inputType id="xilinx.gnu.armv7.cxx.compiler.input.1004306003" name="C++ source files" superClass="xilinx.gnu.armv7.cxx.compiler.input"/>
@@ -130,7 +137,11 @@
 							<tool id="xilinx.gnu.armv7.c.toolchain.assembler.debug.203549148" name="ARM v7 gcc assembler" superClass="xilinx.gnu.armv7.c.toolchain.assembler.debug.1499529413">
 								<inputType id="xilinx.gnu.assembler.input.1608382191" superClass="xilinx.gnu.assembler.input"/>
 							</tool>
-							<tool id="xilinx.gnu.armv7.c.toolchain.compiler.debug.685439880" name="ARM v7 gcc compiler" superClass="xilinx.gnu.armv7.c.toolchain.compiler.debug.445798207"/>
+							<tool id="xilinx.gnu.armv7.c.toolchain.compiler.debug.685439880" name="ARM v7 gcc compiler" superClass="xilinx.gnu.armv7.c.toolchain.compiler.debug.445798207">
+								<option id="xilinx.gnu.compiler.symbols.defined.1628903523" name="Defined symbols (-D)" superClass="xilinx.gnu.compiler.symbols.defined" valueType="definedSymbols">
+									<listOptionValue builtIn="false" value="XSDK_INDEXING=1"/>
+								</option>
+							</tool>
 							<tool id="xilinx.gnu.armv7.cxx.toolchain.compiler.debug.860591924" name="ARM v7 g++ compiler" superClass="xilinx.gnu.armv7.cxx.toolchain.compiler.debug.664527097">
 								<option id="xilinx.gnu.compiler.misc.other.1319254230" name="Other flags" superClass="xilinx.gnu.compiler.misc.other" value="-c -fmessage-length=0 -MT&quot;$@&quot; -mcpu=cortex-a9 -mfpu=vfpv3 -mfloat-abi=hard -x c" valueType="string"/>
 								<inputType id="xilinx.gnu.armv7.cxx.compiler.input.1319194925" name="C++ source files" superClass="xilinx.gnu.armv7.cxx.compiler.input"/>

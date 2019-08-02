@@ -238,9 +238,9 @@
 #define XPAR_PS7_SLCR_0_S_AXI_HIGHADDR 0xF8000FFF
 
 
-/* Definitions for peripheral AXI_JTAG_0 */
-#define XPAR_AXI_JTAG_0_BASEADDR 0x43C20000
-#define XPAR_AXI_JTAG_0_HIGHADDR 0x43C2FFFF
+/* Definitions for peripheral JTAG_AXI_JTAG_0 */
+#define XPAR_JTAG_AXI_JTAG_0_BASEADDR 0x43C20000
+#define XPAR_JTAG_AXI_JTAG_0_HIGHADDR 0x43C2FFFF
 
 
 /******************************************************************/

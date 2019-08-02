@@ -15,7 +15,7 @@ export CXX := arm-none-eabi-g++
 export WORKSPACE ?= ../..
 
 export INCLUDE_PATHS = \
-	-I"$(WORKSPACE)/IPMC/src/common/uw-ipmc" \
+	-I"$(WORKSPACE)/IPMC/src/common/zynqipmc" \
 	-I"$(WORKSPACE)/IPMC/src/config" \
 	-I"$(WORKSPACE)/IPMC/src" \
 	-I"$(WORKSPACE)/IPMC/src/components" \
@@ -86,7 +86,6 @@ export WARNING_FLAGS = -Wall -Wno-psabi
 
 OBJS := \
 	$(patsubst ./%.c,.obj/$(BUILD_CONFIGURATION)/%.o,$(shell find -L . -type f -name '*.c')) \
-	$(patsubst ./%.c,.obj/$(BUILD_CONFIGURATION)/%.o,$(shell find -L . -type f -name '*.c')) \
 	$(patsubst ./%.cc,.obj/$(BUILD_CONFIGURATION)/%.o,$(shell find -L . -type f -name '*.cc')) \
 	$(patsubst ./%.cpp,.obj/$(BUILD_CONFIGURATION)/%.o,$(shell find -L . -type f -name '*.cpp')) \
 	$(patsubst ./%.S,.obj/$(BUILD_CONFIGURATION)/%.o,$(shell find -L . -type f -name '*.S')) \
@@ -127,7 +126,7 @@ else
 	$(CXX) -c $(CFLAGS) $(WARNING_FLAGS) $(CXXFLAGS) $(LDFLAGS) $(INCLUDE_PATHS) $(LIBRARY_PATHS) -o "$@" "$<" $(LIBS)
 endif
 
-.obj/$(BUILD_CONFIGURATION)/common/uw-ipmc/version.o: common/uw-ipmc/version.cc | pre-build
+.obj/$(BUILD_CONFIGURATION)/common/zynqipmc/misc/version.o: common/zynqipmc/misc/version.cpp | pre-build
 	@mkdir -p "$(dir $@)" "$(dir $(patsubst .obj/$(BUILD_CONFIGURATION)/%,.dep/$(BUILD_CONFIGURATION)/%,$@))"
 	$(CXX) -c $(CFLAGS) $(WARNING_FLAGS) $(CXXFLAGS) $(LDFLAGS) $(INCLUDE_PATHS) $(LIBRARY_PATHS) \
 		-DD_GIT_SHORT_INT="0x$(shell git rev-parse --short HEAD)" \
@@ -140,7 +139,7 @@ endif
 		-DD_COMPILE_HOST="\"$(shell getent passwd `id -u` | cut -d: -f1)@$(shell hostname --fqdn)\"" \
 		-DD_BUILD_CONFIGURATION="\"$(BUILD_CONFIGURATION)\"" \
 		-o "$@" "$<" $(LIBS)
-.PHONY: .obj/$(BUILD_CONFIGURATION)/common/uw-ipmc/version.o
+.PHONY: .obj/$(BUILD_CONFIGURATION)/common/zynqipmc/misc/version.o
 
 .obj/$(BUILD_CONFIGURATION)/%.o: %.cpp | pre-build
 	@mkdir -p "$(dir $@)" "$(dir $(patsubst .obj/$(BUILD_CONFIGURATION)/%,.dep/$(BUILD_CONFIGURATION)/%,$@))"

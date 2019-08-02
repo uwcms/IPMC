@@ -1,79 +1,45 @@
-#include <drivers/network/Network.h>
+/*
+ * This file is part of the ZYNQ-IPMC Framework.
+ *
+ * The ZYNQ-IPMC Framework is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ZYNQ-IPMC Framework is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+/**
+ * @file main.cpp
+ * Contains all initialization code, must applications won't need to change it.
+ *
+ * Check ipmc.cpp for correct user code entry point.
+ */
+
+#include <core.h>
 #include <stdio.h>
 #include "limits.h"
 #include "string.h"
 
 #include <FreeRTOS.h>
 #include <task.h>
-#include <IPMC.h>
-#include <drivers/ps_uart/PSUART.h>
-
+#include <drivers/network/network.h>
+#include <drivers/ps_uart/ps_uart.h>
+#include <drivers/tracebuffer/tracebuffer.h>
+#include <libs/backtrace/backtrace.h>
 #include "xparameters.h"
 #include "xscutimer.h"
 #include "xscugic.h"
 #include "xil_exception.h"
 
-#include <libs/BackTrace.h>
-#include <libs/printf.h>
-#include <drivers/tracebuffer/TraceBuffer.h>
-
 extern "C" {
-void __real_print( const char8 *ptr);
-}
 
-// Replace week abort with one that actually does something.
-// In case abort gets called there will be a stack trace showing on the console.
-// __real_printf is used so that writes to the UART driver are blocking.
-void abort() {
-	BackTrace *extrace = BackTrace::traceException();
-
-	TaskHandle_t handler = xTaskGetCurrentTaskHandle();
-	std::string tskname = "unknown_task";
-	if (handler)
-		tskname = pcTaskGetName(handler);
-
-	std::string output;
-	if (extrace) {
-		output += "\n-- ABORT DUE TO EXCEPTION --\n";
-		output += extrace->toString();
-	} else {
-		BackTrace trace;
-		trace.trace();
-		output += "\n-- ABORT CALLED --\n";
-		output += trace.toString();
-	}
-
-	output += "-- ASSERTING --\n";
-
-	/* Put it through the trace facility, so regardless of our ability to
-	 * put it through the standard log paths, it gets trace logged.
-	 */
-	std::string log_facility = stdsprintf("ipmc.unhandled_exception.%s", tskname);
-	TRACE.log(log_facility.c_str(), log_facility.size(), LogTree::LOG_CRITICAL, output.c_str(), output.size());
-
-	// Put it directly to the UART console, for the same reason.
-	std::string wnl_output = output;
-	windows_newline(wnl_output);
-	__real_print(wnl_output.c_str());
-
-	// Put it through the standard log system.
-	LOG[tskname].log(output, LogTree::LOG_CRITICAL);
-
-	configASSERT(0);
-
-	/* This function is attribute noreturn, configASSERT(0) can technically
-	 * return within a debugger.  This literally can't, it has no epilogue.
-	 *
-	 * Ensure it doesn't.
-	 */
-	while (1);
-}
-
-extern "C" {
-#include <lwip/opt.h>
-}
-
-extern "C" {
 /* The private watchdog is used as the timer that generates run time stats.  */
 XScuWdt xWatchDogInstance;
 
@@ -199,6 +165,7 @@ void vInitialiseTimerForRunTimeStats(void) {
 /*-----------------------------------------------------------*/
 
 static void prvSetupHardware(void) {
+	extern XScuGic xInterruptController;
 	BaseType_t xStatus;
 	XScuGic_Config *pxGICConfig;
 
@@ -223,6 +190,7 @@ static void prvSetupHardware(void) {
 
 	vPortInstallFreeRTOSVectorTable();
 }
+
 } // extern "C"
 
 int main() {
@@ -239,17 +207,8 @@ int main() {
 	/* See http://www.freertos.org/RTOS-Xilinx-Zynq.html. */
 	prvSetupHardware();
 
-	//std::terminate();
-
-	init_complete = xEventGroupCreate();
-
-	UWTaskCreate("init", TASK_PRIORITY_WATCHDOG, []() -> void {
-		driver_init(true);
-		xEventGroupSetBits(init_complete, 0x01);
-		ipmc_service_init();
-		xEventGroupSetBits(init_complete, 0x02);
-		LOG.log(std::string("\n") + generate_banner(), LogTree::LOG_NOTICE); // This is the ONLY place that should EVER log directly to LOG rather than a subtree.
-	});
+	/* Setup the init task that will initialize the hardware and services */
+	startInitTask();
 
 	/* Start the tasks and timer running. */
 	vTaskStartScheduler();
