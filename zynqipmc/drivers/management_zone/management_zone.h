@@ -20,6 +20,7 @@
 
 // Only include driver if Management Zone IP is detected in the BSP.
 #if XSDK_INDEXING || __has_include("mgmt_zone_ctrl.h")
+#define MANAGEMENT_ZONE_PRESENT_IN_BSP
 
 #include "mgmt_zone_ctrl.h"
 #include <vector>

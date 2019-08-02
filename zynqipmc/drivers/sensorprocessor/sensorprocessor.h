@@ -20,6 +20,7 @@
 
 // Only include driver if SensorProcessor is in the BSP.
 #if XSDK_INDEXING || __has_include("ipmi_sensor_proc.h")
+#define SENSORPROCESSOR_PRESENT_IN_BSP
 
 #include "ipmi_sensor_proc.h"
 #include <FreeRTOS.h>

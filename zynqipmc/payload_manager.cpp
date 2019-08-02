@@ -120,6 +120,7 @@ PayloadManager::PayloadManager(MStateMachine *mstate_machine, LogTree &log)
 }
 
 void PayloadManager::finishConfig() {
+#ifdef SENSORPROCESSOR_PRESENT_IN_BSP
 	std::vector<ADC::Channel*> sensor_processor_channels(XPAR_IPMI_SENSOR_PROC_0_SENSOR_CNT);
 	for (auto &adcsensor : PayloadManager::adc_sensors) {
 		if (adcsensor.second.sensor_processor_id >= 0) {
@@ -129,6 +130,7 @@ void PayloadManager::finishConfig() {
 
 	// TODO: Maybe this can't be common, check later.
 	this->sensor_processor = new SensorProcessor(XPAR_IPMI_SENSOR_PROC_0_DEVICE_ID, XPAR_FABRIC_IPMI_SENSOR_PROC_0_IRQ_O_INTR, sensor_processor_channels);
+#endif
 
 	// The sensor processor is configured and enabled by the sensor linkage
 	// update, as this is where thresholds become available.
@@ -142,10 +144,12 @@ PayloadManager::~PayloadManager() {
 	 * critical section.
 	 */
 	CriticalGuard critical(true);
+#ifdef MANAGEMENT_ZONE_PRESENT_IN_BSP
 	for (int i = 0; i < XPAR_MGMT_ZONE_CTRL_0_MZ_CNT; ++i) {
 		this->mgmt_zones[i]->setPowerState(ZoneController::Zone::KILL);
 		delete this->mgmt_zones[i];
 	}
+#endif
 
 	SuspendGuard suspend(true);
 	this->mstate_machine->deactivate_payload = nullptr;
@@ -185,6 +189,7 @@ std::vector<LinkDescriptor> PayloadManager::getLinks() const {
 
 void PayloadManager::runSensorThread() {
 	while (true) {
+#ifdef SENSORPROCESSOR_PRESENT_IN_BSP
 		// Wait for scheduled or priority execution, then read any events.
 		TickType_t timeout = pdMS_TO_TICKS(100);
 		bool event_received;
@@ -209,6 +214,7 @@ void PayloadManager::runSensorThread() {
 			}
 			timeout = 0; // Now to process any remaining queued events promptly before proceeding on.
 		} while (event_received);
+#endif
 
 		enum SeveritySensor::Level alarm_level = SeveritySensor::OK;
 		{
@@ -226,6 +232,7 @@ void PayloadManager::runSensorThread() {
 		}
 
 		// Alert on fault transitions.
+#ifdef MANAGEMENT_ZONE_PRESENT_IN_BSP
 		{
 			MutexGuard<true> lock(this->mutex, true);
 			for (unsigned i = 0; i < XPAR_MGMT_ZONE_CTRL_0_MZ_CNT; ++i) {
@@ -247,6 +254,7 @@ void PayloadManager::runSensorThread() {
 			 * fine, however, since only temperature sensors are soft faulting.
 			 */
 		}
+#endif
 
 		MutexGuard<true> lock(this->mutex, true);
 		for (auto &adcsensor : this->adc_sensors) {
@@ -288,6 +296,7 @@ void PayloadManager::runSensorThread() {
 				 * didn't quite make it to the exact value of the higher
 				 * resolution firmware setting.
 				 */
+#ifdef MANAGEMENT_ZONE_PRESENT_IN_BSP
 				for (int i = 0; i < XPAR_MGMT_ZONE_CTRL_0_MZ_CNT; ++i) {
 					if (adcsensor.second.sensor_processor_id >= 0 &&
 							this->mz_hf_vectors[i] & (1 << adcsensor.second.sensor_processor_id)) {
@@ -296,6 +305,7 @@ void PayloadManager::runSensorThread() {
 						this->processNonManagedADCSensor(adcsensor);
 					}
 				}
+#endif
 			}
 		}
 
@@ -341,6 +351,7 @@ void PayloadManager::processNonManagedADCSensor(std::pair<std::string, ADCSensor
 bool PayloadManager::isMZInContext(int mz) const {
 	if (mz < 0) return true; // -1 = no mz context concept for this sensor
 
+#ifdef MANAGEMENT_ZONE_PRESENT_IN_BSP
 	ZoneController::Zone *zone = this->mgmt_zones[mz];
 	if (zone->getDesiredPowerState() == false) {
 		return false;
@@ -349,6 +360,8 @@ bool PayloadManager::isMZInContext(int mz) const {
 	if ((zone->getLastTransitionStart() + MZ_HOLDOFF_TICKS) > get_tick64()) {
 		return false;
 	}
+#endif
+
 	return true;
 }
 
@@ -380,6 +393,7 @@ void PayloadManager::updateSensorProcessorContexts() {
 			desired_assertions   = sensor->getAssertionEventsEnabled() & sdr->assertion_lower_threshold_reading_mask();
 			desired_deassertions = sensor->getDeassertionEventsEnabled() & sdr->deassertion_upper_threshold_reading_mask();
 
+#ifdef MANAGEMENT_ZONE_PRESENT_IN_BSP
 			if (!this->isMZInContext(adcsensor.second.mz_context)) {
 				desired_assertions &= CONTEXT_EVENT_MASK;
 				desired_deassertions &= CONTEXT_EVENT_MASK;
@@ -391,8 +405,11 @@ void PayloadManager::updateSensorProcessorContexts() {
 			} else {
 				//this->log.log(stdsprintf("MZ%d is in context for sensor %s", adcsensor.second.mz_context, sensor->sensorIdentifier().c_str()), LogTree::LOG_DIAGNOSTIC);
 			}
+#endif
 
+#ifdef SENSORPROCESSOR_PRESENT_IN_BSP
 			this->sensor_processor->setEventEnable(adcsensor.second.sensor_processor_id, desired_assertions, desired_deassertions);
+#endif
 		}
 	}
 
@@ -427,6 +444,7 @@ void PayloadManager::refreshSensorLinkage() {
 					desired_deassertions &= CONTEXT_EVENT_MASK;
 				}
 
+#ifdef SENSORPROCESSOR_PRESENT_IN_BSP
 				// Disable all event enables not common to the active and new sets during reconfiguration.
 				uint16_t assert, deassert;
 				this->sensor_processor->getEventEnable(adcsensor.second.sensor_processor_id, assert, deassert);
@@ -456,6 +474,7 @@ void PayloadManager::refreshSensorLinkage() {
 						thresholds.UNC, thresholds.UCR, thresholds.UNR,
 						hysteresis.hyst_pos, hysteresis.hyst_neg,
 						assert, deassert), LogTree::LOG_DIAGNOSTIC);
+#endif
 			} else {
 				sensor->getLog().log(stdsprintf("Sensor %s (Proc[%d]) has no matching SDR.  Not updating sensor processor configuration for this sensor.", adcsensor.second.name.c_str(), adcsensor.second.sensor_processor_id), LogTree::LOG_WARNING);
 			}
@@ -466,6 +485,7 @@ void PayloadManager::refreshSensorLinkage() {
 }
 
 /// A backend power switch command
+#ifdef MANAGEMENT_ZONE_PRESENT_IN_BSP
 class PayloadManager::PowerLevelCommand : public CommandParser::Command {
 public:
 	PowerLevelCommand(PayloadManager &payloadmgr) : payloadmgr(payloadmgr) { };
@@ -596,6 +616,7 @@ public:
 private:
 	PayloadManager &payloadmgr;
 };
+#endif
 
 /// A sensor readout command
 class PayloadManager::ReadIPMISensorsCommand : public CommandParser::Command {
@@ -810,16 +831,20 @@ private:
 
 
 void PayloadManager::registerConsoleCommands(CommandParser &parser, const std::string &prefix) {
+#ifdef MANAGEMENT_ZONE_PRESENT_IN_BSP
 	parser.registerCommand(prefix + "power_level", std::make_shared<PayloadManager::PowerLevelCommand>(*this));
 	parser.registerCommand(prefix + "mz_control", std::make_shared<PayloadManager::MzControlCommand>(*this));
+#endif
 	parser.registerCommand(prefix + "read_ipmi_sensors", std::make_shared<PayloadManager::ReadIPMISensorsCommand>());
 	parser.registerCommand(prefix + "get_sensor_event_enables", std::make_shared<PayloadManager::GetSensorEventEnablesCommand>());
 	parser.registerCommand(prefix + "set_sensor_event_enables", std::make_shared<PayloadManager::SetSensorEventEnablesCommand>(*this));
 }
 
 void PayloadManager::deregisterConsoleCommands(CommandParser &parser, const std::string &prefix) {
+#ifdef MANAGEMENT_ZONE_PRESENT_IN_BSP
 	parser.registerCommand(prefix + "power_level", nullptr);
 	parser.registerCommand(prefix + "mz_control", nullptr);
+#endif
 	parser.registerCommand(prefix + "read_ipmi_sensors", nullptr);
 	parser.registerCommand(prefix + "get_sensor_event_enables", nullptr);
 	parser.registerCommand(prefix + "set_sensor_event_enables", nullptr);

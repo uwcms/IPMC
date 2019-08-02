@@ -196,9 +196,13 @@ protected:
 
 	SemaphoreHandle_t mutex; ///< A mutex protecting internal data.
 	MStateMachine *mstate_machine; ///< The MStateMachine to notify of changes.
+#ifdef MANAGEMENT_ZONE_PRESENT_IN_BSP
 	uint64_t mz_hf_vectors[XPAR_MGMT_ZONE_CTRL_0_MZ_CNT];
 	ZoneController::Zone *mgmt_zones[XPAR_MGMT_ZONE_CTRL_0_MZ_CNT];
+#endif
+#ifdef SENSORPROCESSOR_PRESENT_IN_BSP
 	SensorProcessor *sensor_processor; ///< The sensor processor instance to configure and use.
+#endif
 	PowerProperties power_properties; ///< The current power properties.
 	LogTree &log; ///< The LogTree for this object's messages.
 	std::vector<LinkDescriptor> links; ///< All supported E-Keying links.

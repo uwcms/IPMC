@@ -26,7 +26,11 @@
 #include <services/ipmi/commands/ipmicmd_index.h>
 #include <zynqipmc_config.h>
 
-#include "../../board_payload_manager.h"
+#ifdef MANAGEMENT_ZONE_PRESENT_IN_BSP
+#include "board_payload_manager.h"
+#else
+#warning "board_payload_manager.h not found, is this intended?"
+#endif
 
 #define REBOOT_STATUS_REG (XPS_SYS_CTRL_BASEADDR + 0x258)
 
