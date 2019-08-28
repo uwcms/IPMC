@@ -41,6 +41,10 @@ public:
 	bool read(uint32_t address, uint8_t *buffer, size_t bytes);
 	bool write(uint32_t address, const uint8_t *buffer, size_t bytes);
 
+	static void ResetBank(Flash *flash) {
+		((SPIFlash*)flash)->selectBank(0);
+	}
+
 private:
 	// From base class Flash:
 	bool getJEDECInfo();
