@@ -58,7 +58,7 @@ PSIPMB::~PSIPMB() {
 
 void PSIPMB::setupSlave() {
 	TickType_t timeout = 20;
-	while (--timeout && XIicPs_BusIsBusy(&this->IicInst)) {
+	while (--timeout && XIicPs_BusIsBusy(&this->iic)) {
 		vTaskDelay(pdMS_TO_TICKS(1));
 	}
 
@@ -81,7 +81,7 @@ void PSIPMB::setupSlave() {
 
 void PSIPMB::setupMaster() {
 	TickType_t timeout = 20;
-	while (--timeout && XIicPs_BusIsBusy(&this->IicInst)) {
+	while (--timeout && XIicPs_BusIsBusy(&this->iic)) {
 		vTaskDelay(pdMS_TO_TICKS(1));
 	}
 
