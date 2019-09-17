@@ -2,15 +2,21 @@ ifeq (x$(BUILD_CONFIGURATION),x)
 $(error Please specify a BUILD_CONFIGURATION)
 endif
 
+export GIT_SHORT    := $(shell git rev-parse --short HEAD)
+export GIT_LONG     := $(shell git rev-parse HEAD)
 export GIT_DESCRIBE := $(shell git describe --tags 2>/dev/null || git rev-parse --short HEAD)
 export GIT_BRANCH   := $(shell git rev-parse --abbrev-ref HEAD)
 export GIT_DIRTY    := $(shell git diff-index --quiet HEAD || echo 'dirty')
 export GIT_STATUS   := "$(shell git status --porcelain | perl -pe 's/\n/\\n/g;s/"/\\"/g;s/'\''/'\'\\\'\''/g')"
+export BUILD_DATE   := $(shell date)
+export BUILD_HOST   := $(shell getent passwd `id -u` | cut -d: -f1)@$(shell hostname --fqdn)
+export BUILD_CONFIGURATION
 export PROJECT_ROOT := $(realpath ..)
 export PROJECT_NAME := $(notdir $(PROJECT_ROOT))
 
 export CC := arm-none-eabi-gcc
 export CXX := arm-none-eabi-g++ 
+export OBJCOPY := arm-none-eabi-objcopy
 
 export WORKSPACE ?= ../..
 
@@ -105,9 +111,10 @@ pre-build: .dep/.lwip-patch
 
 build: pre-build bin/$(BUILD_CONFIGURATION)/IPMC.elf
 
-bin/$(BUILD_CONFIGURATION)/IPMC.elf: $(OBJS) | pre-build
+bin/$(BUILD_CONFIGURATION)/IPMC.elf: $(OBJS) | pre-build 
 	@mkdir -p "$(dir $@)"
 	$(CXX) $(CFLAGS) $(LDFLAGS) $(INCLUDE_PATHS) $(LIBRARY_PATHS) -o "$@" $^ $(LIBS)
+	echo "Version $$GIT_DESCRIBE ($$GIT_SHORT), built in $$BUILD_CONFIGURATION mode by $$BUILD_HOST at $$BUILD_DATE" | $(OBJCOPY) --add-section .versiondata=/dev/stdin --set-section-flags .versiondata=noload,readonly "$@"
 	arm-none-eabi-size "$@" | tee "$@.size"
 
 .obj/$(BUILD_CONFIGURATION)/%.o: %.c | pre-build
@@ -129,14 +136,14 @@ endif
 .obj/$(BUILD_CONFIGURATION)/common/zynqipmc/misc/version.o: common/zynqipmc/misc/version.cpp | pre-build
 	@mkdir -p "$(dir $@)" "$(dir $(patsubst .obj/$(BUILD_CONFIGURATION)/%,.dep/$(BUILD_CONFIGURATION)/%,$@))"
 	$(CXX) -c $(CFLAGS) $(WARNING_FLAGS) $(CXXFLAGS) $(LDFLAGS) $(INCLUDE_PATHS) $(LIBRARY_PATHS) \
-		-DD_GIT_SHORT_INT="0x$(shell git rev-parse --short HEAD)" \
-		-DD_GIT_SHORT="\"$(shell git rev-parse --short HEAD)\"" \
-		-DD_GIT_LONG="\"$(shell git rev-parse HEAD)\"" \
-		-DD_GIT_DESCRIBE="\"$$GIT_DESCRIBE\"" \
-		-DD_GIT_BRANCH="\"$$GIT_BRANCH\"" \
+		-DD_GIT_SHORT_INT="0x$(GIT_SHORT)" \
+		-DD_GIT_SHORT="\"$(GIT_SHORT)\"" \
+		-DD_GIT_LONG="\"$(GIT_LONG)\"" \
+		-DD_GIT_DESCRIBE="\"$(GIT_DESCRIBE)\"" \
+		-DD_GIT_BRANCH="\"$(GIT_BRANCH)\"" \
 		-DD_GIT_STATUS="$$GIT_STATUS" \
-		-DD_COMPILE_DATE="\"$(shell date)\"" \
-		-DD_COMPILE_HOST="\"$(shell getent passwd `id -u` | cut -d: -f1)@$(shell hostname --fqdn)\"" \
+		-DD_COMPILE_DATE="\"$(BUILD_DATE)\"" \
+		-DD_COMPILE_HOST="\"$(BUILD_HOST)\"" \
 		-DD_BUILD_CONFIGURATION="\"$(BUILD_CONFIGURATION)\"" \
 		-o "$@" "$<" $(LIBS)
 .PHONY: .obj/$(BUILD_CONFIGURATION)/common/zynqipmc/misc/version.o
