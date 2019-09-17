@@ -42,13 +42,13 @@ make
 ```
 
 ### Using FTP
-Upload the image to target IPMC using flash_upload.sh bash script, e.g.:
+Upload the image to target IPMC using flash_upload.py script, found at `Vivado/ipmc_zynq_vivado.sdk/flash_upload.py` (symlink to common).
 ```bash
-./flash_upload.sh 192.168.250.243 ipmc ipmc
+./flash_upload.py -h 192.168.250.243 bootimages/BOOT.bin A
 ```
-The first argument is the IPMC address and then the FTP username and password.
+The `-h` argument is the IPMC ip address.  The first argument is the file to upload, the second argument is which target image to upload it to.  The default username & password are 'ipmc', 'ipmc'.  See `--help` for additional details.
 
-Filezilla or any other FTP client can also be used. The BOOT.bin needs to be copied to virtual/flash.bin in the IPMC and, if valid, the flash update will start automatically.
+Filezilla or any other FTP client can also be used. The BOOT.bin needs to be copied to virtual/A.bin (or B.bin, etc) in the IPMC and, if valid, the flash update will start automatically.
 
 The IPMC can then be restarted by using the ```restart``` command. There are mechanisms in place to prevent restarts if there are signs of improper image flashing.
 

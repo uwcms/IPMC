@@ -1,1 +1,1 @@
-IPMC/src/common/flash_upload.py
+IPMC/src/common/tools/flash_upload.py
