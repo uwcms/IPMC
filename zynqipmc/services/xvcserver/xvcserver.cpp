@@ -150,6 +150,7 @@ bool XVCServer::handleClient(std::shared_ptr<Socket> s) {
 					tdo = jtag->tdo_offset;
 					memcpy(&result[byteIndex], &tdo, bytesLeft);
 
+					break;
 				}
 			}
 
