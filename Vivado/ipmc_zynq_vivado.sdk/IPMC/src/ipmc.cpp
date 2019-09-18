@@ -113,7 +113,7 @@ InfluxDB *influxdbclient	= nullptr;
 #include <core_commands/ps.inc>
 #include <core_commands/restart.inc>
 #include <core_commands/setauth.inc>
-#include <core_commands/set_serial.h>
+#include <core_commands/set_serial.inc>
 #include <core_commands/upload.inc>
 #include <core_commands/uptime.inc>
 #include <core_commands/version.inc>
