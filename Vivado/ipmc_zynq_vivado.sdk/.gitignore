@@ -1,0 +1,33 @@
+# Include everything by default
+!*
+
+# Don't include temporary files
+*~
+
+# Don't include log or temporary files
+*.log
+webtalk/
+RemoteSystemsTempFiles/
+tmp/
+.sdk/
+
+# Don't keep the compilation files
+*.o
+.dep/
+.obj/
+bin/
+doxygen/
+*.elf
+*.elf.size
+*.project
+Xilinx.spec
+
+# Seems to change every time, and is confirmed to recompile if missing.  Exclude from git.
+libxil.a
+libxilffs.a
+
+# This is needed to keep the project structure inside XSDK
+.metadata/
+
+# Don't include bootimages
+bootimages/
