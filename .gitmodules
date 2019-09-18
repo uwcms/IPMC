@@ -5,7 +5,7 @@
 [submodule "Vivado/ipmc_zynq_vivado.sdk/IPMC/src/common"]
 	path = Vivado/ipmc_zynq_vivado.sdk/IPMC/src/common
 	url = git@github.com:uwcms/IPMC.git
-	branch = common/fallback
+	branch = common/master
 [submodule "Vivado/ipmc_zynq_vivado.sdk/fsbl"]
 	path = Vivado/ipmc_zynq_vivado.sdk/fsbl
 	url = git@github.com:uwcms/IPMC.git
