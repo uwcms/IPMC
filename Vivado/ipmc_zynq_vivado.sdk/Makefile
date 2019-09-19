@@ -13,7 +13,7 @@ debug:
 	@echo Use flash_upload.sh or regular FTP to upload the generated .bin to target IPMC.
 
 package: debug
-	tar -cjvf ZYNQ-IPMC-$(shell date +%Y%m%dT%H%M%S)-$(shell git describe --tags 2>/dev/null || git rev-parse --short HEAD).tbz2 bootimages/BOOT.bin IPMC/src/bin
+	tar -cjvf ZYNQ-IPMC-$(shell date +%Y%m%dT%H%M%S)-$(shell git describe --always --match='*-v*.*.*' 2>/dev/null).tbz2 bootimages/BOOT.bin IPMC/src/bin
 
 clean:
 	rm -r bootimages
