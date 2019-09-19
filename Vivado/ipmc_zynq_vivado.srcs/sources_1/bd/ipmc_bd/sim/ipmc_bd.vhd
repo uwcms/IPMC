@@ -1,7 +1,7 @@
 --Copyright 1986-2018 Xilinx, Inc. All Rights Reserved.
 ----------------------------------------------------------------------------------
 --Tool Version: Vivado v.2018.2 (lin64) Build 2258646 Thu Jun 14 20:02:38 MDT 2018
---Date        : Wed Jul 31 22:12:19 2019
+--Date        : Wed Sep 18 23:32:53 2019
 --Host        : beck.hep.wisc.edu running 64-bit CentOS Linux release 7.6.1810 (Core)
 --Command     : generate_target ipmc_bd.bd
 --Design      : ipmc_bd
@@ -6682,11 +6682,12 @@ architecture STRUCTURE of ipmc_bd is
     gpio_io_i : in STD_LOGIC_VECTOR ( 0 to 0 )
   );
   end component ipmc_bd_axi_gpio_hndl_sw_0;
-  component ipmc_bd_axi_atca_led_ctrl_0 is
+  component ipmc_bd_axi_iic_0_0 is
   port (
-    m_led_out : out STD_LOGIC_VECTOR ( 3 downto 0 );
-    s_axi_awaddr : in STD_LOGIC_VECTOR ( 6 downto 0 );
-    s_axi_awprot : in STD_LOGIC_VECTOR ( 2 downto 0 );
+    s_axi_aclk : in STD_LOGIC;
+    s_axi_aresetn : in STD_LOGIC;
+    iic2intc_irpt : out STD_LOGIC;
+    s_axi_awaddr : in STD_LOGIC_VECTOR ( 8 downto 0 );
     s_axi_awvalid : in STD_LOGIC;
     s_axi_awready : out STD_LOGIC;
     s_axi_wdata : in STD_LOGIC_VECTOR ( 31 downto 0 );
@@ -6696,44 +6697,22 @@ architecture STRUCTURE of ipmc_bd is
     s_axi_bresp : out STD_LOGIC_VECTOR ( 1 downto 0 );
     s_axi_bvalid : out STD_LOGIC;
     s_axi_bready : in STD_LOGIC;
-    s_axi_araddr : in STD_LOGIC_VECTOR ( 6 downto 0 );
-    s_axi_arprot : in STD_LOGIC_VECTOR ( 2 downto 0 );
+    s_axi_araddr : in STD_LOGIC_VECTOR ( 8 downto 0 );
     s_axi_arvalid : in STD_LOGIC;
     s_axi_arready : out STD_LOGIC;
     s_axi_rdata : out STD_LOGIC_VECTOR ( 31 downto 0 );
     s_axi_rresp : out STD_LOGIC_VECTOR ( 1 downto 0 );
     s_axi_rvalid : out STD_LOGIC;
     s_axi_rready : in STD_LOGIC;
-    s_axi_aclk : in STD_LOGIC;
-    s_axi_aresetn : in STD_LOGIC
+    sda_i : in STD_LOGIC;
+    sda_o : out STD_LOGIC;
+    sda_t : out STD_LOGIC;
+    scl_i : in STD_LOGIC;
+    scl_o : out STD_LOGIC;
+    scl_t : out STD_LOGIC;
+    gpo : out STD_LOGIC_VECTOR ( 0 to 0 )
   );
-  end component ipmc_bd_axi_atca_led_ctrl_0;
-  component ipmc_bd_axi_user_led_ctrl_0 is
-  port (
-    m_led_out : out STD_LOGIC_VECTOR ( 1 downto 0 );
-    s_axi_awaddr : in STD_LOGIC_VECTOR ( 6 downto 0 );
-    s_axi_awprot : in STD_LOGIC_VECTOR ( 2 downto 0 );
-    s_axi_awvalid : in STD_LOGIC;
-    s_axi_awready : out STD_LOGIC;
-    s_axi_wdata : in STD_LOGIC_VECTOR ( 31 downto 0 );
-    s_axi_wstrb : in STD_LOGIC_VECTOR ( 3 downto 0 );
-    s_axi_wvalid : in STD_LOGIC;
-    s_axi_wready : out STD_LOGIC;
-    s_axi_bresp : out STD_LOGIC_VECTOR ( 1 downto 0 );
-    s_axi_bvalid : out STD_LOGIC;
-    s_axi_bready : in STD_LOGIC;
-    s_axi_araddr : in STD_LOGIC_VECTOR ( 6 downto 0 );
-    s_axi_arprot : in STD_LOGIC_VECTOR ( 2 downto 0 );
-    s_axi_arvalid : in STD_LOGIC;
-    s_axi_arready : out STD_LOGIC;
-    s_axi_rdata : out STD_LOGIC_VECTOR ( 31 downto 0 );
-    s_axi_rresp : out STD_LOGIC_VECTOR ( 1 downto 0 );
-    s_axi_rvalid : out STD_LOGIC;
-    s_axi_rready : in STD_LOGIC;
-    s_axi_aclk : in STD_LOGIC;
-    s_axi_aresetn : in STD_LOGIC
-  );
-  end component ipmc_bd_axi_user_led_ctrl_0;
+  end component ipmc_bd_axi_iic_0_0;
   component ipmc_bd_ad7689_s_0_0 is
   port (
     spi_ncs : out STD_LOGIC_VECTOR ( 0 to 0 );
@@ -6796,19 +6775,58 @@ architecture STRUCTURE of ipmc_bd is
     s_axi_aresetn : in STD_LOGIC
   );
   end component ipmc_bd_ad7689_s_1_0;
-  component ipmc_bd_sensor_serializer_0_0 is
+  component ipmc_bd_axi_atca_led_ctrl_0 is
   port (
-    rstn : in STD_LOGIC;
-    clk : in STD_LOGIC;
-    sensor_data_0 : in STD_LOGIC_VECTOR ( 127 downto 0 );
-    sensor_valid_0 : in STD_LOGIC_VECTOR ( 7 downto 0 );
-    sensor_data_1 : in STD_LOGIC_VECTOR ( 127 downto 0 );
-    sensor_valid_1 : in STD_LOGIC_VECTOR ( 7 downto 0 );
-    sensor_data_out : out STD_LOGIC_VECTOR ( 15 downto 0 );
-    sensor_id_out : out STD_LOGIC_VECTOR ( 5 downto 0 );
-    sensor_valid_out : out STD_LOGIC
+    m_led_out : out STD_LOGIC_VECTOR ( 3 downto 0 );
+    s_axi_awaddr : in STD_LOGIC_VECTOR ( 6 downto 0 );
+    s_axi_awprot : in STD_LOGIC_VECTOR ( 2 downto 0 );
+    s_axi_awvalid : in STD_LOGIC;
+    s_axi_awready : out STD_LOGIC;
+    s_axi_wdata : in STD_LOGIC_VECTOR ( 31 downto 0 );
+    s_axi_wstrb : in STD_LOGIC_VECTOR ( 3 downto 0 );
+    s_axi_wvalid : in STD_LOGIC;
+    s_axi_wready : out STD_LOGIC;
+    s_axi_bresp : out STD_LOGIC_VECTOR ( 1 downto 0 );
+    s_axi_bvalid : out STD_LOGIC;
+    s_axi_bready : in STD_LOGIC;
+    s_axi_araddr : in STD_LOGIC_VECTOR ( 6 downto 0 );
+    s_axi_arprot : in STD_LOGIC_VECTOR ( 2 downto 0 );
+    s_axi_arvalid : in STD_LOGIC;
+    s_axi_arready : out STD_LOGIC;
+    s_axi_rdata : out STD_LOGIC_VECTOR ( 31 downto 0 );
+    s_axi_rresp : out STD_LOGIC_VECTOR ( 1 downto 0 );
+    s_axi_rvalid : out STD_LOGIC;
+    s_axi_rready : in STD_LOGIC;
+    s_axi_aclk : in STD_LOGIC;
+    s_axi_aresetn : in STD_LOGIC
   );
-  end component ipmc_bd_sensor_serializer_0_0;
+  end component ipmc_bd_axi_atca_led_ctrl_0;
+  component ipmc_bd_axi_user_led_ctrl_0 is
+  port (
+    m_led_out : out STD_LOGIC_VECTOR ( 1 downto 0 );
+    s_axi_awaddr : in STD_LOGIC_VECTOR ( 6 downto 0 );
+    s_axi_awprot : in STD_LOGIC_VECTOR ( 2 downto 0 );
+    s_axi_awvalid : in STD_LOGIC;
+    s_axi_awready : out STD_LOGIC;
+    s_axi_wdata : in STD_LOGIC_VECTOR ( 31 downto 0 );
+    s_axi_wstrb : in STD_LOGIC_VECTOR ( 3 downto 0 );
+    s_axi_wvalid : in STD_LOGIC;
+    s_axi_wready : out STD_LOGIC;
+    s_axi_bresp : out STD_LOGIC_VECTOR ( 1 downto 0 );
+    s_axi_bvalid : out STD_LOGIC;
+    s_axi_bready : in STD_LOGIC;
+    s_axi_araddr : in STD_LOGIC_VECTOR ( 6 downto 0 );
+    s_axi_arprot : in STD_LOGIC_VECTOR ( 2 downto 0 );
+    s_axi_arvalid : in STD_LOGIC;
+    s_axi_arready : out STD_LOGIC;
+    s_axi_rdata : out STD_LOGIC_VECTOR ( 31 downto 0 );
+    s_axi_rresp : out STD_LOGIC_VECTOR ( 1 downto 0 );
+    s_axi_rvalid : out STD_LOGIC;
+    s_axi_rready : in STD_LOGIC;
+    s_axi_aclk : in STD_LOGIC;
+    s_axi_aresetn : in STD_LOGIC
+  );
+  end component ipmc_bd_axi_user_led_ctrl_0;
   component ipmc_bd_ipmi_sensor_proc_0_0 is
   port (
     sensor_data_i : in STD_LOGIC_VECTOR ( 15 downto 0 );
@@ -6840,37 +6858,6 @@ architecture STRUCTURE of ipmc_bd is
     s_axi_aresetn : in STD_LOGIC
   );
   end component ipmc_bd_ipmi_sensor_proc_0_0;
-  component ipmc_bd_axi_iic_0_0 is
-  port (
-    s_axi_aclk : in STD_LOGIC;
-    s_axi_aresetn : in STD_LOGIC;
-    iic2intc_irpt : out STD_LOGIC;
-    s_axi_awaddr : in STD_LOGIC_VECTOR ( 8 downto 0 );
-    s_axi_awvalid : in STD_LOGIC;
-    s_axi_awready : out STD_LOGIC;
-    s_axi_wdata : in STD_LOGIC_VECTOR ( 31 downto 0 );
-    s_axi_wstrb : in STD_LOGIC_VECTOR ( 3 downto 0 );
-    s_axi_wvalid : in STD_LOGIC;
-    s_axi_wready : out STD_LOGIC;
-    s_axi_bresp : out STD_LOGIC_VECTOR ( 1 downto 0 );
-    s_axi_bvalid : out STD_LOGIC;
-    s_axi_bready : in STD_LOGIC;
-    s_axi_araddr : in STD_LOGIC_VECTOR ( 8 downto 0 );
-    s_axi_arvalid : in STD_LOGIC;
-    s_axi_arready : out STD_LOGIC;
-    s_axi_rdata : out STD_LOGIC_VECTOR ( 31 downto 0 );
-    s_axi_rresp : out STD_LOGIC_VECTOR ( 1 downto 0 );
-    s_axi_rvalid : out STD_LOGIC;
-    s_axi_rready : in STD_LOGIC;
-    sda_i : in STD_LOGIC;
-    sda_o : out STD_LOGIC;
-    sda_t : out STD_LOGIC;
-    scl_i : in STD_LOGIC;
-    scl_o : out STD_LOGIC;
-    scl_t : out STD_LOGIC;
-    gpo : out STD_LOGIC_VECTOR ( 0 to 0 )
-  );
-  end component ipmc_bd_axi_iic_0_0;
   component ipmc_bd_mgmt_zone_ctrl_0_0 is
   port (
     hard_fault : in STD_LOGIC_VECTOR ( 15 downto 0 );
@@ -6903,6 +6890,19 @@ architecture STRUCTURE of ipmc_bd is
     s_axi_aresetn : in STD_LOGIC
   );
   end component ipmc_bd_mgmt_zone_ctrl_0_0;
+  component ipmc_bd_sensor_serializer_0_0 is
+  port (
+    rstn : in STD_LOGIC;
+    clk : in STD_LOGIC;
+    sensor_data_0 : in STD_LOGIC_VECTOR ( 127 downto 0 );
+    sensor_valid_0 : in STD_LOGIC_VECTOR ( 7 downto 0 );
+    sensor_data_1 : in STD_LOGIC_VECTOR ( 127 downto 0 );
+    sensor_valid_1 : in STD_LOGIC_VECTOR ( 7 downto 0 );
+    sensor_data_out : out STD_LOGIC_VECTOR ( 15 downto 0 );
+    sensor_id_out : out STD_LOGIC_VECTOR ( 5 downto 0 );
+    sensor_valid_out : out STD_LOGIC
+  );
+  end component ipmc_bd_sensor_serializer_0_0;
   signal ARESETN_1 : STD_LOGIC_VECTOR ( 0 to 0 );
   signal JTAG_TCK : STD_LOGIC;
   signal JTAG_TMS : STD_LOGIC;
@@ -7334,9 +7334,9 @@ architecture STRUCTURE of ipmc_bd is
   attribute X_INTERFACE_INFO of ESM_RESET_tri_i : signal is "xilinx.com:interface:gpio:1.0 ESM_RESET TRI_I";
   attribute X_INTERFACE_INFO of ESM_RESET_tri_o : signal is "xilinx.com:interface:gpio:1.0 ESM_RESET TRI_O";
   attribute X_INTERFACE_INFO of ESM_RESET_tri_t : signal is "xilinx.com:interface:gpio:1.0 ESM_RESET TRI_T";
-  attribute X_INTERFACE_INFO of PWREN_tri_i : signal is "xilinx.com:interface:gpio:1.0 PWREN ";
-  attribute X_INTERFACE_INFO of PWREN_tri_o : signal is "xilinx.com:interface:gpio:1.0 PWREN ";
-  attribute X_INTERFACE_INFO of PWREN_tri_t : signal is "xilinx.com:interface:gpio:1.0 PWREN ";
+  attribute X_INTERFACE_INFO of PWREN_tri_i : signal is "xilinx.com:interface:gpio:1.0 PWREN TRI_I";
+  attribute X_INTERFACE_INFO of PWREN_tri_o : signal is "xilinx.com:interface:gpio:1.0 PWREN TRI_O";
+  attribute X_INTERFACE_INFO of PWREN_tri_t : signal is "xilinx.com:interface:gpio:1.0 PWREN TRI_T";
 begin
   ADC_A_spi_clk <= ad7689_s_0_M_ADC_SPI_spi_clk;
   ADC_A_spi_mosi <= ad7689_s_0_M_ADC_SPI_spi_mosi;

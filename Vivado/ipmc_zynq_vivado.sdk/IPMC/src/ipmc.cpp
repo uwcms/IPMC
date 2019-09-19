@@ -21,79 +21,56 @@
  * functions.
  */
 
-#include <FreeRTOS.h>
-#include <task.h>
-#include <semphr.h>
-#include <event_groups.h>
+/* Include C/C++ libs and misc */
+#include <zynqipmc_config.h>
 #include <algorithm>
 #include <functional>
 #include <alloca.h>
 #include <core.h>
 #include <sys/time.h>
-#include <drivers/ad7689/ad7689.h>
-#include <drivers/elm/elm.h>
+#include <payload_manager.h>
+#include "ipmc.h"
 
-/* Include Xilinx related */
-#include "xparameters.h"
-#include "xscutimer.h"
-#include "xscugic.h"
-#include "xil_exception.h"
-#include "xgpiops.h"
+/* Include FreeRTOS */
+#include <FreeRTOS.h>
 
-/* Include libs */
-#include <libs/printf.h>
-#include "libs/base64/base64.h"
-#include <drivers/esm/esm.h>
-#include <drivers/ipmb/ipmb_pair.h>
-#include <drivers/ipmb/ps_ipmb.h>
-#include <drivers/ltc2654/ltc2654.h>
-#include <drivers/network/network.h>
-#include <drivers/pim400/pim400.h>
-#include <drivers/pl_gpio/pl_gpio.h>
-#include <drivers/pl_i2c/pl_i2c.h>
-#include <drivers/pl_led/pl_led.h>
-#include <drivers/pl_spi/pl_spi.h>
-#include <drivers/pl_uart/pl_uart.h>
-#include <drivers/pmbus/pmbus.h>
+/* Include drivers */
 #include <drivers/ps_gpio/ps_gpio.h>
 #include <drivers/ps_qspi/ps_qspi.h>
 #include <drivers/ps_spi/ps_spi.h>
 #include <drivers/ps_uart/ps_uart.h>
 #include <drivers/ps_xadc/ps_xadc.h>
+#include <drivers/pl_gpio/pl_gpio.h>
+#include <drivers/pl_i2c/pl_i2c.h>
+#include <drivers/pl_led/pl_led.h>
+#include <drivers/pl_spi/pl_spi.h>
+#include <drivers/pl_uart/pl_uart.h>
+#include <drivers/ad7689/ad7689.h>
+#include <drivers/elm/elm.h>
+#include <drivers/esm/esm.h>
+#include <drivers/network/network.h>
+#include <drivers/pim400/pim400.h>
 #include <drivers/spi_eeprom/spi_eeprom.h>
 #include <drivers/spi_flash/spi_flash.h>
 #include <drivers/tracebuffer/tracebuffer.h>
-#include <drivers/watchdog/ps_wdt.h>
-#include <libs/authentication/authentication.h>
-#include <libs/backtrace/backtrace.h>
-#include <libs/logtree/logtree.h>
-#include <libs/utils.h>
-#include <libs/xilinx_image/xilinx_image.h>
+
+/* Include services */
 #include <services/sntp/sntp.h>
 #include <services/console/uartconsolesvc.h>
 #include <services/ftp/ftp.h>
 #include <services/influxdb/influxdb.h>
-#include <services/ipmi/commands/ipmicmd_index.h>
-#include <services/ipmi/ipmbsvc/ipmbsvc.h>
-#include <services/ipmi/ipmbsvc/ipmi_command_parser.h>
-#include <services/ipmi/sdr/sensor_data_repository.h>
 #include <services/lwiperf/lwiperf.h>
-#include <services/persistentstorage/persistent_storage.h>
 #include <services/telnet/telnet.h>
 #include <services/xvcserver/xvcserver.h>
-#include "ipmc.h"
-#include <payload_manager.h>
-#include <services/ipmi/ipmi_formats.h>
-#include <services/ipmi/m_state_machine.h>
-#include <services/ipmi/sdr/sensor_data_record_01.h>
-#include <services/ipmi/sdr/sensor_data_record_02.h>
-#include <services/ipmi/sdr/sensor_data_record_12.h>
-#include <services/ipmi/sensor/hotswap_sensor.h>
-#include <services/ipmi/sensor/sensor.h>
-#include <services/ipmi/sensor/sensor_set.h>
-#include <services/ipmi/sensor/severity_sensor.h>
-#include <services/ipmi/sensor/threshold_sensor.h>
-#include <zynqipmc_config.h>
+
+/* Include libs */
+#include <libs/utils.h>
+#include <libs/printf.h>
+#include <libs/base64/base64.h>
+#include <libs/authentication/authentication.h>
+#include <libs/backtrace/backtrace.h>
+#include <libs/logtree/logtree.h>
+#include <libs/xilinx_image/xilinx_image.h>
 
 // Application specific variables
 std::vector<AD7689*> adc;
@@ -262,6 +239,7 @@ void serviceInit() {
 		//influxdbclient = new InfluxDB(LOG["influxdb"]);
 		//influxdbclient->register_console_commands(console_command_parser, "influxdb.");
 
+		// Start Telnet console
 		telnet = new TelnetServer(LOG["telnetd"]);
 
 		// Start iperf server

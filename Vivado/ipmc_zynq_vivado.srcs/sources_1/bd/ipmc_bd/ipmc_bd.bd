@@ -905,54 +905,6 @@
         <spirit:componentRef spirit:library="BlockDiagram/ipmc_bd_imp" spirit:name="JTAG" spirit:vendor="xilinx.com" spirit:version="1.00.a"/>
       </spirit:componentInstance>
       <spirit:componentInstance>
-        <spirit:instanceName>axi_atca_led_ctrl</spirit:instanceName>
-        <spirit:componentRef spirit:library="uw" spirit:name="led_controller" spirit:vendor="uw" spirit:version="2.0"/>
-        <spirit:configurableElementValues>
-          <spirit:configurableElementValue spirit:referenceId="bd:xciName">ipmc_bd_axi_atca_led_ctrl_0</spirit:configurableElementValue>
-          <spirit:configurableElementValue spirit:referenceId="C_LED_INTERFACES">4</spirit:configurableElementValue>
-        </spirit:configurableElementValues>
-      </spirit:componentInstance>
-      <spirit:componentInstance>
-        <spirit:instanceName>axi_user_led_ctrl</spirit:instanceName>
-        <spirit:componentRef spirit:library="uw" spirit:name="led_controller" spirit:vendor="uw" spirit:version="2.0"/>
-        <spirit:configurableElementValues>
-          <spirit:configurableElementValue spirit:referenceId="bd:xciName">ipmc_bd_axi_user_led_ctrl_0</spirit:configurableElementValue>
-        </spirit:configurableElementValues>
-      </spirit:componentInstance>
-      <spirit:componentInstance>
-        <spirit:instanceName>ad7689_s_0</spirit:instanceName>
-        <spirit:componentRef spirit:library="uw" spirit:name="ad7689_s" spirit:vendor="uw" spirit:version="1.1"/>
-        <spirit:configurableElementValues>
-          <spirit:configurableElementValue spirit:referenceId="bd:xciName">ipmc_bd_ad7689_s_0_0</spirit:configurableElementValue>
-          <spirit:configurableElementValue spirit:referenceId="C_SLAVES">1</spirit:configurableElementValue>
-        </spirit:configurableElementValues>
-      </spirit:componentInstance>
-      <spirit:componentInstance>
-        <spirit:instanceName>ad7689_s_1</spirit:instanceName>
-        <spirit:componentRef spirit:library="uw" spirit:name="ad7689_s" spirit:vendor="uw" spirit:version="1.1"/>
-        <spirit:configurableElementValues>
-          <spirit:configurableElementValue spirit:referenceId="bd:xciName">ipmc_bd_ad7689_s_1_0</spirit:configurableElementValue>
-          <spirit:configurableElementValue spirit:referenceId="C_SLAVES">1</spirit:configurableElementValue>
-        </spirit:configurableElementValues>
-      </spirit:componentInstance>
-      <spirit:componentInstance>
-        <spirit:instanceName>sensor_serializer_0</spirit:instanceName>
-        <spirit:componentRef spirit:library="user" spirit:name="sensor_serializer" spirit:vendor="user.org" spirit:version="1.0"/>
-        <spirit:configurableElementValues>
-          <spirit:configurableElementValue spirit:referenceId="bd:xciName">ipmc_bd_sensor_serializer_0_0</spirit:configurableElementValue>
-          <spirit:configurableElementValue spirit:referenceId="C_SENSOR_PORTS">2</spirit:configurableElementValue>
-          <spirit:configurableElementValue spirit:referenceId="C_SENSOR_1_CH_COUNT">8</spirit:configurableElementValue>
-        </spirit:configurableElementValues>
-      </spirit:componentInstance>
-      <spirit:componentInstance>
-        <spirit:instanceName>ipmi_sensor_proc_0</spirit:instanceName>
-        <spirit:componentRef spirit:library="uw" spirit:name="ipmi_sensor_proc" spirit:vendor="uw" spirit:version="1.0"/>
-        <spirit:configurableElementValues>
-          <spirit:configurableElementValue spirit:referenceId="bd:xciName">ipmc_bd_ipmi_sensor_proc_0_0</spirit:configurableElementValue>
-          <spirit:configurableElementValue spirit:referenceId="C_SENSOR_CNT">16</spirit:configurableElementValue>
-        </spirit:configurableElementValues>
-      </spirit:componentInstance>
-      <spirit:componentInstance>
         <spirit:instanceName>axi_iic_eeprom_0</spirit:instanceName>
         <spirit:componentRef spirit:library="ip" spirit:name="axi_iic" spirit:vendor="xilinx.com" spirit:version="2.0"/>
         <spirit:configurableElementValues>
@@ -962,14 +914,62 @@
         </spirit:configurableElementValues>
       </spirit:componentInstance>
       <spirit:componentInstance>
+        <spirit:instanceName>ad7689_s_0</spirit:instanceName>
+        <spirit:componentRef spirit:library="zynqipmc" spirit:name="ad7689_s" spirit:vendor="hep.wisc.edu" spirit:version="1.1"/>
+        <spirit:configurableElementValues>
+          <spirit:configurableElementValue spirit:referenceId="bd:xciName">ipmc_bd_ad7689_s_0_0</spirit:configurableElementValue>
+          <spirit:configurableElementValue spirit:referenceId="C_SLAVES">1</spirit:configurableElementValue>
+        </spirit:configurableElementValues>
+      </spirit:componentInstance>
+      <spirit:componentInstance>
+        <spirit:instanceName>ad7689_s_1</spirit:instanceName>
+        <spirit:componentRef spirit:library="zynqipmc" spirit:name="ad7689_s" spirit:vendor="hep.wisc.edu" spirit:version="1.1"/>
+        <spirit:configurableElementValues>
+          <spirit:configurableElementValue spirit:referenceId="bd:xciName">ipmc_bd_ad7689_s_1_0</spirit:configurableElementValue>
+          <spirit:configurableElementValue spirit:referenceId="C_SLAVES">1</spirit:configurableElementValue>
+        </spirit:configurableElementValues>
+      </spirit:componentInstance>
+      <spirit:componentInstance>
+        <spirit:instanceName>axi_atca_led_ctrl</spirit:instanceName>
+        <spirit:componentRef spirit:library="zynqipmc" spirit:name="led_controller" spirit:vendor="hep.wisc.edu" spirit:version="2.0"/>
+        <spirit:configurableElementValues>
+          <spirit:configurableElementValue spirit:referenceId="bd:xciName">ipmc_bd_axi_atca_led_ctrl_0</spirit:configurableElementValue>
+          <spirit:configurableElementValue spirit:referenceId="C_LED_INTERFACES">4</spirit:configurableElementValue>
+        </spirit:configurableElementValues>
+      </spirit:componentInstance>
+      <spirit:componentInstance>
+        <spirit:instanceName>axi_user_led_ctrl</spirit:instanceName>
+        <spirit:componentRef spirit:library="zynqipmc" spirit:name="led_controller" spirit:vendor="hep.wisc.edu" spirit:version="2.0"/>
+        <spirit:configurableElementValues>
+          <spirit:configurableElementValue spirit:referenceId="bd:xciName">ipmc_bd_axi_user_led_ctrl_0</spirit:configurableElementValue>
+        </spirit:configurableElementValues>
+      </spirit:componentInstance>
+      <spirit:componentInstance>
+        <spirit:instanceName>ipmi_sensor_proc_0</spirit:instanceName>
+        <spirit:componentRef spirit:library="zynqipmc" spirit:name="ipmi_sensor_proc" spirit:vendor="hep.wisc.edu" spirit:version="1.0"/>
+        <spirit:configurableElementValues>
+          <spirit:configurableElementValue spirit:referenceId="bd:xciName">ipmc_bd_ipmi_sensor_proc_0_0</spirit:configurableElementValue>
+          <spirit:configurableElementValue spirit:referenceId="C_SENSOR_CNT">16</spirit:configurableElementValue>
+        </spirit:configurableElementValues>
+      </spirit:componentInstance>
+      <spirit:componentInstance>
         <spirit:instanceName>mgmt_zone_ctrl_0</spirit:instanceName>
-        <spirit:componentRef spirit:library="user" spirit:name="mgmt_zone_ctrl" spirit:vendor="hep.wisc.edu" spirit:version="1.0"/>
+        <spirit:componentRef spirit:library="zynqipmc" spirit:name="mgmt_zone_ctrl" spirit:vendor="hep.wisc.edu" spirit:version="1.0"/>
         <spirit:configurableElementValues>
           <spirit:configurableElementValue spirit:referenceId="bd:xciName">ipmc_bd_mgmt_zone_ctrl_0_0</spirit:configurableElementValue>
           <spirit:configurableElementValue spirit:referenceId="C_MZ_CNT">5</spirit:configurableElementValue>
           <spirit:configurableElementValue spirit:referenceId="C_HF_CNT">16</spirit:configurableElementValue>
           <spirit:configurableElementValue spirit:referenceId="C_PWREN_CNT">7</spirit:configurableElementValue>
           <spirit:configurableElementValue spirit:referenceId="C_VIO_INCLUDE">false</spirit:configurableElementValue>
+        </spirit:configurableElementValues>
+      </spirit:componentInstance>
+      <spirit:componentInstance>
+        <spirit:instanceName>sensor_serializer_0</spirit:instanceName>
+        <spirit:componentRef spirit:library="zynqipmc" spirit:name="sensor_serializer" spirit:vendor="hep.wisc.edu" spirit:version="1.0"/>
+        <spirit:configurableElementValues>
+          <spirit:configurableElementValue spirit:referenceId="bd:xciName">ipmc_bd_sensor_serializer_0_0</spirit:configurableElementValue>
+          <spirit:configurableElementValue spirit:referenceId="C_SENSOR_PORTS">2</spirit:configurableElementValue>
+          <spirit:configurableElementValue spirit:referenceId="C_SENSOR_1_CH_COUNT">8</spirit:configurableElementValue>
         </spirit:configurableElementValues>
       </spirit:componentInstance>
     </spirit:componentInstances>
@@ -1081,12 +1081,6 @@
         <spirit:internalPortReference spirit:componentRef="processing_system7_0" spirit:portRef="M_AXI_GP0_ACLK"/>
         <spirit:internalPortReference spirit:componentRef="debouncer_0" spirit:portRef="CLK_IN"/>
         <spirit:internalPortReference spirit:componentRef="axi_gpio_hndl_sw" spirit:portRef="s_axi_aclk"/>
-        <spirit:internalPortReference spirit:componentRef="axi_atca_led_ctrl" spirit:portRef="s_axi_aclk"/>
-        <spirit:internalPortReference spirit:componentRef="axi_user_led_ctrl" spirit:portRef="s_axi_aclk"/>
-        <spirit:internalPortReference spirit:componentRef="ad7689_s_0" spirit:portRef="s_axi_aclk"/>
-        <spirit:internalPortReference spirit:componentRef="ad7689_s_1" spirit:portRef="s_axi_aclk"/>
-        <spirit:internalPortReference spirit:componentRef="sensor_serializer_0" spirit:portRef="clk"/>
-        <spirit:internalPortReference spirit:componentRef="ipmi_sensor_proc_0" spirit:portRef="s_axi_aclk"/>
         <spirit:internalPortReference spirit:componentRef="axi_iic_eeprom_0" spirit:portRef="s_axi_aclk"/>
         <spirit:internalPortReference spirit:componentRef="axi_interconnect_0" spirit:portRef="M02_ACLK"/>
         <spirit:internalPortReference spirit:componentRef="axi_interconnect_0" spirit:portRef="M03_ACLK"/>
@@ -1105,7 +1099,13 @@
         <spirit:internalPortReference spirit:componentRef="axi_interconnect_0" spirit:portRef="M11_ACLK"/>
         <spirit:internalPortReference spirit:componentRef="elm" spirit:portRef="ACLK_0"/>
         <spirit:internalPortReference spirit:componentRef="JTAG" spirit:portRef="s_axi_aclk"/>
+        <spirit:internalPortReference spirit:componentRef="ad7689_s_0" spirit:portRef="s_axi_aclk"/>
+        <spirit:internalPortReference spirit:componentRef="ad7689_s_1" spirit:portRef="s_axi_aclk"/>
+        <spirit:internalPortReference spirit:componentRef="axi_atca_led_ctrl" spirit:portRef="s_axi_aclk"/>
+        <spirit:internalPortReference spirit:componentRef="axi_user_led_ctrl" spirit:portRef="s_axi_aclk"/>
+        <spirit:internalPortReference spirit:componentRef="ipmi_sensor_proc_0" spirit:portRef="s_axi_aclk"/>
         <spirit:internalPortReference spirit:componentRef="mgmt_zone_ctrl_0" spirit:portRef="s_axi_aclk"/>
+        <spirit:internalPortReference spirit:componentRef="sensor_serializer_0" spirit:portRef="clk"/>
       </spirit:adHocConnection>
       <spirit:adHocConnection>
         <spirit:name>proc_sys_reset_0_peripheral_aresetn</spirit:name>
@@ -1113,12 +1113,6 @@
         <spirit:internalPortReference spirit:componentRef="axi_iic_mgmt" spirit:portRef="s_axi_aresetn"/>
         <spirit:internalPortReference spirit:componentRef="debouncer_0" spirit:portRef="ARESETN_IN"/>
         <spirit:internalPortReference spirit:componentRef="axi_gpio_hndl_sw" spirit:portRef="s_axi_aresetn"/>
-        <spirit:internalPortReference spirit:componentRef="axi_atca_led_ctrl" spirit:portRef="s_axi_aresetn"/>
-        <spirit:internalPortReference spirit:componentRef="axi_user_led_ctrl" spirit:portRef="s_axi_aresetn"/>
-        <spirit:internalPortReference spirit:componentRef="ad7689_s_0" spirit:portRef="s_axi_aresetn"/>
-        <spirit:internalPortReference spirit:componentRef="ad7689_s_1" spirit:portRef="s_axi_aresetn"/>
-        <spirit:internalPortReference spirit:componentRef="sensor_serializer_0" spirit:portRef="rstn"/>
-        <spirit:internalPortReference spirit:componentRef="ipmi_sensor_proc_0" spirit:portRef="s_axi_aresetn"/>
         <spirit:internalPortReference spirit:componentRef="axi_iic_eeprom_0" spirit:portRef="s_axi_aresetn"/>
         <spirit:internalPortReference spirit:componentRef="axi_interconnect_0" spirit:portRef="M02_ARESETN"/>
         <spirit:internalPortReference spirit:componentRef="axi_interconnect_0" spirit:portRef="M03_ARESETN"/>
@@ -1136,7 +1130,13 @@
         <spirit:internalPortReference spirit:componentRef="axi_interconnect_0" spirit:portRef="M11_ARESETN"/>
         <spirit:internalPortReference spirit:componentRef="elm" spirit:portRef="S00_ARESETN_0"/>
         <spirit:internalPortReference spirit:componentRef="JTAG" spirit:portRef="s_axi_aresetn"/>
+        <spirit:internalPortReference spirit:componentRef="ad7689_s_0" spirit:portRef="s_axi_aresetn"/>
+        <spirit:internalPortReference spirit:componentRef="ad7689_s_1" spirit:portRef="s_axi_aresetn"/>
+        <spirit:internalPortReference spirit:componentRef="axi_atca_led_ctrl" spirit:portRef="s_axi_aresetn"/>
+        <spirit:internalPortReference spirit:componentRef="axi_user_led_ctrl" spirit:portRef="s_axi_aresetn"/>
+        <spirit:internalPortReference spirit:componentRef="ipmi_sensor_proc_0" spirit:portRef="s_axi_aresetn"/>
         <spirit:internalPortReference spirit:componentRef="mgmt_zone_ctrl_0" spirit:portRef="s_axi_aresetn"/>
+        <spirit:internalPortReference spirit:componentRef="sensor_serializer_0" spirit:portRef="rstn"/>
       </spirit:adHocConnection>
       <spirit:adHocConnection>
         <spirit:name>esm_dout</spirit:name>

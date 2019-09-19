@@ -1,7 +1,7 @@
 --Copyright 1986-2018 Xilinx, Inc. All Rights Reserved.
 ----------------------------------------------------------------------------------
 --Tool Version: Vivado v.2018.2 (lin64) Build 2258646 Thu Jun 14 20:02:38 MDT 2018
---Date        : Wed Jul 31 22:12:19 2019
+--Date        : Wed Sep 18 23:32:53 2019
 --Host        : beck.hep.wisc.edu running 64-bit CentOS Linux release 7.6.1810 (Core)
 --Command     : generate_target ipmc_bd_wrapper.bd
 --Design      : ipmc_bd_wrapper
@@ -100,6 +100,9 @@ architecture STRUCTURE of ipmc_bd_wrapper is
     EEPROM_I2C_sda_i : in STD_LOGIC;
     EEPROM_I2C_sda_o : out STD_LOGIC;
     EEPROM_I2C_sda_t : out STD_LOGIC;
+    PWREN_tri_o : out STD_LOGIC_VECTOR ( 6 downto 0 );
+    PWREN_tri_t : out STD_LOGIC_VECTOR ( 6 downto 0 );
+    PWREN_tri_i : in STD_LOGIC_VECTOR ( 6 downto 0 );
     PL_LEDS : out STD_LOGIC_VECTOR ( 1 downto 0 );
     ATCA_LEDS : out STD_LOGIC_VECTOR ( 3 downto 0 );
     HNDL_SW : in STD_LOGIC;
@@ -131,10 +134,7 @@ architecture STRUCTURE of ipmc_bd_wrapper is
     ESM_FLASH_SPI_sck_t : out STD_LOGIC;
     ESM_FLASH_SPI_ss_i : in STD_LOGIC_VECTOR ( 0 to 0 );
     ESM_FLASH_SPI_ss_o : out STD_LOGIC_VECTOR ( 0 to 0 );
-    ESM_FLASH_SPI_ss_t : out STD_LOGIC;
-    PWREN_tri_o : out STD_LOGIC_VECTOR ( 6 downto 0 );
-    PWREN_tri_t : out STD_LOGIC_VECTOR ( 6 downto 0 );
-    PWREN_tri_i : in STD_LOGIC_VECTOR ( 6 downto 0 )
+    ESM_FLASH_SPI_ss_t : out STD_LOGIC
   );
   end component ipmc_bd;
   component IOBUF is
