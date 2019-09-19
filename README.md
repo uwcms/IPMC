@@ -1,30 +1,28 @@
-# ZYNQ-IPMC - Open-source IPMC hardware and software framework
-University of Wisconsin IPMC
+# ZYNQ-IPMC
 
-<!-- TOC depthFrom:1 depthTo:6 withLinks:1 updateOnSave:1 orderedList:0 -->
+An open-source IPMC hardware and software framework developed by the University of Wisconsin-Madison intended to be used as an IPMI controller in ATCA blades. More detailed information and documentation at the [WIKI](https://github.com/uwcms/IPMC/wiki).
 
-- [ZYNQ-IPMC - Open-source IPMC hardware and software framework](#zynq-ipmc-open-source-ipmc-hardware-and-software-framework)
-	- [Instructions for a clean checkout and SDK](#instructions-for-a-clean-checkout-and-sdk)
-	- [Xilinx Virtual Cable (XVC)](#xilinx-virtual-cable-xvc)
-	- [Programming](#programming)
-		- [Generating BOOT.bin files](#generating-bootbin-files)
-		- [Using FTP](#using-ftp)
-		- [Using Serial Console](#using-serial-console)
+For information about the hardware check its [dedicated repository here](https://github.com/uwcms/ZYNQ-IPMC-HW).
 
-<!-- /TOC -->
+# Getting started
 
-## Instructions for a clean checkout and SDK
-1. git clone git@github.com:uwcms/IPMC.git
-2. Open the Vivado 2017.2 project (vivado Vivado/ipmc_zynq_vivado.xpr)
-3. (optional) Generate Bitstream
-4. (if bitstream generated) File -> Export -> Export Hardware (include bitstream checked)
-5. File -> Launch SDK (accept defaults, click OK)
-6. In SDK, File -> Import -> General -> Existing Projects into Workspace -> Browse (should be the IPMC .sdk folder by default). Click Finish.
+## Prerequirements
+
+- Linux (likely to work on Windows with Cygwin).
+- Xilinx Vivado 2018.2 with XSDK installed.
+
+## Clean checkout
+1. ```git clone --recursive git@github.com:uwcms/IPMC.git```
+2. Open the project: ```vivado Vivado/ipmc_zynq_vivado.xpr```.
+3. (optional) Generate Bitstream if it doesn't exist.
+4. (if bitstream generated) ```File``` -> ```Export``` -> ```Export Hardware``` (include bitstream checked).
+5. Lunch XSDK from Vivado: ```File``` -> ```Launch SDK``` (accept defaults, click OK).
+6. In XSDK, go to ```File``` -> ```Import``` -> ```General``` -> ```Existing Projects into Workspace``` -> ```Browse``` (should be the IPMC .sdk folder by default). Click ```Finish```.
 
 Compilation of all projects should start automatically.
-In case of issue, regenerate BSP files by right click on ipmc_standalone_bsp -> Re-generate BSP Sources.
+In case of issue, regenerate BSP files by right-clicking on ```ipmc_standalone_bsp``` -> ```Re-generate BSP Sources```.
 
-## Xilinx Virtual Cable (XVC)
+## Using Xilinx Virtual Cable (XVC)
 An XVC end-point is always running on the IPMC and is accessible by Ethernet. An host computer will then need to host the Hardware Server which is used to bridge from XVC to Vivado. An Hardware can connect to several XVC end-point and dongles.
 
 First make sure the IPMC is reachable from the machine that will host the Hardware Server, normally the same machine where Vivado is running for convenience. ```network.status``` can be used on the IPMC to check the current IP which can the be used with ```ping```.
@@ -88,3 +86,19 @@ The time that the serial console will be waiting for data will depend on the tot
 The upload is started by doing ```Ctrl+A``` followed by ```]``` on the ```screen``` session. No feedback will be provided but the IPMC will automatically reply after all bytes are read or when the total time allowed is reached.
 
 The upload status will be reported accordingly.
+
+# Contributing
+
+No information added.
+
+# Credits
+
+- Marcelo Vicente (marcelo.vicente __AT__ cern.ch) ```[Maintainer]```
+- Jesra Tikalsky (jtikalsky __AT__ hep.wisc.edu) ```[Maintainer]```
+- Ales Svetek (ales.svetek __AT__ cern.ch)
+- Tom Gorski (tgorski __AT__ hep.wisc.edu)
+
+# License
+The ZYNQ-IPMC Framework is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+
+The ZYNQ-IPMC Framework is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
