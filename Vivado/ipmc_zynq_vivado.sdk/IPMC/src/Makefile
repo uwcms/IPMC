@@ -4,7 +4,7 @@ endif
 
 export GIT_SHORT    := $(shell git rev-parse --short HEAD)
 export GIT_LONG     := $(shell git rev-parse HEAD)
-export GIT_DESCRIBE := $(shell git describe --tags 2>/dev/null || git rev-parse --short HEAD)
+export GIT_DESCRIBE := $(shell git describe --always --match='*-v*.*.*' 2>/dev/null)
 export GIT_BRANCH   := $(shell git rev-parse --abbrev-ref HEAD)
 export GIT_DIRTY    := $(shell git diff-index --quiet HEAD || echo 'dirty')
 export GIT_STATUS   := "$(shell git status --porcelain | perl -pe 's/\n/\\n/g;s/"/\\"/g;s/'\''/'\'\\\'\''/g')"
