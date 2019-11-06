@@ -10,16 +10,14 @@ debug:
 	rm -f version.txt
 	@echo Use flash_upload.sh or regular FTP to upload the generated .bin to target IPMC.
 
+package: IMAGE_ID := ZYNQ-IPMC-$(shell date +%Y%m%dT%H%M%S)-$(shell git describe --always --match='*-v*.*.*' 2>/dev/null)
 package: debug
-	tar -cjvf ZYNQ-IPMC-$(shell date +%Y%m%dT%H%M%S)-$(shell git describe --always --match='*-v*.*.*' 2>/dev/null).tbz2 bootimages/BOOT.bin IPMC/src/bin
+	rm -rf ZYNQ-IPMC-*-*-v*.*.*
+	mkdir $(IMAGE_ID)
+	cp bootimages/BOOT.bin $(IMAGE_ID)/
+	cp IPMC/src/bin/Debug/IPMC.elf $(IMAGE_ID)/
+	tar -cjvf $(IMAGE_ID).tbz2 $(IMAGE_ID)
 
 clean:
-	rm -r bootimages
-	rm -f ZYNQ-IPMC-*.tbz2                                                                                                                                
-
-
-check-env:
-ifndef XILINX_VIVADO
-   $(error Vivado is not sourced or undefined)
-endif
-
+	rm -rf bootimages
+	rm -rf ZYNQ-IPMC-*-*-v*.*.*
