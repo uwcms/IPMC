@@ -613,7 +613,7 @@ int main(void)
 	}
 
 	/* Revision adjustments */
-	if (revision == 0) {
+	if (revision == 0 || QspiFlashSize <= FLASH_SIZE_128M) {
 		targetRecord = 0; /* QSPI in revA is only 16MB, only one image supported */
 	}
 
@@ -621,39 +621,43 @@ int main(void)
 
 	fsbl_printf(DEBUG_INFO,"Will attempt to boot image %d (%s)\r\n", targetImage, imageNames[targetImage]);
 
-	/* Check if we are on the correct partition */
-	if (ReadBankSelect(&BankSel) != XST_SUCCESS) {
-		fsbl_printf(DEBUG_GENERAL,"Failed to read current flash partition\r\n");
-	}
-	fsbl_printf(DEBUG_INFO,"Current selected flash partition is %d\r\n", BankSel);
+	if (QspiFlashSize > FLASH_SIZE_128M) {
+		/* Perform flash bank operations only on flash chips that are large enough for banks. */
 
-	if (BankSel != targetImage) {
-		/* Partition swap will be required, check if it is a valid image before continuing */
-		if (verify_image(targetImage) == XST_SUCCESS) {
-			/* Image is valid, select image and reboot */
-			SendBankSelect(targetImage);
-			FsblFallback();
-		} else {
-			/* Image is not valid */
-			if (is_test_image(targetRecord)) {
-				fsbl_printf(DEBUG_GENERAL,"Desired image %d (%s) seems corrupt, booting regular image instead.\r\n", targetImage, imageNames[targetImage]);
-				targetRecord = get_eeprom_boot_record(); // Use the EEPROM target image here instead
-				targetImage = get_regular_boot_target(targetRecord);
-				if (verify_image(targetImage) == XST_SUCCESS) {
-					SendBankSelect(targetImage);
-					set_bootreg_tag(TRUE, FALSE, targetImage);
-					FsblFallback();
+		/* Check if we are on the correct partition */
+		if (ReadBankSelect(&BankSel) != XST_SUCCESS) {
+			fsbl_printf(DEBUG_GENERAL,"Failed to read current flash partition\r\n");
+		}
+		fsbl_printf(DEBUG_INFO,"Current selected flash partition is %d\r\n", BankSel);
+
+		if (BankSel != targetImage) {
+			/* Partition swap will be required, check if it is a valid image before continuing */
+			if (verify_image(targetImage) == XST_SUCCESS) {
+				/* Image is valid, select image and reboot */
+				SendBankSelect(targetImage);
+				FsblFallback();
+			} else {
+				/* Image is not valid */
+				if (is_test_image(targetRecord)) {
+					fsbl_printf(DEBUG_GENERAL,"Desired image %d (%s) seems corrupt, booting regular image instead.\r\n", targetImage, imageNames[targetImage]);
+					targetRecord = get_eeprom_boot_record(); // Use the EEPROM target image here instead
+					targetImage = get_regular_boot_target(targetRecord);
+					if (verify_image(targetImage) == XST_SUCCESS) {
+						SendBankSelect(targetImage);
+						set_bootreg_tag(TRUE, FALSE, targetImage);
+						FsblFallback();
+					} else {
+						fsbl_printf(DEBUG_GENERAL,"Regular image %d (%s) seems corrupt, booting fallback instead.\r\n", targetImage, imageNames[targetImage]);
+						SendBankSelect(0);
+						set_bootreg_tag(TRUE, FALSE, 0);
+						FsblFallback();
+					}
 				} else {
-					fsbl_printf(DEBUG_GENERAL,"Regular image %d (%s) seems corrupt, booting fallback instead.\r\n", targetImage, imageNames[targetImage]);
+					fsbl_printf(DEBUG_GENERAL,"Desired image %d (%s) seems corrupt, booting fallback instead.\r\n", targetImage, imageNames[targetImage]);
 					SendBankSelect(0);
 					set_bootreg_tag(TRUE, FALSE, 0);
 					FsblFallback();
 				}
-			} else {
-				fsbl_printf(DEBUG_GENERAL,"Desired image %d (%s) seems corrupt, booting fallback instead.\r\n", targetImage, imageNames[targetImage]);
-				SendBankSelect(0);
-				set_bootreg_tag(TRUE, FALSE, 0);
-				FsblFallback();
 			}
 		}
 	}
