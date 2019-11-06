@@ -31,3 +31,6 @@ libxilffs.a
 
 # Don't include bootimages
 bootimages/
+
+version.txt
+ZYNQ-IPMC-*.tbz2
