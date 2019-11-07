@@ -110,7 +110,7 @@ std::vector<uint8_t> LinkDescriptor::lookup_oem_LinkType_guid(uint8_t LinkType) 
 }
 
 PayloadManager::PayloadManager(MStateMachine *mstate_machine, LogTree &log)
-	: mstate_machine(mstate_machine), log(log), sp_context_update_timer(nullptr) {
+	: mstate_machine(mstate_machine), log(log), logrepeat(log), sp_context_update_timer(nullptr) {
 	configASSERT(this->mutex = xSemaphoreCreateRecursiveMutex());
 
 	struct IPMILED::Action ledstate;
@@ -345,7 +345,7 @@ void PayloadManager::runSensorThread() {
 }
 
 void PayloadManager::processNonManagedADCSensor(std::pair<std::string, ADCSensor> sensor) {
-	this->log.log(std::string("Non-managed Sensor ") + sensor.second.name.c_str() + " has triggered a NR state but there is no handler defined.", LogTree::LOG_ERROR);
+	this->logrepeat.logUnique(std::string("Non-managed Sensor ") + sensor.second.name.c_str() + " is in a non-recoverable state but there is no handler defined.", LogTree::LOG_ERROR);
 }
 
 bool PayloadManager::isMZInContext(int mz) const {

@@ -205,6 +205,7 @@ protected:
 #endif
 	PowerProperties power_properties; ///< The current power properties.
 	LogTree &log; ///< The LogTree for this object's messages.
+	LogRepeatSuppressor logrepeat; ///< A LogRepeatSuppressor for this instance.
 	std::vector<LinkDescriptor> links; ///< All supported E-Keying links.
 
 	void finishConfig();
