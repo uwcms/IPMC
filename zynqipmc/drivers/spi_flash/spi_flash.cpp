@@ -120,9 +120,11 @@ bool SPIFlash::write(uint32_t address, const uint8_t *buffer, size_t bytes) {
 		size_t sectorOffset = sector * sectorSize;
 		size_t sectorAddress = address + sectorOffset;
 		uint8_t *pdata = nullptr;
-		float progress = ((sector+1) * 1.0f) / (sectorCount * 1.0f) * 100.0f;
 
-		log.log(stdsprintf("(%.0f%%) Programming sector 0x%08x", progress, sectorAddress), LogTree::LOG_NOTICE);
+		if (sector+1 == sectorCount || (sectorAddress & 0x0000ffff) == 0) {
+			float progress = ((sector+1) * 1.0f) / (sectorCount * 1.0f) * 100.0f;
+			log.log(stdsprintf("(%.0f%%) Programming sector 0x%08x", progress, sectorAddress), LogTree::LOG_NOTICE);
+		}
 
 		if (!this->selectBank(bankFromAddress(sectorAddress))) return false;
 
