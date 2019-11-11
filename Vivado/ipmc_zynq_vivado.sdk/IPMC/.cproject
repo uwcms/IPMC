@@ -23,7 +23,7 @@
 								<option id="xilinx.gnu.both.asm.option.include.paths.1203761086" name="Include Paths (-I)" superClass="xilinx.gnu.both.asm.option.include.paths" valueType="includePath">
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/IPMC/src/common/FreeRTOS/include}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/IPMC/src/common/FreeRTOS/portable/GCC/ARM_CA9}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/IPMC/src/common/uw-ipmc}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/IPMC/src/common/zynqipmc}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/IPMC/src/config}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/IPMC/src/components}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/IPMC/src/common/lwIP/src/contrib/ports/xilinx/include}&quot;"/>
@@ -36,8 +36,7 @@
 									<listOptionValue builtIn="false" value="../../ipmc_standalone_bsp/ps7_cortexa9_0/include"/>
 									<listOptionValue builtIn="false" value="../../common/lwIP/src/contrib/ports/xilinx/include"/>
 									<listOptionValue builtIn="false" value="../../common/lwIP/src/lwip-1.4.1/src/include/ipv4"/>
-									<listOptionValue builtIn="false" value="../../common/uw-ipmc"/>
-									<listOptionValue builtIn="false" value="/home/jtikalsky/lib/include"/>
+									<listOptionValue builtIn="false" value="../../common/zynqipmc"/>
 								</option>
 								<inputType id="xilinx.gnu.assembler.input.1792204667" superClass="xilinx.gnu.assembler.input"/>
 							</tool>
@@ -55,6 +54,7 @@
 								<option id="xilinx.gnu.compiler.inferred.swplatform.includes.2140270495" name="Software Platform Include Path" superClass="xilinx.gnu.compiler.inferred.swplatform.includes" useByScannerDiscovery="false"/>
 								<option id="xilinx.gnu.compiler.misc.other.1786095451" name="Other flags" superClass="xilinx.gnu.compiler.misc.other" useByScannerDiscovery="false" value="-c -fmessage-length=0 -MT&quot;$@&quot; -mcpu=cortex-a9 -mfpu=vfpv3 -mfloat-abi=hard" valueType="string"/>
 								<option id="xilinx.gnu.compiler.dircategory.includes.343536745" name="Include Paths" superClass="xilinx.gnu.compiler.dircategory.includes" useByScannerDiscovery="false" valueType="includePath">
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/IPMC/src/common/zynqipmc}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/IPMC/src/config}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/IPMC/src/components}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/IPMC/src/common/lwIP/src/contrib/ports/xilinx/include}&quot;"/>
@@ -63,7 +63,6 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/IPMC/src/common/FreeRTOS/portable/GCC/ARM_CA9}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/IPMC/src/common/FreeRTOS/include}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ipmc_standalone_bsp/ps7_cortexa9_0/include}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/IPMC/src/common/zynqipmc}&quot;"/>
 								</option>
 								<option id="xilinx.gnu.compiler.symbols.defined.1533812871" name="Defined symbols (-D)" superClass="xilinx.gnu.compiler.symbols.defined" useByScannerDiscovery="false" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="XSDK_INDEXING=1"/>
@@ -198,14 +197,13 @@
 								<option id="xilinx.gnu.both.asm.option.include.paths.61491771" name="Include Paths (-I)" superClass="xilinx.gnu.both.asm.option.include.paths" valueType="includePath">
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/IPMC/src/common/FreeRTOS/include}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/IPMC/src/common/FreeRTOS/portable/GCC/ARM_CA9}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/IPMC/src/common/uw-ipmc}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/IPMC/src/common/zynqipmc}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/IPMC/src/config}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/IPMC/src/components}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/IPMC/src/common/lwIP/src/contrib/ports/xilinx/include}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/IPMC/src/common/lwIP/src/lwip-1.4.1/src/include/ipv4}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/IPMC/src/common/lwIP/src/lwip-1.4.1/src/include}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/ipmc_standalone_bsp/ps7_cortexa9_0/include}&quot;"/>
-									<listOptionValue builtIn="false" value="/home/jtikalsky/lib/include"/>
 								</option>
 								<inputType id="xilinx.gnu.assembler.input.1433052241" superClass="xilinx.gnu.assembler.input"/>
 							</tool>
