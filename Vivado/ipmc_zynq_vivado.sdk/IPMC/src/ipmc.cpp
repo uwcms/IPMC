@@ -121,6 +121,7 @@ TelnetServer *telnet		= nullptr;
 #include <core_commands/uptime.inc>
 #include <core_commands/version.inc>
 #include <core_commands/boottarget.inc>
+#include "common/zynqipmc/core_commands/image_tag_lock.inc"
 #include <core_commands/adc.inc>
 
 /**
@@ -133,14 +134,15 @@ static void registerConsoleCommands(CommandParser &parser) {
 	console_command_parser.registerCommand("date", std::make_shared<CoreCommands::DateCommand>());
 	console_command_parser.registerCommand("version", std::make_shared<CoreCommands::VersionCommand>());
 	console_command_parser.registerCommand("ps", std::make_shared<CoreCommands::PsCommand>());
-	console_command_parser.registerCommand("restart", std::make_shared<CoreCommands::RestartCommand>());
+	console_command_parser.registerCommand("restart", std::make_shared<CoreCommands::RestartCommand>(*boot_config));
 	console_command_parser.registerCommand("flash.info", std::make_shared<CoreCommands::FlashInfoCommand>(*qspiflash));
-	console_command_parser.registerCommand("flash.verify", std::make_shared<CoreCommands::FlashVerifyCommand>(*qspiflash));
+	console_command_parser.registerCommand("flash.verify", std::make_shared<CoreCommands::FlashVerifyCommand>(*qspiflash, *boot_config));
 	console_command_parser.registerCommand("setauth", std::make_shared<CoreCommands::SetAuthCommand>());
 	if (IPMC_SERIAL == 0 || IPMC_SERIAL == 0xFFFF) // The serial is settable only if unset.  This implements lock on write (+reboot).
 		console_command_parser.registerCommand("set_serial", std::make_shared<CoreCommands::SetSerialCommand>());
 	console_command_parser.registerCommand("upload", std::make_shared<CoreCommands::UploadCommand>());
-	console_command_parser.registerCommand("boottarget", std::make_shared<CoreCommands::BootTargetCommand>(eeprom_mac));
+	console_command_parser.registerCommand("boottarget", std::make_shared<CoreCommands::BootTargetCommand>(*qspiflash, *boot_config));
+	console_command_parser.registerCommand("image_tag_lock", std::make_shared<CoreCommands::ImageTagLockCommand>(*boot_config));
 	console_command_parser.registerCommand("adc", std::make_shared<CoreCommands::AdcCommand>());
 	StatCounter::registerConsoleCommands(parser);
 }

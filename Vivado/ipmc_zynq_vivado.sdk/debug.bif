@@ -4,5 +4,5 @@ the_ROM_image:
 	[bootloader]fsbl/Debug/fsbl.elf
 	[checksum = md5]ipmc_bd_wrapper_hw_platform_0/ipmc_bd_wrapper.bit
 	[checksum = md5]IPMC/src/bin/Debug/IPMC.elf
-	[checksum = md5]version.txt
+	[checksum = md5]version.json
 }

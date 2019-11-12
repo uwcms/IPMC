@@ -2,20 +2,13 @@ ifeq (x$(BUILD_CONFIGURATION),x)
 $(error Please specify a BUILD_CONFIGURATION)
 endif
 
-export GIT_SHORT    := $(shell git rev-parse --short HEAD)
-export GIT_LONG     := $(shell git rev-parse HEAD)
-export GIT_DESCRIBE := $(shell git describe --always --match='*-v*.*.*' 2>/dev/null)
-export GIT_BRANCH   := $(shell git rev-parse --abbrev-ref HEAD)
-export GIT_DIRTY    := $(shell git diff-index --quiet HEAD || echo 'dirty')
-export GIT_STATUS   := "$(shell git status --porcelain | perl -pe 's/\n/\\n/g;s/"/\\"/g;s/'\''/'\'\\\'\''/g')"
-export BUILD_DATE   := $(shell date)
-export BUILD_HOST   := $(shell getent passwd `id -u` | cut -d: -f1)@$(shell hostname --fqdn)
+export GIT_DIRTY        := $(shell git diff-index --quiet HEAD || echo 'dirty')
+export PROJECT_ROOT     := $(realpath ..)
+export PROJECT_NAME     := $(notdir $(PROJECT_ROOT))
 export BUILD_CONFIGURATION
-export PROJECT_ROOT := $(realpath ..)
-export PROJECT_NAME := $(notdir $(PROJECT_ROOT))
 
 export CC := arm-none-eabi-gcc
-export CXX := arm-none-eabi-g++ 
+export CXX := arm-none-eabi-g++
 export OBJCOPY := arm-none-eabi-objcopy
 
 export WORKSPACE ?= ../..
@@ -77,7 +70,7 @@ export CFLAGS = \
 	-D _BSD_SOURCE \
 	-D INCLUDE_DRIVER_COMMAND_SUPPORT \
 
-# -MT"$@" 
+# -MT"$@"
 
 export CXXFLAGS = \
 	-std=c++11 \
@@ -111,10 +104,10 @@ pre-build: .dep/.lwip-patch
 
 build: pre-build bin/$(BUILD_CONFIGURATION)/IPMC.elf
 
-bin/$(BUILD_CONFIGURATION)/IPMC.elf: $(OBJS) | pre-build 
+bin/$(BUILD_CONFIGURATION)/IPMC.elf: $(OBJS) | pre-build
 	@mkdir -p "$(dir $@)"
 	$(CXX) $(CFLAGS) $(LDFLAGS) $(INCLUDE_PATHS) $(LIBRARY_PATHS) -o "$@" $^ $(LIBS)
-	echo "Version $$GIT_DESCRIBE ($$GIT_SHORT), built in $$BUILD_CONFIGURATION mode by $$BUILD_HOST at $$BUILD_DATE" | $(OBJCOPY) --add-section .versiondata=/dev/stdin --set-section-flags .versiondata=noload,readonly "$@"
+	$(OBJCOPY) --add-section .versiondata=/dev/stdin --set-section-flags .versiondata=noload,readonly "$@" < .obj/$(BUILD_CONFIGURATION)/common/zynqipmc/misc/version.json
 	arm-none-eabi-size "$@" | tee "$@.size"
 
 .obj/$(BUILD_CONFIGURATION)/%.o: %.c | pre-build
@@ -133,19 +126,18 @@ else
 	$(CXX) -c $(CFLAGS) $(WARNING_FLAGS) $(CXXFLAGS) $(LDFLAGS) $(INCLUDE_PATHS) $(LIBRARY_PATHS) -o "$@" "$<" $(LIBS)
 endif
 
-.obj/$(BUILD_CONFIGURATION)/common/zynqipmc/misc/version.o: common/zynqipmc/misc/version.cpp | pre-build
+.obj/$(BUILD_CONFIGURATION)/common/zynqipmc/misc/version.json:
 	@mkdir -p "$(dir $@)" "$(dir $(patsubst .obj/$(BUILD_CONFIGURATION)/%,.dep/$(BUILD_CONFIGURATION)/%,$@))"
-	$(CXX) -c $(CFLAGS) $(WARNING_FLAGS) $(CXXFLAGS) $(LDFLAGS) $(INCLUDE_PATHS) $(LIBRARY_PATHS) \
-		-DD_GIT_SHORT_INT="0x$(GIT_SHORT)" \
-		-DD_GIT_SHORT="\"$(GIT_SHORT)\"" \
-		-DD_GIT_LONG="\"$(GIT_LONG)\"" \
-		-DD_GIT_DESCRIBE="\"$(GIT_DESCRIBE)\"" \
-		-DD_GIT_BRANCH="\"$(GIT_BRANCH)\"" \
-		-DD_GIT_STATUS="$$GIT_STATUS" \
-		-DD_COMPILE_DATE="\"$(BUILD_DATE)\"" \
-		-DD_COMPILE_HOST="\"$(BUILD_HOST)\"" \
-		-DD_BUILD_CONFIGURATION="\"$(BUILD_CONFIGURATION)\"" \
-		-o "$@" "$<" $(LIBS)
+	common/zynqipmc/misc/gen_version.py > "$@"
+.PHONY: .obj/$(BUILD_CONFIGURATION)/common/zynqipmc/misc/version.json
+
+.obj/$(BUILD_CONFIGURATION)/common/zynqipmc/misc/version.json.cstr: .obj/$(BUILD_CONFIGURATION)/common/zynqipmc/misc/version.json
+	@mkdir -p "$(dir $@)" "$(dir $(patsubst .obj/$(BUILD_CONFIGURATION)/%,.dep/$(BUILD_CONFIGURATION)/%,$@))"
+	cat "$<" | sed -re 's/\\/\\\\/g;s/"/\\"/g;s/(.*)/"\1"/' > "$@"
+
+.obj/$(BUILD_CONFIGURATION)/common/zynqipmc/misc/version.o: common/zynqipmc/misc/version.cpp .obj/$(BUILD_CONFIGURATION)/common/zynqipmc/misc/version.json.cstr | pre-build
+	@mkdir -p "$(dir $@)" "$(dir $(patsubst .obj/$(BUILD_CONFIGURATION)/%,.dep/$(BUILD_CONFIGURATION)/%,$@))"
+	$(CXX) -c $(CFLAGS) $(WARNING_FLAGS) $(CXXFLAGS) $(LDFLAGS) $(INCLUDE_PATHS) $(LIBRARY_PATHS) -DVERSION_INFO_STR="$$(cat .obj/$(BUILD_CONFIGURATION)/common/zynqipmc/misc/version.json.cstr)" -o "$@" "$<" $(LIBS)
 .PHONY: .obj/$(BUILD_CONFIGURATION)/common/zynqipmc/misc/version.o
 
 .obj/$(BUILD_CONFIGURATION)/%.o: %.cpp | pre-build

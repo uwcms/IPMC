@@ -32,5 +32,8 @@ libxilffs.a
 # Don't include bootimages
 bootimages/
 
-/version.txt
+/version.json
 /ZYNQ-IPMC-*-*-v*.*.*
+
+# Ignore core files.
+core

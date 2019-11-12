@@ -4,13 +4,15 @@ all: debug
 
 debug:
 	mkdir -p bootimages
-	rm -f version.txt
-	arm-none-eabi-objcopy -O binary --dump-section=.versiondata=/dev/stdout IPMC/src/bin/Debug/IPMC.elf /dev/null | tee version.txt
-	bootgen -w -image debug.bif -arch zynq -o bootimages/BOOT.bin 
-	rm -f version.txt
+	rm -f version.json
+	arm-none-eabi-objcopy -O binary --dump-section=.versiondata=/dev/stdout IPMC/src/bin/Debug/IPMC.elf /dev/null | tee version.json | jq -r '.summary'
+	bootgen -w -image debug.bif -arch zynq -o bootimages/BOOT.bin
+	rm -f version.json
 	@echo Use flash_upload.sh or regular FTP to upload the generated .bin to target IPMC.
 
-package: IMAGE_ID := ZYNQ-IPMC-$(shell date +%Y%m%dT%H%M%S)-$(shell git describe --always --match='*-v*.*.*' 2>/dev/null)
+MACHINE_DATE := $(shell arm-none-eabi-objcopy -O binary --dump-section=.versiondata=/dev/stdout IPMC/src/bin/Debug/IPMC.elf /dev/null | jq -r '.build.machine_date')
+GIT_DESCRIBE := $(shell arm-none-eabi-objcopy -O binary --dump-section=.versiondata=/dev/stdout IPMC/src/bin/Debug/IPMC.elf /dev/null | jq -r '.git.describe')
+package: IMAGE_ID := ZYNQ-IPMC-$(shell date -d '$(MACHINE_DATE)' +%Y%m%dT%H%M%S)-$(GIT_DESCRIBE)
 package: debug
 	rm -rf ZYNQ-IPMC-*-*-v*.*.*
 	mkdir $(IMAGE_ID)
