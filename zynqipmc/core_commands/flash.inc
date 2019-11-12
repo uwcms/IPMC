@@ -20,15 +20,16 @@ namespace CoreCommands {
 /// A "flash.verify" console command.
 class FlashVerifyCommand : public CommandParser::Command {
 public:
-	FlashVerifyCommand(Flash &flash) : flash(flash) {};
+	FlashVerifyCommand(Flash &flash, BootConfig &bootconf) : flash(flash), bootconf(bootconf) {};
 
 	virtual std::string getHelpText(const std::string &command) const {
 		return stdsprintf(
-				"%s $partition\n\n"
+				"%s [$partition]\n\n"
 				"Check if an image in the QSPI flash is valid.\n"
-				"Allowed partitions are:\n"
-				" IPMC revA: A\n"
-				" IPMC revB: fallback, A, B, test\n", command.c_str());
+				"Allowable partition values:\n"
+				" IPMC revA: [value ignored]\n"
+				" IPMC revB: fallback, primary, backup, test\n", command.c_str());
+		// We are specifically leaving imageA and imageB undocumented.
 	}
 
 	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
@@ -38,19 +39,18 @@ public:
 		if (!flash.isInitialized()) flash.initialize();
 
 		if (flash.getTotalSize() == (16 MB)) {
-			if (!parameters.parameters[1].compare("A")) {
-				address = 0;
-			} else {
-				console->write("IPMC revA only has image A, see help.\n");
-				return;
-			}
+			address = 0;
 		} else {
 			if (!parameters.parameters[1].compare("fallback")) {
 				address = 0;
-			} else if (!parameters.parameters[1].compare("A")) {
+			} else if (!parameters.parameters[1].compare("imageA")) {
 				address = 16 MB;
-			} else if (!parameters.parameters[1].compare("B")) {
+			} else if (!parameters.parameters[1].compare("imageB")) {
 				address = 32 MB;
+			} else if (!parameters.parameters[1].compare("primary")) {
+				address = this->bootconf.mapLogicalToPhysicalBootTarget(BootConfig::LBT_PRIMARY) * 16 MB;
+			} else if (!parameters.parameters[1].compare("backup")) {
+				address = this->bootconf.mapLogicalToPhysicalBootTarget(BootConfig::LBT_BACKUP) * 16 MB;
 			} else if (!parameters.parameters[1].compare("test")) {
 				address = 48 MB;
 			} else {
@@ -61,20 +61,23 @@ public:
 
 		std::unique_ptr<uint8_t> buf = std::unique_ptr<uint8_t>(new uint8_t[16 MB]);
 
-		qspiflash->read(address, &*buf, 16 MB);
+		this->flash.read(address, &*buf, 16 MB);
 
-		BootFileValidationReturn r = validateBootFile(&*buf, 16 MB);
-
-		if (r == 0) {
-			console->write("QSPI image is VALID\n", r);
+		std::string message;
+		std::shared_ptr<const VersionInfo> bin_version = NULL;
+		BootFileValidationReturn r = validateBootFile(&*buf, 16 MB, message, bin_version, &this->bootconf);
+		if (r != 0) {
+			console->write(stdsprintf("QSPI image INVALID: %s\n", message.c_str()));
 		} else {
-			console->write(stdsprintf("QSPI image is INVALID (reason: %s)\n", getBootFileValidationErrorString(r)));
+			console->write(stdsprintf("QSPI image VALID: %s\n", message.c_str()));
 		}
+
 #undef MB
 	}
 
 private:
 	Flash &flash;
+	BootConfig &bootconf;
 };
 
 /// A "flash.info" console command.

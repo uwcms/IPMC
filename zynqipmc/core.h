@@ -79,6 +79,9 @@ extern uint8_t IPMC_HW_REVISION;
 extern uint16_t IPMC_SERIAL;
 extern uint8_t IMAGE_LOADED;
 
+class BootConfig;
+extern BootConfig *boot_config;
+
 extern IPMBSvc *ipmb0;
 extern IPMBSvc::EventReceiver ipmi_event_receiver;
 

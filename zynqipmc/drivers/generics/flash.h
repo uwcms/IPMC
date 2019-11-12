@@ -19,7 +19,12 @@
 #define SRC_COMMON_ZYNQIPMC_DRIVERS_GENERICS_FLASH_H_
 
 #include <libs/vfs/vfs.h>
+#include <libs/logtree/logtree.h>
+#include <libs/printf.h>
+#include <libs/xilinx_image/xilinx_image.h>
+#include <libs/bootconfig/bootconfig.h>
 #include <stdint.h>
+extern LogTree LOG; // We can't include <core.h> here, because it will create a loop since core.h requires class Flash.
 
 /**
  * Abstract flash interface.
@@ -87,29 +92,68 @@ public:
 	/**
 	 * Generates an VFS file linked to the Flash that can be added to the
 	 * virtual file system, allowing flash programming via ethernet or console.
-	 * @param address Start address in the flash.
-	 * @param bytes Number of bytes to associate with virtual file.
+	 *
+	 * The address is determined by a logical boot target specifier, mapped to
+	 * a physical partition using the specified partition size and the BootConfig
+	 * mapping functions.
+	 *
+	 * @param bootconf The BootConfig instance handling mapping.
+	 * @param lbt The logical boot target specifier.
+	 * @param bytes Number of bytes per partition.
 	 * @return VFS::File that can be used with VFS::addFile.
 	 * @throw std::runtime_error if address and size checks fail.
 	 */
-	VFS::File createFlashFile(size_t address, size_t bytes, std::function<void(Flash*)> finish_cb = nullptr) {
+	VFS::File createBootImageFile(BootConfig &bootconf, enum BootConfig::LogicalBootTarget lbt, size_t bytes, std::function<void(Flash*)> finish_cb = nullptr) {
 		if (bytes == 0) throw std::runtime_error("Flash size cannot be zero");
 		if (!this->initialized) throw std::runtime_error("Flash device is not initialized");
-		if ((address % 256) != 0) throw std::runtime_error("Start address is not page aligned");
-		if (address + bytes > this->getTotalSize()) throw std::runtime_error("File size exceeds flash total size");
+		if ((bytes % 256) != 0) throw std::runtime_error("Start address is not page aligned");
+		if ((lbt+1) * bytes > this->getTotalSize()) throw std::runtime_error("File size exceeds flash total size");
 
 		return VFS::File(
-			[this, address, bytes, finish_cb](uint8_t *buffer, size_t size) -> size_t {
+			[this, &bootconf, lbt, bytes, finish_cb](uint8_t *buffer, size_t size) -> size_t {
 				// Read
 				if (size > bytes) return 0; // Read request too large
-				if (!this->read(address, buffer, size)) return 0; // Failed to read
+				if (!this->read(bootconf.mapLogicalToPhysicalBootTarget(lbt) * size, buffer, size)) return 0; // Failed to read
 				if (finish_cb) finish_cb(this);
 				return size;
 			},
-			[this, address, bytes, finish_cb](uint8_t *buffer, size_t size) -> size_t {
+			[this, &bootconf, lbt, bytes, finish_cb](uint8_t *buffer, size_t size) -> size_t {
 				// Write
 				if (size > bytes) return 0; // Write request too large
-				if (!this->write(address, buffer, size)) return 0; // Failed to write
+
+				if (lbt == BootConfig::LBT_BACKUP)
+					throw std::runtime_error("You cannot modify the backup image, use update.bin to upgrade.");
+
+				enum BootConfig::PhysicalBootTarget pbt = bootconf.mapLogicalToPhysicalBootTarget(lbt);
+				// If we're looking at an A/B partition, we're writing to the OTHER one.  We'll switch later.
+				if (pbt == BootConfig::PBT_A)
+					pbt = BootConfig::PBT_B;
+				else if (pbt == BootConfig::PBT_B)
+					pbt = BootConfig::PBT_A;
+
+				std::string message;
+				std::shared_ptr<const VersionInfo> bin_version = NULL;
+				BootFileValidationReturn r = validateBootFile(buffer, size, message, bin_version, &bootconf);
+				if (r != 0) {
+					LOG["flash_upgrade"].log(stdsprintf("Uploaded QSPI image is INVALID: %s", message.c_str()), LogTree::LOG_CRITICAL);
+					// The FTP server will convert this to a 450 error.
+					throw std::runtime_error(stdsprintf("Uploaded QSPI image is INVALID: %s", message.c_str()));
+				} else {
+					LOG["flash_upgrade"].log(stdsprintf("Uploaded QSPI image is VALID: %s", message.c_str()), LogTree::LOG_NOTICE);
+				}
+				if (!this->write(pbt * bytes, buffer, size)) return 0; // Failed to write
+				LOG["flash_upgrade"].log("Flash upgrade complete.", LogTree::LOG_NOTICE);
+
+				if (lbt == BootConfig::LBT_PRIMARY) {
+					// We're doing A/B update.  Switch over.
+					bootconf.switchPrimaryImage();
+					bootconf.flushBootTarget();
+					LOG["flash_upgrade"].log("Updated primary boot image.", LogTree::LOG_NOTICE);
+					if (bootconf.getCarrierLock() == "?" && bin_version->version.tag != "fallback") {
+						bootconf.setCarrierLock(bin_version->version.tag);
+						LOG["flash_upgrade"].log(stdsprintf("Set uninitialized carrier lock to \"%s\". Change it with the carrier_lock command.", bin_version->version.tag.c_str()), LogTree::LOG_NOTICE);
+					}
+				}
 				if (finish_cb) finish_cb(this);
 				return size;
 			}, bytes);

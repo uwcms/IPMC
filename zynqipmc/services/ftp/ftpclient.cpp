@@ -199,12 +199,17 @@ state(FTP_ST_LOGIN_USER), mode(FTP_MODE_PASSIVE), curpath("/"), curfile(""), buf
 
 					VFS::File* file = VFS::getFileFromPath(this->curfile);
 
-					if (file && file->write &&
-						(file->write(this->buffer.ptr.get(), this->buffer.len) != this->buffer.len)) {
-						// Fail to apply file
-						this->socket->send(buildReply(450, "Unable to fully write file")); // Failed
-					} else {
-						this->socket->send(buildReply(250)); // Okay
+					try {
+						if (file && file->write &&
+							(file->write(this->buffer.ptr.get(), this->buffer.len) != this->buffer.len)) {
+							// Fail to apply file
+							this->socket->send(buildReply(450, "Unable to fully write file")); // Failed
+						} else {
+							this->socket->send(buildReply(250)); // Okay
+						}
+					}
+					catch (std::exception &e) {
+						this->socket->send(buildReply(450, e.what())); // Failed
 					}
 
 					this->buffer.ptr = nullptr;
@@ -528,8 +533,14 @@ bool FTPClient::CommandRETR(FTPClient &client, char *cmd, char* filename) {
 	}
 
 	// Copy the file to memory
-	if (file->read(client.buffer.ptr.get(), file->size) != file->size) {
-		client.socket->send(buildReply(450, "Cannot read file."));
+	try {
+		if (file->read(client.buffer.ptr.get(), file->size) != file->size) {
+			client.socket->send(buildReply(450, "Cannot read file."));
+			return true;
+		}
+	}
+	catch (std::exception &e) {
+		client.socket->send(buildReply(450, e.what())); // Failed
 		return true;
 	}
 	client.buffer.len = file->size;

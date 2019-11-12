@@ -21,7 +21,10 @@
 #include <drivers/ps_gpio/ps_gpio.h>
 #include <drivers/ps_spi/ps_spi.h>
 #include <drivers/spi_flash/spi_flash.h>
+#include <libs/bootconfig/bootconfig.h>
 #include <libs/printf.h>
+#include <libs/xilinx_image/xilinx_image.h>
+#include <misc/version.h>
 #include <services/console/uartconsolesvc.h>
 #include <services/ipmi/commands/ipmicmd_index.h>
 #include <zynqipmc_config.h>
@@ -58,6 +61,8 @@ uint8_t mac_address[6];
 uint8_t IPMC_HW_REVISION = 0;
 uint16_t IPMC_SERIAL = 0xffff;
 uint8_t IMAGE_LOADED = 0;
+
+BootConfig *boot_config;
 
 IPMBSvc *ipmb0;
 IPMBSvc::EventReceiver ipmi_event_receiver;
@@ -121,22 +126,23 @@ __attribute__((weak)) std::string generateBanner() {
 	bannerstr += "\n";
 	bannerstr += std::string("ZYNQ-IPMC - Open-source IPMC hardware and software framework\n");
 	bannerstr += std::string("HW revision : rev") + (char)('A'+IPMC_HW_REVISION) + "\n";
-	bannerstr += std::string("SW revision : ") + GIT_DESCRIBE + " (" + GIT_BRANCH + ")\n";
+	const struct zynqpart zynq_part = zynqPartId();
+	bannerstr += std::string("ZYNQ part   : ") + zynq_part.part_name + "\n";
 	if ((IPMC_SERIAL != 0xffff) & (IPMC_SERIAL != 0)) {
 		bannerstr += std::string("HW serial   : ") + std::to_string(IPMC_SERIAL) + "\n";
 	} else {
 		bannerstr += std::string("HW serial   : unset\n");
 	}
-	bannerstr += std::string("Build date  : ") + COMPILE_DATE + "\n";
-	bannerstr += std::string("Build host  : ") + COMPILE_HOST + "\n";
-	bannerstr += std::string("Build conf  : ") + BUILD_CONFIGURATION + "\n";
+	std::shared_ptr<const VersionInfo> version = VersionInfo::get_running_version();
+	bannerstr += std::string("SW revision : ") + version->git.describe + "\n";
+	bannerstr += std::string("Build date  : ") + version->build.human_date + "\n";
+	bannerstr += std::string("Build host  : ") + version->build.user + "@" + version->build.host + "\n";
+	bannerstr += std::string("Build conf  : ") + version->build.configuration + "\n";
 	bannerstr += std::string("OS version  : FreeRTOS ") + tskKERNEL_VERSION_NUMBER + "\n";
 
-	const char* imageNames[] = {"fallback", "A", "B", "test"};
-	bannerstr += std::string("Flash image : ") + ((IMAGE_LOADED > 3)?"Unknown":imageNames[IMAGE_LOADED]) + " (" + std::to_string(IMAGE_LOADED) + ")\n";
+//	const char* imageNames[] = {"fallback", "A", "B", "test"};
+//	bannerstr += std::string("Flash image : ") + ((IMAGE_LOADED > 3)?"Unknown":imageNames[IMAGE_LOADED]) + " (" + std::to_string(IMAGE_LOADED) + ")\n";
 
-	if (GIT_STATUS[0] != '\0')
-		bannerstr += std::string("\n") + GIT_STATUS; // contains a trailing \n
 	bannerstr += "\n";
 	bannerstr += "********************************************************************************\n";
 	return bannerstr;
@@ -201,6 +207,7 @@ void core_driver_init() {
 	LOG["network"].log(stdsprintf("Our MAC address is %02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx",
 			mac_address[0], mac_address[1], mac_address[2], mac_address[3], mac_address[4], mac_address[5]), LogTree::LOG_NOTICE);
 	configASSERT(eeprom_mac->read(0, reinterpret_cast<uint8_t*>(&IPMC_SERIAL), sizeof(IPMC_SERIAL)));
+	boot_config = new BootConfig(*eeprom_mac, *persistent_storage);
 
 	// Retrieve the hardware revision number
 	PSGPIO gpio_hwrev(XPAR_PS7_GPIO_0_DEVICE_ID, {0}); // Only pin 0
@@ -279,12 +286,12 @@ void core_service_init() {
 
 	// Set the virtual file system with default flash partitions
 	if (qspiflash->getTotalSize() == (64 MB)) {
-		VFS::addFile("virtual/fallback.bin", qspiflash->createFlashFile(0 MB, 16 MB));
-		VFS::addFile("virtual/A.bin", qspiflash->createFlashFile(16 MB, 16 MB));
-		VFS::addFile("virtual/B.bin", qspiflash->createFlashFile(32 MB, 16 MB));
-		VFS::addFile("virtual/test.bin", qspiflash->createFlashFile(48 MB, 16 MB));
+		VFS::addFile("virtual/fallback.bin", qspiflash->createBootImageFile(*boot_config, BootConfig::LBT_FALLBACK, 16 MB));
+		VFS::addFile("virtual/update.bin", qspiflash->createBootImageFile(*boot_config, BootConfig::LBT_PRIMARY, 16 MB));
+		VFS::addFile("virtual/backup.bin", qspiflash->createBootImageFile(*boot_config, BootConfig::LBT_BACKUP, 16 MB));
+		VFS::addFile("virtual/test.bin", qspiflash->createBootImageFile(*boot_config, BootConfig::LBT_TEST, 16 MB));
 	} else if (qspiflash->getTotalSize() == (16 MB)) {
-		VFS::addFile("virtual/A.bin", qspiflash->createFlashFile(0 MB, 16 MB));
+		VFS::addFile("virtual/update.bin", qspiflash->createBootImageFile(*boot_config, BootConfig::LBT_FALLBACK, 16 MB));
 	} else {
 		throw std::runtime_error("Unsupported QSPI flash size detected");
 	}

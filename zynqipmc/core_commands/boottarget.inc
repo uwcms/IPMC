@@ -15,72 +15,109 @@
  * along with the ZYNQ-IPMC Framework.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <drivers/generics/eeprom.h>
+#include "../libs/bootconfig/bootconfig.h"
 
 namespace CoreCommands {
 
 /// A "boottarget" command
 class BootTargetCommand : public CommandParser::Command {
 public:
-	BootTargetCommand(EEPROM *eeprom) : eeprom(eeprom) {};
+	BootTargetCommand(Flash &flash, BootConfig &bootconf) : flash(flash), bootconf(bootconf) {};
 
 	virtual std::string getHelpText(const std::string &command) const {
-		return command + " [fallback|A|B|test]\n\n"
-				"Retrieve or set the IPMC boot target.";
+		return command + " [fallback|primary|backup|test]\n\n"
+				"Retrieve or set the IPMC boot target.\n";
 	}
 
 	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
-		uint8_t image = 0, original = 0;
-
-		if (eeprom->read(2, &original, sizeof(uint8_t)) != 1) {
-			console->write("Failed to read boot target from MAC EEPROM.\n");
-			return;
-		}
-
-		if ((original & 0x03) > 2) image = 0;
-		else image = original;
+		enum BootConfig::LogicalBootTarget lbt = this->bootconf.getLogicalBootTarget();
 
 		if (parameters.nargs() == 1) {
 			std::string msg = "Target boot image is ";
-
-			if (image & 0x04) image = 3;
-
-			switch (image) {
-			case 0: msg += "fallback"; break;
-			case 1: msg += "A"; break;
-			case 2: msg += "B"; break;
-			case 3: msg += "test"; break;
+			switch (lbt) {
+			case BootConfig::LBT_FALLBACK: msg += "fallback"; break;
+			case BootConfig::LBT_PRIMARY: msg += "primary"; break;
+			case BootConfig::LBT_BACKUP: msg += "backup"; break;
+			case BootConfig::LBT_TEST: msg += "test"; break;
 			default: msg += "not set"; break;
 			}
-
 			console->write(msg + ".\n");
 		} else {
-			uint8_t target = 0;
-
+			BootConfig::LogicalBootTarget lbt;
 			if (!parameters.parameters[1].compare("fallback")) {
-				target = 0;
-			} else if (!parameters.parameters[1].compare("A")) {
-				target = 1;
-			} else if (!parameters.parameters[1].compare("B")) {
-				target = 2;
+				lbt = BootConfig::LBT_FALLBACK;
+			} else if (!parameters.parameters[1].compare("primary")) {
+				lbt = BootConfig::LBT_PRIMARY;
+			} else if (!parameters.parameters[1].compare("backup")) {
+				lbt = BootConfig::LBT_BACKUP;
 			} else if (!parameters.parameters[1].compare("test")) {
-				target = 0x04 | (image & 0x3);
+				lbt = BootConfig::LBT_TEST;
 			} else {
 				console->write("Unknown image name, see help.\n");
+				return;
 			}
 
-			// Only write to EEPROM if required
-			if (target != original) {
-				if (eeprom->write(2, &target, sizeof(uint8_t)) != 1) {
-					console->write("Failed to set boot target in MAC EEPROM.\n");
+			if (flash.getTotalSize() == (16*1024*1024)) {
+				console->write("This is a single partition device. The boot target cannot be configured.\n");
+				console->write("The target boot image is now primary.\n");
+				this->bootconf.setLogicalBootTarget(BootConfig::LBT_FALLBACK);
+				this->bootconf.flushBootTarget();
+				return;
+			}
+			else {
+				// Stage 2. Verify the requested partition.
+				std::unique_ptr<uint8_t> buf = std::unique_ptr<uint8_t>(new uint8_t[16*1024*1024]);
+
+				this->flash.initialize();
+				this->flash.read(bootconf.mapLogicalToPhysicalBootTarget(lbt) * 16*1024*1024, &*buf, 16*1024*1024);
+
+				std::string message;
+				std::shared_ptr<const VersionInfo> bin_version = NULL;
+				BootFileValidationReturn r = validateBootFile(&*buf, 16*1024*1024, message, bin_version, &this->bootconf);
+				if (r != 0) {
+					console->write(stdsprintf("QSPI image INVALID: %s\n", message.c_str()));
+					console->write("Unable to proceed.\n");
 					return;
 				}
+				console->write(stdsprintf("QSPI image VALID: %s\n", message.c_str()));
+
+				if (lbt == BootConfig::LBT_BACKUP) {
+					// This is an update revert.
+					enum BootConfig::PhysicalBootTarget wipe_pbt = this->bootconf.mapLogicalToPhysicalBootTarget(BootConfig::LBT_PRIMARY);
+					this->bootconf.switchPrimaryImage();
+					this->bootconf.setLogicalBootTarget(BootConfig::LBT_PRIMARY);
+					this->bootconf.flushBootTarget();
+					// Now that we have safely locked in our new primary image, we can invalidate the old one.
+					const size_t flashSectorSize = this->flash.getSectorSize();
+					uint8_t blankSector[flashSectorSize];
+					memset(blankSector, 0xff, flashSectorSize);
+					this->flash.write(wipe_pbt * 16*1024*1024, blankSector, flashSectorSize);
+					console->write("The latest primary image update has been REVERTED.\n");
+					console->write("The backup image is now the primary image.\n");
+					console->write("The old primary image has been erased.\n");
+				}
+				else {
+					// A normal update.
+					this->bootconf.setLogicalBootTarget(lbt);
+					this->bootconf.flushBootTarget();
+
+				}
+				std::string msg = "Target boot image is now ";
+				switch (this->bootconf.getLogicalBootTarget()) {
+				case BootConfig::LBT_FALLBACK: msg += "fallback"; break;
+				case BootConfig::LBT_PRIMARY: msg += "primary"; break;
+				case BootConfig::LBT_BACKUP: msg += "backup"; break;
+				case BootConfig::LBT_TEST: msg += "test"; break;
+				default: msg += "not set"; break;
+				}
+				console->write(msg + ".\n");
 			}
 		}
 	}
 
 private:
-	EEPROM *eeprom;
+	Flash &flash;
+	BootConfig &bootconf;
 };
 
 }

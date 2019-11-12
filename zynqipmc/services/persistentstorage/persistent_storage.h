@@ -206,7 +206,7 @@ public:
 	};
 
 	//! Retrieves the data stored in this allocation.
-	std::vector<uint8_t> getData();
+	std::vector<uint8_t> getData() const;
 
 	/**
 	 * Writes the provided data to this allocation.

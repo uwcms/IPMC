@@ -445,7 +445,7 @@ void PersistentStorage::traceIndex() {
 	this->logtree.log(stdsprintf("\n<index length=\"%d\">\n", i) + out + "</index>", LogTree::LOG_TRACE);
 }
 
-std::vector<uint8_t> VariablePersistentAllocation::getData() {
+std::vector<uint8_t> VariablePersistentAllocation::getData() const {
 	MutexGuard<false> lock(this->mutex, true);
 	uint16_t version = this->storage.getSectionVersion(this->id);
 	if (version == 0)

@@ -22,10 +22,12 @@ namespace CoreCommands {
 /// A "restart" command
 class RestartCommand : public CommandParser::Command {
 public:
+	RestartCommand(BootConfig &bootconf) : bootconf(bootconf) {};
+
 	virtual std::string getHelpText(const std::string &command) const {
 		return command + " [$image]\n"
 				"Do a complete restart to the IPMC, loading firmware and software from flash.\n"
-				"A target image to reboot to can be picked by selecting fallback, A, B, or test.\n";
+				"A target image to reboot to can be picked by selecting fallback, primary, or test.\n";
 	}
 
 	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
@@ -40,10 +42,8 @@ public:
 
 			if (!parameters.parameters[1].compare("fallback")) {
 				target = 0;
-			} else if (!parameters.parameters[1].compare("A")) {
-				target = 1;
-			} else if (!parameters.parameters[1].compare("B")) {
-				target = 2;
+			} else if (!parameters.parameters[1].compare("primary")) {
+				target = bootconf.mapLogicalToPhysicalBootTarget(BootConfig::LBT_PRIMARY);
 			} else if (!parameters.parameters[1].compare("test")) {
 				target = 0x04;
 			} else {
@@ -82,6 +82,8 @@ public:
 			console->write("Restart is disabled due to a failed firmware attempt (flash may be corrupted).\n");
 		}
 	}
+protected:
+	BootConfig &bootconf;
 };
 
 }

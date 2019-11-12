@@ -16,6 +16,7 @@
  */
 
 #include <core.h>
+#include <misc/version.h>
 #include <services/ipmi/commands/ipmicmd_index.h>
 #include <services/ipmi/ipmbsvc/ipmbsvc.h>
 #include <services/ipmi/ipmi.h>
@@ -47,7 +48,8 @@ static void ipmicmd_Get_Device_ID(IPMBSvc &ipmb, const IPMIMessage &message) {
 	reply->data[9]  = 0; // Manufacturer ID (MSB):   Unspecified[2]
 	reply->data[10] = 0; // Product ID (LSB): Unspecified[0]
 	reply->data[11] = 0; // Product ID (MSB): Unspecified[1]
-	const long int git = (GIT_SHORT_INT << 4) | (GIT_STATUS[0] ? 1 : 0);
+	std::shared_ptr<const VersionInfo> version = VersionInfo::get_running_version();
+	const long int git = (version->git.commit & 0xfffffff0) | (version->git.dirty ? 1 : 0);
 	reply->data[12] = (git >> 24) & 0xff; // Aux Firmware Revision
 	reply->data[13] = (git >> 16) & 0xff; // Aux Firmware Revision
 	reply->data[14] = (git >>  8) & 0xff; // Aux Firmware Revision
