@@ -33,6 +33,7 @@
 #include <services/ipmi/ipmbsvc/ipmbsvc.h>
 #include <services/ipmi/ipmi_formats.h>
 #include <services/persistentstorage/persistent_storage.h>
+#include <misc/version.h>
 #include "ipmc.h"
 
 /**
@@ -68,6 +69,8 @@ static void addPICMGMultirecord(std::vector<uint8_t> &fruarea, std::vector<uint8
 void initFruData(bool reinit) {
 	std::vector<uint8_t> tlstring;
 
+	std::shared_ptr<const VersionInfo> version = VersionInfo::get_running_version();
+
 	std::vector<uint8_t> board_info;
 	board_info.push_back(0x01); // Format Version
 	board_info.push_back(0x00); // Length Placeholder
@@ -83,7 +86,7 @@ void initFruData(bool reinit) {
 	board_info.insert(board_info.end(), tlstring.begin(), tlstring.end()); // Board Serial
 	tlstring = encodeIpmiTypeLengthField(std::string("IPMC Rev") + std::to_string(IPMC_HW_REVISION));
 	board_info.insert(board_info.end(), tlstring.begin(), tlstring.end()); // Board Part Number
-	tlstring = encodeIpmiTypeLengthField(GIT_DESCRIBE);
+	tlstring = encodeIpmiTypeLengthField(version ? version->version.tag : "UNKNOWN");
 	board_info.insert(board_info.end(), tlstring.begin(), tlstring.end()); // FRU File ID (in our case generating software)
 	board_info.push_back(0xC1); // End of T/L Records.
 	board_info.push_back(0); // Ensure at least one pad, to be used for checksum.
@@ -108,8 +111,8 @@ void initFruData(bool reinit) {
 	product_info.insert(product_info.end(), tlstring.begin(), tlstring.end()); // Product Version
 		tlstring = encodeIpmiTypeLengthField(std::to_string(IPMC_SERIAL));
 	product_info.insert(product_info.end(), tlstring.begin(), tlstring.end()); // Product Serial
-	product_info.push_back(0xC0); // Asset Tag (nullptr)
-	tlstring = encodeIpmiTypeLengthField(GIT_DESCRIBE);
+	product_info.push_back(0xC0); // Asset Tag (NULL)
+	tlstring = encodeIpmiTypeLengthField(version ? version->version.tag : "UNKNOWN");
 	product_info.insert(product_info.end(), tlstring.begin(), tlstring.end()); // FRU File ID (in our case generating software)
 	product_info.push_back(0xC1); // End of T/L Records.
 	product_info.push_back(0); // Ensure at least one pad, to be used for checksum.
