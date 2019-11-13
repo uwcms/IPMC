@@ -24,6 +24,11 @@
 #include <libs/xilinx_image/xilinx_image.h>
 #include <libs/bootconfig/bootconfig.h>
 #include <stdint.h>
+#include <zynqipmc_config.h>
+#ifdef ENABLE_IPMI
+#include <services/ipmi/m_state_machine.h>
+extern MStateMachine *mstatemachine;
+#endif
 extern LogTree LOG; // We can't include <core.h> here, because it will create a loop since core.h requires class Flash.
 
 /**
@@ -141,6 +146,17 @@ public:
 				} else {
 					LOG["flash_upgrade"].log(stdsprintf("Uploaded QSPI image is VALID: %s", message.c_str()), LogTree::LOG_NOTICE);
 				}
+
+#ifdef ENABLE_IPMI
+				if (!mstatemachine->setUpdateLock()) {
+					LOG["flash_upgrade"].log("It is only possible to perform updates or boot/image reconfiguration while in M1.", LogTree::LOG_CRITICAL);
+					// The FTP server will convert this to a 450 error.
+					throw std::runtime_error("It is only possible to perform updates or boot/image reconfiguration while in M1.");
+					return 0;
+				}
+				LOG["flash_upgrade"].log("Update lock set. It is not possible to go to M4 without restarting.", LogTree::LOG_CRITICAL);
+#endif
+
 				if (!this->write(pbt * bytes, buffer, size)) return 0; // Failed to write
 				LOG["flash_upgrade"].log("Flash upgrade complete.", LogTree::LOG_NOTICE);
 

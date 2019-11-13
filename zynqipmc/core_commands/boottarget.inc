@@ -81,6 +81,16 @@ public:
 				}
 				console->write(stdsprintf("QSPI image VALID: %s\n", message.c_str()));
 
+#ifdef ENABLE_IPMI
+				if (lbt != this->bootconf.getLogicalBootTarget()) {
+					if (!mstatemachine->setUpdateLock()) {
+						console->write("It is only possible to perform updates or boot/image reconfiguration while in M1.\n");
+						return;
+					}
+					console->write("Update lock set. It is not possible to go to M4 without restarting.\n");
+				}
+#endif
+
 				if (lbt == BootConfig::LBT_BACKUP) {
 					// This is an update revert.
 					enum BootConfig::PhysicalBootTarget wipe_pbt = this->bootconf.mapLogicalToPhysicalBootTarget(BootConfig::LBT_PRIMARY);

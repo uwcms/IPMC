@@ -116,6 +116,13 @@ void MStateMachine::setFaultLock(bool state) {
 	this->reevaluate();
 }
 
+bool MStateMachine::setUpdateLock() {
+	MutexGuard<true> lock(this->mutex, true);
+	if (this->mstate == 1)
+		this->update_locked = true;
+	return this->update_locked;
+}
+
 void MStateMachine::reevaluate(enum ActivationRequest activation_request, enum HandleState previous_handle_state) {
 	MutexGuard<true> lock(this->mutex, true);
 	if (!this->hotswap_sensor) {
@@ -140,7 +147,7 @@ void MStateMachine::reevaluate(enum ActivationRequest activation_request, enum H
 			throw std::logic_error("We should never be in M0");
 			break;
 		case 1:
-			if (handle_state == HANDLE_CLOSED && !this->activation_locked && !this->startup_locked && !this->fault_locked)
+			if (handle_state == HANDLE_CLOSED && !this->activation_locked && !this->startup_locked && !this->fault_locked && !this->update_locked)
 				this->transition(2, (previous_handle_state != handle_state ? HotswapSensor::TRANS_OPERATOR_SWITCH : HotswapSensor::TRANS_NORMAL));
 			break;
 		case 2:

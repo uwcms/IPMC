@@ -92,6 +92,18 @@ public:
 	//! Return the current fault lock state.
 	inline bool getFaultLock() const { return this->fault_locked; };
 
+	/**
+	 * Change the state of the update lock flag.  When this flag is true, we will not
+	 * go from M1 to M2.  This flag is to be cleared only by a restart, and can be
+	 * set only while in M1.
+	 *
+	 * @return The current state of the flag (showing whether it was set successfully).
+	 */
+	bool setUpdateLock();
+
+	//! Return the current update lock state.
+	inline bool getUpdateLock() const { return this->update_locked; };
+
 	/// Retrieve current M-state.
 	inline uint8_t getMState() { return this->mstate; };
 
@@ -114,6 +126,7 @@ private:
 	bool deactivation_locked:1;	///< Deactivation Locked bit
 	bool startup_locked:1;		///< An internal activation lock during boot.
 	bool fault_locked:1;		///< A fault has occured and we will not enter M2 until the handle is opened.
+	bool update_locked:1;       ///< An update related operation has locked the card in M1 until reboot.
 
 	enum HandleState physical_handle_state:2;	///< The physical handle state.
 	enum HandleState override_handle_state:2;	///< The handle override state.
