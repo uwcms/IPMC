@@ -85,7 +85,7 @@ TargetRecord get_eeprom_boot_record() {
 		return 0xff; // error
 	}
 
-	return Buffer[2];
+	return Buffer[2] & ~0x08; // bit 4 is not used by the FSBL, only software.
 }
 
 u8 get_bootreg_tag() {

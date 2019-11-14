@@ -24,8 +24,9 @@ If bit 27 of the REBOOT register is set to ```1``` then this is considered as
 The target image is set as the 3 lowest bits of the MAC EEPROM or
 bits [26:24] of the reboot register with the following format:
 
- - Bits [1:0]: Defines 'regular' boot image, can take values 0 (fallback), 1 (A) or 2 (B).
+ - Bits [1:0]: Determines the boot image.  It can take values 0 (fallback), 1 (A) or 2 (B).
  - Bits [2]: If set to ```1``` then the test image is the one that will boot.
+ - Bits [3]: If set to ```1``` then the software 'primary' image is B instead of A. (ignored by FSBL)
 
 If the test image fails to boot (e.g. image is corrupted), then it will be the
 'regular' defined image that will get boot.
