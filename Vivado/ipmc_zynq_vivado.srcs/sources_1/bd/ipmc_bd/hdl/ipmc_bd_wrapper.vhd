@@ -1,8 +1,8 @@
 --Copyright 1986-2018 Xilinx, Inc. All Rights Reserved.
 ----------------------------------------------------------------------------------
 --Tool Version: Vivado v.2018.2 (lin64) Build 2258646 Thu Jun 14 20:02:38 MDT 2018
---Date        : Fri Aug  2 12:26:49 2019
---Host        : beck.hep.wisc.edu running 64-bit CentOS Linux release 7.6.1810 (Core)
+--Date        : Thu Nov 14 17:30:02 2019
+--Host        : superbock.hep.wisc.edu running 64-bit CentOS Linux release 7.7.1908 (Core)
 --Command     : generate_target ipmc_bd_wrapper.bd
 --Design      : ipmc_bd_wrapper
 --Purpose     : IP block netlist
@@ -85,10 +85,10 @@ architecture STRUCTURE of ipmc_bd_wrapper is
     GPIO_2_tri_i : in STD_LOGIC_VECTOR ( 31 downto 0 );
     GPIO_2_tri_o : out STD_LOGIC_VECTOR ( 31 downto 0 );
     GPIO_2_tri_t : out STD_LOGIC_VECTOR ( 31 downto 0 );
-    TCK : out STD_LOGIC;
     TMS : out STD_LOGIC;
     TDI : inout STD_LOGIC;
-    TDO : inout STD_LOGIC
+    TDO : inout STD_LOGIC;
+    TCK : out STD_LOGIC
   );
   end component ipmc_bd;
   component IOBUF is
