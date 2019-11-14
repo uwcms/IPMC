@@ -137,6 +137,7 @@
 #include "xstatus.h"
 #include "fsbl_hooks.h"
 #include "xtime_l.h"
+#include "sleep.h"
 
 #ifdef XPAR_XWDTPS_0_BASEADDR
 #include "xwdtps.h"
@@ -304,6 +305,15 @@ int main(void)
 	fsbl_printf(DEBUG_GENERAL,"Release %d.%d	%s-%s\r\n",
 			SDK_RELEASE_YEAR, SDK_RELEASE_QUARTER,
 			__DATE__,__TIME__);
+
+	fsbl_printf(DEBUG_GENERAL, "Reboot Status Register 0x%08lx\r\n", Xil_In32(REBOOT_STATUS_REG));
+	if ((Xil_In32(REBOOT_STATUS_REG) & 0xffff0000) == 0x00400000) {
+		fsbl_printf(DEBUG_GENERAL, "POR detected, running bootloop protection.\r\n");
+		for (int i = 1000; i > 0; i -= 100) {
+			usleep(100000);
+			fsbl_printf(DEBUG_GENERAL, "Waiting %d.%d seconds.\r\n", i/1000, (i%1000)/100);
+		}
+	}
 
 #ifdef XPAR_PS7_DDR_0_S_AXI_BASEADDR
 
