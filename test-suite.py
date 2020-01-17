@@ -233,11 +233,15 @@ IPMC_TO_CTRL_PIN_MAPPING = {
     (243, 243),
 }
 
+def enable_io_testing(serial):
+    serial.write("enable_io_testing\r".encode())
+    serial.readline()
+
 def gpio_get_direction(serial, gpio):
     t = "gpio" + str(gpio) + ".direction\r"
     serial.write(t.encode())
     serial.readline()
-    r = serial.readline()
+    r = serial.readline().decode('utf-8')
     hex = r.split("0x")[1].split("\r")[0]
     return int(hex, 16)
 
@@ -258,7 +262,7 @@ def gpio_read(serial, gpio):
     t = "gpio" + str(gpio) + ".read\r"
     serial.write(t.encode())
     serial.readline()
-    r = serial.readline()
+    r = serial.readline().decode('utf-8')
     hex = r.split("0x")[1].split("\r")[0]
     return int(hex, 16)
 
@@ -266,7 +270,7 @@ def gpio_read_bit(serial, gpio, bit):
     t = "gpio" + str(gpio) + ".read\r"
     serial.write(t.encode())
     serial.readline()
-    r = serial.readline()
+    r = serial.readline().decode('utf-8')
     hex = r.split("0x")[1].split("\r")[0]
     return ((int(hex, 16) & (1 << bit)) != 0)
 
@@ -488,6 +492,9 @@ def main():
     ctrl = serial.Serial('/dev/ttyUSB1', 115200, timeout=1)
 
     results = [0, 0, []]
+
+    enable_io_testing(ipmc)
+    enable_io_testing
 
     test1 = run_hwaddr_test(ipmc)
     test2 = run_pinshort_test(ipmc)

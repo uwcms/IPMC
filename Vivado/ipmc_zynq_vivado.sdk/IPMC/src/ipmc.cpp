@@ -42,7 +42,6 @@
 #include "xscutimer.h"
 #include "xscugic.h"
 #include "xil_exception.h"
-#include "xgpiops.h"
 
 /* Include drivers */
 #include <drivers/ad7689/ad7689.h>
@@ -106,6 +105,7 @@
 // Application specific variables
 std::vector<AD7689*> adc;
 PSXADC *xadc		= nullptr;
+GPIO *gpio[6]		= {nullptr};
 
 Network *network			= nullptr;
 TelnetServer *telnet		= nullptr;
@@ -168,6 +168,36 @@ void driverInit() {
 
 	xadc = new PSXADC(XPAR_XADCPS_0_DEVICE_ID);
 	if (!xadc) throw std::runtime_error("Failed to create xadc instance");
+
+	gpio[4] = new PSGPIO(XPAR_PS7_GPIO_0_DEVICE_ID, {10,11,12,13});
+	gpio[5] = new PSGPIO(XPAR_PS7_GPIO_0_DEVICE_ID, {39,40,41,45,47,48,49,50});
+
+	for (int i = 0; i < 4; i++) {
+		gpio[i] = new PLGPIO(PLGPIO::CHANNEL1, XPAR_AXI_GPIO_0_DEVICE_ID + i);
+	}
+
+	class EnableIOTesting final : public CommandParser::Command {
+	public:
+		EnableIOTesting() {};
+
+		virtual std::string getHelpText(const std::string &command) const {
+			return command + "\n\nExposes GPIO read/write/direction API for IO testing, USE WITH CARE.\n";
+		}
+
+		virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
+			static bool is_io_testing_enabled = false;
+
+			if (!is_io_testing_enabled) {
+				for (int i = 0; i < 6; i++) {
+					gpio[i]->registerConsoleCommands(console_command_parser, stdsprintf("gpio%d.", i));
+				}
+
+				is_io_testing_enabled = true;
+			}
+		}
+	};
+
+	console_command_parser.registerCommand("enable_io_testing", std::make_shared<EnableIOTesting>());
 }
 
 
