@@ -494,7 +494,7 @@ def main():
     results = [0, 0, []]
 
     enable_io_testing(ipmc)
-    enable_io_testing
+    enable_io_testing(ctrl)
 
     test1 = run_hwaddr_test(ipmc)
     test2 = run_pinshort_test(ipmc)
