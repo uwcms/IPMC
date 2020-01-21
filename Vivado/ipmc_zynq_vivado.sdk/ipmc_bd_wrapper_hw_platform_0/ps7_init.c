@@ -12444,6 +12444,12 @@ ps7_debug()
 }
 
 
+int ps7_reset_apu()
+{
+	mask_write(0xF8000244, 0x00000022U ,0x00000022U);
+    return PS7_INIT_SUCCESS;	
+}
+
 int
 ps7_init() 
 {
@@ -12451,6 +12457,9 @@ ps7_init()
   unsigned long si_ver = ps7GetSiliconVersion ();
   int ret;
   //int pcw_ver = 0;
+
+  ret = ps7_reset_apu();
+  if (ret != PS7_INIT_SUCCESS) return ret;
   
   if (si_ver == PCW_SILICON_VERSION_1) {
     ps7_mio_init_data = ps7_mio_init_data_1_0;
