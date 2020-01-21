@@ -34,6 +34,17 @@ BootConfig::BootConfig(EEPROM &eeprom, PersistentStorage &persistent_storage) :
 	eeprom(eeprom), lock_config_store(VariablePersistentAllocation(persistent_storage, PersistentStorageAllocations::WISC_IMAGE_TAG_LOCK)) {
 	configASSERT(this->mutex = xSemaphoreCreateRecursiveMutex());
 	this->eepconfig = eepconf_read(eeprom);
+	if (this->eepconfig & 0x80) {
+		 /* Handle potentially uninitialized EEPROM detected with bit (bit 7, 0x80).
+		  * Don't mess with the Primary/Secondary switch bit. (bit 3, 0x08).
+		  *
+		  * This will reset the boot target to fallback, but not save this
+		  * unless the boot target is set or an update is applied.
+		  *
+		  * This will avoid changing the primary image in flash unexpectedly.
+		  */
+		this->eepconfig &= 0x08;
+	}
 }
 
 BootConfig::~BootConfig() {
