@@ -25,16 +25,28 @@ public:
 	ImageTagLockCommand(BootConfig &bootconf) : bootconf(bootconf) {};
 
 	virtual std::string getHelpText(const std::string &command) const {
-		return command + " [$image_tag]\n"
+		return command + " [$git_tag_prefix]\n"
 				"\n"
-				"Lock firmware updates to only those from a specific tag/lineage.\n"
-				"Without a value, it will display the current setting.\n"
+				"This command configures the image tag lock feature, which prevents the "
+				"IPMC from accepting update files that do not match the specified git tag "
+				"prefix.  This can be used to prevent the accidental installation of images "
+				"that may be electrically incompatible with the carrier board.  A separate "
+				"mechanism also prevents the installation of an update built for a different "
+				"IPMC ZYNQ part.\n"
 				"\n"
-				"All firmware updates must match either this git tag, or the \"fallback\" "
-				"tag in order to be accepted.\n"
+				"This comparison ignores any semantic version number prefixed with \"-v\" at"
+				"the end of the git tag, for example:\n"
+				"  MyBoard-v1.2.3                       -> MyBoard\n"
+				"  MyBoard-Gen2-v1.2.3                  -> MyBoard-Gen2\n"
+				"  MyBoard-Gen2-v1.2.3-alpha4+20200131e -> MyBoard-Gen2\n"
 				"\n"
-				"The special value \"?\" will lock to the next non-fallback image provided.\n"
-				"The special value \"*\" will disable this protection.\n";
+				"If a firmware update does not match the git tag that has been specified with "
+				"this setting, or begin with \"fallback-\", it will not be accepted.\n"
+				"\n"
+				"Without a value, this command will display the current setting.\n"
+				"\n"
+				"The special value \"?\" will lock to the next non-fallback image installed.\n"
+				"The special value \"*\" will disable this protection completely.\n";
 	}
 
 	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
