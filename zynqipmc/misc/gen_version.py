@@ -7,8 +7,6 @@ import socket
 import subprocess
 import sys
 
-version_filename = os.path.join(os.path.dirname(os.path.realpath(sys.argv[0])), 'version_data.cpp')
-
 version = {}
 
 version['git']             = {}
@@ -19,7 +17,7 @@ version['git']['describe'] = subprocess.check_output(['git', 'describe', '--alwa
 version['git']['dirty']    = version['git']['describe'].endswith('-dirty')
 
 describe_long = subprocess.check_output(['git', 'describe', '--always', '--match=*-v[0-9]*.[0-9]*.[0-9]*', '--dirty', '--long']).decode('utf8').strip()
-m = re.match(r'^(?P<tag>.*)-v(?P<version>(?P<major>[0-9]+)\.(?P<minor>[0-9]+)\.(?P<revision>[0-9]+)(?P<extra>(?!-dirty$)[^-]*))-(?P<plus_commits>[0-9]+)-g[0-9a-f]{7}(?P<dirty>-dirty)?$', describe_long)
+m = re.match(r'^(?P<tag>.*)-v(?P<version>(?:(?P<major>0|[1-9]\d*)\.(?P<minor>0|[1-9]\d*)\.(?P<revision>0|[1-9]\d*)(?:-(?P<prerelease>(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+(?P<buildmetadata>[0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?))-(?P<plus_commits>[0-9]+)-g[0-9a-f]{7}(?P<dirty>-dirty)?$', describe_long)
 if m is None:
 	version['version'] = None
 else:
@@ -27,6 +25,9 @@ else:
 	for i in ('major', 'minor', 'revision', 'plus_commits'):
 		version['version'][i] = int(version['version'][i])
 	version['version']['dirty'] = bool(version['version']['dirty'])
+	for i in ('prerelease','buildmetadata'):
+		if version['version'][i] is None:
+			version['version'][i] = ""
 
 version['build']                  = {}
 version['build']['human_date']    = subprocess.check_output(['date']).decode('utf8').strip()
