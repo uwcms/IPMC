@@ -124,10 +124,10 @@ void BootConfig::flushBootTarget() {
 }
 
 /**
- * Get the current carrier lock value.
- * @return The current carrier lock value.
+ * Get the current image tag lock value.
+ * @return The current image tag lock value.
  */
-std::string BootConfig::getCarrierLock() const {
+std::string BootConfig::getImageTagLock() const {
 	MutexGuard<true> lock(this->mutex);
 	std::vector<uint8_t> storeData = this->lock_config_store.getData();
 	if (storeData.size())
@@ -137,16 +137,16 @@ std::string BootConfig::getCarrierLock() const {
 }
 
 /**
- * Update the current carrier lock value.
- * @param lock The new carrier lock value.
+ * Update the current image tag lock value.
+ * @param lock The new image tag lock value.
  */
-void BootConfig::setCarrierLock(std::string lock) {
+void BootConfig::setImageTagLock(std::string lock) {
 	MutexGuard<true> mutexlock(this->mutex);
 	this->lock_config_store.setData(std::vector<uint8_t>(lock.begin(), lock.end()));
 }
 
 /**
- * Test a value against the current carrier lock setting.
+ * Test a value against the current image tag lock setting.
  * If the setting is not programmed, it is read as "?".
  *
  * The following always match:
@@ -155,12 +155,12 @@ void BootConfig::setCarrierLock(std::string lock) {
  *   match == "fallback"
  *   match startswith "fallback-"
  *
- * @param match_value The carrier lock value to test.
+ * @param match_value The image tag lock value to test.
  * @return true if matched, else false
  */
-bool BootConfig::testCarrierLock(std::string match_value) const {
+bool BootConfig::testImageTagLock(std::string match_value) const {
 	MutexGuard<true> mutexlock(this->mutex);
-	std::string lock = this->getCarrierLock();
+	std::string lock = this->getImageTagLock();
 	return (
 			!lock.size() ||
 			lock == "?" ||

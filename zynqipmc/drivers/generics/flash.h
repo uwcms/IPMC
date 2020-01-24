@@ -165,9 +165,9 @@ public:
 					bootconf.switchPrimaryImage();
 					bootconf.flushBootTarget();
 					LOG["flash_upgrade"].log("Updated primary boot image.", LogTree::LOG_NOTICE);
-					if (bootconf.getCarrierLock() == "?" && bin_version->version.tag != "fallback") {
-						bootconf.setCarrierLock(bin_version->version.tag);
-						LOG["flash_upgrade"].log(stdsprintf("Set uninitialized carrier lock to \"%s\". Change it with the carrier_lock command.", bin_version->version.tag.c_str()), LogTree::LOG_NOTICE);
+					if (bootconf.getImageTagLock() == "?" && (bin_version->version.tag.substr(0,9) != "fallback-") && (bin_version->version.tag != "fallback")) {
+						bootconf.setImageTagLock(bin_version->version.tag);
+						LOG["flash_upgrade"].log(stdsprintf("Set uninitialized image tag lock to \"%s\". Change it with the image_tag_lock command.", bin_version->version.tag.c_str()), LogTree::LOG_NOTICE);
 					}
 				}
 				if (finish_cb) finish_cb(this);

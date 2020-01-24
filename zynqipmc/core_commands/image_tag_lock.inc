@@ -30,7 +30,7 @@ public:
 				"Lock firmware updates to only those from a specific tag/lineage.\n"
 				"Without a value, it will display the current setting.\n"
 				"\n"
-				"All firmware updates must match either this git tag, or the \"fallback\""
+				"All firmware updates must match either this git tag, or the \"fallback\" "
 				"tag in order to be accepted.\n"
 				"\n"
 				"The special value \"?\" will lock to the next non-fallback image provided.\n"
@@ -38,7 +38,7 @@ public:
 	}
 
 	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
-		std::string old_value = this->bootconf.getCarrierLock();
+		std::string old_value = this->bootconf.getImageTagLock();
 
 		std::string tag;
 		if (parameters.nargs() <= 1) {
@@ -51,7 +51,7 @@ public:
 			console->write("Incorrect parameters.\n");
 			return;
 		}
-		this->bootconf.setCarrierLock(new_value);
+		this->bootconf.setImageTagLock(new_value);
 		console->write(stdsprintf("Changed the image tag lock setting from \"%s\" to \"%s\".\n", old_value.c_str(), new_value.c_str()));
 	}
 

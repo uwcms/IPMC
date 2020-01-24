@@ -317,8 +317,8 @@ BootFileValidationReturn validateBootFile(const uint8_t *binfile, const size_t s
 		message = "Unable to locate BOOT.BIN version information.";
 		return BFV_NO_VERSION_INFO;
 	}
-	if (carrier_tag_config && !carrier_tag_config->testCarrierLock(version->version.tag)) {
-		message = stdsprintf("This BOOT.BIN is from tag \"%s\". Our image tag lock setting is \"%s\".", version->version.tag.c_str(), carrier_tag_config->getCarrierLock().c_str());
+	if (carrier_tag_config && !carrier_tag_config->testImageTagLock(version->version.tag)) {
+		message = stdsprintf("This BOOT.BIN is from tag \"%s\". Our image tag lock setting is \"%s\".", version->version.tag.c_str(), carrier_tag_config->getImageTagLock().c_str());
 		return BFV_NO_TAG_LOCK_MATCH;
 	}
 

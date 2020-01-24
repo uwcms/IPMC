@@ -60,14 +60,14 @@ public:
 
 	void flushBootTarget();
 
-	std::string getCarrierLock() const;
-	void setCarrierLock(std::string lock);
-	bool testCarrierLock(std::string match_value) const;
+	std::string getImageTagLock() const;
+	void setImageTagLock(std::string lock);
+	bool testImageTagLock(std::string match_value) const;
 
 protected:
 	EEPROM &eeprom; ///< The hardware config EEPROM.
 	uint8_t eepconfig; ///< An editable cache of the config EEPROM
-	VariablePersistentAllocation lock_config_store; ///< The storage for the carrier lock tag.
+	VariablePersistentAllocation lock_config_store; ///< The storage for the image tag lock tag.
 	SemaphoreHandle_t mutex; ///< A mutex to prevent concurrent modification.
 };
 
