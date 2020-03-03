@@ -195,7 +195,7 @@ static uint16_t process_thresholds(uint16_t state, uint16_t event_context, const
 	return state;
 }
 
-void ThresholdSensor::updateValue(const float value, uint16_t event_context, uint64_t value_max_age, uint16_t extra_assertions, uint16_t extra_deassertions) {
+std::vector<std::vector<uint8_t>> ThresholdSensor::updateValue(const float value, uint16_t event_context, uint64_t value_max_age, uint16_t extra_assertions, uint16_t extra_deassertions) {
 	MutexGuard<false> lock(this->value_mutex, true);
 	this->last_value = value;
 
@@ -209,18 +209,18 @@ void ThresholdSensor::updateValue(const float value, uint16_t event_context, uin
 	if (std::isnan(value)) {
 		// If the value is expired or unavailable, treat all events as out of context.
 		this->event_context = 0;
-		return;
+		return std::vector<std::vector<uint8_t>>();
 	}
 
 	std::shared_ptr<const SensorDataRecordReadableSensor> sdr = std::dynamic_pointer_cast<const SensorDataRecordReadableSensor>(device_sdr_repo.find(this->getSdrKey()));
 	if (!sdr) {
 		this->logunique.logUnique(stdsprintf("Unable to locate a readable (Type 01/02) sensor %s in the Device SDR Repository!  Thresholds not updated!", this->sensorIdentifier().c_str()), LogTree::LOG_ERROR);
-		return;
+		return std::vector<std::vector<uint8_t>>();
 	}
 
 	if (sdr->event_type_reading_code() != SensorDataRecordSensor::EVENT_TYPE_THRESHOLD_SENSOR) {
 		this->logunique.logUnique(stdsprintf("Sensor %s is not a Threshold type sensor in the Device SDR Repository!  Thresholds not updated!", this->sensorIdentifier().c_str()), LogTree::LOG_ERROR);
-		return;
+		return std::vector<std::vector<uint8_t>>();
 	}
 
 	const uint8_t byteval = sdr->fromFloat(value);
@@ -314,6 +314,7 @@ void ThresholdSensor::updateValue(const float value, uint16_t event_context, uin
 		"UNR going-high",
 	};
 
+	std::vector<std::vector<uint8_t>> ipmi_events_data;
 	for (std::vector<struct ThresholdEvent>::iterator it = events.begin(), eit = events.end(); it != eit; ++it) {
 		if ( !(this->event_context & (1 << it->bit)) ) {
 			this->log.log(stdsprintf("Sensor %s: %s %s event for value 0x%02hhx (%f), threshold 0x%02hhx is out of context and will not be sent",
@@ -346,11 +347,14 @@ void ThresholdSensor::updateValue(const float value, uint16_t event_context, uin
 			event_data.push_back(0x50 | it->bit);
 			event_data.push_back(it->value);
 			event_data.push_back(it->threshold);
-			this->sendEvent(it->direction, event_data);
+			std::vector<uint8_t> ipmi_event_data = this->sendEvent(it->direction, event_data);
+			if (ipmi_event_data.size())
+				ipmi_events_data.push_back(ipmi_event_data);
 		}
 	}
 
 	this->logunique.clean();
+	return ipmi_events_data;
 }
 
 void ThresholdSensor::setNominalEventStatusOverride(uint16_t mask) {

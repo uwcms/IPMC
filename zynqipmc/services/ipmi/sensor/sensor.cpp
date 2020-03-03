@@ -39,11 +39,11 @@ Sensor::Sensor(const std::vector<uint8_t> &sdr_key, LogTree &log)
 Sensor::~Sensor() {
 }
 
-void Sensor::sendEvent(enum EventDirection direction, const std::vector<uint8_t> &event_data) {
+std::vector<uint8_t> Sensor::sendEvent(enum EventDirection direction, const std::vector<uint8_t> &event_data) {
 	std::shared_ptr<const SensorDataRecordSensor> sdr = std::dynamic_pointer_cast<const SensorDataRecordSensor>(device_sdr_repo.find(this->kSdrKey));
 	if (!sdr) {
 		this->logunique.logUnique(stdsprintf("Unable to locate sensor %s in the Device SDR Repository!  Event not transmitted!", this->sensorIdentifier().c_str()), LogTree::LOG_ERROR);
-		return;
+		return std::vector<uint8_t>();
 	}
 
 	IPMBSvc::EventReceiver er;
@@ -51,25 +51,26 @@ void Sensor::sendEvent(enum EventDirection direction, const std::vector<uint8_t>
 	memcpy(&er, &ipmi_event_receiver, sizeof(IPMBSvc::EventReceiver));
 	critical.release();
 
-	if (!ipmi_event_receiver.ipmb || ipmi_event_receiver.addr == 0xFF /* Disabled */) {
-		this->logunique.logUnique(stdsprintf("There is not yet an IPMI Event Receiver.  Discarding events on sensor \"%s\".", sdr->id_string().c_str()), LogTree::LOG_DIAGNOSTIC);
-		return;
-	}
-
-	if (this->getAllEventsDisabled()) {
-		this->log.log(stdsprintf("Discarding event on \"%s\" sensor: all events disabled on this sensor", sdr->id_string().c_str()), LogTree::LOG_INFO);
-		return;
-	}
-
 	std::vector<uint8_t> data;
 	data.push_back(0x04); // Revision 04h, specified.
 	data.push_back(sdr->sensor_type_code());
 	data.push_back(sdr->sensor_number());
 	data.push_back((static_cast<uint8_t>(direction) << 7) | sdr->event_type_reading_code());
 	data.insert(data.end(), event_data.begin(), event_data.end());
+
+	if (!ipmi_event_receiver.ipmb || ipmi_event_receiver.addr == 0xFF /* Disabled */) {
+		this->logunique.logUnique(stdsprintf("There is not yet an IPMI Event Receiver.  Discarding events on sensor \"%s\".", sdr->id_string().c_str()), LogTree::LOG_DIAGNOSTIC);
+		return data;
+	}
+
+	if (this->getAllEventsDisabled()) {
+		this->log.log(stdsprintf("Discarding event on \"%s\" sensor: all events disabled on this sensor", sdr->id_string().c_str()), LogTree::LOG_INFO);
+		return data;
+	}
 	std::shared_ptr<IPMIMessage> msg = std::make_shared<IPMIMessage>(0, er.ipmb->getIPMBAddress(), er.lun, er.addr, IPMI::NetFn::Sensor_Event, IPMI::Sensor_Event::Platform_Event, data);
 	this->log.log(stdsprintf("Sending event on \"%s\" sensor to %hhu.%02hhx: %s", sdr->id_string().c_str(), er.lun, er.addr, msg->format().c_str()), LogTree::LOG_INFO);
 	ipmb0->send(msg);
+	return data;
 }
 
 std::string Sensor::sensorIdentifier(bool name_only) const {

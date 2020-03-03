@@ -261,7 +261,9 @@ void core_service_init() {
 	mstatemachine->registerConsoleCommands(console_command_parser, "");
 
 	// TODO: Change this?
-	payload_manager = new BoardPayloadManager(mstatemachine, LOG["payload_manager"]);
+	FaultLog *faultlog = new FaultLog(*persistent_storage, LOG["faultlog"]);
+	faultlog->registerConsoleCommands(console_command_parser, "faultlog.");
+	payload_manager = new BoardPayloadManager(mstatemachine, faultlog, LOG["payload_manager"]);
 	payload_manager->config();
 
 	payload_manager->registerConsoleCommands(console_command_parser, "payload.");

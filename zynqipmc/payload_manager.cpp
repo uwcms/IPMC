@@ -109,8 +109,8 @@ std::vector<uint8_t> LinkDescriptor::lookup_oem_LinkType_guid(uint8_t LinkType) 
 	return oem_guids.at(LinkType);
 }
 
-PayloadManager::PayloadManager(MStateMachine *mstate_machine, LogTree &log)
-	: mstate_machine(mstate_machine), log(log), logrepeat(log), sp_context_update_timer(nullptr) {
+PayloadManager::PayloadManager(MStateMachine *mstate_machine, FaultLog *faultlog, LogTree &log)
+	: mstate_machine(mstate_machine), faultlog(faultlog), log(log), logrepeat(log), sp_context_update_timer(nullptr) {
 	configASSERT(this->mutex = xSemaphoreCreateRecursiveMutex());
 
 	struct IPMILED::Action ledstate;
@@ -187,6 +187,52 @@ std::vector<LinkDescriptor> PayloadManager::getLinks() const {
 	return this->links;
 }
 
+/**
+ * Allow user configuration of which IPMI events are fault-loged.
+ * @param ipmi_payload The payload of the IPMI Platform Event message.
+ * @return true if this message should be logged to EEPROM, else false
+ */
+bool PayloadManager::filterFaultLogIPMIEvent(const std::vector<uint8_t> &ipmi_payload) {
+	// IPMI Platform Event Message Format:
+	//   0 data.push_back(0x04); // Revision 04h, specified.
+	//   1 data.push_back(sdr->sensor_type_code());
+	//   2 data.push_back(sdr->sensor_number());
+	//   3 data.push_back((static_cast<uint8_t>(direction) << 7) | sdr->event_type_reading_code());
+	//   + data.insert(data.end(), event_data.begin(), event_data.end());
+
+	// Threshold Sensor Event Data:
+	//   4 event_data.push_back(0x50 | it->bit);
+	//   5 event_data.push_back(it->value);
+	//   6 event_data.push_back(it->threshold);
+
+	bool outcome = false;
+
+	if (ipmi_payload.size() >= 7
+			&& ipmi_payload[0] == 0x04
+			&& (ipmi_payload[3] & 0x7f) == 0x01 /* "Threshold" sensor type code */
+			&& (ipmi_payload[3] & 0x80) == 0 /* assertions only */
+			&& ( (ipmi_payload[4] & 0x0f) == 4 /* LNR */ || (ipmi_payload[4] & 0x0f) == 11 /* UNR */ )
+			)
+		outcome = true;
+
+	std::string strpayload = "";
+	for (auto i : ipmi_payload)
+		strpayload += stdsprintf("%s%02hhx", strpayload.size() ? " " : "", i);
+
+	this->log.log(stdsprintf("Chose %sto faultlog IPMI event: %s", (outcome ? "" : "not "), strpayload.c_str()), LogTree::LOG_DIAGNOSTIC);
+
+	return outcome;
+}
+
+void PayloadManager::mzFaultDetected(size_t mzno) {
+	if (this->faultlog) {
+		struct FaultLog::fault fault;
+		fault.fault_type = FaultLog::fault::FAULT_TYPE_MZ_FAULTED;
+		fault.mz_fault.mz_number = mzno;
+		this->faultlog->submit(fault);
+	}
+}
+
 void PayloadManager::runSensorThread() {
 	while (true) {
 #ifdef SENSORPROCESSOR_PRESENT_IN_BSP
@@ -208,7 +254,18 @@ void PayloadManager::runSensorThread() {
 						bool in_context = this->isMZInContext(adcsensor.second.mz_context);
 						ipmisensor->setNominalEventStatusOverride(in_context ? 0xFFFF /* disable override */ : OOC_NOMINAL_EVENT_STATUS);
 						ipmisensor->getLog().log(stdsprintf("Sensor Processor event for %s at reading %f: +0x%04x -0x%04x", ipmisensor->sensorIdentifier().c_str(), adcsensor.second.adc.rawToFloat(event.reading_from_isr), event.event_thresholds_assert, event.event_thresholds_deassert), LogTree::LOG_DIAGNOSTIC);
-						ipmisensor->updateValue(adcsensor.second.adc.rawToFloat(event.reading_from_isr), (in_context ? 0xfff : CONTEXT_EVENT_MASK), UINT64_MAX, event.event_thresholds_assert, event.event_thresholds_deassert);
+						std::vector<std::vector<uint8_t>> ipmievents = ipmisensor->updateValue(adcsensor.second.adc.rawToFloat(event.reading_from_isr), (in_context ? 0xfff : CONTEXT_EVENT_MASK), UINT64_MAX, event.event_thresholds_assert, event.event_thresholds_deassert);
+						if (this->faultlog) {
+							for (std::vector<uint8_t> ipmievent : ipmievents) {
+								if (!filterFaultLogIPMIEvent(ipmievent))
+									continue;
+								struct FaultLog::fault fault;
+								fault.fault_type = FaultLog::fault::FAULT_TYPE_SENSOR_EVENT;
+								for (std::vector<uint8_t>::size_type i = 0; i < ipmievent.size() && i < 7; ++i)
+									fault.sensor_event.ipmi_eventmsg[i] = ipmievent[i];
+								this->faultlog->submit(fault);
+							}
+						}
 					}
 				}
 			}
@@ -241,7 +298,11 @@ void PayloadManager::runSensorThread() {
 				if (transition) continue;
 
 				if (state != this->mgmt_zones[i]->getDesiredPowerState()) {
-					this->log.log(stdsprintf("Management Zone %u has faulted!  The global power enable state is %lu at time of software processing.", i, this->mgmt_zones[i]->getPowerEnableStatus(false)), LogTree::LOG_ERROR);
+					std::string mzname = this->mgmt_zones[i]->getName();
+					if (mzname.size() == 0)
+						mzname = "Unnamed";
+					this->log.log(stdsprintf("Management Zone %u (%s) has faulted!  The global power enable state is %lu at time of software processing.", i, mzname.c_str(), this->mgmt_zones[i]->getPowerEnableStatus(false)), LogTree::LOG_ERROR);
+					this->mzFaultDetected(i);
 					// Acknowledge the fault by setting desired state to off.
 					this->mgmt_zones[i]->setPowerState(ZoneController::Zone::OFF);
 					alarm_level = SeveritySensor::NR;
@@ -265,7 +326,18 @@ void PayloadManager::runSensorThread() {
 			bool in_context = this->isMZInContext(adcsensor.second.mz_context);
 			ipmisensor->setNominalEventStatusOverride(in_context ? 0xFFFF /* disable override */ : OOC_NOMINAL_EVENT_STATUS);
 			//ipmisensor->log.log(stdsprintf("Standard ADC read for %s shows %f %s context.", ipmisensor->sensorIdentifier().c_str(), reading, (in_context ? "in" : "out of")), LogTree::LOG_TRACE);
-			ipmisensor->updateValue(reading, (in_context ? 0xfff : CONTEXT_EVENT_MASK));
+			std::vector<std::vector<uint8_t>> ipmievents = ipmisensor->updateValue(reading, (in_context ? 0xfff : CONTEXT_EVENT_MASK));
+			if (this->faultlog) {
+				for (std::vector<uint8_t> ipmievent : ipmievents) {
+					if (!filterFaultLogIPMIEvent(ipmievent))
+						continue;
+					struct FaultLog::fault fault;
+					fault.fault_type = FaultLog::fault::FAULT_TYPE_SENSOR_EVENT;
+					for (std::vector<uint8_t>::size_type i = 0; i < ipmievent.size() && i < 7; ++i)
+						fault.sensor_event.ipmi_eventmsg[i] = ipmievent[i];
+					this->faultlog->submit(fault);
+				}
+			}
 
 			ThresholdSensor::Value value = ipmisensor->getValue();
 			uint16_t active_events = value.active_events & value.event_context & value.enabled_assertions;
@@ -829,6 +901,11 @@ private:
 	PayloadManager &payloadmgr;
 };
 
+std::string PayloadManager::getMZName(size_t mz) const {
+	if (mz >= XPAR_MGMT_ZONE_CTRL_0_MZ_CNT || !this->mgmt_zones[mz])
+		return "";
+	return this->mgmt_zones[mz]->getName();
+}
 
 void PayloadManager::registerConsoleCommands(CommandParser &parser, const std::string &prefix) {
 #ifdef MANAGEMENT_ZONE_PRESENT_IN_BSP

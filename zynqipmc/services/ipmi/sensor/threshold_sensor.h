@@ -76,6 +76,7 @@ public:
 	 *                      NAN.
 	 * @param extra_assertions Send these event assertions regardless of the (non-NaN) value.
 	 * @param extra_deassertions Send these event deassertions regardless of the (non-NaN) value.
+	 * @return A list of the event data sent with any generated IPMI messages (even if not ultimately put on an IPMB).
 	 *
 	 * @note For extra_(de)assertions, the following bitmask is interpreted:
 	 *       bit 11: 1b = upper non-recoverable going high occurred
@@ -91,7 +92,7 @@ public:
 	 *       bit  1: 1b = lower non-critical going high occurred
 	 *       bit  0: 1b = lower non-critical going low occurred
 	 */
-	void updateValue(const float value, uint16_t event_context=0xffff, uint64_t value_max_age=UINT64_MAX, uint16_t extra_assertions=0, uint16_t extra_deassertions=0);
+	std::vector<std::vector<uint8_t>> updateValue(const float value, uint16_t event_context=0xffff, uint64_t value_max_age=UINT64_MAX, uint16_t extra_assertions=0, uint16_t extra_deassertions=0);
 
 	/// Deny implicit conversions here.  We don't want to allow accidental submission of unconverted ADC Values.
 	///@{

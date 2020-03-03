@@ -47,8 +47,9 @@ public:
 	 *
 	 * @param direction The event direction (assertion vs deassertion).
 	 * @param event_data The event data values (see IPMI2 spec).
+	 * @return The IPMI event information generated (or zero-length if SDR not found).
 	 */
-	void sendEvent(enum EventDirection direction, const std::vector<uint8_t> &event_data);
+	std::vector<uint8_t> sendEvent(enum EventDirection direction, const std::vector<uint8_t> &event_data);
 
 	//! Return the correct IPMI response data (including completion code) for Get Sensor Reading.
 	virtual std::vector<uint8_t> getSensorReading() = 0;

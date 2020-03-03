@@ -23,6 +23,7 @@
 #include <drivers/management_zone/management_zone.h>
 #include <drivers/sensorprocessor/sensorprocessor.h>
 #include <services/console/consolesvc.h>
+#include <services/faultlog/faultlog.h>
 #include <services/ipmi/m_state_machine.h>
 #include <services/ipmi/sensor/severity_sensor.h>
 #include <services/ipmi/sensor/threshold_sensor.h>
@@ -158,9 +159,10 @@ public:
 	 * Instantiate the PayloadManager and perform all required initialization.
 	 *
 	 * @param mstate_machine The MStateMachine to register
+	 * @param faultlog The fault log (or NULL) to record major events to.
 	 * @param log The LogTree to use
 	 */
-	PayloadManager(MStateMachine *mstate_machine, LogTree &log);
+	PayloadManager(MStateMachine *mstate_machine, FaultLog *faultlog, LogTree &log);
 	virtual ~PayloadManager();
 
 	virtual void config() = 0;
@@ -170,6 +172,8 @@ public:
 
 	void updateLinkEnable(const LinkDescriptor &descriptor);
 	std::vector<LinkDescriptor> getLinks() const;
+
+	virtual std::string getMZName(size_t mz) const;
 
 	// From base class ConsoleCommandSupport:
 	virtual void registerConsoleCommands(CommandParser &parser, const std::string &prefix);
@@ -196,6 +200,7 @@ protected:
 
 	SemaphoreHandle_t mutex; ///< A mutex protecting internal data.
 	MStateMachine *mstate_machine; ///< The MStateMachine to notify of changes.
+	FaultLog *faultlog; ///< The fault log to record major events in.
 #ifdef MANAGEMENT_ZONE_PRESENT_IN_BSP
 	uint64_t mz_hf_vectors[XPAR_MGMT_ZONE_CTRL_0_MZ_CNT];
 	ZoneController::Zone *mgmt_zones[XPAR_MGMT_ZONE_CTRL_0_MZ_CNT];
@@ -225,6 +230,20 @@ protected:
 	virtual bool isMZInContext(int mz) const;
 	void updateSensorProcessorContexts();
 	std::shared_ptr<TimerService::Timer> sp_context_update_timer; ///< A timer used to re-enable sensor processor contexts.
+
+	/**
+	 * Allow user configuration of which IPMI events are fault-loged.
+	 * @param ipmi_payload The payload of the IPMI Platform Event message.
+	 * @return true if this message should be logged to EEPROM, else false
+	 */
+	virtual bool filterFaultLogIPMIEvent(const std::vector<uint8_t> &ipmi_payload);
+
+	/**
+	 * Allow users to include handlers for MZ fault events.
+	 * @note This fault detection is slow-polling after the firmware response.
+	 * @note The default handler writes to the EEPROM fault log.
+	 */
+	virtual void mzFaultDetected(size_t mzno);
 
 public:
 	/**
