@@ -20,8 +20,8 @@
 
 #include "board_payload_manager.h"
 
-BoardPayloadManager::BoardPayloadManager(MStateMachine *mstate_machine, LogTree &log) :
-	PayloadManager(mstate_machine, log) {
+BoardPayloadManager::BoardPayloadManager(MStateMachine *mstate_machine, FaultLog *faultlog, LogTree &log) :
+	PayloadManager(mstate_machine, faultlog, log) {
 }
 
 BoardPayloadManager::~BoardPayloadManager() {

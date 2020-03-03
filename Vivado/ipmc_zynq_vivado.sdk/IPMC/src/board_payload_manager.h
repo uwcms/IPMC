@@ -35,7 +35,7 @@
  */
 class BoardPayloadManager final : public PayloadManager {
 public:
-	BoardPayloadManager(MStateMachine *mstate_machine, LogTree &log);
+	BoardPayloadManager(MStateMachine *mstate_machine, FaultLog *faultlog, LogTree &log);
 	virtual ~BoardPayloadManager();
 
 	// Mandatory public implementations of PayloadManager:
