@@ -37,3 +37,6 @@ bootimages/
 
 # Ignore core files.
 core
+
+.vscode/
+*.code-workspace
