@@ -23,8 +23,6 @@
 #include <stdint.h>
 #include <sys/time.h>
 
-#define FAULT_RECORD_COUNT 128 // This MUST be < 255 on pain of infinite loop. (not just <=)
-
 #define FAULT_SEQUENCE_INVALID 0xFF
 #define FAULT_SEQUENCE_INITIAL 0
 
@@ -43,37 +41,39 @@ FaultLog::FaultLog(PersistentStorage &persistent_storage, LogTree &logtree)
 	this->mutex = xSemaphoreCreateMutex();
 
 	bool initialize = false;
-	if (this->persistent_storage.getSectionVersion(PersistentStorageAllocations::WISC_FAULT_LOG) != 1) {
+	if (this->persistent_storage.getSectionVersion(PersistentStorageAllocations::WISC_FAULT_LOG) != 2) {
 		initialize = true;
 		this->persistent_storage.deleteSection(PersistentStorageAllocations::WISC_FAULT_LOG);
 	}
-	this->faultlog = (struct fault*)this->persistent_storage.getSection(PersistentStorageAllocations::WISC_FAULT_LOG, 1, sizeof(struct FaultLog::fault)*FAULT_RECORD_COUNT);
-	if (!this->faultlog) {
+	this->faultlog = (struct faultlog*)this->persistent_storage.getSection(PersistentStorageAllocations::WISC_FAULT_LOG, 2, sizeof(struct FaultLog::faultlog));
+	if (!this->faultlog || this->faultlog->max_record_count != this->fault_log_max_records) {
 		this->persistent_storage.deleteSection(PersistentStorageAllocations::WISC_FAULT_LOG);
-		this->faultlog = (struct fault*)this->persistent_storage.getSection(PersistentStorageAllocations::WISC_FAULT_LOG, 1, sizeof(struct FaultLog::fault)*FAULT_RECORD_COUNT);
+		this->faultlog = (struct faultlog*)this->persistent_storage.getSection(PersistentStorageAllocations::WISC_FAULT_LOG, 2, sizeof(struct FaultLog::faultlog));
 	}
 	if (!this->faultlog)
 		throw std::runtime_error("Unable to allocate or initialize fault log storage.");
 
 	if (initialize) {
-		memset(this->faultlog, FAULT_SEQUENCE_INVALID, sizeof(struct FaultLog::fault)*FAULT_RECORD_COUNT);
+		this->faultlog->max_record_count = this->fault_log_max_records;
+		this->faultlog->verbosity_config = 0xffffffff; // "uninitialized"
+		memset(this->faultlog->log, FAULT_SEQUENCE_INVALID, sizeof(struct FaultLog::fault)*this->fault_log_max_records);
 		this->persistent_storage.flush();
 	}
 
 	// Now we have to scan the table and deduce the current read position.
 	bool record_found = false;
-	for (int i = 0; i < FAULT_RECORD_COUNT; ++i) {
-		if (this->faultlog[i].sequence == FAULT_SEQUENCE_INVALID) {
+	for (int i = 0; i < this->fault_log_max_records; ++i) {
+		if (this->faultlog->log[i].sequence == FAULT_SEQUENCE_INVALID) {
 			// An uninitialized record was found.
 			this->next_record = i;
 			this->next_sequence = FAULT_SEQUENCE_INITIAL;
 			record_found = true;
 			break;
 		}
-		else if (this->faultlog[(i+1) % FAULT_RECORD_COUNT].sequence != incr_seq(this->faultlog[i].sequence)) {
+		else if (this->faultlog->log[(i+1) % this->fault_log_max_records].sequence != incr_seq(this->faultlog->log[i].sequence)) {
 			// The next record doesn't follow this one.  This is therefore the last.
-			this->next_record = (i+1) % FAULT_RECORD_COUNT;
-			this->next_sequence = incr_seq(this->faultlog[i].sequence);
+			this->next_record = (i+1) % this->fault_log_max_records;
+			this->next_sequence = incr_seq(this->faultlog->log[i].sequence);
 			record_found = true;
 			break;
 		}
@@ -96,9 +96,9 @@ void FaultLog::submit(struct fault &fault) {
 	gettimeofday(&tv, nullptr);
 	fault.unixtime = tv.tv_sec;
 	MutexGuard<false> lock(this->mutex);
-	memcpy(&this->faultlog[this->next_record], &fault, sizeof(fault));
-	this->persistent_storage.flush(&this->faultlog[this->next_record], 16);
-	this->next_record = (this->next_record + 1) % FAULT_RECORD_COUNT;
+	memcpy(&this->faultlog->log[this->next_record], &fault, sizeof(fault));
+	this->persistent_storage.flush(&this->faultlog->log[this->next_record], 16);
+	this->next_record = (this->next_record + 1) % this->fault_log_max_records;
 	this->next_sequence = incr_seq(this->next_sequence);
 }
 
@@ -106,7 +106,7 @@ std::deque<struct FaultLog::fault> FaultLog::dump() const {
 	MutexGuard<false> lock(this->mutex);
 	std::deque<struct FaultLog::fault> faults;
 
-	if (this->next_record == 0 && this->faultlog[this->next_record].sequence == FAULT_SEQUENCE_INVALID) {
+	if (this->next_record == 0 && this->faultlog->log[this->next_record].sequence == FAULT_SEQUENCE_INVALID) {
 		// We have a blank fault log.  It's never had a record written to it.
 		return faults;
 	}
@@ -114,24 +114,24 @@ std::deque<struct FaultLog::fault> FaultLog::dump() const {
 	// Next up, decrement until we hit a sequence number discontinuity, and push faults onto the list.
 	int pos = this->next_record - 1;
 	if (pos < 0)
-		pos = FAULT_RECORD_COUNT - 1;
+		pos = this->fault_log_max_records - 1;
 	struct fault fault;
 	do {
 		// This record is known to exist.  We bailed on an empty log above, and
 		// will stop iteration accordingly below.
-		memcpy(&fault, &this->faultlog[pos], sizeof(struct fault));
+		memcpy(&fault, &this->faultlog->log[pos], sizeof(struct fault));
 		faults.push_front(fault);
 		if (--pos < 0)
-			pos = FAULT_RECORD_COUNT - 1;
-	} while (faults.size() < FAULT_RECORD_COUNT /* final safety check for corrupt logs */
-			&& this->faultlog[pos].sequence != FAULT_SEQUENCE_INVALID /* not free space */
-			&& this->faultlog[pos].sequence == decr_seq(fault.sequence) /* not sequence discontinuity */);
+			pos = this->fault_log_max_records - 1;
+	} while (faults.size() < this->fault_log_max_records /* final safety check for corrupt logs */
+			&& this->faultlog->log[pos].sequence != FAULT_SEQUENCE_INVALID /* not free space */
+			&& this->faultlog->log[pos].sequence == decr_seq(fault.sequence) /* not sequence discontinuity */);
 	return faults;
 }
 
 void FaultLog::erase() {
 	MutexGuard<false> lock(this->mutex);
-	memset(this->faultlog, FAULT_SEQUENCE_INVALID, sizeof(struct FaultLog::fault)*FAULT_RECORD_COUNT);
+	memset(this->faultlog->log, FAULT_SEQUENCE_INVALID, sizeof(struct FaultLog::fault)*this->fault_log_max_records);
 	this->persistent_storage.flush();
 	this->next_record = 0;
 	this->next_sequence = FAULT_SEQUENCE_INITIAL;
@@ -239,14 +239,14 @@ public:
 
 		    console->write(stdsprintf("%-20s %s\n", timestring, formatted.c_str()));
 		}
-		console->write(stdsprintf("Found %d entries (capacity %d).\n", faults.size(), FAULT_RECORD_COUNT));
+		console->write(stdsprintf("Found %d entries (capacity %d).\n", faults.size(), FaultLog::fault_log_max_records));
 	}
 
 private:
 	FaultLog &faultlog;
 };
 
-/// A "dump" console command.
+/// An "erase" console command.
 class FaultLog::EraseCommand : public CommandParser::Command {
 public:
 	EraseCommand(FaultLog &faultlog) : faultlog(faultlog), erasekey(0) { };
@@ -278,11 +278,54 @@ private:
 	uint16_t erasekey;
 };
 
+namespace {
+/// An "erase" console command.
+class VerbosityCommand : public CommandParser::Command {
+public:
+	VerbosityCommand(FaultLog &faultlog) : faultlog(faultlog) { };
+
+	virtual std::string getHelpText(const std::string &command) const {
+		return command + " [$new_verbosity]\n\n"
+				"Configure the fault log verbosity mask.\n"
+				"\n"
+				"The fault log verbosity mask determines what events are considered significant\n"
+				"enough to log.  In the default design, this is a bitmask of IPMI sensor\n"
+				"thresholds and applies only to threshold sensors.\n"
+				"\n"
+				"These bits, in ascending order, are:"
+				"  lnc- lnc+ lcr- lcr+ lnr- lnr+ unc- unc+ ucr- ucr+ unr- unr+\n"
+				"\n"
+				"Useful example values include:\n"
+				"  0x810 (unr+ lnr-)\n"
+				"  0xA14 (unr+ ucr+ lnr- lcr-)\n"
+				"  0xA95 (unr+ ucr+ unc+ lnr- lcr- lnc-)\n"
+				"\n"
+				"Without a parameter, the current mask is shown.\n";
+	}
+
+	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
+		uint32_t newmask;
+		if (parameters.parseParameters(1, true, &newmask)) {
+			this->faultlog.set_verbosity_config(newmask);
+		}
+		else {
+			console->write(stdsprintf("Verbosity mask: 0x%08x\n", this->faultlog.get_verbosity_config()));
+		}
+	}
+
+private:
+	FaultLog &faultlog;
+	uint16_t erasekey;
+};
+} // anonymous namespace
+
 void FaultLog::registerConsoleCommands(CommandParser &parser, const std::string &prefix) {
 	parser.registerCommand(prefix + "dump", std::make_shared<FaultLog::DumpCommand>(*this));
 	parser.registerCommand(prefix + "erase", std::make_shared<FaultLog::EraseCommand>(*this));
+	parser.registerCommand(prefix + "verbosity", std::make_shared<VerbosityCommand>(*this));
 }
 void FaultLog::deregisterConsoleCommands(CommandParser &parser, const std::string &prefix) {
 	parser.registerCommand(prefix + "dump", nullptr);
 	parser.registerCommand(prefix + "erase", nullptr);
+	parser.registerCommand(prefix + "verbosity", nullptr);
 }

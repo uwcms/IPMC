@@ -74,16 +74,44 @@ public:
 	 */
 	void erase();
 
+	/**
+	 * Sets the verbosity config variable (not used internally)
+	 * @param config The new value.
+	 */
+	void set_verbosity_config(uint32_t config) {
+		this->faultlog->verbosity_config = config;
+		this->persistent_storage.flush(&this->faultlog->verbosity_config, sizeof(uint32_t));
+	};
+
+	/**
+	 * Reads the value of the verbosity config variable (not used internally)
+	 * @return The current value. (default = 0xffffffff)
+	 */
+	uint32_t get_verbosity_config() { return this->faultlog->verbosity_config; };
+
 	// From base class ConsoleCommandSupport:
 	virtual void registerConsoleCommands(CommandParser &parser, const std::string &prefix="");
 	virtual void deregisterConsoleCommands(CommandParser &parser, const std::string &prefix="");
+
+	// Consider header and block size if choosing to change this.
+	// This MUST be < 255 on pain of infinite loop. (not just <=)
+	static const size_t fault_log_max_records = 127;
 
 protected:
 	PersistentStorage &persistent_storage; ///< Persistent Storage
 	LogTree &logtree; ///< The LogTree for status logging (unrelated to fault storage)
 	SemaphoreHandle_t mutex; ///< A mutex for log operations.
 
-	struct fault *faultlog; ///< The actual fault log region
+	/**
+	 * The fault log header
+	 */
+	struct faultlog {
+		uint8_t max_record_count;
+		uint8_t _unused[3];
+		uint32_t verbosity_config;
+		struct fault log[fault_log_max_records];
+	};
+	struct faultlog *faultlog; ///< The actual fault log region
 	uint8_t next_record; ///< The next record to write.
 	uint8_t next_sequence; ///< The sequence number of the next record.
 

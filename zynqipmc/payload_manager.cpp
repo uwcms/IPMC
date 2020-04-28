@@ -117,6 +117,9 @@ PayloadManager::PayloadManager(MStateMachine *mstate_machine, FaultLog *faultlog
 	ledstate.min_duration = 0;
 	ledstate.effect = IPMILED::OFF;
 	ipmi_leds[2]->submit(ledstate);
+
+	if (this->faultlog->get_verbosity_config() == 0xffffffff)
+		this->faultlog->set_verbosity_config(0xA14); // unr+ ucr+ lnr- lcr-
 }
 
 void PayloadManager::finishConfig() {
@@ -188,7 +191,12 @@ std::vector<LinkDescriptor> PayloadManager::getLinks() const {
 }
 
 /**
- * Allow user configuration of which IPMI events are fault-loged.
+ * Allow board integrators to redefine which IPMI events are fault-logged.
+ *
+ * \note This mechanism can be reconfigured at runtime using the
+ *       faultlog.verbosity command.  Integrators may wish to unbind and rebind
+ *       the appropriate faultlog console commands if they override this mechanism.
+ *
  * @param ipmi_payload The payload of the IPMI Platform Event message.
  * @return true if this message should be logged to EEPROM, else false
  */
@@ -207,11 +215,29 @@ bool PayloadManager::filterFaultLogIPMIEvent(const std::vector<uint8_t> &ipmi_pa
 
 	bool outcome = false;
 
+	/*
+		static const std::string threshold_names[12] = {
+			"lnc-",
+			"lnc+",
+			"lcr-",
+			"lcr+",
+			"lnr-",
+			"lnr+",
+			"unc-",
+			"unc+",
+			"ucr-",
+			"ucr+",
+			"unr-",
+			"unr+"
+		};
+	 */
+	uint32_t verbosity_config = this->faultlog->get_verbosity_config();
+
 	if (ipmi_payload.size() >= 7
 			&& ipmi_payload[0] == 0x04
 			&& (ipmi_payload[3] & 0x7f) == 0x01 /* "Threshold" sensor type code */
 			&& (ipmi_payload[3] & 0x80) == 0 /* assertions only */
-			&& ( (ipmi_payload[4] & 0x0f) == 4 /* LNR */ || (ipmi_payload[4] & 0x0f) == 11 /* UNR */ )
+			&& ( verbosity_config & (1 << (ipmi_payload[4] & 0x0f)) )
 			)
 		outcome = true;
 
