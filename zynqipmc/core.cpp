@@ -256,13 +256,14 @@ void core_driver_init() {
 void core_service_init() {
 	console_service = UARTConsoleSvc::create(*psuart0, console_command_parser, "console", LOG["console"]["uart"], true);
 
+	FaultLog *faultlog = new FaultLog(*persistent_storage, LOG["faultlog"]);
+	faultlog->registerConsoleCommands(console_command_parser, "faultlog.");
+
 #ifdef ENABLE_IPMI
 	mstatemachine = new MStateMachine(std::dynamic_pointer_cast<HotswapSensor>(ipmc_sensors.findByName("Hotswap")), *ipmi_leds[0], LOG["mstatemachine"]);
 	mstatemachine->registerConsoleCommands(console_command_parser, "");
 
 	// TODO: Change this?
-	FaultLog *faultlog = new FaultLog(*persistent_storage, LOG["faultlog"]);
-	faultlog->registerConsoleCommands(console_command_parser, "faultlog.");
 	payload_manager = new BoardPayloadManager(mstatemachine, faultlog, LOG["payload_manager"]);
 	payload_manager->config();
 
