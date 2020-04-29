@@ -928,9 +928,13 @@ private:
 };
 
 std::string PayloadManager::getMZName(size_t mz) const {
+#ifdef MANAGEMENT_ZONE_PRESENT_IN_BSP
 	if (mz >= XPAR_MGMT_ZONE_CTRL_0_MZ_CNT || !this->mgmt_zones[mz])
 		return "";
 	return this->mgmt_zones[mz]->getName();
+#else
+	return "";
+#endif
 }
 
 void PayloadManager::registerConsoleCommands(CommandParser &parser, const std::string &prefix) {
