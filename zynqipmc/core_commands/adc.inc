@@ -41,8 +41,8 @@ public:
 			uint32_t raw = sensor.second.adc.readRaw();
 			float value = sensor.second.adc.rawToFloat(raw);
 
-			console->write(stdsprintf("%10s\t%4.3f\t%8s\t%d\n",
-					sensor.first.c_str(), value, sensor.second.adc.getADC().getIdentifier().c_str(), sensor.second.adc.getChannelNumber()));
+			console->write(stdsprintf("%16s  %6.3f (0x%04lx) %10s.%d\n",
+					sensor.first.c_str(), value, raw, sensor.second.adc.getADC().getIdentifier().c_str(), sensor.second.adc.getChannelNumber()));
 
 			//console->write(sensor.first + " " + std::to_string(value) + " " + sensor.second.adc.getChannelInfo() + "\n");
 		}
