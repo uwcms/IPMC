@@ -24,7 +24,7 @@
 MStateMachine::MStateMachine(std::shared_ptr<HotswapSensor> hotswap_sensor, IPMILED &blue_led, LogTree &log)
 	: deactivate_payload(nullptr), mstate(1), hotswap_sensor(hotswap_sensor), blue_led(blue_led), log(log),
 	  activation_locked(false), deactivation_locked(false), startup_locked(true), fault_locked(false),
-	  physical_handle_state(HANDLE_OPEN), override_handle_state(HANDLE_NULL) {
+	  update_locked(false), physical_handle_state(HANDLE_OPEN), override_handle_state(HANDLE_NULL) {
 	this->mutex = xSemaphoreCreateRecursiveMutex();
 	configASSERT(this->mutex);
 	this->log.log("Initialized in M1", LogTree::LOG_INFO);
