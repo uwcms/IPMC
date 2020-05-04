@@ -40,7 +40,12 @@ public:
 
 		if (flash.getTotalSize() == (16 MB)) {
 			address = 0;
-		} else {
+		}
+		else if (parameters.parameters.size() < 2) {
+			console->write("Missing parameter. See help.\n");
+			return;
+		}
+		else {
 			if (!parameters.parameters[1].compare("fallback")) {
 				address = 0;
 			} else if (!parameters.parameters[1].compare("imageA")) {
