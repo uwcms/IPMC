@@ -212,7 +212,7 @@ void IPMBSvc::runThread() {
 				 */
 				inmsg.duplicate = this->checkDuplicate(inmsg);
 				if (inmsg.duplicate) {
-					this->log_messages_in.log(std::string("Request received on ") + this->kName + ":  " + inmsg.format() + "  (duplicate)", LogTree::LOG_NOTICE);
+					this->log_messages_in.log(std::string("Request received on ") + this->kName + ":  " + inmsg.format() + "  (duplicate)", LogTree::LOG_INFO);
 				} else {
 					this->log_messages_in.log(std::string("Request received on ") + this->kName + ":  " + inmsg.format(), LogTree::LOG_INFO);
 				}
