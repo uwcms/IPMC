@@ -62,7 +62,7 @@ FaultLog::FaultLog(PersistentStorage &persistent_storage, LogTree &logtree)
 
 	// Now we have to scan the table and deduce the current read position.
 	bool record_found = false;
-	for (int i = 0; i < this->fault_log_max_records; ++i) {
+	for (size_t i = 0; i < this->fault_log_max_records; ++i) {
 		if (this->faultlog->log[i].sequence == FAULT_SEQUENCE_INVALID) {
 			// An uninitialized record was found.
 			this->next_record = i;
@@ -309,7 +309,7 @@ public:
 			this->faultlog.set_verbosity_config(newmask);
 		}
 		else {
-			console->write(stdsprintf("Verbosity mask: 0x%08x\n", this->faultlog.get_verbosity_config()));
+			console->write(stdsprintf("Verbosity mask: 0x%08lx\n", this->faultlog.get_verbosity_config()));
 		}
 	}
 
