@@ -107,8 +107,9 @@ public:
 	SDR_FIELD(units_modifier_unit_method, enum UnitsModifierUnitMethod, 20, 2, 1, )
 	SDR_FIELD(units_percentage, bool, 20, 0, 0, )
 
-	SDR_FIELD(units_base_unit, uint8_t, 21, 7, 1, )
-	SDR_FIELD(units_modifier_unit, uint8_t, 22, 7, 1, )
+	// SDG: units_base_unit & units_modifier_unit were bits 7, 1 but IPMI v2.0 spec says bits 7, 0 so changing to match spec
+	SDR_FIELD(units_base_unit, uint8_t, 21, 7, 0, )
+	SDR_FIELD(units_modifier_unit, uint8_t, 22, 7, 0, )
 
 	SDR_FIELD(hysteresis_high, uint8_t, VARIABLE, 7, 0, =0) // Different in Type 02
 	SDR_FIELD(hysteresis_low, uint8_t, VARIABLE, 7, 0, =0) // Different in Type 02

@@ -86,10 +86,10 @@ public:
 	};
 	SDR_FIELD(linearization, enum Linearization, 23, 7, 0, )
 
-	SDR_FIELD(conversion_m, uint16_t, 24 AND 25, 7, 0, )
+	SDR_FIELD(conversion_m, int16_t, 24 AND 25, 7, 0, )
 	SDR_FIELD(conversion_m_tolerance, uint8_t, 25, 5, 0, ) // Unit: +/- half raw counts
 
-	SDR_FIELD(conversion_b, uint16_t, 26 AND 27, 7, 0, )
+	SDR_FIELD(conversion_b, int16_t, 26 AND 27, 7, 0, )
 	SDR_FIELD(conversion_b_accuracy, uint16_t, 27 AND 28, 7, 0, )
 	SDR_FIELD(conversion_b_accuracy_exp, uint8_t, 28, 3, 2, )
 
@@ -106,8 +106,8 @@ public:
 	SDR_FIELD(normal_max_rawvalue, uint8_t, 32, 7, 0, )
 	SDR_FIELD(normal_min_rawvalue, uint8_t, 33, 7, 0, )
 
-	SDR_FIELD(sensor_min_rawvalue, uint8_t, 34, 7, 0, )
-	SDR_FIELD(sensor_max_rawvalue, uint8_t, 35, 7, 0, )
+	SDR_FIELD(sensor_max_rawvalue, uint8_t, 34, 7, 0, )
+	SDR_FIELD(sensor_min_rawvalue, uint8_t, 35, 7, 0, )
 
 	SDR_FIELD(threshold_unr_rawvalue, uint8_t, 36, 7, 0, )
 	SDR_FIELD(threshold_ucr_rawvalue, uint8_t, 37, 7, 0, )

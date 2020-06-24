@@ -70,7 +70,7 @@ uint16_t SensorDataRecord::recordId() const {
 		throw invalid_sdr_error("Truncated SDR");
 	}
 
-	return (this->sdr_data[1] << 8) | this->sdr_data[0];
+	return ((uint16_t)this->sdr_data[1] << 8) | this->sdr_data[0];
 }
 
 void SensorDataRecord::recordId(uint16_t record_id) {

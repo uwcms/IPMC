@@ -45,37 +45,47 @@ SDR_FIELD(units_numeric_format, enum SensorDataRecord01::UnitsNumericFormat, 20,
 
 SDR_FIELD(linearization, enum SensorDataRecord01::Linearization, 23, 7, 0, )
 
-uint16_t SensorDataRecord01::conversion_m() const {
+int16_t SensorDataRecord01::conversion_m() const {
 	this->validate();
-	return this->sdr_data[24] | ((this->sdr_data[25]&0xc0)<<2);
+	int16_t signedMS = (int16_t)(((int8_t)this->sdr_data[25]) >> 6);
+	return (signedMS << 8) | this->sdr_data[24];
 }
-void SensorDataRecord01::conversion_m(uint16_t val) {
-	if ((val & 0x3ff) != val)
-		throw std::domain_error("The supplied value does not fit correctly in the field.");
-	this->validate();
-	this->sdr_data[24] = val & 0xff;
-	this->sdr_data[25] &= ~0xc0;
-	this->sdr_data[25] |= val >> 8;
+void SensorDataRecord01::conversion_m(int16_t val) {
+    // NOTE: Cannot use bit masks for this check because if have 16
+    // bits, and reduce to 10, the value 512 and -512 look the same
+    // with a bit mask, however, 512 cannot be stored in 10-bits
+    // signed.
+    if (val > 511 || val < -512)
+	throw std::domain_error("The supplied value does not fit correctly in the field.");
+    this->validate();
+    this->sdr_data[24] = val & 0x00ff;
+    this->sdr_data[25] &= ~0xc0;
+    this->sdr_data[25] |= (val & 0x0300) >> 2;
 }
 
 SDR_FIELD(conversion_m_tolerance, uint8_t, 25, 5, 0, ) // Unit: +/- half raw counts
 
-uint16_t SensorDataRecord01::conversion_b() const {
+int16_t SensorDataRecord01::conversion_b() const {
 	this->validate();
-	return this->sdr_data[26] | ((this->sdr_data[27]&0xc0)<<2);
+	int16_t signedMS = (int16_t)(((int8_t)this->sdr_data[27]) >> 6);
+	return (signedMS << 8) | this->sdr_data[26];
 }
-void SensorDataRecord01::conversion_b(uint16_t val) {
-	if ((val & 0x3ff) != val)
-		throw std::domain_error("The supplied value does not fit correctly in the field.");
-	this->validate();
-	this->sdr_data[26] = val & 0xff;
-	this->sdr_data[27] &= ~0xc0;
-	this->sdr_data[27] |= val >> 8;
+void SensorDataRecord01::conversion_b(int16_t val) {
+    // NOTE: Cannot use bit masks for this check because if have 16
+    // bits, and reduce to 10, the value 512 and -512 look the same
+    // with a bit mask, however, 512 cannot be stored in 10-bits
+    // signed.
+    if (val > 511 || val < -512)
+	throw std::domain_error("The supplied value does not fit correctly in the field.");
+    this->validate();
+    this->sdr_data[26] = val & 0x00ff;
+    this->sdr_data[27] &= ~0xc0;
+    this->sdr_data[27] |= (val & 0x0300) >> 2;
 }
 
 uint16_t SensorDataRecord01::conversion_b_accuracy() const {
 	this->validate();
-	return (this->sdr_data[27] & 0x3f) | ((this->sdr_data[28]&0xf0)<<2);
+	return (this->sdr_data[27] & 0x3f) | (((uint16_t)this->sdr_data[28]&0x00f0)<<2);
 }
 void SensorDataRecord01::conversion_b_accuracy(uint16_t val) {
 	if ((val & 0x3ff) != val)
@@ -84,7 +94,7 @@ void SensorDataRecord01::conversion_b_accuracy(uint16_t val) {
 	this->sdr_data[27] &= ~0x3f;
 	this->sdr_data[27] |= val & 0x3f;
 	this->sdr_data[28] &= ~0xf0;
-	this->sdr_data[28] |= (val >> 2) & 0xf0;
+	this->sdr_data[28] |= (val >> 2) & 0x00f0;
 }
 
 SDR_FIELD(conversion_b_accuracy_exp, uint8_t, 28, 3, 2, )
@@ -99,11 +109,10 @@ int8_t SensorDataRecord01::conversion_r_exp() const {
 	return *reinterpret_cast<int8_t*>(&val);
 }
 void SensorDataRecord01::conversion_r_exp(int8_t val) {
-	uint8_t uval = *reinterpret_cast<uint8_t*>(&val);
-	if (!((uval&0xf0) == 0 || (uval&0xf0) == 0xf0))
+	if (val > 7 || val < -8)
 		throw std::domain_error("The supplied value does not fit correctly in the field.");
 	this->validate();
-	this->sdr_data[29] = (uval<<4) | (this->sdr_data[29] & 0x0f);
+	this->sdr_data[29] = (val<<4) | (this->sdr_data[29] & 0x0f);
 }
 
 int8_t SensorDataRecord01::conversion_b_exp() const {
@@ -114,11 +123,10 @@ int8_t SensorDataRecord01::conversion_b_exp() const {
 	return *reinterpret_cast<int8_t*>(&val);
 }
 void SensorDataRecord01::conversion_b_exp(int8_t val) {
-	uint8_t uval = *reinterpret_cast<uint8_t*>(&val);
-	if (!((uval&0xf0) == 0 || (uval&0xf0) == 0xf0))
+	if (val > 7 || val < -8)
 		throw std::domain_error("The supplied value does not fit correctly in the field.");
 	this->validate();
-	this->sdr_data[29] = (this->sdr_data[29] & 0xf0) | uval;
+	this->sdr_data[29] = (this->sdr_data[29] & 0xf0) | (val & 0x0f);
 }
 
 SDR_FIELD(normal_min_specified, bool, 30, 2, 2, )
@@ -129,8 +137,9 @@ SDR_FIELD(nominal_reading_rawvalue, uint8_t, 31, 7, 0, )
 SDR_FIELD(normal_max_rawvalue, uint8_t, 32, 7, 0, )
 SDR_FIELD(normal_min_rawvalue, uint8_t, 33, 7, 0, )
 
-SDR_FIELD(sensor_min_rawvalue, uint8_t, 34, 7, 0, )
-SDR_FIELD(sensor_max_rawvalue, uint8_t, 35, 7, 0, )
+// SDG: Old code had sensor_max_rawvalue and sensor_min_rawvalue bytes swapped w.r.t v2.0 of IPMI spec.
+SDR_FIELD(sensor_max_rawvalue, uint8_t, 34, 7, 0, )
+SDR_FIELD(sensor_min_rawvalue, uint8_t, 35, 7, 0, )
 
 SDR_FIELD(threshold_unr_rawvalue, uint8_t, 36, 7, 0, )
 SDR_FIELD(threshold_ucr_rawvalue, uint8_t, 37, 7, 0, )
@@ -165,13 +174,18 @@ uint8_t SensorDataRecord01::fromFloat(float value) const {
 	// Divide by M.
 	value /= this->conversion_m();
 
+	// Round to nearest integer
+	value = roundf(value);
+
 	// And now I guess it's a uint8_t?
-	uint8_t raw_discrete_value = static_cast<uint16_t>(value);
+	uint8_t raw_discrete_value = static_cast<uint8_t>(value);
+
 	// Resolve domain errors.
-	if (value >= 0xff)
+	if (value > 255.0)
 		raw_discrete_value = 0xff;
-	if (value <= 0)
+	if (value < 0.0)
 		raw_discrete_value = 0;
+
 	return raw_discrete_value;
 }
 

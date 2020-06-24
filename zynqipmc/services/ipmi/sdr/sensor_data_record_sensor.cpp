@@ -80,7 +80,7 @@ void SensorDataRecordSensor::initializeBlank(std::string name) {
 
 SDR_FIELD(sensor_owner_id, uint8_t, 5, 7, 0, )
 SDR_FIELD(sensor_owner_channel, uint8_t, 6, 7, 4, )
-SDR_FIELD(sensor_owner_lun, uint8_t, 6, 2, 0, )
+SDR_FIELD(sensor_owner_lun, uint8_t, 6, 1, 0, )
 SDR_FIELD(sensor_number, uint8_t, 7, 7, 0, )
 
 SDR_FIELD(entity_id, uint8_t, 8, 7, 0, )

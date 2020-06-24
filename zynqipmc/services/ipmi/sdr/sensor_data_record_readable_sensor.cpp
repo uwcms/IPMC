@@ -70,7 +70,7 @@ void SensorDataRecordReadableSensor::threshold_comparisons_returned(uint8_t val)
 uint16_t SensorDataRecordReadableSensor::assertion_lower_threshold_reading_mask() const {
 	this->validate();
 
-	return ((this->sdr_data[15] & 0x0f)<<8) | this->sdr_data[14];
+	return (((uint16_t)this->sdr_data[15] & 0x0f)<<8) | this->sdr_data[14];
 }
 void SensorDataRecordReadableSensor::assertion_lower_threshold_reading_mask(uint16_t val) {
 	this->validate();
@@ -83,7 +83,7 @@ void SensorDataRecordReadableSensor::assertion_lower_threshold_reading_mask(uint
 uint16_t SensorDataRecordReadableSensor::deassertion_upper_threshold_reading_mask() const {
 	this->validate();
 
-	return ((this->sdr_data[17] & 0x0f)<<8) | this->sdr_data[16];
+	return (((uint16_t)this->sdr_data[17] & 0x0f)<<8) | this->sdr_data[16];
 }
 void SensorDataRecordReadableSensor::deassertion_upper_threshold_reading_mask(uint16_t val) {
 	this->validate();
@@ -96,21 +96,22 @@ void SensorDataRecordReadableSensor::deassertion_upper_threshold_reading_mask(ui
 uint16_t SensorDataRecordReadableSensor::discrete_reading_setable_threshold_reading_mask() const {
 	this->validate();
 
-	return (this->sdr_data[19]<<8) | this->sdr_data[18];
+	return ((uint16_t)this->sdr_data[19]<<8) | this->sdr_data[18];
 }
 void SensorDataRecordReadableSensor::discrete_reading_setable_threshold_reading_mask(uint16_t val) {
 	this->validate();
 
-	this->sdr_data[19] = val >> 8;
-	this->sdr_data[18] = val & 0xff;
+	this->sdr_data[19] = (val >> 8) & 0x3f; // leave reserved bits 15:14 as 0
+	this->sdr_data[18] = val & 0x3f;        // leave reserved bits 7:6 as 0
 }
 
 SDR_FIELD(units_rate_unit, enum SensorDataRecordReadableSensor::UnitsRateUnit, 20, 5, 3, )
 SDR_FIELD(units_modifier_unit_method, enum SensorDataRecordReadableSensor::UnitsModifierUnitMethod, 20, 2, 1, )
 SDR_FIELD(units_percentage, bool, 20, 0, 0, )
 
-SDR_FIELD(units_base_unit, uint8_t, 21, 7, 1, )
-SDR_FIELD(units_modifier_unit, uint8_t, 22, 7, 1, )
+// SDG: units_base_unit & units_modifier_unit were bits 7, 1 but IPMI v2.0 spec says bits 7, 0 so changing to match spec
+SDR_FIELD(units_base_unit, uint8_t, 21, 7, 0, )
+SDR_FIELD(units_modifier_unit, uint8_t, 22, 7, 0, )
 
 const std::map<uint8_t, std::string> SensorDataRecordReadableSensor::sensor_unit_type_codes = {
 		{ 0,  "unspecified"           },
