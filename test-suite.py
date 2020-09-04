@@ -1,6 +1,7 @@
 import serial
 from time import sleep
 from operator import xor
+import sys
 
 MAX_GPIO = 5
 
@@ -488,8 +489,11 @@ def run_continuity_test(ipmc, ctrl):
     return [tests_total, tests_failed, summary]
 
 def main():
-    ipmc = serial.Serial('/dev/ttyUSB0', 115200, timeout=1)
-    ctrl = serial.Serial('/dev/ttyUSB1', 115200, timeout=1)
+    if len(sys.argv) < 3:
+        print('test-suite.py $IPMC_SERIAL_DEVICE $CTRL_SERIAL_DEVICE')
+        sys.exit(1)
+    ipmc = serial.Serial(sys.argv[1], 115200, timeout=1)
+    ctrl = serial.Serial(sys.argv[2], 115200, timeout=1)
 
     results = [0, 0, []]
 
