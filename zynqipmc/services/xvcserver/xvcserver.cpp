@@ -41,14 +41,24 @@ kBaseAddr(baseAddr), log(log), kPort(port) {
 				continue;
 			}
 
-			this->log.log("XVC connection established from " + client->getSocketAddress().getAddress(), LogTree::LOG_NOTICE);
+			if (this->isRunning) {
+				// There is already a connection established, refuse new one
+				this->log.log("XVC connection from "  + client->getSocketAddress().getAddress() + " refused, only one connection allowed", LogTree::LOG_WARNING);
+				client->close();
+			} else {
+				this->log.log("XVC connection established from " + client->getSocketAddress().getAddress(), LogTree::LOG_NOTICE);
 
-			// Set TCP_NODELAY to socket
-			client->enableNoDelay();
+				// Set TCP_NODELAY to socket
+				client->enableNoDelay();
 
-			this->handleClient(client);
+				this->isRunning = true;
+				runTask("xvc", TASK_PRIORITY_BACKGROUND, [this, client]() {
+					this->handleClient(client);
+					this->isRunning = false;
 
-			this->log.log("XVC connection closed", LogTree::LOG_NOTICE);
+					this->log.log("XVC connection closed", LogTree::LOG_NOTICE);
+				});
+			}
 		}
 	});
 }

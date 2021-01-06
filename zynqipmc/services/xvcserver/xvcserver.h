@@ -29,7 +29,7 @@
  * Xilinx Virtual Cable (XVC) TCP/IP server app based on XAPP1251:
  * https://github.com/Xilinx/XilinxVirtualCable
  * Server thread starts automatically object is instantiated.
- * Default port is 2542.
+ * Default port is 2542 and only one connection is allowed.
  **/
 class XVCServer final {
 public:
@@ -51,6 +51,8 @@ private:
 	} jtag_t;
 
 	bool handleClient(std::shared_ptr<Socket> s);
+
+	volatile bool isRunning = false;	///< Indicates if an XVC client is already connected.
 
 	const void* kBaseAddr;	///< XVC-JTAG IP base address.
 	LogTree& log;			///< Log facility for debugging and status messages.
