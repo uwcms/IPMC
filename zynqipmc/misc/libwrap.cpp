@@ -375,7 +375,19 @@ void abort() {
 	std::string log_facility = "ipmc.unhandled_exception." + tskname;
 	TRACE.log(log_facility.c_str(), log_facility.size(), LogTree::LOG_CRITICAL, output.c_str(), output.size());
 
-	// Put it directly to the UART console, for the same reason.
+	/* Put it directly to the UART console, for the same reason.
+	 *
+	 * This is second because the TraceBuffer facility is highly self-contained
+	 * and designed for absolute zero-dependency reliability.  windows_newline()
+	 * performs memory allocations via std::string internals, in order to make
+	 * space for the extra \r in \r\n sequences, and as such, it relies on
+	 * functional memory allocation machinery which the TraceBuffer facility
+	 * does not require.
+	 *
+	 * At some point, perhaps __real_print() can be reimplemented as a custom
+	 * for() loop relying on putc() with conditional logic rather than string
+	 * buffer editing in this instance, to remove this reliance on the allocator.
+	 */
 	std::string wnl_output = output;
 	windows_newline(wnl_output);
 	__real_print(wnl_output.c_str());
