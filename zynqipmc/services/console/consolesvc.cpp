@@ -232,7 +232,7 @@ void ConsoleSvc::runThread() {
 
 				// Newlines aren't valid in ANSI sequences.
 				ansi_code.buffer.clear();
-			} else if (*it == ANSICode::renderASCIIControlkey('L') || *it == ANSICode::renderASCIIControlkey('K')) {
+			} else if (*it == ANSICode::renderASCIIControlkey('L')) {
 				// Ctrl-L is customarily "screen redraw".  We will rerender the prompt.
 				echobuf.append(this->linebuf.refresh());
 			} else if (*it == '\x7f') {
@@ -245,6 +245,25 @@ void ConsoleSvc::runThread() {
 			} else if (*it == ANSICode::renderASCIIControlkey('O')) {
 				echobuf.append(stdsprintf("\r\n%s mode.  Last detected console size: %ux%u.\r\n", (this->linebuf.overwrite_mode ? "Overwrite" : "Insert"), this->linebuf.cols, this->linebuf.rows));
 				echobuf.append(this->linebuf.refresh());
+			} else if (*it == ANSICode::renderASCIIControlkey('A')) {
+			        // Emacs Binding - Also handled below by ANSI Code for Home
+			        // NOTE: If using the program
+			        // 'screen' for console, Ctrl-A is
+			        // typically the command character. It
+			        // can either be changed with the -e
+			        // option or you can do Ctrl-A
+			        // followed by a to send a Ctrl-A.
+ 			        echobuf.append(this->linebuf.home());
+				history_browse = false;
+			} else if (*it == ANSICode::renderASCIIControlkey('E')) {
+			        // Emacs Binding - Also handled below by ANSI Code for Home
+ 			        echobuf.append(this->linebuf.end());
+				history_browse = false;
+			} else if (*it == ANSICode::renderASCIIControlkey('K')) {
+			        // Emacs Binding - Delete to End of Line
+			        // This was once the same as Ctrl-L.
+ 			        echobuf.append(this->linebuf.deltoend());
+				history_browse = false;
 			} else if (*it == '\t') {
 				// Tab isn't valid in ANSI sequences.
 				ansi_code.buffer.clear();
@@ -309,10 +328,18 @@ void ConsoleSvc::runThread() {
 				} else if (ansi_code.name == "ARROW_RIGHT") {
 					echobuf.append(this->linebuf.right());
 					history_browse = false;
+				} else if (ansi_code.name == "b") { // Alt-B (without Shift)
+					echobuf.append(this->linebuf.leftword());
+					history_browse = false;
+				} else if (ansi_code.name == "f") { // Alt-F (without Shift)
+					echobuf.append(this->linebuf.rightword());
+					history_browse = false;
 				} else if (ansi_code.name == "HOME") {
+				        // Emacs binding Ctrl-A has the same effect (see above). In screen, need to do Ctrl-A a
 					echobuf.append(this->linebuf.home());
 					history_browse = false;
 				} else if (ansi_code.name == "END") {
+				        // Emacs binding Ctrl-E has the same effect (see above).
 					echobuf.append(this->linebuf.end());
 					history_browse = false;
 				} else if (ansi_code.name == "ARROW_UP") {
@@ -623,6 +650,74 @@ std::string ConsoleSvc::InputBuffer::right() {
 	return this->buffer.substr(this->cursor++, 1);
 }
 
+// Characters that delimit what is considered a word. Tabs are used
+// for command completion so should not be in the command string but
+// including them just in case something changes in the future.
+const std::string ConsoleSvc::InputBuffer::word_delimitor = " \t.";
+
+std::string ConsoleSvc::InputBuffer::leftword() {
+	if (this->cursor == 0)
+		return ""; // already at the beginning, so nothing to do...
+
+	// Move back one character before start
+	this->cursor--;
+	std::string out = ANSICode::ASCII_BACKSPACE;
+
+	// May be in a string of word delimitors, so find the last non-delimitor
+	std::string::size_type wordend = this->buffer.find_last_not_of(this->word_delimitor, this->cursor);
+	if (wordend == std::string::npos) {
+	  // Not found so go to the beginning of the line
+	  wordend = 0;
+	}
+
+	// Found the end of a word, now start search for last delimitor before word
+	std::string::size_type wordstart = this->buffer.find_last_of(this->word_delimitor, wordend);
+	if (wordstart == std::string::npos) {
+	  // No word start found so go to the beginning of the line
+	  wordstart = 0;
+	} else {
+	  // Move wordstart to the beginning of the word (not the found word terminator).
+	  // Will do a single back if in a collection of word terms.
+	  wordstart++;
+	}
+
+	while(this->cursor > wordstart){
+	  // BACKSPACE one character at a time until at the start of the word
+	  out += ANSICode::ASCII_BACKSPACE;
+	  this->cursor--;
+	}
+
+	return out;
+}
+
+std::string ConsoleSvc::InputBuffer::rightword() {
+	if (this->cursor >= this->buffer.size())
+		return ""; // Already at the end, so nothing to do...
+
+	// May be in a string of word characters, so find the first delimitor
+	std::string::size_type wordend = this->buffer.find_first_of(this->word_delimitor, this->cursor);
+	if (wordend == std::string::npos) {
+	  // Not found so go to the end of the line
+	  wordend = this->buffer.size();
+	}
+
+	// Found the end of a word, now start search for first non-delimitor (ie. start of word)
+	std::string::size_type wordstart = this->buffer.find_first_not_of(this->word_delimitor, wordend);
+	if (wordstart == std::string::npos) {
+	  // No word start found so go to the end of the line
+	  wordstart = this->buffer.size();
+	}
+
+	std::string::size_type oldcursor = this->cursor;
+
+	// Move cursor to start of word
+	this->cursor = wordstart;
+
+	// Rerender the characters that were jumped to physically advance the cursor.
+	return this->buffer.substr(oldcursor, wordstart-oldcursor);
+
+}
+
 std::string ConsoleSvc::InputBuffer::backspace() {
 	if (this->overwrite_mode)
 		return this->left(); // Change behavior in overwrite mode.
@@ -654,6 +749,15 @@ std::string ConsoleSvc::InputBuffer::delkey() {
 		for (size_type i = this->buffer.size(); i > this->cursor; --i)
 			out += ANSICode::ASCII_BACKSPACE;
 	}
+	return out;
+}
+
+std::string ConsoleSvc::InputBuffer::deltoend() {
+	if (this->cursor >= this->buffer.size())
+		return ""; // Can't delete at end of line.
+
+	this->buffer.erase(this->cursor, this->buffer.size()-this->cursor);
+	std::string out = ANSICode::ANSI_ERASE_TO_END_OF_LINE;
 	return out;
 }
 

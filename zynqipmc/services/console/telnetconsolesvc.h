@@ -95,7 +95,8 @@ public:
 	 *
 	 * @note Since the parameters are specific, this function cannot be virtual.
 	 */
-	static std::shared_ptr<TelnetConsoleSvc> create(std::shared_ptr<Socket> socket, std::shared_ptr<InputProtocolParser> proto, CommandParser &parser, const std::string &name, LogTree &logtree, bool echo, TickType_t read_data_timeout=4, std::function<void(TelnetConsoleSvc&)> shutdownComplete_cb=nullptr) {
+	static std::shared_ptr<TelnetConsoleSvc> create(std::shared_ptr<Socket> socket, std::shared_ptr<InputProtocolParser> proto, CommandParser &parser,
+													const std::string &name, LogTree &logtree, bool echo, TickType_t read_data_timeout=pdMS_TO_TICKS(40), std::function<void(TelnetConsoleSvc&)> shutdownComplete_cb=nullptr) {
 		std::shared_ptr<TelnetConsoleSvc> ret(new TelnetConsoleSvc(socket, proto, parser, name, logtree, echo, read_data_timeout, shutdownComplete_cb));
 		ret->weakself = ret;
 		return ret;
@@ -127,7 +128,8 @@ private:
 	 * @param read_data_timeout The timeout for reads when data is available.
 	 * @param shutdownComplete_cb A function to call to notify external resources about a completed shutdown.
 	 */
-	TelnetConsoleSvc(std::shared_ptr<Socket> socket, std::shared_ptr<InputProtocolParser> proto, CommandParser &parser, const std::string &name, LogTree &logtree, bool echo, TickType_t read_data_timeout=4, std::function<void(TelnetConsoleSvc&)> shutdownComplete_cb=nullptr);
+	TelnetConsoleSvc(std::shared_ptr<Socket> socket, std::shared_ptr<InputProtocolParser> proto, CommandParser &parser, const std::string &name, LogTree &logtree, bool echo,
+					 TickType_t read_data_timeout=pdMS_TO_TICKS(40), std::function<void(TelnetConsoleSvc&)> shutdownComplete_cb=nullptr);
 
 	std::shared_ptr<Socket> socket; ///< The socket this console is driven by.
 	std::shared_ptr<InputProtocolParser> proto; ///< The input protocol parser for this socket.

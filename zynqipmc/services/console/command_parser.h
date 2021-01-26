@@ -92,7 +92,7 @@ public:
 		}
 
 		const std::vector<std::string> parameters; ///< The internal unparsed parameter list.
-		const size_type cursor_parameter; ///< The parameter the cursor is in, or str::npos if it is in an inter-parameter space.
+		const size_type cursor_parameter; ///< The parameter the cursor is in, or std::string::npos if it is in an inter-parameter space.
 		const std::string::size_type cursor_char; ///< The character position within the parameter that the cursor is at.
 
 		/**
@@ -280,6 +280,8 @@ private:
  */
 class ConsoleCommandSupport {
 public:
+	virtual ~ConsoleCommandSupport() { };
+
 	/**
 	 * Register console commands related to this storage.
 	 * @param parser The command parser to register to.

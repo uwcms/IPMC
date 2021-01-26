@@ -31,7 +31,7 @@ public:
 	 *
 	 * @note Since the parameters are specific, this function cannot be virtual.
 	 */
-	static std::shared_ptr<UARTConsoleSvc> create(UART &uart, CommandParser &parser, const std::string &name, LogTree &logtree, bool echo, TickType_t read_data_timeout = 10) {
+	static std::shared_ptr<UARTConsoleSvc> create(UART &uart, CommandParser &parser, const std::string &name, LogTree &logtree, bool echo, TickType_t read_data_timeout = pdMS_TO_TICKS(100)) {
 		std::shared_ptr<UARTConsoleSvc> ret(new UARTConsoleSvc(uart, parser, name, logtree, echo, read_data_timeout));
 		ret->weakself = ret;
 		return ret;
@@ -50,7 +50,7 @@ private:
 	 * @param echo If true, enable echo and interactive management.
 	 * @param read_data_timeout The timeout for reads when data is available.
 	 */
-	UARTConsoleSvc(UART &uart, CommandParser &parser, const std::string &name, LogTree &logtree, bool echo, TickType_t read_data_timeout=10)
+	UARTConsoleSvc(UART &uart, CommandParser &parser, const std::string &name, LogTree &logtree, bool echo, TickType_t read_data_timeout=pdMS_TO_TICKS(100))
 		: ConsoleSvc(parser, name, logtree, echo, read_data_timeout), uart(uart) { this->start(); };
 
 	UART &uart; ///< The UART this console is driven by.

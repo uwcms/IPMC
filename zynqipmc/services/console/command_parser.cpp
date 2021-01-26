@@ -264,6 +264,16 @@ CommandParser::CompletionResult CommandParser::complete(const std::string &comma
 		return CompletionResult(); // Not on a completable location.
 
 	std::shared_ptr<Command> handler = this->getCommand(command[0]);
+
+	// If immediately preceeding the tab that got us here is a
+	// space, then user is looking to complete the next, as yet
+	// unstarted, parameter. In that case, advance cursor_param by
+	// 1 and reset cursor_char.
+	if (commandline.at(cursor-1) == ' ') {
+	    cursor_param++;
+	    cursor_char = 0;
+	}
+	
 	if (cursor_param == 0) {
 		return CompletionResult(command[cursor_param].substr(0, cursor_char), this->listCommands());
 	} else if (handler) {

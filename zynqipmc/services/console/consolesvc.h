@@ -78,7 +78,7 @@ protected:
 	 * @param echo If true, enable echo and interactive management.
 	 * @param read_data_timeout The timeout for reads when data is available.
 	 */
-	ConsoleSvc(CommandParser &parser, const std::string &name, LogTree &logtree, bool echo, TickType_t read_data_timeout = 10);
+	ConsoleSvc(CommandParser &parser, const std::string &name, LogTree &logtree, bool echo, TickType_t read_data_timeout = pdMS_TO_TICKS(100));
 
 	/**
 	 * A command history manager, complete with history, current-line cache, and managed iterator.
@@ -214,8 +214,11 @@ protected:
 		std::string end();
 		std::string left();
 		std::string right();
+		std::string leftword();
+		std::string rightword();
 		std::string backspace();
 		std::string delkey();
+		std::string deltoend();
 		std::string set_cursor(size_type cursor);
 		///@}
 
@@ -230,6 +233,10 @@ protected:
 
 		size_type cols;			///< Terminal columns.
 		size_type rows;			///< Terminal rows.
+
+		// Characters that delimit what is considered a word
+		static const std::string word_delimitor;
+
 	};
 
 	/**
