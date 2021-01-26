@@ -14,6 +14,7 @@ version['git']['hash']     = subprocess.check_output(['git', 'rev-parse', 'HEAD'
 version['git']['short']    = version['git']['hash'][:8]
 version['git']['uint32_t'] = int(version['git']['short'],16)
 version['git']['describe'] = subprocess.check_output(['git', 'describe', '--always', '--match=*-v[0-9]*.[0-9]*.[0-9]*', '--dirty']).decode('utf8').strip()
+version['git']['branch']   = subprocess.check_output(['git', 'symbolic-ref', '--short', 'HEAD']).decode('utf8').strip()
 version['git']['dirty']    = version['git']['describe'].endswith('-dirty')
 
 describe_long = subprocess.check_output(['git', 'describe', '--always', '--match=*-v[0-9]*.[0-9]*.[0-9]*', '--dirty', '--long']).decode('utf8').strip()

@@ -59,6 +59,7 @@ std::shared_ptr<VersionInfo> VersionInfo::parse(std::string json) {
 	/*
     "git": {
         "describe": "APd1-v1.0.5-dirty",
+        "branch": "main",
         "dirty": true,
         "hash": "c7c97c888c6d85797930f31cd687a6df957905b2",
         "short": "c7c97c88",
@@ -71,6 +72,7 @@ std::shared_ptr<VersionInfo> VersionInfo::parse(std::string json) {
 	something_worked |= parse_numeric    (json, "$.git.uint32_t", version->git.commit);
 	something_worked |= parse_string<41> (json, "$.git.hash",     version->git.hash);
 	something_worked |= parse_string<128>(json, "$.git.describe", version->git.describe);
+	something_worked |= parse_string<50> (json, "$.git.branch",   version->git.branch);
 	something_worked |= parse_bool       (json, "$.git.dirty",    version->git.dirty);
 
 	/*
@@ -123,6 +125,8 @@ std::shared_ptr<VersionInfo> VersionInfo::parse(std::string json) {
 
 std::shared_ptr<const VersionInfo> VersionInfo::get_running_version() {
 	static std::shared_ptr<const VersionInfo> running_version = NULL;
+	// Only run parse() on the first call and then simply return a
+	// shared ptr to running_version and each subsequent call.
 	if (!running_version)
 		running_version = parse(VERSION_INFO_STR);
 	return running_version;

@@ -16,6 +16,7 @@ public:
 		uint32_t commit;      ///< The short git hash, as a uint32_t.
 		std::string hash;     ///< The long git hash, as a string.
 		std::string describe; ///< The output of "git describe [...flags]"
+		std::string branch;   ///< The output of "git symbolic-ref --short HEAD"
 		bool dirty;           ///< true if the repository was dirty at build time.
 	} git;
 	struct {
