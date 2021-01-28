@@ -27,6 +27,8 @@
  */
 class LED {
 public:
+	virtual ~LED() { };
+
 	///! Turn the LED on.
 	virtual void on() = 0;
 

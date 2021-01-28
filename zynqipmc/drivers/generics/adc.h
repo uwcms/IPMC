@@ -37,6 +37,7 @@ public:
 	 * @param identifier Custom name that uniquely identifies this ADC. Optional.
 	 */
 	ADC(size_t precision, const std::string &identifier = "Unknown") : kPrecision(precision), kIdentifier(identifier) {};
+	virtual ~ADC() {};
 
 	/**
 	 * Take a raw ADC reading from a specific channel.

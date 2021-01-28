@@ -42,6 +42,7 @@ extern LogTree LOG; // We can't include <core.h> here, because it will create a 
 class Flash {
 public:
 	Flash() : initialized(false), parameters({0}) {};
+	virtual ~Flash() {};
 
 	//! true if the flash has already been initialized, false otherwise.
 	inline bool isInitialized() { return this->initialized; };

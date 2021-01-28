@@ -28,6 +28,8 @@
  */
 class GPIO : public ConsoleCommandSupport {
 public:
+	virtual ~GPIO() { };
+
 	//! Get whole bus direction. Bits set as 1 correspond to inputs.
 	virtual uint32_t getBusDirection() const = 0;
 
