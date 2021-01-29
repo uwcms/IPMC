@@ -67,12 +67,12 @@ public:
 			uint8_t slaveaddr;
 
 			if (!parameters.parseParameters(1, false, &slaveaddr)) {
-				console->write("Invalid arguments, see help.\n");
+				console->write("Invalid parameters! Review Help Text:\n\n" + this->getHelpText(parameters.parameters[0]));
 				return;
 			}
 
 			if (slaveaddr > 0x7f) {
-				console->write("Slave address out of range, see help.\n");
+				console->write("Slave address out of range. Review Help Text:\n\n" + this->getHelpText(parameters.parameters[0]));
 				return;
 			}
 
@@ -85,7 +85,7 @@ public:
 				for (size_t i = 0; i < length; i++) {
 					uint8_t value;
 					if (!parameters.parseParameters(i+2, false, &value)) {
-						console->write("Cannot parse argument " + std::to_string(i+1) + ", see help.\n");
+						console->write("Cannot parse argument " + std::to_string(i+1) + ". Review Help Text:\n\n" + this->getHelpText(parameters.parameters[0]));
 						return;
 					}
 
