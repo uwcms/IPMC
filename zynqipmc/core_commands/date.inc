@@ -26,15 +26,25 @@ public:
 	}
 
 	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
+		console->write(this->getString()+"\n");
+	}
+
+	static std::string getString() {
+		std::string out;
 		timeval tv;
+		
 		gettimeofday(&tv, nullptr);
 		if (tv.tv_sec == 0) {
-			console->write("Time information unavailable.\n");
+			return "[Time information unavailable]";
 		} else {
 			struct tm *timeinfo = localtime(&tv.tv_sec);
-			console->write(std::string(asctime(timeinfo))); // GMT
-		}
+			out = std::string(asctime(timeinfo)); // GMT
+			out.pop_back(); // remove trailing '\n'
+		} 
+		
+		return out;
 	}
+
 };
 
 }
