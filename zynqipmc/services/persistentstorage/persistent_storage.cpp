@@ -237,6 +237,7 @@ void PersistentStorage::deinitializeStorage() {
 	xEventGroupWaitBits(this->storage_loaded, 1, 0, pdTRUE, portMAX_DELAY);
 	struct PersistentStorageHeader *header = reinterpret_cast<struct PersistentStorageHeader *>(this->data);
 	MutexGuard<false> lock(this->index_mutex, true);
+	this->logtree.log("Deinitialized persistent storage.", LogTree::LOG_NOTICE);
 	header->version = 0xffff; // Flag as uninitialized EEPROM
 	lock.release();
 	this->flushIndex();
