@@ -21,13 +21,41 @@
 #include <services/ipmi/m_state_machine.h>
 #include <services/ipmi/sensor/hotswap_sensor.h>
 
-MStateMachine::MStateMachine(std::shared_ptr<HotswapSensor> hotswap_sensor, IPMILED &blue_led, LogTree &log)
-	: deactivate_payload(nullptr), mstate(1), hotswap_sensor(hotswap_sensor), blue_led(blue_led), log(log),
-	  activation_locked(false), deactivation_locked(false), startup_locked(true), fault_locked(false),
-	  update_locked(false), physical_handle_state(HANDLE_OPEN), override_handle_state(HANDLE_NULL) {
+struct MStateMachinePersistentStorage {
+	enum MStateMachine::HandleState handle_override_state;
+};
+
+MStateMachine::MStateMachine(std::shared_ptr<HotswapSensor> hotswap_sensor,
+		IPMILED &blue_led, LogTree &log, PersistentStorage *persistent_storage) :
+		deactivate_payload(nullptr), mstate(1), hotswap_sensor(hotswap_sensor), blue_led(
+				blue_led), log(log), persistent_storage(persistent_storage), activation_locked(
+				false), deactivation_locked(false), startup_locked(true), fault_locked(
+				false), update_locked(false), physical_handle_state(
+				HANDLE_OPEN), override_handle_state(HANDLE_NULL) {
 	this->mutex = xSemaphoreCreateRecursiveMutex();
 	configASSERT(this->mutex);
 	this->log.log("Initialized in M1", LogTree::LOG_INFO);
+
+	if (this->persistent_storage) {
+		struct MStateMachinePersistentStorage *storage = NULL;
+		uint16_t version = this->persistent_storage->getSectionVersion(PersistentStorageAllocations::WISC_MSTATEMACHINE);
+		if (version != 1) {
+			this->log.log(stdsprintf("Initializing MStateMachine persistent storage (wanted ver 1, found ver %hu)", version), LogTree::LOG_DIAGNOSTIC);
+			this->persistent_storage->deleteSection(PersistentStorageAllocations::WISC_MSTATEMACHINE);
+			storage = static_cast<MStateMachinePersistentStorage*>(this->persistent_storage->getSection(PersistentStorageAllocations::WISC_MSTATEMACHINE, 1, sizeof(struct MStateMachinePersistentStorage)));
+			if (storage) {
+				storage->handle_override_state = HANDLE_NULL;
+				this->persistent_storage->flush(storage, sizeof(PersistentStorageAllocations::WISC_MSTATEMACHINE));
+			}
+		}
+		else {
+			storage = static_cast<MStateMachinePersistentStorage*>(this->persistent_storage->getSection(PersistentStorageAllocations::WISC_MSTATEMACHINE, 1, sizeof(struct MStateMachinePersistentStorage)));
+		}
+		if (storage) {
+			this->override_handle_state = storage->handle_override_state;
+			this->log.log(stdsprintf("Found persistent handle override status %hu (0=OPEN, 1=CLOSED, 2=NULL)", storage->handle_override_state), LogTree::LOG_DIAGNOSTIC);
+		}
+	}
 }
 
 MStateMachine::~MStateMachine() {
@@ -94,6 +122,29 @@ void MStateMachine::setOverrideHandleState(enum HandleState state) {
 		this->fault_locked = false;
 	}
 	this->reevaluate(ACTREQ_NONE, old_state);
+}
+
+enum MStateMachine::HandleState MStateMachine::getPersistentOverrideHandleState() {
+	MutexGuard<true> lock(this->mutex, true);
+	if (this->persistent_storage) {
+		struct MStateMachinePersistentStorage *storage = static_cast<MStateMachinePersistentStorage*>(this->persistent_storage->getSection(PersistentStorageAllocations::WISC_MSTATEMACHINE, 1, sizeof(struct MStateMachinePersistentStorage)));
+		if (storage)
+			return storage->handle_override_state;
+	}
+	return HANDLE_NULL;
+}
+
+void MStateMachine::setPersistentOverrideHandleState(enum MStateMachine::HandleState state) {
+	MutexGuard<true> lock(this->mutex, true);
+	if (this->persistent_storage) {
+		struct MStateMachinePersistentStorage *storage = static_cast<MStateMachinePersistentStorage*>(this->persistent_storage->getSection(PersistentStorageAllocations::WISC_MSTATEMACHINE, 1, sizeof(struct MStateMachinePersistentStorage)));
+		if (storage) {
+			storage->handle_override_state = state;
+			this->log.log(stdsprintf("Updated persistent handle override state to %d", state), LogTree::LOG_DIAGNOSTIC);
+			return;
+		}
+	}
+	this->log.log(stdsprintf("Failed to update persistent handle override state to %d: Storage not available.", state), LogTree::LOG_WARNING);
 }
 
 void MStateMachine::payloadActivationComplete() {
@@ -261,8 +312,14 @@ public:
 	HandleOverrideCommand(MStateMachine &mstatemachine) : mstatemachine(mstatemachine) { };
 
 	virtual std::string getHelpText(const std::string &command) const {
-		return command + " [in|out|release]\n\n"
-				"Set the handle override state.\n";
+		return command + " [in|closed|out|open|release|save]\n\n"
+				"Set the handle override state.\n"
+				"\n"
+				"  in/closed: Always treat the handle as if it is closed.\n"
+				"  out/open:  Always treat the handle as if it is open.\n"
+				"  release:   Always treat the handle according to its actual state.\n"
+				"  save:      Write the current value of this setting to persistent storage.\n"
+				"             This will cause it to be automatically restored at IPMC startup.\n";
 	}
 
 	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
@@ -276,32 +333,48 @@ public:
 		if (arg.size() == 0) {
 			switch (this->mstatemachine.getOverrideHandleState()) {
 				case MStateMachine::HANDLE_OPEN:
-					console->write("Handle Electronically Open\n"); break;
+					console->write("The handle is electronically overridden to Open.\n"); break;
 				case MStateMachine::HANDLE_CLOSED:
-					console->write("Handle Electronically Closed\n"); break;
+					console->write("The handle is electronically overridden to Closed.\n"); break;
 				case MStateMachine::HANDLE_NULL:
-					console->write("Handle Physically Controlled\n"); break;
+					console->write("The handle is not electronically overridden.\n"); break;
 				default:
 					throw std::logic_error("The override handle state is neither Open, Closed, nor nullptr.");
 			}
 
+			if (this->mstatemachine.hasPersistentStorage()) {
+				switch (this->mstatemachine.getPersistentOverrideHandleState()) {
+					case MStateMachine::HANDLE_OPEN:
+						console->write("The handle will be electronically overridden to Open at startup.\n"); break;
+					case MStateMachine::HANDLE_CLOSED:
+						console->write("The handle will be electronically overridden to Closed at startup.\n"); break;
+					case MStateMachine::HANDLE_NULL:
+						console->write("The handle will not be electronically overridden at startup.\n"); break;
+					default:
+						console->write("The default handle override state at startup is invalid.\n"); break;
+				}
+			}
+
 			switch (this->mstatemachine.getPhysicalHandleState()) {
 				case MStateMachine::HANDLE_OPEN:
-					console->write("Handle Physically Open\n"); break;
+					console->write("The physical handle is Open.\n"); break;
 				case MStateMachine::HANDLE_CLOSED:
-					console->write("Handle Physically Closed\n"); break;
+					console->write("The physical handle is Closed.\n"); break;
 				default:
 					throw std::logic_error("The physical handle state is neither Open nor Closed.");
 			}
 		}
-		else if (arg == "in") {
+		else if (arg == "in" || arg == "closed") {
 			this->mstatemachine.setOverrideHandleState(MStateMachine::HANDLE_CLOSED);
 		}
-		else if (arg == "out") {
+		else if (arg == "out" || arg == "open") {
 			this->mstatemachine.setOverrideHandleState(MStateMachine::HANDLE_OPEN);
 		}
 		else if (arg == "release") {
 			this->mstatemachine.setOverrideHandleState(MStateMachine::HANDLE_NULL);
+		}
+		else if (arg == "save") {
+			this->mstatemachine.setPersistentOverrideHandleState(this->mstatemachine.getOverrideHandleState());
 		}
 		else {
 			console->write("Invalid arguments, see help.\n");

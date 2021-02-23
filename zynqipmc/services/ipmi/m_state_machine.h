@@ -23,6 +23,7 @@
 #include <semphr.h>
 #include <services/ipmi/ipmi_led/ipmi_led.h>
 #include <services/ipmi/sensor/hotswap_sensor.h>
+#include <services/persistentstorage/persistent_storage.h>
 #include <stdint.h>
 #include <memory>
 #include <functional>
@@ -32,7 +33,7 @@
  */
 class MStateMachine final : public ConsoleCommandSupport {
 public:
-	MStateMachine(std::shared_ptr<HotswapSensor> hotswap_sensor, IPMILED &blue_led, LogTree &log);
+	MStateMachine(std::shared_ptr<HotswapSensor> hotswap_sensor, IPMILED &blue_led, LogTree &log, PersistentStorage *persistent_storage=NULL);
 	~MStateMachine();
 
 	/// Activation lock controls ("Set FRU Activation Policy" Command)
@@ -54,6 +55,10 @@ public:
 	void setPhysicalHandleState(enum HandleState state);
 	enum HandleState getOverrideHandleState();
 	void setOverrideHandleState(enum HandleState state);
+
+	inline bool hasPersistentStorage() { return !!this->persistent_storage; }
+	enum HandleState getPersistentOverrideHandleState();
+	void setPersistentOverrideHandleState(enum HandleState state);
 	///@}
 
 	/// Signals from the Payload Manager indicating activation/deactivation progress.
@@ -121,6 +126,7 @@ private:
 	std::shared_ptr<HotswapSensor> hotswap_sensor; ///< The hotswap sensor to use.
 	IPMILED &blue_led;			///< The IPMI LED used to display hotswap state.
 	LogTree &log;				///< The LogTree for our messages.
+	PersistentStorage *persistent_storage;
 
 	bool activation_locked:1;	///< Activation Locked bit
 	bool deactivation_locked:1;	///< Deactivation Locked bit
@@ -132,10 +138,10 @@ private:
 	enum HandleState override_handle_state:2;	///< The handle override state.
 
 	enum ActivationRequest {
-		ACTREQ_NONE,
-		ACTREQ_ACTIVATE_COMMANDED,
-		ACTREQ_DEACTIVATE_COMMANDED,
-		ACTREQ
+		ACTREQ_NONE,                //!< ACTREQ_NONE
+		ACTREQ_ACTIVATE_COMMANDED,  //!< ACTREQ_ACTIVATE_COMMANDED
+		ACTREQ_DEACTIVATE_COMMANDED,//!< ACTREQ_DEACTIVATE_COMMANDED
+		ACTREQ                      //!< ACTREQ
 	};
 
 	void transition(uint8_t mstate, enum HotswapSensor::StateTransitionReason reason);

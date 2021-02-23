@@ -258,6 +258,7 @@ namespace PersistentStorageAllocations {
 	PERSISTENT_STORAGE_ALLOCATE(0x0104, WISC_FRU_DATA); ///< The FRU Data Area.
 	PERSISTENT_STORAGE_ALLOCATE(0x0105, WISC_IMAGE_TAG_LOCK); ///< Image tag lock data.
 	PERSISTENT_STORAGE_ALLOCATE(0x0106, WISC_FAULT_LOG); ///< EEPROM Fault Log
+	PERSISTENT_STORAGE_ALLOCATE(0x0107, WISC_MSTATEMACHINE); ///< Sticky Handle Override status, etc.
 	/* Application specific, not a vendor */
 	PERSISTENT_STORAGE_ALLOCATE(0xFE00, APPLICATION_CONFIG); ///< For application configuration.
 };
