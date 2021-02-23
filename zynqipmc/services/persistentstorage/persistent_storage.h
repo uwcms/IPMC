@@ -108,6 +108,9 @@ public:
 	//! Return a list of all persistent storage sections.
 	std::vector<struct PersistentStorageIndexRecord> listSections();
 
+	//! Flag the persistent storage for reinitialization at next boot.
+	void deinitializeStorage();
+
 	// From base class ConsoleCommandSupport:
 	virtual void registerConsoleCommands(CommandParser &parser, const std::string &prefix="");
 	virtual void deregisterConsoleCommands(CommandParser &parser, const std::string &prefix="");
@@ -121,6 +124,7 @@ private:
 	class WriteCommand;
 	class SetSectionVersionCommand;
 	class DeleteSectionCommand;
+	class ReinitializeStorageCommand;
 
 	/**
 	 * Put in a priority flush request for the index.

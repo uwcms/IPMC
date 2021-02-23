@@ -233,6 +233,15 @@ std::vector<struct PersistentStorage::PersistentStorageIndexRecord> PersistentSt
 	return std::move(sections);
 }
 
+void PersistentStorage::deinitializeStorage() {
+	xEventGroupWaitBits(this->storage_loaded, 1, 0, pdTRUE, portMAX_DELAY);
+	struct PersistentStorageHeader *header = reinterpret_cast<struct PersistentStorageHeader *>(this->data);
+	MutexGuard<false> lock(this->index_mutex, true);
+	header->version = 0xffff; // Flag as uninitialized EEPROM
+	lock.release();
+	this->flushIndex();
+}
+
 void PersistentStorage::flush(std::function<void(void)> completion_cb) {
 	this->logtree.log("Requesting full storage flush", LogTree::LOG_DIAGNOSTIC);
 	this->flush(this->data, this->eeprom.getTotalSize(), completion_cb);
@@ -780,12 +789,37 @@ private:
 	PersistentStorage &storage;
 };
 
+
+/// A "reinitialize_storage" console command.
+class PersistentStorage::ReinitializeStorageCommand : public CommandParser::Command {
+public:
+	ReinitializeStorageCommand(PersistentStorage &storage) : storage(storage) { };
+
+	virtual std::string getHelpText(const std::string &command) const {
+		return command + "\n\n"
+				"Mark the entire persistent storage as uninitialized.\n"
+				"\n"
+				"The storage will be automatically reinitialized at next boot.\n"
+				"\n"
+				"This is not a secure erase.\n"; // Don't want to waste write cycles.
+	}
+
+	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
+		storage.deinitializeStorage();
+		console->write("Persistent Storage has been marked for reinitialization on next boot.\n");
+	}
+
+private:
+	PersistentStorage &storage;
+};
+
 void PersistentStorage::registerConsoleCommands(CommandParser &parser, const std::string &prefix) {
 	parser.registerCommand(prefix + "list_sections", std::make_shared<PersistentStorage::ListSectionsCommand>(*this));
 	parser.registerCommand(prefix + "read", std::make_shared<PersistentStorage::ReadCommand>(*this));
 	parser.registerCommand(prefix + "write", std::make_shared<PersistentStorage::WriteCommand>(*this));
 	parser.registerCommand(prefix + "set_section_version", std::make_shared<PersistentStorage::SetSectionVersionCommand>(*this));
 	parser.registerCommand(prefix + "deleteSection", std::make_shared<PersistentStorage::DeleteSectionCommand>(*this));
+	parser.registerCommand(prefix + "reinitialize_storage", std::make_shared<PersistentStorage::ReinitializeStorageCommand>(*this));
 }
 
 void PersistentStorage::deregisterConsoleCommands(CommandParser &parser, const std::string &prefix) {
@@ -794,5 +828,6 @@ void PersistentStorage::deregisterConsoleCommands(CommandParser &parser, const s
 	parser.registerCommand(prefix + "write", nullptr);
 	parser.registerCommand(prefix + "set_section_version", nullptr);
 	parser.registerCommand(prefix + "deleteSection", nullptr);
+	parser.registerCommand(prefix + "reinitialize_storage", nullptr);
 }
 
