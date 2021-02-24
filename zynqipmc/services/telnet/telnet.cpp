@@ -112,7 +112,7 @@ private:
 static void telnetShutdownCleanup(Telnet::TelnetConsoleSvc &svc, CommandParser *parser, LogTree::Filter *log_filter, SemaphoreHandle_t connection_pool_limiter, SocketAddress addr) {
 	svc.getLogTree().log(stdsprintf("Telnet connection from %s:%hu terminated", addr.getAddress().c_str(), addr.getPort()), LogTree::LOG_INFO);
 	delete log_filter;
-	//delete &svc.logtree;
+	delete &svc.getLogTree();
 	delete parser;
 	xSemaphoreGive(connection_pool_limiter);
 }
