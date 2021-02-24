@@ -48,14 +48,15 @@ parent(&parent), kLabel(subtree_label), kPath(parent.kPath + "." + subtree_label
 }
 
 LogTree::~LogTree() {
-	xSemaphoreTakeRecursive(this->mutex, portMAX_DELAY);
-
 	if (this->parent) {
-		// Detach from our parent.
+		// Detach from our parent, so no new operations can begin.
 		xSemaphoreTakeRecursive(this->parent->mutex, portMAX_DELAY);
 		this->parent->children.erase(this->kLabel);
 		xSemaphoreGiveRecursive(this->parent->mutex);
 	}
+
+	// Ensure no operation can be in progress at this point, still, somehow.
+	xSemaphoreTakeRecursive(this->mutex, portMAX_DELAY);
 
 	// Clean up our children.
 	while (!this->children.empty()) {
