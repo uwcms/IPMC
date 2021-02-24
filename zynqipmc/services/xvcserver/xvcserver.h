@@ -41,6 +41,11 @@ public:
 	XVCServer(void* baseAddr, LogTree& log, uint16_t port = 2542);
 	~XVCServer() {};
 
+	std::string acceptAddr;
+
+	void registerConsoleCommands(CommandParser &parser, const std::string &prefix);
+	void deregisterConsoleCommands(CommandParser &parser, const std::string &prefix);
+
 private:
 	typedef struct {
 		uint32_t  length_offset;

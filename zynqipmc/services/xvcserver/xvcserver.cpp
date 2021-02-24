@@ -22,7 +22,7 @@
 #include <libs/threading.h>
 
 XVCServer::XVCServer(void* baseAddr, LogTree& log, uint16_t port) :
-kBaseAddr(baseAddr), log(log), kPort(port) {
+acceptAddr("none"), kBaseAddr(baseAddr), log(log), kPort(port) {
 	// Start the XVC server thread
 	runTask("xvcserver:" + std::to_string(port), TASK_PRIORITY_BACKGROUND, [this]() {
 		// Just allow one connection at a time
@@ -41,7 +41,11 @@ kBaseAddr(baseAddr), log(log), kPort(port) {
 				continue;
 			}
 
-			if (this->isRunning) {
+			if (this->acceptAddr == "none" || (this->acceptAddr != "*" && client->getSocketAddress().getAddress() != this->acceptAddr)) {
+				this->log.log("XVC connection from "  + client->getSocketAddress().getAddress() + " refused as it does not match the current accepted address.", LogTree::LOG_WARNING);
+				client->close();
+			}
+			else if (this->isRunning) {
 				// There is already a connection established, refuse new one
 				this->log.log("XVC connection from "  + client->getSocketAddress().getAddress() + " refused, only one connection allowed", LogTree::LOG_WARNING);
 				client->close();
@@ -176,3 +180,48 @@ bool XVCServer::handleClient(std::shared_ptr<Socket> s) {
 	/* Note: Need to fix JTAG state updates, until then no exit is allowed */
 }
 
+namespace {
+/// Change the override handle status
+class AcceptCommand : public CommandParser::Command {
+public:
+	AcceptCommand(XVCServer &xvcserver) : xvcserver(xvcserver) { };
+
+	virtual std::string getHelpText(const std::string &command) const {
+		return command + " [$ipv4_address]\n\n"
+				"Set the host from which XVC connections will be accepted.\n"
+				"\n"
+				"\"none\" will reject all connections.\n"
+				"\"*\" will accept all connections.\n"
+				"\n"
+				"WARNING: JTAG (and therefore XVC) is capable of causing hardware damage.\n";
+	}
+
+	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
+		if (parameters.nargs() <= 1) {
+			if (!this->xvcserver.acceptAddr.size() || this->xvcserver.acceptAddr == "none")
+				console->write("XVC connections are not currently accepted.\n");
+			else if (this->xvcserver.acceptAddr == "*")
+				console->write("XVC connections are currently accepted from anywhere.\n");
+			else
+				console->write("XVC connections are currently accepted from \"" + this->xvcserver.acceptAddr + "\"\n");
+		}
+		else if (parameters.nargs() == 2) {
+			this->xvcserver.acceptAddr = parameters.parameters[1];
+		}
+		else {
+			console->write("Invalid arguments, see help.\n");
+		}
+	}
+
+private:
+	XVCServer &xvcserver;
+};
+}; // namespace <anonymous>
+
+void XVCServer::registerConsoleCommands(CommandParser &parser, const std::string &prefix) {
+	parser.registerCommand(prefix + "accept", std::make_shared<AcceptCommand>(*this));
+}
+
+void XVCServer::deregisterConsoleCommands(CommandParser &parser, const std::string &prefix) {
+	parser.registerCommand(prefix + "accept", nullptr);
+}
