@@ -24,6 +24,7 @@
 #include <semphr.h>
 #include <services/console/command_parser.h>
 #include <string>
+#include <map>
 
 /**
  * ELM driver that implements the software layers for ELM link and other features.
@@ -50,42 +51,50 @@ public:
 		/**
 		 * Initializes and links the channel to target ELM interface.
 		 * @param elm ELM interface where channel exists.
-		 * @param channel Number of the channel to be assigned.
+		 * @param channel_name The short name of the channel, to be used as a
+		 *                     socket filename on the ELM.  Limit 32 characters.
 		 */
-		Channel(ELM &elm, uint8_t channel) : elm(elm), kChannel(channel) {
-//			if (flowctrl) {
-//				this->sync = xSemaphoreCreateBinary();
-//			}
-			elm.linkChannel(this);
+		Channel(ELM &elm, std::string channel_name) :
+				elm(elm) {
+			if (channel_name.size() > 32)
+				throw std::domain_error("Channel name too long.");
+			this->elm.linkChannel(this, channel_name);
 		};
-//		Channel(IPMCLink &link, uint8_t channel, bool flowctrl) : link(link), channel(channel), flowctrl(flowctrl) {
 		virtual ~Channel() {
-//			link.unlinkChannel(this);
-//			vSemaphoreDelete(this->sync);
+			this->elm.unlinkChannel(this);
 		};
 
 		/**
-		 * Callback that gets executed when data is received in this channel.
-		 * @param content Received data.
-		 * @param size Total number of bytes in content.
-		 */
-		virtual void recv(uint8_t *content, size_t size) = 0;
-
-		/**
-		 * Sends a message down the channel to the ELM.
+		 * Sends a packet down the channel to the ELM.
+		 *
 		 * @param content Content to send out.
 		 * @param size Number of bytes in content.
+		 *
 		 * @return true if success, false otherwise.
 		 */
-		bool send(const uint8_t *content, size_t size);
+		virtual bool send(const uint8_t *content, size_t size) {
+			return this->send(std::string((const char *)content, size));
+		}
+		/// \overload
+		virtual bool send(const std::string &data) {
+			return this->elm.sendPacket(this->channel_id, data);
+		}
 
 	protected:
-		ELM &elm;
-		const uint8_t kChannel;
-//		bool flowctrl;
-//		SemaphoreHandle_t sync;
+		/**
+		 * Callback that gets executed when a packet is received in this channel.
+		 *
+		 * @param content Received data packet.
+		 * @param size Total number of bytes in content.
+		 *
+		 * \note You will receive a complete and valid packet, but are not
+		 *       guaranteed to receive all packets sent, in case of link errors.
+		 */
+		virtual void recv(const uint8_t *content, size_t size) = 0;
 
-	public:
+		ELM &elm;
+		uint8_t channel_id; ///< Automatically set at link time.
+
 		friend ELM;
 	};
 
@@ -96,56 +105,15 @@ public:
 private:
 	// Available console commands:
 	class BootSource;	///< Change the ELM bootsource command.
-	class Quiesce;		///< Send a quiesce request to the ELM.
-
-	static constexpr uint8_t LINKPROTO_SOP = 0x01; ///< Start of packet
-
-	//! Metadata associated on every packet.
-	struct Metadata {
-		union {
-			struct {
-//				uint8_t ack      :1;
-//				uint8_t flowctrl :1; // Set if a return ack is required.
-//				uint8_t retry    :1; // This is a retry
-//				uint8_t _rsvd    :1;
-				uint8_t _rsvd    :4; // Reserved
-				uint8_t channel  :4; ///< Target channel number
-			};
-			uint8_t value;
-		};
-	};
-
-	//! Packet structure sent over the link.
-	struct Packet {
-		Metadata meta;
-		uint16_t size;
-		uint8_t* content;
-		uint16_t chksum;
-
-		//! Packat transit states.
-		enum States {
-			WAITING_HEADER,
-			WAITING_METADATA,
-			WAITING_SIZE,
-			WAITING_CONTENT,
-			WAITING_CHKSUM,
-			COMPLETE
-		} state;
-	};
-
-	//! Calculate the checksum used for packet validation.
-	static uint16_t calculateChecksum(const Packet &p);
 
 	//! Send a packet through the ELM link.
-	bool sendPacket(const Packet &p);
-	bool sendPacket(unsigned int channel, uint8_t *data, uint16_t size);
-//	void sendAck(uint8_t channel);
+	bool sendPacket(uint8_t channel, const std::string &data);
 
-	//! Process incoming input packet.
-	int digestInput(Packet &p, TickType_t timeout);
+	//! A thread to process incoming input packets.
+	void recvThread();
 
 	//! Link a channel to this interface.
-	void linkChannel(ELM::Channel *c);
+	void linkChannel(ELM::Channel *c, std::string channel_name);
 
 	//! Unlink a channel to this interface.
 	void unlinkChannel(ELM::Channel *c);
@@ -154,7 +122,11 @@ private:
 	SemaphoreHandle_t mutex;	///< Mutex for internal synchronization.
 	UART &uart;					///< ELM UART link interface.
 	GPIO *targetsel;			///< GPIO interface for boot source selection.
-	ELM::Channel* channels[32];	///< Configurable channel mapping
+	std::map<uint8_t, ELM::Channel*> channels;	///< Configurable channel mappings
+	std::map<uint8_t, std::string> channel_index; ///< A list of channel name/id mappings, for the ELM.
+
+	class LinkIndexChannel;
+	LinkIndexChannel *link_index_channel;
 };
 
 #endif /* SRC_COMMON_ZYNQIPMC_DRIVERS_ELM_ELM_H_ */

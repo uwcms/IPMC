@@ -118,6 +118,7 @@ public:
 	std::function<void(void)> deactivate_payload; ///< A function used to deactivate the payload.
 
 private:
+	bool payload_deactivating; ///< A flag to suppress repeated executions of deactivate_payload()
 	class HandleOverrideCommand;
 
 	SemaphoreHandle_t mutex;	///< Mutex protecting internal state.

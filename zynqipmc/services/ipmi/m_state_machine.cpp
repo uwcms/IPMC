@@ -27,11 +27,12 @@ struct MStateMachinePersistentStorage {
 
 MStateMachine::MStateMachine(std::shared_ptr<HotswapSensor> hotswap_sensor,
 		IPMILED &blue_led, LogTree &log, PersistentStorage *persistent_storage) :
-		deactivate_payload(nullptr), mstate(1), hotswap_sensor(hotswap_sensor), blue_led(
-				blue_led), log(log), persistent_storage(persistent_storage), activation_locked(
-				false), deactivation_locked(false), startup_locked(true), fault_locked(
-				false), update_locked(false), physical_handle_state(
-				HANDLE_OPEN), override_handle_state(HANDLE_NULL) {
+		deactivate_payload(nullptr), payload_deactivating(false), mstate(1), hotswap_sensor(
+				hotswap_sensor), blue_led(blue_led), log(log), persistent_storage(
+				persistent_storage), activation_locked(false), deactivation_locked(
+				false), startup_locked(true), fault_locked(false), update_locked(
+				false), physical_handle_state(HANDLE_OPEN), override_handle_state(
+				HANDLE_NULL) {
 	this->mutex = xSemaphoreCreateRecursiveMutex();
 	configASSERT(this->mutex);
 	this->log.log("Initialized in M1", LogTree::LOG_INFO);
@@ -156,6 +157,7 @@ void MStateMachine::payloadActivationComplete() {
 
 void MStateMachine::payloadDeactivationComplete() {
 	MutexGuard<true> lock(this->mutex, true);
+	this->payload_deactivating = false;
 	if (this->mstate == 6) {
 		this->transition(1, HotswapSensor::TRANS_NORMAL);
 	}
@@ -247,12 +249,20 @@ void MStateMachine::reevaluate(enum ActivationRequest activation_request, enum H
 			break;
 		case 6:
 			// Deactivation of backend power & discard of E-Keyed interfaces is managed by us.
-			if (this->deactivate_payload)
-				this->deactivate_payload();
-			/* The transition to M1 will be triggered by the call to
-			 * payload_deactivation_complete() by the payload manager.
-			 */
-			//this->transition(1, HotswapSensor::TRANS_NORMAL);
+			if (this->deactivate_payload) {
+				if (!this->payload_deactivating) {
+					this->payload_deactivating = true;
+					this->deactivate_payload();
+				}
+				/* The transition to M1 will be triggered by the call to
+				 * payload_deactivation_complete() by the payload manager.
+				 */
+			}
+			else {
+				// There is no payload deactivation hook.
+				// There should probably at least be one that resets e-key links.
+				this->transition(1, HotswapSensor::TRANS_NORMAL);
+			}
 			break;
 		case 7:
 			throw std::logic_error("We can't exactly be claiming to be M7 on our own.");

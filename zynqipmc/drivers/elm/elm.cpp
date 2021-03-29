@@ -20,57 +20,106 @@
 #include "elm.h"
 #include <core.h>
 #include <libs/threading.h>
+#include <services/timer/timer.h>
+#include "elmlink_protocol.h"
+
+class ELM::LinkIndexChannel: public Channel {
+public:
+	LinkIndexChannel(ELM &elm, std::map<uint8_t, std::string> &channel_index);
+	virtual ~LinkIndexChannel() {
+		if (this->startup_refresh_timer)
+			this->startup_refresh_timer->cancel(true);
+	};
+	void sendUpdate();
+protected:
+	virtual void recv(const uint8_t *content, size_t size);
+
+	std::map<uint8_t, std::string> &channel_index;
+	std::shared_ptr<TimerService::Timer> startup_refresh_timer;
+};
+
+ELM::LinkIndexChannel::LinkIndexChannel(ELM &elm,
+		std::map<uint8_t, std::string> &channel_index) :
+		Channel(elm, "link_index"), channel_index(channel_index) {
+
+	/* We will wait 100 ticks for all channels to be registered, to prevent race
+	 * conditions on the ELM side that break active clients which should remain
+	 * valid across an IPMC reboot, but haven't had their channels registered
+	 * yet.
+	 */
+	this->startup_refresh_timer = std::make_shared<TimerService::Timer>([this]()->void{
+		this->startup_refresh_timer = NULL;
+		this->sendUpdate();
+	}, (TickType_t)100);
+	TimerService::globalTimer(TASK_PRIORITY_SERVICE).submit(this->startup_refresh_timer);
+}
+
+void ELM::LinkIndexChannel::recv(const uint8_t *content, size_t size) {
+	if (std::string((const char*) content, size) == "INDEX_REQUEST")
+		this->sendUpdate();
+}
+
+void ELM::LinkIndexChannel::sendUpdate() {
+	if (this->startup_refresh_timer) {
+		/* Too early, sorry.  We're still waiting for any required channel
+		 * registrations.  We'll get to you soon.
+		 */
+		return;
+	}
+	this->send(ELMLink::Packet::encode_channel_index_update_packet(this->channel_index));
+}
 
 ELM::ELM(UART &uart, GPIO *targetsel) :
 uart(uart), targetsel(targetsel) {
-	this->mutex = xSemaphoreCreateMutex();
+	this->mutex = xSemaphoreCreateRecursiveMutex();
 	configASSERT(this->mutex);
 
-	memset(this->channels, 0, sizeof(this->channels));
+	this->link_index_channel = new LinkIndexChannel(*this, this->channel_index);
 
 	// Start the digest thread
-	runTask("elmlink", TASK_PRIORITY_BACKGROUND, [this]() {
-		Packet p = {0};
-
-		while (true) {
-			// Digest incoming data from the link
-			p.state = Packet::WAITING_HEADER;
-
-			int r = this->digestInput(p, pdMS_TO_TICKS(1000));
-
-			if (r < 0) {
-				printf("Packet timed out");
-			} else {
-				if (p.chksum != calculateChecksum(p)) {
-					printf("Packet checksum mismatch");
-				} else {
-					// Valid packet
-//					if (p.meta.flowctrl) {
-//						// Send Ack
-//						this->sendAck(p.meta.channel);
-//					}
-
-					MutexGuard<false> lock(this->mutex);
-					if (this->channels[p.meta.channel]) {
-						// Channel exists
-//						if (p.meta.ack) {
-//							// Ack packet
-//							// TODO: Deassert wait on channel
-//							xSemaphoreGive(this->channels[p.meta.channel]->sync);
-//						} else {
-							this->channels[p.meta.channel]->recv(p.content, p.size);
-//						}
-					} else {
-						printf("Packet to unmapped channel (%d)", p.meta.channel);
-					}
-				}
-			}
-		}
-	});
+	runTask("elmlink", TASK_PRIORITY_SERVICE,
+			[this]() -> void {this->recvThread();});
 }
 
 ELM::~ELM() {
+	configASSERT(0); // Not supported, no way to kill thread.
+	delete this->link_index_channel;
 	vSemaphoreDelete(this->mutex);
+}
+
+void ELM::recvThread() {
+	std::string recvbuf;
+	uint8_t *uart_raw_recvbuf = (uint8_t*) malloc(
+			ELMLink::MAX_SERIALIZED_PACKET_LENGTH);
+	while (true) {
+		/* Wait for data.
+		 *
+		 * We're waiting only 2 ticks when there's data available, because at
+		 * 115200 baud, that's 230.4 bytes.  More than enough to have gotten a
+		 * full, if smaller, packet.  At the same time, we don't want to delay
+		 * such packets for terribly long.
+		 */
+		int rv = this->uart.read(uart_raw_recvbuf,
+				ELMLink::MAX_SERIALIZED_PACKET_LENGTH, portMAX_DELAY, 2);
+		if (rv <= 0)
+			continue;
+
+		recvbuf.append((char *) uart_raw_recvbuf, rv);
+
+		ELMLink::Packet packet;
+		while (packet.digest(recvbuf)) {
+			MutexGuard<true> lock(this->mutex);
+			if (this->channels.count(packet.channel)) {
+				// Channel exists
+				this->channels[packet.channel]->recv(
+						(const uint8_t*) packet.data.data(),
+						packet.data.size());
+			} else {
+				printf("Packet to unmapped ELMLink channel (%d)", packet.channel);
+			}
+		}
+
+	}
 }
 
 class ELM::BootSource : public CommandParser::Command {
@@ -113,27 +162,9 @@ private:
 	ELM &elm;
 };
 
-class ELM::Quiesce : public CommandParser::Command {
-public:
-	Quiesce(ELM &elm) : elm(elm) { };
-
-	virtual std::string getHelpText(const std::string &command) const {
-		return command + "\n\n"
-				"Send a quiesce request to the ELM to .\n";
-	}
-
-	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
-		elm.sendPacket(0, (uint8_t*)"q", 1);
-	}
-
-private:
-	ELM &elm;
-};
-
 void ELM::registerConsoleCommands(CommandParser &parser, const std::string &prefix) {
 	if (this->targetsel)
 		parser.registerCommand(prefix + "bootsource", std::make_shared<ELM::BootSource>(*this));
-	parser.registerCommand(prefix + "quiesce", std::make_shared<ELM::Quiesce>(*this));
 }
 
 void ELM::deregisterConsoleCommands(CommandParser &parser, const std::string &prefix) {
@@ -141,171 +172,43 @@ void ELM::deregisterConsoleCommands(CommandParser &parser, const std::string &pr
 		parser.registerCommand(prefix + "bootsource", nullptr);
 }
 
-// TODO: Proper linkage between channels
 // TODO: Proper timeouts
 
-uint16_t ELM::calculateChecksum(const Packet &p) {
-	uint16_t chksum = p.meta.value + p.size;
-	for (size_t i = 0; i < p.size; i++)
-		chksum += p.content[i];
-	chksum ^= 0xFFFF; // Bit flip
-	return chksum;
-}
-
-bool ELM::sendPacket(const Packet &p) {
-	uint8_t header[] = {LINKPROTO_SOP, p.meta.value};
-	uint16_t chksum = calculateChecksum(p);
-
+bool ELM::sendPacket(uint8_t channel, const std::string &data) {
+	std::string serialized = ELMLink::Packet(channel, data).serialize();
 	// Send message down the link
-	MutexGuard<false> lock(this->mutex);
-	this->uart.write(header, sizeof(header));
-//	if (p.meta.ack == 0) {
-		this->uart.write((uint8_t*)&p.size, sizeof(p.size));
-		this->uart.write(p.content, p.size);
-//	}
-	this->uart.write((uint8_t*)&chksum, sizeof(chksum));
-
-	return true;
-}
-
-bool ELM::sendPacket(unsigned int channel, uint8_t *data, uint16_t size) {
-	Packet p = {0};
-
-	if (channel > 32) return false;
-
-	p.meta.channel = channel;
-	p.size = size;
-	p.content = data;
-
-	return this->sendPacket(p);
-}
-
-//void ELM::Link::sendAck(uint8_t channel) {
-//	Packet p = {0};
-//	p.meta.ack = 1;
-//	p.meta.channel = channel;
-//
-//	this->sendPacket(p);
-//}
-
-int ELM::digestInput(Packet &p, TickType_t timeout) {
-	size_t rcv = 0;
-
+	MutexGuard<true> lock(this->mutex);
 	while (true) {
-		switch (p.state) {
-			case Packet::WAITING_HEADER: {
-				uint8_t header = 0;
-				rcv = this->uart.read(&header, sizeof(header));
-				if (rcv != sizeof(header))
-					return -1;
-
-				if (header == LINKPROTO_SOP) {
-					p.state = Packet::WAITING_METADATA;
-				}
-			} break;
-
-			case Packet::WAITING_METADATA: {
-				rcv = this->uart.read(&(p.meta.value), sizeof(Metadata), timeout);
-				if (rcv != sizeof(Metadata))
-					return -1;
-
-//				if (p.meta.ack) {
-//					p.state = Packet::COMPLETE;
-//					return 0;
-//				} else {
-					p.state = Packet::WAITING_SIZE;
-//				}
-			} break;
-
-			case Packet::WAITING_SIZE: {
-				rcv = this->uart.read((uint8_t*)&(p.size), sizeof(p.size), timeout);
-				if (rcv != sizeof(p.size))
-					return -1;
-
-				if (p.content) {
-					delete p.content;
-					p.content = nullptr;
-				}
-
-				if (p.size == 0) {
-					p.state = Packet::WAITING_CHKSUM;
-				} else {
-					p.content = new uint8_t[p.size];
-					p.state = Packet::WAITING_CONTENT;
-				}
-			} break;
-
-			case Packet::WAITING_CONTENT: {
-				rcv = this->uart.read(p.content, p.size, timeout);
-				if (rcv != p.size)
-					return -1;
-
-				p.state = Packet::WAITING_CHKSUM;
-			} break;
-
-			case Packet::WAITING_CHKSUM: {
-				rcv = this->uart.read((uint8_t*)&(p.chksum), sizeof(p.chksum), timeout);
-				if (rcv != sizeof(p.chksum))
-					return -1;
-
-				p.state = Packet::COMPLETE;
-
-				return 0;
-			} break;
-
-			default: break; // Do nothing
-		}
+		size_t rv = this->uart.write((const uint8_t*) serialized.data(),
+				serialized.size());
+		if (rv == serialized.size())
+			return true;
+		else
+			serialized.erase(0, rv);
 	}
-
-	return -1;
 }
 
+void ELM::linkChannel(ELM::Channel *c, std::string channel_name) {
+	MutexGuard<true> lock(this->mutex);
 
-void ELM::linkChannel(ELM::Channel *c) {
-	MutexGuard<false> lock(this->mutex);
-
-	if (c->kChannel > 31) return; // Invalid
-	this->channels[c->kChannel] = c;
+	for (int i = 0; i < 0x80; ++i) {
+		if (this->channels.count(i))
+			continue;
+		this->channels[i] = c;
+		c->channel_id = i;
+		this->channel_index[i] = channel_name;
+		this->link_index_channel->sendUpdate();
+		return;
+	}
+	throw std::out_of_range("There are no further channel ids to allocate on this ELMLink.");
 }
 
 void ELM::unlinkChannel(ELM::Channel *c) {
-	MutexGuard<false> lock(this->mutex);
+	MutexGuard<true> lock(this->mutex);
 
-	if (c->kChannel > 31) return; // Invalid
-	if (this->channels[c->kChannel] == c) {
-		this->channels[c->kChannel] = nullptr;
-	}
+	if (this->channels.count(c->channel_id))
+		this->channels.erase(c->channel_id);
+	if (this->channel_index.count(c->channel_id))
+		this->channel_index.erase(c->channel_id);
+	this->link_index_channel->sendUpdate();
 }
-
-bool ELM::Channel::send(const uint8_t *content, size_t size) {
-	Packet p = {0};
-//	p.meta.ack = this->flowctrl;
-	p.meta.channel = this->kChannel;
-	p.size = size;
-	p.content = (uint8_t*)content;
-	p.chksum = calculateChecksum(p);
-
-//	BaseType_t syncRet = pdFALSE;
-
-//	for (size_t i = 0; i < 3; i++) {
-		this->elm.sendPacket(p);
-
-//		if (this->flowctrl) {
-//			// Wait for ack
-//			syncRet = xSemaphoreTake(this->sync, pdMS_TO_TICKS(1000));
-//			if (syncRet == pdTRUE) break;
-//			p.meta.retry = 1;
-//			printf("Didn't receive ACK packet");
-//		} else {
-//			// No flow control, just return
-//			break;
-//		}
-//	}
-
-//	if (this->flowctrl && (syncRet == pdFALSE))
-//		return false;
-
-	return true;
-}
-
-
