@@ -21,29 +21,101 @@
 
 ELMQuiesce::~ELMQuiesce() {
 	MutexGuard<true> lock(this->mutex);
-	if (this->quiesce_timer) {
-		this->quiesce_timer->cancel(true);
-		if (this->logtree)
-			this->logtree->log("ELMQuiesce destroyed while a quiesce was pending.", LogTree::LOG_WARNING);
+	if (this->fsm_timer)
+		this->fsm_timer->cancel(true);
+	if (this->send_request_timer)
+		this->send_request_timer->cancel(true);
+	// Callbacks are not called.
+}
+
+void ELMQuiesce::elm_powered_on() {
+	MutexGuard<true> lock(this->mutex);
+	this->elm_powered_off();
+	this->startup_timestamp = get_tick64();
+};
+
+void ELMQuiesce::elm_powered_off() {
+	MutexGuard<true> lock(this->mutex);
+	this->startup_timestamp = 0;
+	this->quiesce_request_timestamp = 0;
+	this->quiesce_acknowledgement_timestamp = 0;
+	if (this->fsm_timer) {
+		this->fsm_timer->cancel(false);
+		this->fsm_timer = nullptr;
+	}
+	if (this->send_request_timer) {
+		this->send_request_timer->cancel(false);
+		this->send_request_timer = nullptr;
+	}
+};
+
+void ELMQuiesce::quiesce_fsm() {
+	MutexGuard<true> lock(this->mutex);
+	if (this->fsm_timer) {
+		// Clear any pre-existing timer.
+		// This is fine to do with sync=false if we're running from it.
+		this->fsm_timer->cancel(false);
+		this->fsm_timer = nullptr;
+	}
+	if (this->quiesce_request_timestamp == 0)
+		return;
+	// We have a request.
+	uint64_t now = get_tick64();
+	AbsoluteTimeout next_time(UINT64_MAX);
+	if (this->quiesce_acknowledgement_timestamp == 0) {
+		// We have an unacknowledged request.
+		if (this->startup_timestamp + this->startup_allowance <= now
+				&& this->quiesce_request_timestamp + this->acknowledgement_timeout <= now) {
+			// They've had their chance.
+			this->logtree->log("The ELM failed to acknowledge our quiescence request.", LogTree::LOG_NOTICE);
+			this->quiesceComplete(false);
+			this->quiesce_request_timestamp = 0;
+			return;
+		}
+		else {
+			// They still have time.  But how much?
+			// We're resending our request in another timer.
+			if (this->startup_timestamp + this->startup_allowance > this->quiesce_request_timestamp + this->acknowledgement_timeout)
+				next_time.setAbsTimeout(this->startup_timestamp + this->startup_allowance);
+			else
+				next_time.setAbsTimeout(this->quiesce_acknowledgement_timestamp + this->acknowledgement_timeout);
+		}
+	}
+	else {
+		// We have an acknowledged request.
+		if (this->quiesce_acknowledgement_timestamp + this->quiesce_timeout <= now) {
+			// They've had plenty of time.
+			this->logtree->log("The ELM failed to quiesce in a timely manner.", LogTree::LOG_NOTICE);
+			this->quiesceComplete(false);
+			this->quiesce_request_timestamp = 0;
+			return;
+		}
+		else {
+			// Give them time...
+			next_time.setAbsTimeout(this->quiesce_acknowledgement_timestamp + this->quiesce_timeout);
+		}
+	}
+	if (next_time.getTimeout64() != UINT64_MAX) {
+		this->fsm_timer = std::make_shared<TimerService::Timer>(
+				[this]() -> void { this->quiesce_fsm(); }, next_time);
+		TimerService::globalTimer(TASK_PRIORITY_SERVICE).submit(this->fsm_timer);
 	}
 }
 
 void ELMQuiesce::recv(const uint8_t *content, size_t size) {
 	MutexGuard<true> lock(this->mutex);
 	std::string message((const char *)content, size);
-	if (message == "QUIESCE_SUBSCRIBE") {
-		if (this->logtree) {
-			if (this->subscribe_timeout.getTimeout() <= 0)
-				this->logtree->log("The ELM started a quiesce subscription.", LogTree::LOG_INFO);
-			else
-				this->logtree->log("The ELM renewed a quiesce subscription.", LogTree::LOG_DIAGNOSTIC);
-		}
-		this->subscribe_timeout.setTimeout(this->subscribe_validity);
-	}
-	else if (message == "QUIESCE_UNSUBSCRIBE") {
-		this->subscribe_timeout.setAbsTimeout(0);
+	if (message == "QUIESCE_ACKNOWLEDGED") {
 		if (this->logtree)
-			this->logtree->log("The ELM has cancelled its quiesce subscription.", LogTree::LOG_INFO);
+			this->logtree->log("The ELM acknowledged our request to quiesce.", LogTree::LOG_INFO);
+
+		if (this->send_request_timer) {
+			// We don't need to keep sending requests anymore.
+			this->send_request_timer->cancel(false);
+			this->send_request_timer = nullptr;
+		}
+		this->quiesce_acknowledgement_timestamp = get_tick64();
+		this->quiesce_fsm(); // Reset the FSM timer by running it.
 	}
 	else if (message == "QUIESCE_COMPLETE") {
 		this->quiesceComplete(true);
@@ -52,45 +124,42 @@ void ELMQuiesce::recv(const uint8_t *content, size_t size) {
 
 void ELMQuiesce::quiesce(QuiesceCompleteCallback callback) {
 	MutexGuard<true> lock(this->mutex);
-	if (this->subscribe_timeout.getTimeout() == 0) {
-		// The ELM is not currently accepting quiescence requests.
+	uint64_t now = get_tick64();
+
+	if (now <= this->startup_timestamp + this->panic_window) {
 		if (this->logtree)
-			this->logtree->log("Quiescence was requested, but the ELM is not currently subscribed to quiescence requests.", LogTree::LOG_INFO);
-		callback(false);
+			this->logtree->log("Assuming the ELM is already (still) quiescent.  We're still within the panic window.", LogTree::LOG_INFO);
+		callback(true);
 		return;
 	}
-	// Okay, not immediately returning, so let's queue this callback.
+
+	// We'll always accept callbacks.
 	this->callbacks.push_back(callback);
 
-	if (this->quiesce_timer) {
+	if (this->quiesce_request_timestamp != 0) {
 		// A quiesce is already in progress.  We'll service your callback though.
-		this->logtree->log("Quiescence was requested, but quiesce is already in progress.", LogTree::LOG_DIAGNOSTIC);
+		this->logtree->log("Quiescence was requested, but quiescence is already in progress.", LogTree::LOG_DIAGNOSTIC);
 		return;
 	}
+	this->quiesce_request_timestamp = now;
+	this->quiesce_acknowledgement_timestamp = 0;
 
 	if (this->logtree)
 		this->logtree->log("Asking the ELM to quiesce.", LogTree::LOG_INFO);
 
-	this->quiesce_timer = std::make_shared<TimerService::Timer>([this]() -> void {
-		MutexGuard<true> lock(this->mutex);
-		for (auto callback : this->callbacks)
-			callback(false); // If we got this far, it failed.
-		this->callbacks.clear();
-		this->quiesce_timer = nullptr;
-		if (this->logtree)
-			this->logtree->log("The ELM has failed to quiesce.", LogTree::LOG_WARNING);
-	}, this->quiesce_timeout);
-	TimerService::globalTimer(TASK_PRIORITY_SERVICE).submit(this->quiesce_timer);
-	this->send((const uint8_t*)"QUIESCE_NOW", 11);
+	this->send_request_timer = std::make_shared<TimerService::Timer>([this]() -> void {
+		this->send("QUIESCE_NOW");
+	}, (TickType_t)0, (TickType_t)pdMS_TO_TICKS(1000));
+	TimerService::globalTimer(TASK_PRIORITY_SERVICE).submit(this->send_request_timer);
+
+	this->quiesce_fsm(); // Start the timer by running the FSM.  It's idempotent.
 }
 
 void ELMQuiesce::quiesceComplete(bool successful) {
 	MutexGuard<true> lock(this->mutex);
-	if (this->quiesce_timer) {
-		// If we have a quiesce waiting, complete it.
-		this->quiesce_timer->cancel();
-		this->quiesce_timer = nullptr;
-		if (this->logtree) {
+
+	if (this->logtree) {
+		if (this->quiesce_request_timestamp != 0) {
 			if (successful)
 				this->logtree->log("The ELM has quiesced at our request.",
 						LogTree::LOG_INFO);
@@ -98,26 +167,30 @@ void ELMQuiesce::quiesceComplete(bool successful) {
 				this->logtree->log("The ELM has failed to quiesce.",
 						LogTree::LOG_WARNING);
 		}
-		for (auto callback : this->callbacks)
-			callback(successful);
-		this->callbacks.clear();
-	}
-	else {
-		if (this->logtree && successful)
+		else if (successful)
 			this->logtree->log("The ELM has quiesced of its own accord.", LogTree::LOG_INFO);
 	}
-	this->subscribe_timeout.setAbsTimeout(0); // No longer subscribed.
+
+	if (this->fsm_timer) {
+		this->fsm_timer->cancel(false);
+		this->fsm_timer = nullptr;
+	}
+	if (this->send_request_timer) {
+		this->send_request_timer->cancel(false);
+		this->send_request_timer = nullptr;
+	}
+	this->quiesce_request_timestamp = 0;
+	this->quiesce_acknowledgement_timestamp = 0;
+
+	for (auto callback : this->callbacks)
+		callback(successful);
+	this->callbacks.clear();
 };
 
 bool ELMQuiesce::quiesceInProgress() {
 	MutexGuard<true> lock(this->mutex);
-	return (bool)this->quiesce_timer;
+	return (bool)this->quiesce_request_timestamp;
 };
-
-bool ELMQuiesce::quiesceSubscribed() {
-	MutexGuard<true> lock(this->mutex);
-	return this->subscribe_timeout.getTimeout() > 0;
-}
 
 namespace {
 class QuiesceCommand : public CommandParser::Command {
@@ -125,21 +198,12 @@ public:
 	QuiesceCommand(ELMQuiesce &quiesce) : quiesce(quiesce) { };
 
 	virtual std::string getHelpText(const std::string &command) const {
-		return command + " [in|closed|out|open|release|save]\n\n"
-				"Set the handle override state.\n"
+		return command + "\n"
 				"\n"
-				"  in/closed: Always treat the handle as if it is closed.\n"
-				"  out/open:  Always treat the handle as if it is open.\n"
-				"  release:   Always treat the handle according to its actual state.\n"
-				"  save:      Write the current value of this setting to persistent storage.\n"
-				"             This will cause it to be automatically restored at IPMC startup.\n";
+				"Ask the ELM to quiesce.\n";
 	}
 
 	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
-		if (!this->quiesce.quiesceSubscribed()) {
-			console->write("The ELM is not currently subscribed to quiesce requests.");
-			return;
-		}
 		if (this->quiesce.quiesceInProgress()) {
 			console->write("The ELM has already been asked to quiesce. (We'll still let you know when it's finished.)");
 		}
@@ -147,7 +211,7 @@ public:
 			if (success)
 				console->write("The ELM has quiesced.");
 			else
-				console->write("The ELM has failed to quiesce within the time limit.");
+				console->write("The ELM has failed to quiesce.");
 		});
 	}
 

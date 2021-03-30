@@ -37,15 +37,24 @@ public:
 	/**
 	 * Initializes and links the channel to target ELM interface.
 	 * @param elm ELM interface where channel exists.
-	 * @param subscribe_validity The duration after which a "QUIESCE_SUBSCRIBE"
-	 *                           request will be forgotten.
+	 * @param startup_allowance The maximum time after power-on your ELM may take
+	 *                          to begin responding to quiesce requests.
+	 * @param panic_window The length of time after power-on during which no quiesce
+	 *                     is required.  ("Oops, I didn't mean to put that handle in!")
+	 * @param acknowledgement_timeout The length of time to wait for acknowledgement
+	 *                                of a quiesce request.
+	 * @param quiesce_timeout The maximum length of time to wait for quiescence
+	 *                        after a request is acknowledged.
 	 * @param logtree The logtree node to log to.
 	 */
-	ELMQuiesce(ELM &elm, TickType_t subscribe_validity,
-			TickType_t quiesce_timeout, LogTree *logtree=NULL) :
-			ELM::Channel(elm, "quiesce"), logtree(logtree),
-			subscribe_validity(subscribe_validity), subscribe_timeout(0ULL),
-			quiesce_timeout(quiesce_timeout), quiesce_timer(nullptr) {
+	ELMQuiesce(ELM &elm, TickType_t startup_allowance, TickType_t panic_window,
+			TickType_t acknowledgement_timeout, TickType_t quiesce_timeout,
+			LogTree *logtree = NULL) :
+			ELM::Channel(elm, "quiesce"), logtree(logtree), startup_allowance(
+					startup_allowance), panic_window(panic_window), acknowledgement_timeout(
+					acknowledgement_timeout), quiesce_timeout(quiesce_timeout), startup_timestamp(
+					0), quiesce_request_timestamp(0), quiesce_acknowledgement_timestamp(
+					0), fsm_timer(nullptr), send_request_timer(nullptr) {
 		this->mutex = xSemaphoreCreateRecursiveMutex();
 		configASSERT(this->mutex);
 	};
@@ -60,15 +69,25 @@ public:
 	typedef std::function<void(bool)> QuiesceCompleteCallback;
 
 	/**
+	 * A function to notify the quiesce manager when the ELM power is enabled
+	 * for use in timing calculations.
+	 */
+	void elm_powered_on();
+	/**
+	 * A function to notify the quiesce manager when the ELM power is removed
+	 * for use in timing calculations.
+	 */
+	void elm_powered_off();
+
+	/**
 	 * Send a quiesce request to the ELM.
 	 *
 	 * @param callback Callback to be called when the operation is complete
 	 *
-	 * \note callback may be called immediately in the current thread if the
-	 *       ELM does not currently support quiescence.  It may be called from
-	 *       another thread if an attempt at quiescence is made.
+	 * \note callback may be called immediately in the current thread or from
+	 *       another thread at a later time.
 	 *
-	 * \note If you call this with a quiesce already in progress, the timeout
+	 * \note If you call this with a quiesce already in progress, the timeouts
 	 *       will not be updated, but your callback will still be enqueued.
 	 */
 	void quiesce(QuiesceCompleteCallback callback);
@@ -86,12 +105,6 @@ public:
 	 */
 	bool quiesceInProgress();
 
-	/**
-	 * Determine if the ELM currently supports quiescence.
-	 * @return true if the ELM is currently accepting quiesce commands, else false
-	 */
-	bool quiesceSubscribed();
-
 	// From base class ConsoleCommandSupport:
 	virtual void registerConsoleCommands(CommandParser &parser, const std::string &prefix="");
 	virtual void deregisterConsoleCommands(CommandParser &parser, const std::string &prefix="");
@@ -101,11 +114,21 @@ protected:
 
 	SemaphoreHandle_t mutex; ///< A mutex to guard internal state.
 	LogTree *logtree; ///< The logtree to log to.
-	TickType_t subscribe_validity; ///< The duration a subscribe is valid for.
-	AbsoluteTimeout subscribe_timeout; ///< A timeout for the current subscription.
-	TickType_t quiesce_timeout; ///< The timeout duration for a quiesce.
-	std::shared_ptr<TimerService::Timer> quiesce_timer; ///< The timer handle for timing out a failed quiesce.
+
+	TickType_t startup_allowance;
+	TickType_t panic_window;
+	TickType_t acknowledgement_timeout;
+	TickType_t quiesce_timeout;
+
+	uint64_t startup_timestamp; ///< A timestamp of power-on, to base various windows on.
+	uint64_t quiesce_request_timestamp; ///< A timestamp of when quiesce was requested, to base timeouts on.
+	uint64_t quiesce_acknowledgement_timestamp; ///< A timestamp of when quiesce was acknowledged, to base timeouts on.
+	std::shared_ptr<TimerService::Timer> fsm_timer; ///< The timer for the next FSM update.
+	std::shared_ptr<TimerService::Timer> send_request_timer; ///< The timer for sending "QUIESCE_NOW".
+
 	std::list<QuiesceCompleteCallback> callbacks; ///< The callbacks to trigger when a quiesce is complete.
+
+	void quiesce_fsm();
 };
 
 #endif /* SRC_COMMON_ZYNQIPMC_DRIVERS_ELM_QUIESCE_H_ */
