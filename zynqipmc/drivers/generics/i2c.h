@@ -58,12 +58,20 @@ public:
 		Send(I2C &i2c) : i2c(i2c) {};
 
 		virtual std::string getHelpText(const std::string &command) const {
-			return command + " $slave_addr [$byte1 $byte2 ..]\n\n"
-					"Send bytes to connected I2C slave. Byte declaration is optional.\n";
+			return command + " $slave_addr [RS] [$byte1 $byte2 ..]\n\n"
+					"Send bytes to connected I2C slave. Byte declaration is optional.\n"
+					"\n"
+					"Include the \"RS\" flag to indicate that this message preceeds a repeated start.\n";
 		}
 
 		virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
-			const size_t length = parameters.nargs() - 2;
+			int leading_args = 2;
+			bool rs = false;
+			if (parameters.nargs() > 2 && parameters.parameters[2] == "RS") {
+				rs = true;
+				++leading_args;
+			}
+			const size_t length = parameters.nargs() - leading_args;
 			uint8_t slaveaddr;
 
 			if (!parameters.parseParameters(1, false, &slaveaddr)) {
@@ -84,7 +92,7 @@ public:
 
 				for (size_t i = 0; i < length; i++) {
 					uint8_t value;
-					if (!parameters.parseParameters(i+2, false, &value)) {
+					if (!parameters.parseParameters(i+leading_args, false, &value)) {
 						console->write("Cannot parse argument " + std::to_string(i+1) + ". Review Help Text:\n\n" + this->getHelpText(parameters.parameters[0]));
 						return;
 					}
@@ -94,12 +102,12 @@ public:
 
 				console->write("Sending:\n" + formatedHexString(&*array, length));
 
-				if (!this->i2c.write(slaveaddr, &*array, length, pdMS_TO_TICKS(2000))){
+				if (!this->i2c.write(slaveaddr, &*array, length, pdMS_TO_TICKS(2000), rs)){
 					console->write("i2c.write failed\n");
 					return;
 				}
 			} else {
-				if (!this->i2c.write(slaveaddr, nullptr, 0, pdMS_TO_TICKS(2000))){
+				if (!this->i2c.write(slaveaddr, nullptr, 0, pdMS_TO_TICKS(2000), rs)){
 					console->write("i2c.write failed\n");
 					return;
 				}
@@ -115,15 +123,22 @@ public:
 		Recv(I2C &i2c) : i2c(i2c) {};
 
 		virtual std::string getHelpText(const std::string &command) const {
-			return command + " $slave_addr $byte_count\n\n"
-					"Receive bytes from connected I2C slave. $byte_count is the number of bytes to read.\n";
+			return command + " $slave_addr [RS] $byte_count\n\n"
+					"Receive bytes from connected I2C slave. $byte_count is the number of bytes to read.\n"
+					"\n"
+					"Include the \"RS\" flag to indicate that this message preceeds a repeated start.\n";
 		}
 
 		virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
 			size_t length;
 			uint8_t slaveaddr;
+			bool rs = false;
+			std::string rs_arg = "";
 
-			if (!parameters.parseParameters(1, true, &slaveaddr, &length)) {
+			if (parameters.nargs() > 2 && parameters.parameters[2] == "RS" && parameters.parseParameters(1, true, &slaveaddr, &rs_arg, &length)) {
+				rs = true;
+			}
+			else if (!parameters.parseParameters(1, true, &slaveaddr, &length)) {
 				console->write("Invalid arguments, see help.\n");
 				return;
 			}
@@ -139,14 +154,14 @@ public:
 					throw std::runtime_error("Out-of-memory");
 				}
 
-				if (!this->i2c.read(slaveaddr, &*array, length, pdMS_TO_TICKS(2000))){
+				if (!this->i2c.read(slaveaddr, &*array, length, pdMS_TO_TICKS(2000), rs)){
 					console->write("i2c.read failed\n");
 					return;
 				}
 
 				console->write("Received:\n" + formatedHexString(&*array, length));
 			} else {
-				if (!this->i2c.read(slaveaddr, nullptr, 0, pdMS_TO_TICKS(2000))){
+				if (!this->i2c.read(slaveaddr, nullptr, 0, pdMS_TO_TICKS(2000), rs)){
 					console->write("i2c.read failed\n");
 					return;
 				}
