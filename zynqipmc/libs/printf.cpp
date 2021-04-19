@@ -48,3 +48,8 @@ void windows_newline(std::string &input, char nlchar) {
 	}
 }
 
+std::string trim_string(const std::string &input, const std::string &strip) {
+	std::string::size_type first_real_char = input.find_first_not_of(strip);
+	std::string::size_type last_white_char = input.find_last_of(strip);
+	return input.substr(first_real_char, last_white_char - first_real_char);
+}

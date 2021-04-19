@@ -30,4 +30,14 @@ std::string stdsprintf(const char *fmt, ...) __attribute__((format(printf,1,2)))
  */
 void windows_newline(std::string &input, char nlchar='\n');
 
+/**
+ * Return a copy of a std::string with leading or trailing instances of the
+ * specified characters removed.
+ *
+ * @param input The string to trim.
+ * @param strip The characters to remove.
+ * @return The trimmed string.
+ */
+std::string trim_string(const std::string &input, const std::string &strip = " \t\r\n");
+
 #endif /* SRC_COMMON_ZYNQIPMC_LIBS_PRINTF_H_ */
