@@ -17,7 +17,7 @@
 
 #include "version.h"
 
-#include <libs/mjson.h>
+#include <libs/mjson/mjson.h>
 
 template <typename T>
 static inline bool parse_numeric(const std::string &json, const std::string path, T &v) {
