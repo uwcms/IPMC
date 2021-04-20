@@ -58,8 +58,8 @@ private:
 	mutable XUartLite uartlite;			///< Internal PL UART driver data.
 	RingBuffer<uint8_t> inbuf;  		///< The input buffer.
 	RingBuffer<uint8_t> outbuf; 		///< The output buffer.
-	WaitList readwait;     				///< A waitlist for blocking read operations.
-	WaitList writewait;    				///< A waitlist for blocking write operations.
+	WaitList<true> readwait;     				///< A waitlist for blocking read operations.
+	WaitList<true> writewait;    				///< A waitlist for blocking write operations.
 };
 
 #endif

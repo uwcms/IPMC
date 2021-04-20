@@ -139,7 +139,7 @@ size_t PLUART::read(uint8_t *buf, size_t len, TickType_t timeout, TickType_t dat
 		 * have problems with a race condition between the read attempt and
 		 * starting the wait.  We can cancel it later with a wait(timeout=0).
 		 */
-		WaitList::Subscription sub;
+		WaitList<true>::Subscription sub;
 		sub = this->readwait.join();
 
 		/* Entering a critical section to strongly pair the read and interrupt
@@ -173,7 +173,7 @@ size_t PLUART::write(const uint8_t *buf, size_t len, TickType_t timeout) {
 		 * and starting the wait.  We can cancel it later with a
 		 * wait(timeout=0).
 		 */
-		WaitList::Subscription sub;
+		WaitList<true>::Subscription sub;
 		sub = this->writewait.join();
 
 		size_t batch_byteswritten = this->outbuf.write(buf+byteswritten, len-byteswritten);

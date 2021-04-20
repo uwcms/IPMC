@@ -77,34 +77,50 @@ static void deleteEventgroupVoidptr(void *eg) {
 	vEventGroupDelete((EventGroupHandle_t)eg);
 }
 
-WaitList::WaitList()
+template <bool REARMING>
+WaitList<REARMING>::WaitList()
 	: event(nullptr) {
 	this->mutex = xSemaphoreCreateMutex();
 	this->event = std::shared_ptr<void>(xEventGroupCreate(), deleteEventgroupVoidptr);
 }
+template WaitList<true>::WaitList();
+template WaitList<false>::WaitList();
 
-WaitList::~WaitList() {
+template <bool REARMING>
+WaitList<REARMING>::~WaitList() {
 	this->wake(); // Don't leave anyone waiting on us.
 	vSemaphoreDelete(this->mutex);
 }
+template WaitList<true>::~WaitList();
+template WaitList<false>::~WaitList();
 
-WaitList::Subscription WaitList::join() {
+template <bool REARMING>
+typename WaitList<REARMING>::Subscription WaitList<REARMING>::join() {
 	configASSERT(!IN_INTERRUPT());
 
 	xSemaphoreTake(this->mutex, portMAX_DELAY);
-	if (xEventGroupGetBits((EventGroupHandle_t)this->event.get())) // Already spent.
-		this->event = std::shared_ptr<void>(xEventGroupCreate(), deleteEventgroupVoidptr);
+	if (REARMING) {
+		if (xEventGroupGetBits((EventGroupHandle_t)this->event.get())) // Already spent.
+			this->event = std::shared_ptr<void>(xEventGroupCreate(), deleteEventgroupVoidptr);
+	}
 	std::shared_ptr<void> ret = this->event;
 	xSemaphoreGive(this->mutex);
 	return Subscription(ret);
 }
+template WaitList<true>::Subscription WaitList<true>::join();
+template WaitList<false>::Subscription WaitList<false>::join();
 
-bool WaitList::Subscription::wait(TickType_t timeout) {
+
+template <bool REARMING>
+bool WaitList<REARMING>::Subscription::wait(TickType_t timeout) {
 	configASSERT(!!this->event);
 	return xEventGroupWaitBits((EventGroupHandle_t)this->event.get(), 1, 0, pdTRUE, timeout);
 }
+template bool WaitList<true>::Subscription::wait(TickType_t timeout);
+template bool WaitList<false>::Subscription::wait(TickType_t timeout);
 
-void WaitList::wake() {
+template <bool REARMING>
+void WaitList<REARMING>::wake() {
 	if (IN_INTERRUPT()) {
 		BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 		xEventGroupSetBitsFromISR((EventGroupHandle_t)this->event.get(), 1, &xHigherPriorityTaskWoken);
@@ -114,6 +130,8 @@ void WaitList::wake() {
 		xEventGroupSetBits((EventGroupHandle_t)this->event.get(), 1);
 	}
 }
+template void WaitList<true>::wake();
+template void WaitList<false>::wake();
 
 /// A custom 64 bit tick counter.  Access only through get_tick64().
 volatile uint64_t uwipmc_tick64_count = 0;

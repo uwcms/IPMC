@@ -67,8 +67,8 @@ private:
 	XUartPs uartps;      			///< XUartPs handle of the driven device.
 	RingBuffer<uint8_t> inbuf;  			///< Input ring buffer.
 	RingBuffer<uint8_t> outbuf; 			///< Output ring buffer.
-	WaitList readwait;     			///< A waitlist for blocking read operations.
-	WaitList writewait;    			///< A waitlist for blocking write operations.
+	WaitList<true> readwait;     			///< A waitlist for blocking read operations.
+	WaitList<true> writewait;    			///< A waitlist for blocking write operations.
 };
 
 #endif

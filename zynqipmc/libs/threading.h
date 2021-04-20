@@ -90,8 +90,11 @@ protected:
 
 /**
  * A wait list allowing multiple tasks to block until signaled.
+ *
+ * \tparam REARMING If true, the `.wake()` only affects previous `.join()`s.
+ *                  If false, the first `.wake()` affects all subsequent `.join()`s.
  */
-class WaitList {
+template <bool REARMING> class WaitList {
 public:
 	WaitList();
 	virtual ~WaitList();
