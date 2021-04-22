@@ -65,7 +65,7 @@ PSSPI::~PSSPI() {
 
 bool PSSPI::transfer(size_t chip, const uint8_t *sendbuf, uint8_t *recvbuf, size_t bytes, TickType_t timeout) {
 	// TODO: Needs some work
-	MutexGuard<false> lock(this->mutex, true);
+	MutexGuard<true> lock(this->mutex, true);
 
 	// Assert the EEPROM chip select
 	XSpiPs_SetSlaveSelect(&this->xspips, chip);

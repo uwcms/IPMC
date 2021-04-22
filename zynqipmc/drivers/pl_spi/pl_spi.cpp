@@ -266,7 +266,7 @@ void PLSPI::stop() {
 }
 
 bool PLSPI::transfer(size_t chip, const uint8_t *sendbuf, uint8_t *recvbuf, size_t bytes, TickType_t timeout) {
-	MutexGuard<false> lock(this->mutex, true);
+	MutexGuard<true> lock(this->mutex, true);
 
 	this->select(chip);
 	bool r = this->transfer(sendbuf, recvbuf, bytes, timeout);

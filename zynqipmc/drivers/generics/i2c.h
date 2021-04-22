@@ -187,9 +187,6 @@ public:
 		parser.registerCommand(prefix + "recv", nullptr);
 #endif
 	}
-
-protected:
-	SemaphoreHandle_t mutex;
 };
 
 #endif /* SRC_COMMON_ZYNQIPMC_DRIVERS_GENERICS_I2C_H_ */

@@ -114,6 +114,7 @@ PLI2C::~PLI2C() {
 }
 
 size_t PLI2C::read(uint8_t addr, uint8_t *buf, size_t len, TickType_t timeout, bool repeatedStart) {
+	MutexGuard<true> lock(this->mutex);
 #ifdef PLI2C_USE_POOLING
 
 	uint8_t option = (repeatedStart)? XIIC_CR_REPEATED_START_MASK : XIIC_STOP;
@@ -172,6 +173,7 @@ size_t PLI2C::read(uint8_t addr, uint8_t *buf, size_t len, TickType_t timeout, b
 }
 
 size_t PLI2C::write(uint8_t addr, const uint8_t *buf, size_t len, TickType_t timeout, bool repeatedStart) {
+	MutexGuard<true> lock(this->mutex);
 #ifdef PLI2C_USE_POOLING
 
 	uint8_t option = (repeatedStart)? XIIC_CR_REPEATED_START_MASK : XIIC_STOP;
