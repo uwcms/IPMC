@@ -77,6 +77,7 @@ extern uint8_t mac_address[6];
 const uint8_t IPMC_FW_REVISION[2] = { 0, 1 }; // 0.1 (Max: 63.99, see Get Device ID)
 extern uint8_t IPMC_HW_REVISION;
 extern uint16_t IPMC_SERIAL;
+extern uint16_t BLADE_SERIAL;
 extern uint8_t IMAGE_LOADED;
 
 class BootConfig;

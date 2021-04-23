@@ -20,9 +20,19 @@ namespace CoreCommands {
 /// A "set_serial" console command.
 class SetSerialCommand : public CommandParser::Command {
 public:
+	SetSerialCommand()
+	: eeprom(eeprom_mac), offset(0), serial_in_memory(IPMC_SERIAL), serial_description("IPMC") {};
+	SetSerialCommand(EEPROM *eeprom, uint16_t offset, uint16_t &serial_in_memory, std::string serial_description)
+	: eeprom(eeprom), offset(offset), serial_in_memory(serial_in_memory), serial_description(serial_description) {};
+
+	EEPROM *eeprom;
+	uint16_t offset;
+	uint16_t &serial_in_memory;
+	std::string serial_description;
+
 	virtual std::string getHelpText(const std::string &command) const {
 		return command + " $serial\n\n"
-				"Set the IPMC serial number.\n"
+				"Set the " + this->serial_description + " serial number.\n"
 				"NOTE: This cannot be changed once set!\n";
 	}
 
@@ -33,8 +43,8 @@ public:
 			return;
 		}
 
-		IPMC_SERIAL = serial;
-		eeprom_mac->write(0, reinterpret_cast<uint8_t*>(&serial), sizeof(serial));
+		this->serial_in_memory = serial;
+		this->eeprom->write(this->offset, reinterpret_cast<uint8_t*>(&serial), sizeof(serial));
 		console->write("Serial updated.  Reboot to lock.\n");
 	}
 };

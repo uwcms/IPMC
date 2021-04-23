@@ -60,6 +60,7 @@ uint8_t mac_address[6];
 
 uint8_t IPMC_HW_REVISION = 0;
 uint16_t IPMC_SERIAL = 0xffff;
+uint16_t BLADE_SERIAL = 0xffff;
 uint8_t IMAGE_LOADED = 0;
 
 BootConfig *boot_config;
@@ -128,7 +129,7 @@ __attribute__((weak)) std::string generateBanner() {
 	bannerstr += std::string("HW revision : rev") + (char)('A'+IPMC_HW_REVISION) + "\n";
 	const struct zynqpart zynq_part = zynqPartId();
 	bannerstr += std::string("ZYNQ part   : ") + zynq_part.part_name + "\n";
-	if ((IPMC_SERIAL != 0xffff) & (IPMC_SERIAL != 0)) {
+	if ((IPMC_SERIAL != 0xffff) && (IPMC_SERIAL != 0)) {
 		bannerstr += std::string("HW serial   : ") + std::to_string(IPMC_SERIAL) + "\n";
 	} else {
 		bannerstr += std::string("HW serial   : unset\n");
@@ -139,6 +140,11 @@ __attribute__((weak)) std::string generateBanner() {
 	bannerstr += std::string("Build host  : ") + version->build.user + "@" + version->build.host + "\n";
 	bannerstr += std::string("Build conf  : ") + version->build.configuration + "\n";
 	bannerstr += std::string("OS version  : FreeRTOS ") + tskKERNEL_VERSION_NUMBER + "\n";
+	if ((BLADE_SERIAL != 0xffff) && (BLADE_SERIAL != 0)) {
+		bannerstr += std::string("Blade serial: ") + std::to_string(BLADE_SERIAL) + "\n";
+	} else {
+		bannerstr += std::string("Blade serial: unset\n");
+	}
 
 //	const char* imageNames[] = {"fallback", "A", "B", "test"};
 //	bannerstr += std::string("Flash image : ") + ((IMAGE_LOADED > 3)?"Unknown":imageNames[IMAGE_LOADED]) + " (" + std::to_string(IMAGE_LOADED) + ")\n";
