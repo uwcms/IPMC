@@ -22,6 +22,8 @@
 #include <libs/threading.h>
 #include <libs/utils.h>
 #include <services/console/consolesvc.h>
+#include <services/infolink/infolink.h>
+#include <functional>
 
 /* lwIP core includes */
 #include "netif/xemacpsif.h"
@@ -72,6 +74,10 @@ logtree(logtree) {
 		// otherwise there will be problems with TCP requests
 		lwip_init();
 		this->threadNetworkStart();
+		InfoLink::setInfo("mac_address", macToString(this->mac));
+		InfoLink::setInfo("ip_address", std::function<InfoLink::MultiTypeValue(void)>([this]() -> InfoLink::MultiTypeValue { return this->getIPString(); }));
+		InfoLink::setInfo("ip_gateway", std::function<InfoLink::MultiTypeValue(void)>([this]() -> InfoLink::MultiTypeValue { return this->getGatewayString(); }));
+		InfoLink::setInfo("ip_netmask", std::function<InfoLink::MultiTypeValue(void)>([this]() -> InfoLink::MultiTypeValue { return this->getNetmaskString(); }));
 		if (net_ready_cb)
 			net_ready_cb(this);
 	});

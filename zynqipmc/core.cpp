@@ -27,6 +27,7 @@
 #include <misc/version.h>
 #include <services/console/uartconsolesvc.h>
 #include <services/ipmi/commands/ipmicmd_index.h>
+#include <services/infolink/infolink.h>
 #include <zynqipmc_config.h>
 
 #ifdef MANAGEMENT_ZONE_PRESENT_IN_BSP
@@ -152,6 +153,34 @@ __attribute__((weak)) std::string generateBanner() {
 	bannerstr += "\n";
 	bannerstr += "********************************************************************************\n";
 	return bannerstr;
+}
+
+static void setBannerInfolinkBasics() {
+	// This might not be set by the time we're called.
+	InfoLink::setInfo("hw_revision", std::function<InfoLink::MultiTypeValue()>([]() -> InfoLink::MultiTypeValue {
+		                  char hwrev[2] = { (char)('A' + IPMC_HW_REVISION), '\0' };
+		                  return std::string(hwrev);
+	                  }));
+	// This definitely is set by the time we're called.
+	const struct zynqpart zynq_part = zynqPartId();
+	InfoLink::setInfo("zynq_part", zynq_part.part_name);
+	// This might not be set by the time we're called.
+	InfoLink::setInfo("ipmc_serial", std::function<InfoLink::MultiTypeValue()>([]() -> InfoLink::MultiTypeValue {
+		                  if ((IPMC_SERIAL != 0xffff) && (IPMC_SERIAL != 0))
+			                  return InfoLink::MultiTypeValue((uint32_t)IPMC_SERIAL);
+		                  else
+			                  return InfoLink::MultiTypeValue();
+	                  }));
+	// This might not be set by the time we're called.
+	InfoLink::setInfo("blade_serial", std::function<InfoLink::MultiTypeValue()>([]() -> InfoLink::MultiTypeValue {
+		                  if ((BLADE_SERIAL != 0xffff) && (BLADE_SERIAL != 0))
+			                  return InfoLink::MultiTypeValue((uint32_t)BLADE_SERIAL);
+		                  else
+			                  return InfoLink::MultiTypeValue();
+	                  }));
+	// This is definitely set by the time we're called.
+	std::shared_ptr<const VersionInfo> version = VersionInfo::get_running_version();
+	InfoLink::setInfo("ipmc_sw_version", version->git.describe);
 }
 
 void startInitTask() {
@@ -306,6 +335,8 @@ void core_service_init() {
 	}
 
 #undef MB
+
+	setBannerInfolinkBasics();
 
 	// Run application specific service initialization
 	serviceInit();
