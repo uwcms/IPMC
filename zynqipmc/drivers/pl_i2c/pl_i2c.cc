@@ -20,6 +20,7 @@
 
 #include "pl_i2c.h"
 #include <libs/except.h>
+#include <libs/printf.h>
 
 // TODO: Driver seems to hang from time to time, needs further debugging.
 // TODO: Remove printfs after debugging.
@@ -157,7 +158,7 @@ size_t PLI2C::read(uint8_t addr, uint8_t *buf, size_t len, TickType_t timeout, b
 	if (this->was_event) {
 		// Something went wrong
 		// Check this->irqstatus for error code if required
-		printf("Bad I2C reply: %d", this->irqstatus);
+		printf("Bad I2C read reply: %s", PLI2C::parseStatusCode(this->irqstatus));
 		return 0;
 	} else {
 		if (this->irqstatus != 0)
@@ -215,7 +216,7 @@ size_t PLI2C::write(uint8_t addr, const uint8_t *buf, size_t len, TickType_t tim
 	if (this->was_event) {
 		// Something went wrong
 		// Check this->irqstatus for error code if required
-		printf("Bad I2C reply: %d", this->irqstatus);
+		printf("Bad I2C write reply: %s", PLI2C::parseStatusCode(this->irqstatus));
 		return 0;
 	} else {
 		if (this->irqstatus != 0) {
@@ -229,6 +230,40 @@ size_t PLI2C::write(uint8_t addr, const uint8_t *buf, size_t len, TickType_t tim
 #endif
 
 	return 0;
+}
+
+std::string PLI2C::parseStatusCode(int event) {
+	std::string out = "";
+	if (event & XII_BUS_NOT_BUSY_EVENT) {
+		out += "|XII_BUS_NOT_BUSY_EVENT";
+		event &= ~XII_BUS_NOT_BUSY_EVENT;
+	}
+	if (event & XII_ARB_LOST_EVENT) {
+		out += "|XII_ARB_LOST_EVENT";
+		event &= ~XII_ARB_LOST_EVENT;
+	}
+	if (event & XII_SLAVE_NO_ACK_EVENT) {
+		out += "|XII_SLAVE_NO_ACK_EVENT";
+		event &= ~XII_SLAVE_NO_ACK_EVENT;
+	}
+	if (event & XII_MASTER_READ_EVENT) {
+		out += "|XII_MASTER_READ_EVENT";
+		event &= ~XII_MASTER_READ_EVENT;
+	}
+	if (event & XII_MASTER_WRITE_EVENT) {
+		out += "|XII_MASTER_WRITE_EVENT";
+		event &= ~XII_MASTER_WRITE_EVENT;
+	}
+	if (event & XII_GENERAL_CALL_EVENT) {
+		out += "|XII_GENERAL_CALL_EVENT";
+		event &= ~XII_GENERAL_CALL_EVENT;
+	}
+	if (event)
+		out += stdsprintf("|%d", event);
+	if (out.size())
+		return out.substr(1);
+	else
+		return "0";
 }
 
 #endif

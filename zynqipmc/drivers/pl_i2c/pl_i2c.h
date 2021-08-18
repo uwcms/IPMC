@@ -51,6 +51,7 @@ private:
 	void _InterruptHandler();
 	static void dataHandler(PLI2C *i2c, int byte_count);
 	static void statusHandler(PLI2C *i2c, int event);
+	static std::string parseStatusCode(int event);
 
 	XIic iic;						///< IIC low-level driver data.
 	SemaphoreHandle_t sync;			///< Synchronization flag for interrupts.
