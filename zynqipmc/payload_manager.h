@@ -198,6 +198,13 @@ protected:
 	class GetSensorEventEnablesCommand;
 	class SetSensorEventEnablesCommand;
 
+	/**
+	 * A constant (overridable by BoardPayloadManager) indicating the time from
+	 * the moment that each individual MZ is enabled until its lower thresholds
+	 * are enforced.
+	 */
+	TickType_t mz_holdoff_ticks;
+
 	SemaphoreHandle_t mutex; ///< A mutex protecting internal data.
 	MStateMachine *mstate_machine; ///< The MStateMachine to notify of changes.
 	FaultLog *faultlog; ///< The fault log to record major events in.

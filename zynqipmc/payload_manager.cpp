@@ -26,7 +26,6 @@
 #include <services/ipmi/sensor/threshold_sensor.h>
 #include <services/persistentstorage/persistent_storage.h>
 
-#define MZ_HOLDOFF_TICKS 140
 #define CONTEXT_EVENT_MASK 0xfc0 // mask only lower events
 #define OOC_NOMINAL_EVENT_STATUS 0x555 // When "out of context", presume the sensor value is zero, below all thresholds
 
@@ -110,7 +109,7 @@ std::vector<uint8_t> LinkDescriptor::lookup_oem_LinkType_guid(uint8_t LinkType) 
 }
 
 PayloadManager::PayloadManager(MStateMachine *mstate_machine, FaultLog *faultlog, LogTree &log)
-	: mstate_machine(mstate_machine), faultlog(faultlog), log(log), logrepeat(log), sp_context_update_timer(nullptr) {
+	: mz_holdoff_ticks(140), mstate_machine(mstate_machine), faultlog(faultlog), log(log), logrepeat(log), sp_context_update_timer(nullptr) {
 	configASSERT(this->mutex = xSemaphoreCreateRecursiveMutex());
 
 	struct IPMILED::Action ledstate;
@@ -455,7 +454,7 @@ bool PayloadManager::isMZInContext(int mz) const {
 		return false;
 	}
 
-	if ((zone->getLastTransitionStart() + MZ_HOLDOFF_TICKS) > get_tick64()) {
+	if ((zone->getLastTransitionStart() + this->mz_holdoff_ticks) > get_tick64()) {
 		return false;
 	}
 #endif
@@ -495,7 +494,7 @@ void PayloadManager::updateSensorProcessorContexts() {
 			if (!this->isMZInContext(adcsensor.second.mz_context)) {
 				desired_assertions &= CONTEXT_EVENT_MASK;
 				desired_deassertions &= CONTEXT_EVENT_MASK;
-				uint64_t holdoff_end = this->mgmt_zones[adcsensor.second.mz_context]->getLastTransitionStart() + MZ_HOLDOFF_TICKS;
+				uint64_t holdoff_end = this->mgmt_zones[adcsensor.second.mz_context]->getLastTransitionStart() + this->mz_holdoff_ticks;
 				//this->log.log(stdsprintf("MZ%d is out of context for sensor %s", adcsensor.second.mz_context, sensor->sensorIdentifier().c_str()), LogTree::LOG_DIAGNOSTIC);
 				if (next_update.getTimeout64() > holdoff_end) {
 					next_update.setAbsTimeout(holdoff_end);
