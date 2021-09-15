@@ -60,12 +60,6 @@ void ELM::LinkIndexChannel::recv(const uint8_t *content, size_t size) {
 }
 
 void ELM::LinkIndexChannel::sendUpdate() {
-	if (this->startup_refresh_timer) {
-		/* Too early, sorry.  We're still waiting for any required channel
-		 * registrations.  We'll get to you soon.
-		 */
-		return;
-	}
 	this->send(ELMLink::Packet::encode_channel_index_update_packet(this->channel_index));
 }
 
@@ -197,7 +191,8 @@ void ELM::linkChannel(ELM::Channel *c, std::string channel_name) {
 		this->channels[i] = c;
 		c->channel_id = i;
 		this->channel_index[i] = channel_name;
-		this->link_index_channel->sendUpdate();
+		if (channel_name != "link_index")
+			this->link_index_channel->sendUpdate();
 		return;
 	}
 	throw std::out_of_range("There are no further channel ids to allocate on this ELMLink.");
