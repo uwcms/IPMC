@@ -18,11 +18,11 @@
 #ifndef SRC_COMMON_ZYNQIPMC_DRIVERS_GENERICS_SPI_H_
 #define SRC_COMMON_ZYNQIPMC_DRIVERS_GENERICS_SPI_H_
 
+#include <zynqipmc_config.h>
 #include <drivers/atomicity_support.h>
 #include <libs/utils.h>
 #include <services/console/command_parser.h>
 #include <services/console/consolesvc.h>
-#include <zynqipmc_config.h>
 
 /**
  * An abstract SPI master driver.

@@ -18,6 +18,7 @@
 #ifndef SRC_COMMON_ZYNQIPMC_DRIVERS_GENERICS_GPIO_H_
 #define SRC_COMMON_ZYNQIPMC_DRIVERS_GENERICS_GPIO_H_
 
+#include <zynqipmc_config.h>
 #include <libs/printf.h>
 #include <services/console/command_parser.h>
 #include <services/console/consolesvc.h>
