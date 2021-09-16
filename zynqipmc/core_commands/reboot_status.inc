@@ -28,8 +28,8 @@ public:
 	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
 		std::string out = "";
 		out += stdsprintf("The value of the REBOOT_STATUS register on startup was 0x%08lx.\n", reboot_status);
-		out += stdsprintf("The user \"REBOOT_STATE\" field is 0x%02lx.\n", reboot_status >> 24);
-		out += stdsprintf("The reset reason field is 0x%02lx.\n", (reboot_status >> 16) & 0xff);
+		out += stdsprintf("The user \"REBOOT_STATE\" field was 0x%02lx.\n", reboot_status >> 24);
+		out += stdsprintf("The reset reason field was 0x%02lx.\n", (reboot_status >> 16) & 0xff);
 		const std::vector< std::pair<int, std::string> > reasons({
 			{22, "  POR:       Power On Reset"},
 			{21, "  SRST_B:    PS_SRST_B reset signal"},
