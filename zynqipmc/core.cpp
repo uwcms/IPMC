@@ -36,6 +36,9 @@
 #warning "board_payload_manager.h not found, is this intended?"
 #endif
 
+#define SLCR_LOCK_REG (XPS_SYS_CTRL_BASEADDR + 0x004)
+#define SLCR_UNLOCK_REG (XPS_SYS_CTRL_BASEADDR + 0x008)
+#define SLCR_LOCKSTA_REG (XPS_SYS_CTRL_BASEADDR + 0x00C)
 #define REBOOT_STATUS_REG (XPS_SYS_CTRL_BASEADDR + 0x258)
 
 /**
@@ -78,6 +81,8 @@ SensorSet ipmc_sensors(&device_sdr_repo);
 
 SemaphoreHandle_t fru_data_mutex;
 std::vector<uint8_t> fru_data;
+
+uint32_t reboot_status;
 
 PayloadManager *payload_manager = nullptr;
 
@@ -197,10 +202,20 @@ void startInitTask() {
 
 // TODO: Check if new returns are not nullptr
 void core_driver_init() {
-	uint32_t reboot_status = Xil_In32(REBOOT_STATUS_REG) >> 24;
-	if (reboot_status & 0x4) IMAGE_LOADED = 3;
-	else IMAGE_LOADED = reboot_status & 0x3;
+	reboot_status = Xil_In32(REBOOT_STATUS_REG);
+	if ((reboot_status >> 24) & 0x4) IMAGE_LOADED = 3;
+	else IMAGE_LOADED = (reboot_status >> 24) & 0x3;
 	if (IPMC_HW_REVISION == 0) IMAGE_LOADED = 0;
+
+	// Clear reset reasons and BOOTROM error codes, so they are clean on next boot.
+	{
+		uint32_t slcr_lock_status = Xil_In32(SLCR_LOCKSTA_REG) & 1;
+		if (slcr_lock_status)
+			Xil_Out32(SLCR_UNLOCK_REG, 0xDF0D);
+		Xil_Out32(REBOOT_STATUS_REG, reboot_status & ~0x007fffff);
+		if (slcr_lock_status)
+			Xil_Out32(SLCR_LOCK_REG, 0x767B);
+	}
 
 	/* Connect the TraceBuffer to the log system
 	 *

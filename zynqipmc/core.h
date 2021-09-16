@@ -110,6 +110,8 @@ extern std::vector<uint8_t> fru_data;
 typedef struct EventGroupDef_t * EventGroupHandle_t;
 extern EventGroupHandle_t init_complete;
 
+extern uint32_t reboot_status;
+
 // From libwrap.cc
 void init_stdlib_mutex();
 extern SemaphoreHandle_t stdlib_mutex;
