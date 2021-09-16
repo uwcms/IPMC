@@ -18,7 +18,7 @@ version['git']['branch']   = subprocess.check_output(['git', 'symbolic-ref', '--
 version['git']['dirty']    = version['git']['describe'].endswith('-dirty')
 
 describe_long = subprocess.check_output(['git', 'describe', '--always', '--match=*-v[0-9]*.[0-9]*.[0-9]*', '--dirty', '--long']).decode('utf8').strip()
-m = re.match(r'^(?P<tag>.*)-v(?P<version>(?:(?P<major>0|[1-9]\d*)\.(?P<minor>0|[1-9]\d*)\.(?P<revision>0|[1-9]\d*)(?:-(?P<prerelease>(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+(?P<buildmetadata>[0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?))-(?P<plus_commits>[0-9]+)-g[0-9a-f]{7}(?P<dirty>-dirty)?$', describe_long)
+m = re.match(r'^(?P<tag>.*)-v(?P<version>(?:(?P<major>0|[1-9]\d*)\.(?P<minor>0|[1-9]\d*)\.(?P<revision>0|[1-9]\d*)(?:-(?P<prerelease>(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+(?P<buildmetadata>[0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?))-(?P<plus_commits>[0-9]+)-g[0-9a-f]+(?P<dirty>-dirty)?$', describe_long)
 if m is None:
 	version['version'] = None
 else:
