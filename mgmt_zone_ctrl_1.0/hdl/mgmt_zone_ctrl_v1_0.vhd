@@ -116,6 +116,8 @@ architecture arch_imp of mgmt_zone_ctrl_v1_0 is
     signal s_pwr_en_ovrd_drive     : std_logic_vector(C_PWREN_CNT-1 downto 0);
     signal s_pwr_en_ovrd_lvl       : std_logic_vector(C_PWREN_CNT-1 downto 0);
     signal s_pwr_en_ovrd_in        : std_logic_vector(C_PWREN_CNT-1 downto 0);
+
+    signal s_pwr_en_tmr_max        : std_logic_vector(31 downto 0);
         
     attribute KEEP : string;
     attribute DONT_TOUCH : string;
@@ -173,6 +175,8 @@ mgmt_zone_ctrl_v1_0_S_AXI_inst : entity work.mgmt_zone_ctrl_v1_0_S_AXI
         pwr_en_ovrd_drive_o             => s_pwr_en_ovrd_drive,
         pwr_en_ovrd_lvl_o               => s_pwr_en_ovrd_lvl,
         pwr_en_ovrd_lvl_i               => s_pwr_en_ovrd_in,
+
+        pwr_en_tmr_max_o              => s_pwr_en_tmr_max,
 	
 		S_AXI_ACLK    	=> s_axi_aclk,
 		S_AXI_ARESETN	=> s_axi_aresetn,
@@ -233,6 +237,7 @@ mgmt_zone_ctrl_v1_0_S_AXI_inst : entity work.mgmt_zone_ctrl_v1_0_S_AXI
                    MZ_pwr_on_seq_init_i      => s_MZ_pwr_on_seq_init_d1, -- 1 clk dly to prevent race condition
                    pwr_en_MZ_cfg_i           => s_pwr_en_MZ_cfg(idx)(C_MZ_CNT-1 downto 0),
                    pwr_en_tmr_cfg_i          => s_pwr_en_tmr_cfg(idx),
+                   pwr_en_tmr_max_i          => s_pwr_en_tmr_max,
                    pwr_en_state_o            => s_pwr_en_state(idx),
                    pwr_en_o                  => s_pwr_en(idx)
              );

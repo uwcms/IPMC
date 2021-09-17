@@ -33,6 +33,7 @@ entity pwr_en is
            MZ_pwr_on_seq_init_i  : in STD_LOGIC_VECTOR(C_MZ_CNT-1 downto 0);
            pwr_en_MZ_cfg_i       : in STD_LOGIC_VECTOR(C_MZ_CNT-1 downto 0);
            pwr_en_tmr_cfg_i      : in STD_LOGIC_VECTOR(31 downto 0);
+           pwr_en_tmr_max_i      : in STD_LOGIC_VECTOR(31 downto 0);
            pwr_en_state_o        : out STD_LOGIC_VECTOR(1 downto 0);
            pwr_en_o              : out STD_LOGIC
            );
@@ -63,7 +64,7 @@ begin
       elsif ((MZ_pwr_off_seq_init_i and pwr_en_MZ_cfg_i) /= c_zero) then
           s_off_seq_active <= '1';
           s_on_seq_active <= '0';
-          s_seq_tmr <= pwr_en_tmr_cfg_i;
+          s_seq_tmr <= pwr_en_tmr_max_i;
           s_pwr_en_state <= C_PWR_EN_SEQ_OFF;
       elsif ((MZ_pwr_on_seq_init_i and pwr_en_MZ_cfg_i ) /= c_zero) then
           s_off_seq_active <= '0';
@@ -73,7 +74,7 @@ begin
       elsif (s_off_seq_active = '1') then
            s_seq_tmr <= std_logic_vector(unsigned(s_seq_tmr) - 1);
            s_pwr_en_state <= C_PWR_EN_SEQ_OFF;
-           if(s_seq_tmr = x"00000000") then
+           if((s_seq_tmr = pwr_en_tmr_cfg_i) or (s_seq_tmr = x"00000000")) then
                pwr_en_o <= '0';
                s_off_seq_active <= '0';
                s_on_seq_active <= '0';

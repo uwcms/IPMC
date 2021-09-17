@@ -24,7 +24,7 @@
 #define MZ_POWER_EN_COUNT 	(32)
 #define MZ_HARDFAULT_COUNT  (64)
 
-#define CORE_CLK_FREQ_IN_MHZ (50000000)
+#define CLK_50MHZ_IN_HZ (50000000)
 
 /*******************************/
 /********  Register Map ********/
@@ -49,6 +49,8 @@
 #define PWR_EN_OVRD_DRIVE_REG (516)
 #define PWR_EN_OVRD_LVL_REG (520)
 #define PWR_EN_OVRD_READ_REG (524)
+
+#define PWR_EN_TMR_MAX_REG (528)
 
 
 /* Individual MZ registers*/
@@ -223,7 +225,7 @@ void Mgmt_Zone_Ctrl_Set_MZ_Cfg(Mgmt_Zone_Ctrl *InstancePtr, u32 MZ, const MZ_con
 
 	 u32 hard_fault_mask_0 = (u32)(cfg->hardfault_mask & 0xFFFFFFFF); // lower 32-bit word
 	 u32 hard_fault_mask_1 = (u32)(cfg->hardfault_mask >> 32); // upper 32-bit word
-	 u32 hw_mz_holdoff = cfg->fault_holdoff * CORE_CLK_FREQ_IN_MHZ/1000; // units specified in miliseconds
+	 u32 hw_mz_holdoff = cfg->fault_holdoff * (CLK_50MHZ_IN_HZ/1000); // units specified in miliseconds
 
 	 Mgmt_Zone_Ctrl_WriteReg(InstancePtr->BaseAddress, MZ * MZ_2_MZ_ADDR_OFFSET + MZ_0_HARD_FAULT_MASK_0_REG, hard_fault_mask_0);
 	 Mgmt_Zone_Ctrl_WriteReg(InstancePtr->BaseAddress, MZ * MZ_2_MZ_ADDR_OFFSET + MZ_0_HARD_FAULT_MASK_1_REG, hard_fault_mask_1);
@@ -233,7 +235,7 @@ void Mgmt_Zone_Ctrl_Set_MZ_Cfg(Mgmt_Zone_Ctrl *InstancePtr, u32 MZ, const MZ_con
 	 {
 		 if (cfg->pwren_cfg[idx] != 0)
 		 {
-			 hw_pwr_en_tmr = (u16)(cfg->pwren_cfg[idx] & 0xFFFF) * CORE_CLK_FREQ_IN_MHZ/1000; // units specified in miliseconds
+			 hw_pwr_en_tmr = (u16)(cfg->pwren_cfg[idx] & 0xFFFF) * (CLK_50MHZ_IN_HZ/1000); // units specified in miliseconds
 			 hw_pwr_en_lvl_and_drive = (cfg->pwren_cfg[idx] >> 16 ) & 3;
 
 			 hw_pwr_en_cfg1 = (hw_pwr_en_lvl_and_drive << 16 ) | (1 << MZ);
@@ -255,7 +257,7 @@ void Mgmt_Zone_Ctrl_Get_MZ_Cfg(Mgmt_Zone_Ctrl *InstancePtr, u32 MZ, MZ_config * 
 	 cfg->hardfault_mask = hard_fault_mask;
 
 	 u32 hw_mz_holdoff_reg = Mgmt_Zone_Ctrl_ReadReg(InstancePtr->BaseAddress, MZ * MZ_2_MZ_ADDR_OFFSET + MZ_0_HARD_FAULT_HOLDOFF_REG);
-	 cfg->fault_holdoff = hw_mz_holdoff_reg / (CORE_CLK_FREQ_IN_MHZ/1000);
+	 cfg->fault_holdoff = hw_mz_holdoff_reg / (CLK_50MHZ_IN_HZ/1000);
 
 
 	for (int idx = 0; idx < 32; idx++)
@@ -271,7 +273,7 @@ void Mgmt_Zone_Ctrl_Get_MZ_Cfg(Mgmt_Zone_Ctrl *InstancePtr, u32 MZ, MZ_config * 
 		}
 		else
 		{
-			u16 hw_pwr_en_tmr = pwr_en_cfg_0 / (CORE_CLK_FREQ_IN_MHZ/1000);
+			u16 hw_pwr_en_tmr = pwr_en_cfg_0 / (CLK_50MHZ_IN_HZ/1000);
 			u32 hw_pwr_en_lvl_and_drive = (pwr_en_cfg_1 >> 16 ) & 3;
 
 			cfg->pwren_cfg[idx] = (hw_pwr_en_lvl_and_drive << 16 ) | hw_pwr_en_tmr;
@@ -389,4 +391,12 @@ u32 Mgmt_Zone_Ctrl_Get_Override_Level(Mgmt_Zone_Ctrl *InstancePtr) {
 
 u32 Mgmt_Zone_Ctrl_Get_Override_Input(Mgmt_Zone_Ctrl *InstancePtr) {
     return Mgmt_Zone_Ctrl_ReadReg(InstancePtr->BaseAddress, PWR_EN_OVRD_READ_REG);
+}
+
+void Mgmt_Zone_Ctrl_Set_Sequence_Timer_Max(Mgmt_Zone_Ctrl *InstancePtr, u32 ms) {
+    Mgmt_Zone_Ctrl_WriteReg(InstancePtr->BaseAddress, PWR_EN_TMR_MAX_REG, ms * (CLK_50MHZ_IN_HZ/1000));
+}
+
+u32 Mgmt_Zone_Ctrl_Get_Sequence_Timer_Max(Mgmt_Zone_Ctrl *InstancePtr) {
+    return Mgmt_Zone_Ctrl_ReadReg(InstancePtr->BaseAddress, PWR_EN_TMR_MAX_REG) / (CLK_50MHZ_IN_HZ/1000);
 }

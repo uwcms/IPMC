@@ -46,6 +46,8 @@ entity mgmt_zone_ctrl_v1_0_S_AXI is
         pwr_en_state_i          : in t_slv_arr_2(C_PWREN_CNT-1 downto 0);
         pwr_en_i                : in STD_LOGIC_VECTOR(C_PWREN_CNT-1 downto 0);
 
+        pwr_en_tmr_max_o        : out std_logic_vector(31 downto 0);
+
         hard_fault_i            : in  STD_LOGIC_VECTOR(C_HF_CNT-1 downto 0);
         
         -- Override enables if required
@@ -140,6 +142,8 @@ architecture arch_imp of mgmt_zone_ctrl_v1_0_S_AXI is
     constant PWR_EN_OVRD_LVL_REG            : integer := 520;
     constant PWR_EN_OVRD_READ_REG           : integer := 524;
 
+    constant PWR_EN_TMR_MAX_REG             : integer := 528;
+
     constant MZ_0_ADDR_OFFSET               : integer := 1024;
             
     constant MZ_0_PWR_STATUS_REG            : integer := (MZ_0_ADDR_OFFSET +  0);
@@ -201,6 +205,7 @@ architecture arch_imp of mgmt_zone_ctrl_v1_0_S_AXI is
      signal s_pwr_en_ovrd_drive     : std_logic_vector(C_PWREN_CNT-1 downto 0);
      signal s_pwr_en_ovrd_lvl       : std_logic_vector(C_PWREN_CNT-1 downto 0);
     
+     signal s_mz_pwr_en_tmr_max_reg      : std_logic_vector(31 downto 0) := (others => '0');
 begin
 
 	-- I/O Connections assignments
@@ -321,6 +326,9 @@ begin
                    
                 if ( axi_awaddr = addr_encode(PWR_EN_OVRD_LVL_REG, 0, 0, C_S_AXI_ADDR_WIDTH)) then
                    s_pwr_en_ovrd_lvl <= S_AXI_WDATA(C_PWREN_CNT-1 downto 0); end if;
+
+                if ( axi_awaddr = addr_encode(PWR_EN_TMR_MAX_REG, 0, 0, C_S_AXI_ADDR_WIDTH)) then
+                   s_mz_pwr_en_tmr_max_reg <= S_AXI_WDATA(31 downto 0); end if;
 
                 for idx in 0 to C_PWREN_CNT-1 loop if (  axi_awaddr = addr_encode(PWR_EN_0_CFG_0_REG, PEN_2_PEN_ADDR_OFFSET, idx, C_S_AXI_ADDR_WIDTH))     then 
                         s_mz_pwr_en_cfg_0_reg(idx) <= S_AXI_WDATA(31 downto 0); end if; end loop;
@@ -466,6 +474,9 @@ begin
         if (  axi_araddr = addr_encode(PWR_EN_OVRD_READ_REG, 0, 0, C_S_AXI_ADDR_WIDTH))               then 
                 v_dout(C_PWREN_CNT-1 downto 0) := v_dout(C_PWREN_CNT-1 downto 0) or pwr_en_ovrd_lvl_i(C_PWREN_CNT-1 downto 0); end if;
 
+        if (  axi_araddr = addr_encode(PWR_EN_TMR_MAX_REG, 0, 0, C_S_AXI_ADDR_WIDTH))               then 
+                v_dout := v_dout or s_mz_pwr_en_tmr_max_reg; end if;
+                
         for idx in 0 to C_PWREN_CNT-1 loop if (  axi_araddr = addr_encode(PWR_EN_0_CFG_0_REG, PEN_2_PEN_ADDR_OFFSET, idx, C_S_AXI_ADDR_WIDTH))          then 
                 v_dout := v_dout or s_mz_pwr_en_cfg_0_reg(idx); end if; end loop;
                 
@@ -550,4 +561,5 @@ begin
       pwr_en_ovrd_drive_o <= s_pwr_en_ovrd_drive;
       pwr_en_ovrd_lvl_o <= s_pwr_en_ovrd_lvl;
              
+      pwr_en_tmr_max_o <= s_mz_pwr_en_tmr_max_reg;
 end arch_imp;

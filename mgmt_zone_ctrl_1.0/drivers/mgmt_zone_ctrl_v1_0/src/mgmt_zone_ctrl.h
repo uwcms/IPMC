@@ -387,6 +387,32 @@ u32 Mgmt_Zone_Ctrl_Get_Override_Level(Mgmt_Zone_Ctrl *InstancePtr);
 *****************************************************************************/
 u32 Mgmt_Zone_Ctrl_Get_Override_Input(Mgmt_Zone_Ctrl *InstancePtr);
 
+/****************************************************************************/
+/**
+* Set or Get the maximum enable sequence timer value used across all power
+* enables.
+*
+* This must be greater than or equal to the highest sequence timer value used by
+* any power enable configured within this MZ controller.
+*
+* When a MZ is asked to sequence off, the sequence timer counts down from this
+* value, and each power enable pin is deasserted when its "delay" value is
+* reached.  This value can therefore also be higher, in order to provide an
+* additional delay if desired.
+*
+* @param	InstancePtr is a pointer to an Mgmt_Zone_Ctrl instance. The memory the
+*		pointer references must be pre-allocated by the caller. Further
+*		calls to manipulate the instance/driver through the Mgmt_Zone_Ctrl API
+*		must be made with this pointer.
+*
+* @param ms The highest sequence timer value, in milliseconds
+*
+* @note		None.
+*
+*****************************************************************************/
+void Mgmt_Zone_Ctrl_Set_Sequence_Timer_Max(Mgmt_Zone_Ctrl *InstancePtr, u32 ms);
+u32 Mgmt_Zone_Ctrl_Get_Sequence_Timer_Max(Mgmt_Zone_Ctrl *InstancePtr);
+
 #ifdef __cplusplus
 }
 #endif
