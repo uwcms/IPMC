@@ -175,6 +175,30 @@ public:
 		uint64_t last_transition_start_ts; ///< The timestamp of the start of the last transition.
 	};
 
+	/**
+	 * Set the maximum power enable delay used.
+	 *
+	 * When an MZ is enabled, a counter starts at 0, and each enable turns on
+	 * when its delay value is reached.
+	 *
+	 * When a MZ is disabled, a counter starts at this value, and each enable
+	 * turns off when its delay value is reached.
+	 *
+	 * This value must therefore be set to be greater than or equal to the
+	 * highest delay value used by the controller.  This value will be
+	 * automatically recomputed by setPowerEnableConfig, but may later be
+	 * overridden by calling this function, if desired.
+	 *
+	 * @param delay The maximum power enable delay in milliseconds.
+	 */
+	void setMaxPowerSequenceDelay(uint32_t delay);
+
+	/**
+	 * Get the maximum power enable delay used.
+	 * @param delay The maximum power enable delay in milliseconds.
+	 */
+	void getMaxPowerSequenceDelay(uint32_t *delay);
+
 	// From base class ConsoleCommandSupport:
 	virtual void registerConsoleCommands(CommandParser &parser, const std::string &prefix="");
 	virtual void deregisterConsoleCommands(CommandParser &parser, const std::string &prefix="");

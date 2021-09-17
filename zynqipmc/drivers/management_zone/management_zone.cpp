@@ -72,13 +72,17 @@ void ZoneController::Zone::setPowerEnableConfig(const std::vector<OutputConfig> 
 
 	MZ_config config;
 	Mgmt_Zone_Ctrl_Get_MZ_Cfg(&this->zonectrl.zone, this->kZoneNumber, &config);
+	uint32_t max_delay = 0;
 	for (uint32_t i = 0; i < this->zonectrl.getPowerEnableCount(); ++i) {
 		config.pwren_cfg[i] =
 				((pen_config[i].drive_enabled)<<17) |
 				((pen_config[i].active_high  )<<16) |
 				((pen_config[i].enable_delay )<< 0) ;
+		if (pen_config[i].enable_delay > max_delay)
+			max_delay = pen_config[i].enable_delay;
 	}
 	Mgmt_Zone_Ctrl_Set_MZ_Cfg(&this->zonectrl.zone, this->kZoneNumber, &config);
+	this->zonectrl.setMaxPowerSequenceDelay(max_delay);
 }
 
 void ZoneController::Zone::getPowerEnableConfig(std::vector<OutputConfig> &pen_config) {
@@ -137,6 +141,16 @@ bool ZoneController::Zone::getPowerState(bool *in_transition) {
 		*in_transition = transitioning;
 	return active;
 }
+
+void ZoneController::setMaxPowerSequenceDelay(uint32_t delay) {
+	Mgmt_Zone_Ctrl_Set_Sequence_Timer_Max(&this->zone, delay);
+}
+
+void ZoneController::getMaxPowerSequenceDelay(uint32_t *delay) {
+	if (delay)
+		*delay = Mgmt_Zone_Ctrl_Get_Sequence_Timer_Max(&this->zone);
+}
+
 
 class ZoneController::Override final : public CommandParser::Command {
 public:
