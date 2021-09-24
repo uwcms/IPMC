@@ -23,6 +23,9 @@
 #include <libs/utils.h>
 #include <services/console/command_parser.h>
 #include <services/console/consolesvc.h>
+#ifdef ENABLE_DRIVER_COMMAND_SUPPORT
+#include <libs/printf.h>
+#endif
 
 /**
  * An abstract I2C driver interface.
@@ -59,10 +62,10 @@ public:
 		Send(I2C &i2c) : i2c(i2c) {};
 
 		virtual std::string getHelpText(const std::string &command) const {
-			return command + " $slave_addr [RS] [$byte1 $byte2 ..]\n\n"
-					"Send bytes to connected I2C slave. Byte declaration is optional.\n"
-					"\n"
-					"Include the \"RS\" flag to indicate that this message preceeds a repeated start.\n";
+			return command + " $7b_slave_addr [RS] [$byte1 $byte2 ..]\n\n"
+			                 "Send bytes to connected I2C slave. Byte declaration is optional.\n"
+			                 "\n"
+			                 "Include the \"RS\" flag to indicate that this message preceeds a repeated start.\n";
 		}
 
 		virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
@@ -124,10 +127,10 @@ public:
 		Recv(I2C &i2c) : i2c(i2c) {};
 
 		virtual std::string getHelpText(const std::string &command) const {
-			return command + " $slave_addr [RS] $byte_count\n\n"
-					"Receive bytes from connected I2C slave. $byte_count is the number of bytes to read.\n"
-					"\n"
-					"Include the \"RS\" flag to indicate that this message preceeds a repeated start.\n";
+			return command + " $7b_slave_addr [RS] $byte_count\n\n"
+			                 "Receive bytes from connected I2C slave. $byte_count is the number of bytes to read.\n"
+			                 "\n"
+			                 "Include the \"RS\" flag to indicate that this message preceeds a repeated start.\n";
 		}
 
 		virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
@@ -173,12 +176,73 @@ public:
 	private:
 		I2C &i2c;
 	};
+
+	class SendRecv : public CommandParser::Command {
+	public:
+		SendRecv(I2C &i2c) : i2c(i2c){};
+
+		virtual std::string getHelpText(const std::string &command) const {
+			return command + " $7b_slave_addr [$byte_to_send ...] $read_byte_count\n"
+			                 "\n"
+			                 "Sends bytes to the I2C device, then reads the specified number of bytes.\n"
+							 "\n"
+							 "This command uses a repeated start between the send and the read.  While this\n"
+							 "can theoretically be accomplished with the send and recv commands, this command\n"
+							 "allows for tighter timing than a human at a console is capable of.\n"
+			                 "\n"
+			                 "This can be used to implement a typical I2C register read, by sending a\n"
+			                 "register address, then receiving some number of bytes.\n";
+		}
+
+		virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
+			uint8_t slaveaddr;
+			std::string rs_arg = "";
+
+			if (!parameters.parseParameters(1, false, &slaveaddr)) {
+				console->write("Invalid arguments, see help.\n");
+				return;
+			}
+
+			if (slaveaddr > 0x7f) {
+				console->write("Slave address out of range, see help.\n");
+				return;
+			}
+
+			const size_t bufsz = parameters.nargs() - 2; // Allocate our buffer.
+			uint8_t buf[bufsz];
+			for (size_t i = 2; i < parameters.nargs(); ++i) {
+				if (!parameters.parseParameters(i, false, &(buf[i - 2]))) {
+					console->write("Unable to parse arguments, see help.\n");
+					return;
+				}
+			}
+			// We now have all the sendbytes, and the last byte of our buffer is how much to read.
+			const size_t readbufsz = buf[bufsz - 1];
+			uint8_t readbuf[readbufsz];
+			size_t rv = this->i2c.atomic<size_t>([&]() -> size_t {
+				if (this->i2c.write(slaveaddr, buf, bufsz - 1, pdMS_TO_TICKS(2000), true) != bufsz - 1) {
+					console->write("i2c.write failed\n");
+					return 0;
+				}
+				return this->i2c.read(slaveaddr, readbuf, readbufsz, pdMS_TO_TICKS(2000));
+			});
+			std::string out = stdsprintf("Read %d bytes:", rv);
+			for (size_t i = 0; i < rv; ++i)
+				out += stdsprintf(" 0x%02x", readbuf[i]);
+			console->write(out + "\n");
+		}
+
+	private:
+		I2C &i2c;
+	};
+
 #endif
 
 	virtual void registerConsoleCommands(CommandParser &parser, const std::string &prefix="") {
 #ifdef ENABLE_DRIVER_COMMAND_SUPPORT
 		parser.registerCommand(prefix + "send", std::make_shared<I2C::Send>(*this));
 		parser.registerCommand(prefix + "recv", std::make_shared<I2C::Recv>(*this));
+		parser.registerCommand(prefix + "sendrecv", std::make_shared<I2C::SendRecv>(*this));
 #endif
 	}
 
@@ -186,6 +250,7 @@ public:
 #ifdef ENABLE_DRIVER_COMMAND_SUPPORT
 		parser.registerCommand(prefix + "send", nullptr);
 		parser.registerCommand(prefix + "recv", nullptr);
+		parser.registerCommand(prefix + "sendrecv", nullptr);
 #endif
 	}
 };
