@@ -158,7 +158,7 @@ size_t PLI2C::read(uint8_t addr, uint8_t *buf, size_t len, TickType_t timeout, b
 	if (this->was_event) {
 		// Something went wrong
 		// Check this->irqstatus for error code if required
-		printf("Bad I2C read reply: %s", PLI2C::parseStatusCode(this->irqstatus));
+		printf("Bad I2C read reply: %s", PLI2C::parseStatusCode(this->irqstatus).c_str());
 		return 0;
 	} else {
 		if (this->irqstatus != 0)
@@ -216,7 +216,7 @@ size_t PLI2C::write(uint8_t addr, const uint8_t *buf, size_t len, TickType_t tim
 	if (this->was_event) {
 		// Something went wrong
 		// Check this->irqstatus for error code if required
-		printf("Bad I2C write reply: %s", PLI2C::parseStatusCode(this->irqstatus));
+		printf("Bad I2C write reply: %s", PLI2C::parseStatusCode(this->irqstatus).c_str());
 		return 0;
 	} else {
 		if (this->irqstatus != 0) {
