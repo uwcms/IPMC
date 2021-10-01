@@ -44,8 +44,10 @@ public:
 		}
 
 		this->serial_in_memory = serial;
-		this->eeprom->write(this->offset, reinterpret_cast<uint8_t*>(&serial), sizeof(serial));
-		console->write("Serial updated.  Reboot to lock.\n");
+		if (this->eeprom->write(this->offset, reinterpret_cast<uint8_t *>(&serial), sizeof(serial)) != sizeof(serial))
+			console->write("Unable to write serial to EEPROM.\n");
+		else
+			console->write("Serial updated.  Reboot to lock.\n");
 	}
 };
 
