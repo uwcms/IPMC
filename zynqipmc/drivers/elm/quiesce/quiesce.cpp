@@ -30,23 +30,38 @@ ELMQuiesce::~ELMQuiesce() {
 
 void ELMQuiesce::elm_powered_on() {
 	MutexGuard<true> lock(this->mutex);
-	this->elm_powered_off();
-	this->startup_timestamp = get_tick64();
+	/* It can occur that while we are in the process of quiescing, the shelf
+	 * manager chooses to send a "Set Power Level: 1" command.  If we reset our
+	 * state machine based on the ELM being powered on, therefore, we can end up
+	 * in a state where the callbacks are not called, and should not be called,
+	 * but in which calling them would produce undesirable effects. (Responding
+	 * to "Set Power Level: 1", by immediately terminating a quiesce and
+	 * powering off regardless of actual safety.)
+	 *
+	 * In order to protect higher level FSMs, we must sustain our guarantee that
+	 * the callbacks will be called.  As such, we will NOT reset our FSM here if
+	 * it is already active.  If we were in the process of quiescing the ELM, we
+	 * cannot terminate that process on the ELM side and leave the system in a
+	 * useful state.  We will therefore simply choose to allow any quiesce in
+	 * progress to complete naturally.
+	 */
+	// this->elm_powered_off();
+	if (this->quiesce_request_timestamp) {
+		// A quiesce is already in progress.
+		// We won't mess with the startup timestamp under these conditions.
+	}
+	else {
+		this->startup_timestamp = get_tick64();
+	}
 };
 
 void ELMQuiesce::elm_powered_off() {
 	MutexGuard<true> lock(this->mutex);
+	// The ELM is now known to be COLD.
+	// We will fail any quiesce in progress, since we recieved no confirmation
+	// from the ELM.
+	this->quiesceComplete(false);
 	this->startup_timestamp = 0;
-	this->quiesce_request_timestamp = 0;
-	this->quiesce_acknowledgement_timestamp = 0;
-	if (this->fsm_timer) {
-		this->fsm_timer->cancel(false);
-		this->fsm_timer = nullptr;
-	}
-	if (this->send_request_timer) {
-		this->send_request_timer->cancel(false);
-		this->send_request_timer = nullptr;
-	}
 };
 
 // #define DEBUG_QUIESCE_FSM
@@ -198,7 +213,18 @@ void ELMQuiesce::quiesceComplete(bool successful) {
 	this->quiesce_request_timestamp = 0;
 	this->quiesce_acknowledgement_timestamp = 0;
 
-	for (auto callback : this->callbacks)
+	/* If we register a quiesce callback that includes shutting off payload
+	 * power, that will call elm_powered_off, which will call
+	 * quiesceComplete(false).  The callback list must be cleared by this point.
+	 * Therefore, we will run the callbacks from a copy, having cleared this to
+	 * begin with.
+	 *
+	 * This didn't fail before, for reasons probably related to the finer
+	 * details of list iteration.  It is explicit now.
+	 */
+	std::list<QuiesceCompleteCallback> callbacks = this->callbacks;
+	this->callbacks.clear();
+	for (auto callback : callbacks)
 		callback(successful);
 	this->callbacks.clear();
 };
