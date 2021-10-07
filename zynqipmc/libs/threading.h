@@ -63,8 +63,8 @@ public:
 	 *
 	 * @return A correct relative timeout for this object from the current point in time.
 	 */
-	TickType_t getTimeout();
-	inline uint64_t getTimeout64() { return this->timeout64; };
+	TickType_t getTimeout() const;
+	inline uint64_t getTimeout64() const { return this->timeout64; };
 
 	/**
 	 * Set or reset the timeout based on a relative time from now.
@@ -73,6 +73,7 @@ public:
 	void setTimeout(TickType_t relative_timeout);
 	void setTimeout(uint64_t relative_timeout);
 	inline void setAbsTimeout(uint64_t abs_timeout) { this->timeout64 = abs_timeout; };
+	inline void setAbsTimeout(const AbsoluteTimeout &abs_timeout) { this->timeout64 = abs_timeout.timeout64; };
 
 	/// Comparison Operators
 	///@{

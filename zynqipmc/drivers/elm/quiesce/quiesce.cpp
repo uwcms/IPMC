@@ -49,6 +49,7 @@ void ELMQuiesce::elm_powered_off() {
 	}
 };
 
+// #define DEBUG_QUIESCE_FSM
 void ELMQuiesce::quiesce_fsm() {
 	MutexGuard<true> lock(this->mutex);
 	if (this->fsm_timer) {
@@ -62,10 +63,22 @@ void ELMQuiesce::quiesce_fsm() {
 	// We have a request.
 	uint64_t now = get_tick64();
 	AbsoluteTimeout next_time(UINT64_MAX);
+#ifdef DEBUG_QUIESCE_FSM
+	this->logtree->log(std::string("this->startup_timestamp = ") + std::to_string(this->startup_timestamp) + std::string("; this->startup_allowance = ") + std::to_string(this->startup_allowance), LogTree::LOG_DIAGNOSTIC);
+	this->logtree->log(std::string("this->quiesce_request_timestamp = ") + std::to_string(this->quiesce_request_timestamp) + std::string("; this->acknowledgement_timeout = ") + std::to_string(this->acknowledgement_timeout), LogTree::LOG_DIAGNOSTIC);
+	this->logtree->log(std::string("this->quiesce_acknowledgement_timestamp = ") + std::to_string(this->quiesce_acknowledgement_timestamp) + std::string("; this->quiesce_timeout = ") + std::to_string(this->quiesce_timeout), LogTree::LOG_DIAGNOSTIC);
+#endif
+	uint64_t startup_deadline = this->startup_timestamp + this->startup_allowance;
+	uint64_t acknowledgement_deadline = this->quiesce_request_timestamp + this->acknowledgement_timeout;
+	uint64_t completion_deadline = this->quiesce_acknowledgement_timestamp + this->quiesce_timeout;
+#ifdef DEBUG_QUIESCE_FSM
+	this->logtree->log(std::string("Startup deadline: ") + std::to_string(startup_deadline - now), LogTree::LOG_DIAGNOSTIC);
+	this->logtree->log(std::string("Acknowledgement deadline: ") + std::to_string(acknowledgement_deadline - now), LogTree::LOG_DIAGNOSTIC);
+	this->logtree->log(std::string("Completion deadline: ") + std::to_string(completion_deadline - now), LogTree::LOG_DIAGNOSTIC);
+#endif
 	if (this->quiesce_acknowledgement_timestamp == 0) {
 		// We have an unacknowledged request.
-		if (this->startup_timestamp + this->startup_allowance <= now
-				&& this->quiesce_request_timestamp + this->acknowledgement_timeout <= now) {
+		if (startup_deadline <= now && acknowledgement_deadline <= now) {
 			// They've had their chance.
 			this->logtree->log("The ELM failed to acknowledge our quiescence request.", LogTree::LOG_NOTICE);
 			this->quiesceComplete(false);
@@ -75,15 +88,15 @@ void ELMQuiesce::quiesce_fsm() {
 		else {
 			// They still have time.  But how much?
 			// We're resending our request in another timer.
-			if (this->startup_timestamp + this->startup_allowance > this->quiesce_request_timestamp + this->acknowledgement_timeout)
-				next_time.setAbsTimeout(this->startup_timestamp + this->startup_allowance);
+			if (startup_deadline > acknowledgement_deadline)
+				next_time.setAbsTimeout(startup_deadline);
 			else
-				next_time.setAbsTimeout(this->quiesce_acknowledgement_timestamp + this->acknowledgement_timeout);
+				next_time.setAbsTimeout(acknowledgement_deadline);
 		}
 	}
 	else {
 		// We have an acknowledged request.
-		if (this->quiesce_acknowledgement_timestamp + this->quiesce_timeout <= now) {
+		if (completion_deadline <= now) {
 			// They've had plenty of time.
 			this->logtree->log("The ELM failed to quiesce in a timely manner.", LogTree::LOG_NOTICE);
 			this->quiesceComplete(false);
@@ -92,9 +105,12 @@ void ELMQuiesce::quiesce_fsm() {
 		}
 		else {
 			// Give them time...
-			next_time.setAbsTimeout(this->quiesce_acknowledgement_timestamp + this->quiesce_timeout);
+			next_time.setAbsTimeout(completion_deadline);
 		}
 	}
+#ifdef DEBUG_QUIESCE_FSM
+	this->logtree->log(std ::string("Advancing Quiesce FSM: ") + std::to_string(next_time.getTimeout()), LogTree::LOG_DIAGNOSTIC);
+#endif
 	if (next_time.getTimeout64() != UINT64_MAX) {
 		this->fsm_timer = std::make_shared<TimerService::Timer>(
 				[this]() -> void { this->quiesce_fsm(); }, next_time);

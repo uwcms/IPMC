@@ -29,7 +29,7 @@
 #include <libs/threading.h>
 #include <zynqipmc_config.h>
 
-TickType_t AbsoluteTimeout::getTimeout() {
+TickType_t AbsoluteTimeout::getTimeout() const {
 	if (this->timeout64 == UINT64_MAX)
 		return portMAX_DELAY;
 
