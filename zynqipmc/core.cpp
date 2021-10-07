@@ -21,13 +21,14 @@
 #include <drivers/ps_gpio/ps_gpio.h>
 #include <drivers/ps_spi/ps_spi.h>
 #include <drivers/spi_flash/spi_flash.h>
+#include <drivers/tracebuffer/ftptracebuffer.h>
 #include <libs/bootconfig/bootconfig.h>
 #include <libs/printf.h>
 #include <libs/xilinx_image/xilinx_image.h>
 #include <misc/version.h>
 #include <services/console/uartconsolesvc.h>
-#include <services/ipmi/commands/ipmicmd_index.h>
 #include <services/infolink/infolink.h>
+#include <services/ipmi/commands/ipmicmd_index.h>
 #include <zynqipmc_config.h>
 
 #ifdef MANAGEMENT_ZONE_PRESENT_IN_BSP
@@ -97,6 +98,8 @@ static std::shared_ptr<UARTConsoleSvc> console_service;
 static uint8_t tracebuffer_contents[TRACEBUFFER_SIZE];
 static TraceBuffer *trace_buffer = nullptr;
 static uint8_t tracebuffer_object_memory[sizeof(TraceBuffer)];
+
+FTPTraceBuffer *ftptracebuffer = nullptr;
 
 std::vector<IPMILED*> ipmi_leds;  // Blue, Red, Green, Amber
 
@@ -350,6 +353,10 @@ void core_service_init() {
 	}
 
 #undef MB
+
+	ftptracebuffer = new FTPTraceBuffer(getTraceBuffer());
+	VFS::addFile("virtual/tracebuffer.bin", ftptracebuffer->createExportFile());
+	ftptracebuffer->registerConsoleCommands(console_command_parser, "tracebuffer.ftp");
 
 	setBannerInfolinkBasics();
 

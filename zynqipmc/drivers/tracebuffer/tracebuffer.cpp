@@ -18,13 +18,16 @@
 #include "tracebuffer.h"
 #include <libs/threading.h>
 
-#define TRACEREC_PTR(off) (reinterpret_cast<struct TraceRecord*>((this->buf->buffer)+(off)))
+#define TRACEREC_PTR(off) (reinterpret_cast<struct TraceRecord *>((this->buf->buffer) + (off)))
 #define TRACEBUF_NULL_MARKER 0xffffffff
 
-TraceBuffer::TraceBuffer(uint8_t *buf, size_t bufsize) :
-buf(reinterpret_cast<struct TraceBufferHeader*>(buf)) {
-	configASSERT(bufsize >= sizeof(struct TraceBufferHeader)+sizeof(TraceBuffer::TraceRecord));
+TraceBuffer::TraceBuffer(uint8_t *buf, size_t bufsize) : export_size(bufsize), buf(reinterpret_cast<struct TraceBufferHeader *>(buf)) {
+	configASSERT(bufsize >= sizeof(struct TraceBufferHeader) + sizeof(TraceBuffer::TraceRecord));
 	configASSERT(bufsize < 0xffffffff);
+
+	// Blank the buffer on creation to avoid sensitive information leaks if the
+	// memory was not cleared before use.
+	memset(buf, 0, bufsize);
 
 	this->buf->total_length = bufsize - sizeof(struct TraceBufferHeader);
 	this->buf->last_record = TRACEBUF_NULL_MARKER;
@@ -49,12 +52,13 @@ void TraceBuffer::log(const char *label, size_t label_len, enum LogTree::LogLeve
 		next_offset = 0;
 		rec = TRACEREC_PTR(0);
 		rec->previous_record = TRACEBUF_NULL_MARKER;
-	} else {
+	}
+	else {
 		uint32_t prev_record_offset = this->buf->last_record;
 		rec = TRACEREC_PTR(prev_record_offset);
 		next_offset = prev_record_offset + sizeof(struct TraceRecord) + rec->label_length + rec->data_length;
 		if (next_offset % 4)
-			next_offset += 4-(next_offset%4); // Word-align all records.
+			next_offset += 4 - (next_offset % 4); // Word-align all records.
 		if (next_offset + record_length > this->buf->total_length)
 			next_offset = 0;
 		rec = TRACEREC_PTR(next_offset);
@@ -72,4 +76,12 @@ void TraceBuffer::log(const char *label, size_t label_len, enum LogTree::LogLeve
 	memcpy(rec->data + label_len, data, data_len);
 
 	this->buf->last_record = next_offset;
+}
+
+size_t TraceBuffer::export_buffer(uint8_t *buf, size_t bufsize) const {
+	if (bufsize != this->export_size)
+		return 0;
+	CriticalGuard critical(true);
+	memcpy(buf, reinterpret_cast<uint8_t *>(this->buf), this->export_size);
+	return this->export_size;
 }

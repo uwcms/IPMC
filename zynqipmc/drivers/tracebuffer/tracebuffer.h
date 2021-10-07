@@ -18,10 +18,11 @@
 #ifndef SRC_COMMON_ZYNQIPMC_DRIVERS_TRACEBUFFER_TRACEBUFFER_H_
 #define SRC_COMMON_ZYNQIPMC_DRIVERS_TRACEBUFFER_TRACEBUFFER_H_
 
-#include <stdint.h>
-#include <stddef.h>
-#include <string>
 #include <libs/logtree/logtree.h>
+#include <memory>
+#include <stddef.h>
+#include <stdint.h>
+#include <string>
 
 /**
  * This provides a Trace Buffer facility to allow memory dumps of structured
@@ -56,6 +57,22 @@ public:
 		this->log(label.data(), label.size(), loglevel, data.data(), data.size(), binary);
 	};
 
+	const size_t export_size; ///< The size of exported copies of this buffer.
+	/**
+	 * Export a copy of the TraceBuffer's contents.
+	 * @param buf     A preallocated buffer to fill.
+	 * @param bufsize The size of the preallocated buffer.
+	 * @return        Number of bytes exported.
+	 *
+	 * \note `bufsize` must be equal to this->export_size.
+	 *       Its purpose is as a safety check.
+	 *
+	 * \warning While this is a simple memory copy, it may be large, and it is
+	 *          performed in a critical section, as are all TraceBuffer
+	 *          operations.
+	 */
+	size_t export_buffer(uint8_t *buf, size_t bufsize) const;
+
 protected:
 	//! A struct defining a header for the tracebuffer itself.
 	struct TraceBufferHeader {
@@ -72,7 +89,7 @@ protected:
 		uint16_t loglevel;			///< Loglevel of the record.
 		/**
 		 * Flags related to the TraceRecord.
-		 * [31: 1]  Reserved
+		 * [15: 1]  Reserved
 		 * [    0]  Binary log data (1),  String log data (0)
 		 */
 		uint16_t flags;
