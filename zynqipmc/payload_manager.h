@@ -59,7 +59,10 @@ public:
 
 	/**
 	 * A multiplier for the values in the power levels array.
-	 * (If 5, then power levels are specified in units of 5W.)
+	 *
+	 * According to PICMG 3.0 Table 3-83, this value is specified in 0.1W units.
+	 *
+	 * (If 50, then power levels are specified in units of 5W.)
 	 */
 	uint8_t power_multiplier;
 
