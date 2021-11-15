@@ -171,7 +171,21 @@ bool CommandParser::parse(std::shared_ptr<ConsoleSvc> console, const std::string
 	if (!handler)
 		return false; // Unknown command.
 
-	handler->execute(console, CommandParameters(command, cursor_param, cursor_char));
+	try {
+		handler->execute(console, CommandParameters(command, cursor_param, cursor_char));
+	}
+	catch (std::exception &exception) {
+		BackTrace *trace = BackTrace::traceException();
+		std::string diag = renderExceptionReport(trace, &exception, std::string("In console command ") + command[0]);
+		if (trace)
+			delete trace;
+	}
+	catch (...) {
+		BackTrace *trace = BackTrace::traceException();
+		std::string diag = renderExceptionReport(trace, nullptr, std::string("In console command ") + command[0]);
+		if (trace)
+			delete trace;
+	}
 	return true;
 }
 
@@ -273,7 +287,7 @@ CommandParser::CompletionResult CommandParser::complete(const std::string &comma
 	    cursor_param++;
 	    cursor_char = 0;
 	}
-	
+
 	if (cursor_param == 0) {
 		return CompletionResult(command[cursor_param].substr(0, cursor_char), this->listCommands());
 	} else if (handler) {

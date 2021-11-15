@@ -199,6 +199,9 @@ static void printException(const std::exception *exception) {
 
 	// Put it through the standard log system.
 	LOG[tskname].log(diag, LogTree::LOG_CRITICAL);
+
+	if (trace)
+		delete trace;
 }
 
 /**
