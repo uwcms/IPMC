@@ -21,7 +21,7 @@ namespace CoreCommands
 class ResetGPIOCommand final : public CommandParser::Command {
 public:
 	ResetGPIOCommand(std::string descriptor, GPIO &gpio, uint32_t reset_pin, bool active_high = false, bool neutral_z = true, TickType_t duration = 1000)
-	    : gpio(gpio), pin(reset_pin), active_high(active_high), neutral_z(neutral_z), duration(duration), descriptor(descriptor){
+	    : gpio(gpio), pin(reset_pin), active_high(active_high), neutral_z(neutral_z), duration(duration), descriptor(descriptor) {
 		configASSERT(this->mutex = xSemaphoreCreateMutex());
 	};
 	virtual ~ResetGPIOCommand() {
@@ -29,9 +29,10 @@ public:
 	}
 
 	virtual std::string getHelpText(const std::string &command) const {
-		return command + "\n"
+		return command + " [hold]\n"
 		                 "Reset the " +
-		       this->descriptor + "\n";
+		       this->descriptor + "\n"
+		                          "And optionally hold it in reset.\n";
 	}
 
 	virtual void execute(std::shared_ptr<ConsoleSvc> console, const CommandParser::CommandParameters &parameters) {
@@ -41,10 +42,16 @@ public:
 		this->gpio.setPinToOutput(this->pin);
 
 		vTaskDelay(this->duration);
-		if (this->neutral_z)
-			this->gpio.setPinToInput(this->pin);
-		this->gpio.setBusMask(active_high ? 0 : 1, 1 << this->pin);
-		console->write("Done.\n");
+		if (parameters.nargs() == 2 && parameters.parameters[1] == "hold") {
+			console->write(stdsprintf("Leaving the %s reset asserted.\n", this->descriptor.c_str()));
+		}
+		else {
+			if (this->neutral_z)
+				this->gpio.setPinToInput(this->pin);
+			else
+				this->gpio.setBusMask(active_high ? 0 : 1, 1 << this->pin);
+			console->write("Done.\n");
+		}
 	}
 
 private:
@@ -57,4 +64,4 @@ private:
 	std::string descriptor;  ///< The name of the peripheral controlled by this reset line.
 };
 
-} // namespace BladeCommands
+} // namespace CoreCommands
