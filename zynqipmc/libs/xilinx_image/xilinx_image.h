@@ -26,7 +26,7 @@
 class BootConfig;
 
 //! Uncomment to enabled debugging
-#define XILINXIMAGE_DEBUG
+// #define XILINXIMAGE_DEBUG
 
 //! Uncomment to fail verification if any partition (with exception of the FSBL) doesn't have MD5
 #define XILINXIMAGE_MD5_REQUIRED
